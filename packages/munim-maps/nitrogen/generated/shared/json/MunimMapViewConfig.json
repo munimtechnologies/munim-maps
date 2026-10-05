@@ -1,0 +1,21 @@
+{
+  "uiViewClassName": "MunimMapView",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "models": true,
+    "initialCamera": true,
+    "mapStyle": true,
+    "elevation": true,
+    "colorScheme": true,
+    "showsBuildings": true,
+    "showsUserLocation": true,
+    "lighting": true,
+    "maxCameraDistance": true,
+    "onModelPress": true,
+    "onCameraChange": true,
+    "onError": true,
+    "hybridRef": true
+  }
+}

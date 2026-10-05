@@ -1,0 +1,132 @@
+{
+  "name": "munim-maps",
+  "version": "0.1.0",
+  "description": "Animated 3D models on Apple Maps (MapKit) for Expo and React Native, including on react-native-maps, powered by Nitro Modules",
+  "main": "lib/index",
+  "module": "lib/index",
+  "types": "lib/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "react-native.config.js",
+    "lib",
+    "nitrogen",
+    "cpp",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "nitro.json",
+    "*.podspec",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf android/build node_modules/**/android/build lib",
+    "lint": "eslint \"**/*.{js,ts,tsx}\" --fix",
+    "lint-ci": "eslint \"**/*.{js,ts,tsx}\" --max-warnings 0",
+    "build": "npm run typecheck && tsc",
+    "prepack": "npm run build",
+    "typescript": "tsc",
+    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js",
+    "specs": "npm run codegen"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "maps",
+    "mapkit",
+    "apple-maps",
+    "3d",
+    "3d-models",
+    "usdz",
+    "scenekit",
+    "react-native-maps",
+    "map-overlay",
+    "annotations",
+    "native-module",
+    "new-architecture",
+    "ios",
+    "typescript",
+    "nitro",
+    "nitro-modules",
+    "munim-technologies"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/munimtechnologies/munim-maps.git"
+  },
+  "author": "sheehanmunim <support@munimtech.com> (https://github.com/sheehanmunim)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/munimtechnologies/munim-maps/issues"
+  },
+  "homepage": "https://github.com/munimtechnologies/munim-maps#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "expo": {
+    "name": "munim-maps",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "devDependencies": {
+    "@react-native/babel-preset": "0.86.3",
+    "@react-native/eslint-config": "0.86.3",
+    "@types/react": "^19.2.15",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "nitrogen": "0.36.5",
+    "prettier": "^3.8.3",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-nitro-modules": "0.36.5",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": ">=0.78",
+    "react-native-nitro-modules": ">=0.36.5 <1"
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": [
+      "@react-native",
+      "prettier"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": [
+        "warn",
+        {
+          "quoteProps": "consistent",
+          "singleQuote": true,
+          "tabWidth": 2,
+          "trailingComma": "es5",
+          "useTabs": false
+        }
+      ]
+    }
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/",
+    "nitrogen/generated/"
+  ],
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false,
+    "semi": false
+  }
+}

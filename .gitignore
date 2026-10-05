@@ -1,0 +1,53 @@
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Dependencies and package-manager logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+.npmrc
+
+# Expo and Metro
+.expo/
+dist/
+web-build/
+.metro-health-check*
+
+# Generated Expo native projects
+example/ios/
+example/android/
+
+# Native build output
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.gradle/
+.cxx/
+.kotlin/
+local.properties
+*.iml
+
+# CocoaPods and Ruby
+Pods/
+vendor/
+
+# TypeScript build output
+packages/*/lib/
+*.tsbuildinfo
+
+# Test coverage and temporary files
+coverage/
+*.orig
+*.tmp

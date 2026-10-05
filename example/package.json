@@ -1,0 +1,27 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~57.0.26",
+    "expo-build-properties": "~57.0.22",
+    "expo-file-system": "~57.0.7",
+    "expo-status-bar": "~57.0.1",
+    "munim-maps": "*",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-maps": "1.27.2",
+    "react-native-nitro-modules": "0.36.5",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "prebuild": "expo prebuild",
+    "ios": "expo run:ios"
+  },
+  "private": true
+}

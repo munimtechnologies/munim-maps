@@ -1,0 +1,19 @@
+{
+  "name": "munim-maps-root",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "example"
+  ],
+  "scripts": {
+    "build": "npm --workspace munim-maps run build",
+    "codegen": "npm --workspace munim-maps run codegen",
+    "lint": "npm --workspace munim-maps run lint-ci",
+    "typecheck": "npm --workspace munim-maps run typecheck",
+    "typecheck:example": "tsc --noEmit -p example/tsconfig.json",
+    "check": "npm run codegen && npm run lint && npm run typecheck && npm run typecheck:example && npm run build && npm run pack:dry-run",
+    "pack:dry-run": "npm --workspace munim-maps pack --dry-run",
+    "example:start": "npm --workspace example run start",
+    "example:ios": "npm --workspace example run ios"
+  }
+}

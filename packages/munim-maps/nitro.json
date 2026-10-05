@@ -1,0 +1,32 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "munimmaps"
+  ],
+  "ios": {
+    "iosModuleName": "NitroMunimMaps"
+  },
+  "android": {
+    "androidNamespace": [
+      "munimmaps"
+    ],
+    "androidCxxLibName": "NitroMunimMaps"
+  },
+  "autolinking": {
+    "MapModelLayer": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMapModelLayer"
+      }
+    },
+    "MunimMapView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMunimMapView"
+      }
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules"
+  ]
+}

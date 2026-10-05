@@ -1,0 +1,65 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ios-build.yml'
+      - 'package*.json'
+      - 'example/**'
+      - 'packages/munim-maps/ios/**'
+      - 'packages/munim-maps/nitrogen/**'
+      - 'packages/munim-maps/src/**'
+      - 'packages/munim-maps/scripts/**'
+      - 'packages/munim-maps/*.podspec'
+      - 'packages/munim-maps/nitro.json'
+      - 'packages/munim-maps/package.json'
+  pull_request:
+    paths:
+      - '.github/workflows/ios-build.yml'
+      - 'package*.json'
+      - 'example/**'
+      - 'packages/munim-maps/ios/**'
+      - 'packages/munim-maps/nitrogen/**'
+      - 'packages/munim-maps/src/**'
+      - 'packages/munim-maps/scripts/**'
+      - 'packages/munim-maps/*.podspec'
+      - 'packages/munim-maps/nitro.json'
+      - 'packages/munim-maps/package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iOS example (Xcode 26)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Generate iOS project
+        run: npx expo prebuild --platform ios --clean --no-install
+        working-directory: example
+      - run: pod install
+        working-directory: example/ios
+      - name: Build simulator app
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace MunimMapsExample.xcworkspace \
+            -scheme MunimMapsExample \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+        working-directory: example/ios

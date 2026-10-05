@@ -1,0 +1,16 @@
+{
+  "uiViewClassName": "MapModelLayer",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "models": true,
+    "mapTestID": true,
+    "lighting": true,
+    "maxCameraDistance": true,
+    "onModelPress": true,
+    "onAttachChange": true,
+    "onError": true,
+    "hybridRef": true
+  }
+}
