@@ -25,6 +25,8 @@ enum MapModelNodes {
       geometry = SCNCapsule(capRadius: 0.5, height: 1)
     case .pyramid:
       geometry = SCNPyramid(width: 1, height: 1, length: 1)
+    case .gem:
+      geometry = gemGeometry()
     }
 
     let material = SCNMaterial()
@@ -50,6 +52,81 @@ enum MapModelNodes {
     )
     let holder = SCNNode()
     holder.addChildNode(shape)
+    return normalized(holder)
+  }
+
+  /// A cut gem: a six-sided double pyramid, taller above the girdle than
+  /// below, flat shaded. Fits a 1 x 1 x 1 box.
+  private static func gemGeometry() -> SCNGeometry {
+    let sides = 6
+    let girdleY: Float = 0.35
+    var ring: [SIMD3<Float>] = []
+    for i in 0..<sides {
+      let angle = Float(i) / Float(sides) * 2 * .pi
+      ring.append(SIMD3(cos(angle) * 0.5, girdleY, sin(angle) * 0.5))
+    }
+    let top = SIMD3<Float>(0, 1, 0)
+    let bottom = SIMD3<Float>(0, 0, 0)
+    var positions: [SIMD3<Float>] = []
+    var normals: [SIMD3<Float>] = []
+    func face(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>) {
+      let normal = simd_normalize(simd_cross(b - a, c - a))
+      positions += [a, b, c]
+      normals += [normal, normal, normal]
+    }
+    for i in 0..<sides {
+      let a = ring[i]
+      let b = ring[(i + 1) % sides]
+      face(top, b, a)
+      face(bottom, a, b)
+    }
+    let vertexSource = SCNGeometrySource(vertices: positions.map { SCNVector3($0.x, $0.y, $0.z) })
+    let normalSource = SCNGeometrySource(normals: normals.map { SCNVector3($0.x, $0.y, $0.z) })
+    let indices = (0..<UInt32(positions.count)).map { $0 }
+    let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+    return SCNGeometry(sources: [vertexSource, normalSource], elements: [element])
+  }
+
+  /// A text pill on a plane that always faces the camera, 1 unit tall with
+  /// its base on the origin.
+  static func labelNode(text: String) -> SCNNode {
+    let font = UIFont.systemFont(ofSize: 40, weight: .bold)
+    let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
+    let string = text as NSString
+    let textSize = string.size(withAttributes: attributes)
+    let height: CGFloat = 64
+    let size = CGSize(width: ceil(textSize.width) + 40, height: height)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = false
+    let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+      let pill = CGRect(origin: .zero, size: size).insetBy(dx: 2, dy: 2)
+      let path = UIBezierPath(roundedRect: pill, cornerRadius: pill.height / 2)
+      UIColor(white: 0.08, alpha: 0.85).setFill()
+      path.fill()
+      UIColor(white: 1, alpha: 0.9).setStroke()
+      path.lineWidth = 3
+      path.stroke()
+      string.draw(
+        at: CGPoint(x: (size.width - textSize.width) / 2, y: (size.height - textSize.height) / 2),
+        withAttributes: attributes)
+    }
+    let plane = SCNPlane(width: size.width / height, height: 1)
+    let material = SCNMaterial()
+    material.lightingModel = .constant
+    material.diffuse.contents = image
+    material.blendMode = .alpha
+    material.isDoubleSided = true
+    material.readsFromDepthBuffer = false
+    material.writesToDepthBuffer = false
+    plane.materials = [material]
+    let node = SCNNode(geometry: plane)
+    node.renderingOrder = 110
+    let billboard = SCNBillboardConstraint()
+    billboard.freeAxes = .all
+    node.constraints = [billboard]
+    let holder = SCNNode()
+    holder.addChildNode(node)
     return normalized(holder)
   }
 
@@ -93,7 +170,7 @@ enum MapModelNodes {
     return normalized(holder)
   }
 
-  private static func resolveLocalURL(
+  static func resolveLocalURL(
     uri: String,
     completion: @escaping (Result<URL, Error>) -> Void
   ) {
@@ -152,6 +229,126 @@ enum MapModelNodes {
         completion(.failure(error))
       }
     }.resume()
+  }
+
+  /// Loads a PNG or JPEG for an avatar model.
+  static func loadImage(
+    uri: String,
+    completion: @escaping (Result<UIImage, Error>) -> Void
+  ) {
+    resolveLocalURL(uri: uri) { result in
+      switch result {
+      case .failure(let error):
+        completion(.failure(error))
+      case .success(let url):
+        DispatchQueue.global(qos: .userInitiated).async {
+          if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
+            completion(.success(image))
+          } else {
+            completion(.failure(MapModelError.message("\(url.lastPathComponent) is not a PNG or JPEG")))
+          }
+        }
+      }
+    }
+  }
+
+  /// A round picture with an optional ring and badge, on a plane that always
+  /// faces the camera. The plane is 1 unit tall with its base on the origin.
+  static func avatarNode(image: UIImage, model: NativeMapModel) -> SCNNode {
+    let texture = avatarTexture(image: image, model: model)
+    let aspect = texture.size.width / max(1, texture.size.height)
+    let plane = SCNPlane(width: aspect, height: 1)
+    let material = SCNMaterial()
+    material.lightingModel = .constant
+    material.diffuse.contents = texture
+    material.blendMode = .alpha
+    material.isDoubleSided = true
+    // Drawn last and over everything, like a marker.
+    material.readsFromDepthBuffer = false
+    material.writesToDepthBuffer = false
+    plane.materials = [material]
+
+    let node = SCNNode(geometry: plane)
+    node.renderingOrder = 100
+    node.castsShadow = false
+    let billboard = SCNBillboardConstraint()
+    billboard.freeAxes = .all
+    node.constraints = [billboard]
+    let holder = SCNNode()
+    holder.addChildNode(node)
+    return normalized(holder)
+  }
+
+  private static func avatarTexture(image: UIImage, model: NativeMapModel) -> UIImage {
+    let diameter: CGFloat = 192
+    // Points on screen to pixels in the texture.
+    let pixelsPerPoint = diameter / CGFloat(model.screenSize > 0 ? model.screenSize : 44)
+    let badge = model.imageBadge
+    let badgeHeight: CGFloat = badge.isEmpty ? 0 : 64
+    let size = CGSize(width: diameter, height: diameter + badgeHeight * 0.6)
+    let ringColor = UIColor(mapModelHex: model.imageBorderColor)
+    let ring = ringColor == nil ? 0 : CGFloat(max(0, model.imageBorderWidth)) * pixelsPerPoint
+
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = false
+    return UIGraphicsImageRenderer(size: size, format: format).image { context in
+      let cg = context.cgContext
+      let circle = CGRect(x: 0, y: 0, width: diameter, height: diameter)
+      if let ringColor, ring > 0 {
+        ringColor.setFill()
+        cg.fillEllipse(in: circle)
+      }
+      let photo = circle.insetBy(dx: ring, dy: ring)
+      cg.saveGState()
+      cg.addEllipse(in: photo)
+      cg.clip()
+      UIColor(white: 0.9, alpha: 1).setFill()
+      cg.fill(photo)
+      // Aspect-fill the picture into the circle.
+      let scale = max(photo.width / max(1, image.size.width), photo.height / max(1, image.size.height))
+      let drawn = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+      image.draw(in: CGRect(
+        x: photo.midX - drawn.width / 2, y: photo.midY - drawn.height / 2,
+        width: drawn.width, height: drawn.height))
+      cg.restoreGState()
+
+      guard !badge.isEmpty else { return }
+      let font = UIFont.systemFont(ofSize: 40, weight: .heavy)
+      let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
+      let text = badge as NSString
+      let textSize = text.size(withAttributes: attributes)
+      let pillWidth = min(size.width, textSize.width + 28)
+      let pill = CGRect(
+        x: (size.width - pillWidth) / 2, y: size.height - badgeHeight,
+        width: pillWidth, height: badgeHeight - 6)
+      // White text needs a dark pill: light rings (white, pale grey) get a
+      // near-black pill outlined in the ring colour instead.
+      let pillColor = ringColor.flatMap { $0.mapModelLuminance < 0.6 ? $0 : nil }
+        ?? UIColor(white: 0.11, alpha: 1)
+      let pillPath = UIBezierPath(roundedRect: pill, cornerRadius: pill.height / 2)
+      pillColor.setFill()
+      pillPath.fill()
+      (ringColor ?? .white).setStroke()
+      pillPath.lineWidth = 5
+      pillPath.stroke()
+      text.draw(
+        at: CGPoint(x: pill.midX - textSize.width / 2, y: pill.midY - textSize.height / 2),
+        withAttributes: attributes)
+    }
+  }
+
+  /// A unit cylinder (radius 0.5, height 1, centred) in a flat colour.
+  static func stemNode(color: UIColor) -> SCNNode {
+    let cylinder = SCNCylinder(radius: 0.5, height: 1)
+    cylinder.radialSegmentCount = 8
+    let material = SCNMaterial()
+    material.lightingModel = .constant
+    material.diffuse.contents = color
+    cylinder.materials = [material]
+    let node = SCNNode(geometry: cylinder)
+    node.castsShadow = false
+    return node
   }
 
   /// Wraps `node` so its bounding box sits with the base centred on the
@@ -279,6 +476,13 @@ enum MapModelError: LocalizedError {
 }
 
 extension UIColor {
+  /// Relative luminance, 0 (black) to 1 (white).
+  var mapModelLuminance: CGFloat {
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    guard getRed(&r, green: &g, blue: &b, alpha: &a) else { return 0.5 }
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+
   /// Parses `#RGB`, `#RRGGBB` or `#RRGGBBAA`.
   convenience init?(mapModelHex hex: String) {
     var value = hex.trimmingCharacters(in: .whitespacesAndNewlines)

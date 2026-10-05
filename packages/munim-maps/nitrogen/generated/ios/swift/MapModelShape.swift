@@ -31,6 +31,8 @@ public extension MapModelShape {
         self = .capsule
       case "pyramid":
         self = .pyramid
+      case "gem":
+        self = .gem
       default:
         return nil
     }
@@ -55,6 +57,8 @@ public extension MapModelShape {
         return "capsule"
       case .pyramid:
         return "pyramid"
+      case .gem:
+        return "gem"
     }
   }
 }

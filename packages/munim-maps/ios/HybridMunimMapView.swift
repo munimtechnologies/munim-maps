@@ -39,6 +39,10 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     didSet { renderer.setModels(models) }
   }
 
+  var zones: [NativeMapZone] = [] {
+    didSet { renderer.setZones(zones) }
+  }
+
   var initialCamera = MapCamera(latitude: 0, longitude: 0, distance: 0, pitch: 0, heading: 0) {
     didSet { applyInitialCameraIfReady() }
   }

@@ -11,6 +11,7 @@ import NitroModules
 public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   // Properties
   var models: [NativeMapModel] { get set }
+  var zones: [NativeMapZone] { get set }
   var initialCamera: MapCamera { get set }
   var mapStyle: MapStyle { get set }
   var elevation: MapElevation { get set }

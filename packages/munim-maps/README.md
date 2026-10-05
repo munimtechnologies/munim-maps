@@ -1,52 +1,325 @@
-# munim-maps
+<!-- Banner Image -->
 
-Animated 3D models on Apple Maps for Expo and React Native.
+<p align="center">
+  <a href="https://github.com/munimtechnologies/munim-maps">
+    <img alt="Munim Technologies Maps" height="128" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/banner.png">
+    <h1 align="center">munim-maps</h1>
+  </a>
+</p>
 
-munim-maps draws USDZ models (or built-in shapes) at real coordinates on a MapKit map, and keeps them on the ground as the map pans, zooms, tilts and rotates. It works two ways:
+<p align="center">
+   <a aria-label="Package version" href="https://www.npmjs.com/package/munim-maps" target="_blank">
+    <img alt="Package version" src="https://img.shields.io/npm/v/munim-maps.svg?style=flat-square&label=Version&labelColor=000000&color=0066CC" />
+  </a>
+  <a aria-label="Package is free to use" href="https://github.com/munimtechnologies/munim-maps/blob/main/LICENSE" target="_blank">
+    <img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache%202.0-success.svg?style=flat-square&color=33CC12" target="_blank" />
+  </a>
+  <a aria-label="package downloads" href="https://www.npmtrends.com/munim-maps" target="_blank">
+    <img alt="Downloads" src="https://img.shields.io/npm/dm/munim-maps.svg?style=flat-square&labelColor=gray&color=33CC12&label=Downloads" />
+  </a>
+  <a aria-label="total package downloads" href="https://www.npmjs.com/package/munim-maps" target="_blank">
+    <img alt="Total Downloads" src="https://img.shields.io/npm/dt/munim-maps.svg?style=flat-square&labelColor=gray&color=0066CC&label=Total%20Downloads" />
+  </a>
+</p>
 
-- **`MapModelLayer`** draws over a map you already have, such as `react-native-maps`' `MapView` on iOS.
-- **`MunimMapView`** is a MapKit map with models built in, for apps that do not have a map yet.
+<p align="center">
+  <a aria-label="try with expo" href="https://docs.expo.dev/"><b>Works with Expo</b></a>
+&ensp;•&ensp;
+  <a aria-label="documentation" href="https://github.com/munimtechnologies/munim-maps#readme">Read the Documentation</a>
+&ensp;•&ensp;
+  <a aria-label="report issues" href="https://github.com/munimtechnologies/munim-maps/issues">Report Issues</a>
+</p>
 
-It is built with [Nitro Modules](https://nitro.margelo.com). iOS only for now; on Android both components render nothing. Android apps on Mapbox can use Mapbox's own `ModelLayer`.
+<h6 align="center">Follow Munim Technologies</h6>
+<p align="center">
+  <a aria-label="Follow Munim Technologies on GitHub" href="https://github.com/munimtechnologies" target="_blank">
+    <img alt="Munim Technologies on GitHub" src="https://img.shields.io/badge/GitHub-222222?style=for-the-badge&logo=github&logoColor=white" target="_blank" />
+  </a>&nbsp;
+  <a aria-label="Follow Munim Technologies on LinkedIn" href="https://linkedin.com/in/sheehanmunim" target="_blank">
+    <img alt="Munim Technologies on LinkedIn" src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" target="_blank" />
+  </a>&nbsp;
+  <a aria-label="Visit Munim Technologies Website" href="https://munimtech.com" target="_blank">
+    <img alt="Munim Technologies Website" src="https://img.shields.io/badge/Website-0066CC?style=for-the-badge&logo=globe&logoColor=white" target="_blank" />
+  </a>
+</p>
 
-## Install
+<p align="center">
+  <img alt="Friends on upper floors, vehicles, power-ups and zone walls on Apple Maps" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/hero.jpg" width="100%">
+</p>
 
-```sh
-npx expo install munim-maps react-native-nitro-modules
+## Introduction
+
+**munim-maps** puts animated 3D models on Apple Maps in React Native: vehicles, people on the floor of a building they are really on, power-ups, zone walls and your own USDZ files, anchored to real coordinates and moving in the same frame as the map.
+
+Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit map with models built in, and **`MapModelLayer`** draws over any MapKit map on screen, such as `react-native-maps` on iOS. See [Use Your Own Map](#️-use-your-own-map).
+
+**Fully compatible with Expo!** Works with Expo managed (prebuild) and bare workflows.
+
+**Built with React Native's Nitro modules architecture** for high performance and reliability.
+
+**Comes with a catalogue of 48 detailed vehicles**: cars, trucks, buses, bikes, motorcycles, trains, boats, airliners, fighter jets (F-16, F-22, F-35, YF-23), a helicopter, a hot air balloon and rockets (Starship, Falcon 9, Saturn V, Space Shuttle), all recolourable at runtime.
+
+**Note**: iOS only for now. On Android both components render nothing; see [Platform Support Matrix](#platform-support-matrix).
+
+## Table of contents
+
+- [📚 Documentation](#-documentation)
+- [🚀 Features](#-features)
+- [🗺️ Use Your Own Map](#️-use-your-own-map)
+- [🚗 Vehicle Catalogue](#-vehicle-catalogue)
+- [Platform Support Matrix](#platform-support-matrix)
+- [📦 Installation](#-installation)
+- [⚡ Quick Start](#-quick-start)
+- [🔧 API Reference](#-api-reference)
+- [📖 Usage Examples](#-usage-examples)
+- [⚙️ How It Works](#️-how-it-works)
+- [🔍 Troubleshooting](#-troubleshooting)
+- [🛣️ Roadmap](#️-roadmap)
+- [👏 Contributing](#-contributing)
+- [📄 License](#-license)
+
+## 📚 Documentation
+
+<p>Learn about putting 3D on maps <a aria-label="documentation" href="https://github.com/munimtechnologies/munim-maps#readme">in our documentation!</a></p>
+
+- [Getting Started](#-installation)
+- [API Reference](#-api-reference)
+- [Usage Examples](#-usage-examples)
+- [Troubleshooting](#-troubleshooting)
+
+## 🚀 Features
+
+### Models on the map
+
+- 🧊 **3D models at real coordinates**: USDZ, USD, SCN or OBJ files, bundled with `require()`, from `file://` or downloaded and cached from `http(s)://`
+- 🔷 **Built-in shapes**: box, sphere, cylinder, cone, capsule, pyramid and gem, with colour and glow
+- 🎨 **Runtime paint**: `tint` recolours a model's paint, so one file comes in any colour
+- 🧭 **Heading, altitude and scale**, plus `spinDegreesPerSecond` and looping USDZ animations
+- 📏 **Screen-size models**: `screenSize` keeps a model the same height on screen at any zoom, like a marker
+- 🌑 **Ground shadows** and **day/night lighting** that follows the map's appearance
+
+### People, vehicles and labels
+
+- 🏢 **People in buildings**: round avatars that always face the camera float at their real height, with a stem down to the spot below and a floor badge such as `5F`
+- 🚴 **Riders**: `lift` floats an avatar over a vehicle model at any zoom
+- 🏷️ **Labels**: text pills that float above any model, for power-ups or names
+- 👆 **Taps**: `onModelPress` with the model's id; the map keeps every gesture
+
+### Zones
+
+- 🧱 **Zone walls**: circles or polygons stand up as see-through walls with solid top and bottom edges, like a map outline turned into a fence
+- 🔄 **Live updates**: change a zone's radius or points and the wall rebuilds (shrinking zones)
+
+### Maps
+
+- 🗺️ **`MunimMapView`**: a MapKit map with `standard`, `muted`, `hybrid` and `imagery` styles, flat or realistic elevation, light/dark, buildings, user location and a camera API
+- 🧩 **`MapModelLayer`**: draws over an existing MapKit map, including `react-native-maps` on iOS, found by `testID`
+
+### Accuracy
+
+- 🎯 **Matched to MapKit's own camera** to under a point, measured on device against `MKMapView.convert`
+- ⏱️ **Same-frame motion**: models stay within 0.2 px of MapKit's own overlays while MapKit animates the camera
+- ⚡ **High performance**: Nitro modules, Metal rendering, redraws only when the camera moves or something animates
+
+## 🗺️ Use Your Own Map
+
+munim-maps does not need its own map. Pick whichever fits your app; models, vehicles, avatars, labels and zones work the same on all of them.
+
+| Map | How | Status |
+| --- | --- | --- |
+| **Apple MapKit, built in** | `<MunimMapView>` | ✅ Tested on device |
+| **[react-native-maps](https://github.com/react-native-maps/react-native-maps)** (iOS, Apple Maps provider) | `<MapView testID="map">` then `<MapModelLayer mapTestID="map">` | ✅ Tested on device (self-test 11/11) |
+| **Any other React Native map built on MapKit** (`MKMapView`) | `<MapModelLayer>` after it; give the map a `testID` or let the layer find the nearest MapKit map | Supported; not yet tested with specific libraries |
+| **Google Maps, Mapbox, MapLibre** | Not supported: they are not MapKit. On Android, Mapbox's `ModelLayer` draws glTF models natively. | ❌ |
+
+### Over react-native-maps
+
+```tsx
+<View style={{ flex: 1 }}>
+  <MapView style={StyleSheet.absoluteFill} testID="map" pitchEnabled />
+  <MapModelLayer mapTestID="map" models={models} zones={zones} />
+</View>
 ```
 
-Then rebuild the native app (`npx expo prebuild` / `pod install`). munim-maps is native code, so it cannot be added with an over-the-air update.
+The layer sits on top of the map, never takes touches (the map keeps every gesture, and `onModelPress` still fires for taps on models), and draws with MapKit's own camera, so you keep all of react-native-maps' markers, polylines and callouts alongside the 3D.
 
-To bundle `.usdz` files with `require()`, add the extension to Metro:
+### On its own
+
+```tsx
+<MunimMapView style={{ flex: 1 }} initialCamera={camera} models={models} zones={zones} />
+```
+
+## 🚗 Vehicle Catalogue
+
+Import the catalogue from `munim-maps/vehicles` (a separate entry point, so apps that never use it do not bundle it). Each model's paint can be recoloured with `tint`; models face north at heading 0, are sized in real metres and sit on the ground.
+
+```tsx
+import { VEHICLES } from 'munim-maps/vehicles'
+
+{ id: 'ride', coordinate, source: VEHICLES['car-ev'], tint: '#E5484D', heading: 90, screenSize: 15 }
+```
+
+### Cars
+
+<img alt="Cars" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-cars.jpg" width="100%">
+
+| Name | Vehicle | Modelled on |
+| --- | --- | --- |
+| `car-sedan` | Four-door sedan | Mid-size sedan proportions |
+| `car-ev` | Electric fastback, closed nose with light bar | Model 3-style EV |
+| `car-hatchback` | Five-door hatchback | Compact hatchback |
+| `car-wagon` | Estate / station wagon | Mid-size wagon |
+| `car-suv` | Mid-size SUV | Two-row SUV |
+| `car-offroader` | Boxy off-roader with spare wheel and roof rack | Wrangler-style 4x4 |
+| `car-sports` | Sports coupe with spoiler and twin exhausts | Front-engine coupe |
+| `car-supercar` | Low wide supercar with wing | Mid-engine supercar |
+| `car-convertible` | Roadster with seats and roll hoops | Two-seat convertible |
+| `car-pickup` | Full-size pickup with open bed | F-150-style pickup |
+| `car-minivan` | Minivan | Three-row minivan |
+| `car-taxi` | Taxi with roof sign and stripe | Yellow cab |
+| `car-police` | Police car with light bar | Patrol sedan |
+
+### Vans, trucks and buses
+
+<img alt="Commercial vehicles" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-commercial.jpg" width="100%">
+
+| Name | Vehicle |
+| --- | --- |
+| `van-delivery` | High-roof delivery van |
+| `van-ambulance` | Ambulance with stripes, cross and light bar |
+| `truck-box` | Box truck with dual rear wheels |
+| `truck-semi` | Conventional semi tractor with sleeper, stacks and a 53 ft trailer |
+| `truck-fire` | Fire engine with lockers, ladder and lights |
+| `bus-city` | Low-floor city bus with doors and destination sign |
+| `bus-school` | Conventional school bus with stop arm |
+
+### Bikes, scooters and motorcycles
+
+<img alt="Two-wheelers" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-two-wheelers.jpg" width="100%">
+
+| Name | Vehicle |
+| --- | --- |
+| `bike-road` | Road bike with drop bars, wire-spoked wheels and drivetrain |
+| `bike-mountain` | Mountain bike with suspension fork and wide tyres |
+| `bike-city` | City bike with basket, rack and fenders |
+| `scooter-kick` | Electric kick scooter |
+| `scooter-moped` | Vespa-style moped |
+| `motorcycle-sport` | Sport bike with fairing |
+| `motorcycle-cruiser` | Cruiser with V-twin and wide bars |
+| `motorcycle-dirt` | Dirt bike with high fenders |
+
+### Rail and water
+
+<img alt="Rail and water" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-rail-and-water.jpg" width="100%">
+
+| Name | Vehicle |
+| --- | --- |
+| `rail-tram` | Articulated tram with pantograph |
+| `rail-highspeed` | High-speed train, power car and coach |
+| `boat-speed` | Speedboat with outboard |
+| `boat-sail` | Sailboat with main and jib |
+| `boat-yacht` | Three-deck motor yacht |
+| `boat-jetski` | Jet ski |
+
+### Aircraft
+
+<img alt="Aircraft" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-aircraft.jpg" width="100%">
+
+| Name | Aircraft | Modelled on |
+| --- | --- | --- |
+| `plane-airliner` | Narrow-body twinjet | 737-style |
+| `plane-widebody` | Wide-body twinjet | 777-style |
+| `plane-jet` | Business jet with rear engines and T-tail | Light business jet |
+| `plane-prop` | High-wing single prop | Cessna-style |
+| `jet-f16` | Single-engine fighter with chin intake | F-16 |
+| `jet-f22` | Stealth fighter, diamond wing, twin canted tails | F-22 |
+| `jet-f35` | Stealth fighter, single engine | F-35 |
+| `jet-yf23` | Stealth prototype, diamond wing, V-tails | YF-23 |
+| `heli-light` | Light helicopter with skids | Light utility helicopter |
+| `balloon` | Hot air balloon with basket | |
+
+### Rockets
+
+<img alt="Rockets" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-rockets.jpg" width="100%">
+
+| Name | Rocket |
+| --- | --- |
+| `rocket-starship` | Starship on Super Heavy: stainless steel, grid fins, chines, heat shield and flaps (122 m) |
+| `rocket-falcon9` | Falcon 9 with black interstage, folded landing legs, grid fins and fairing (70 m) |
+| `rocket-saturnv` | Saturn V with roll-pattern bands, fins, five F-1 engines and escape tower (111 m) |
+| `rocket-shuttle` | Space Shuttle stack: orbiter, orange external tank and two boosters |
+
+Rockets stand upright; animate a launch by raising `altitude`.
+
+The models are generated from code (`scripts/vehicles/make-vehicles.swift`, lofted cross-sections with real proportions) and have no logos or brand names.
+
+## Platform Support Matrix
+
+| Capability | iOS | Android | Notes |
+| --- | --- | --- | --- |
+| `MunimMapView` | ✅ | ❌ | MapKit. Android renders nothing for now. |
+| `MapModelLayer` over `react-native-maps` | ✅ | ❌ | iOS `react-native-maps` uses MapKit. On Android, Mapbox's own `ModelLayer` draws glTF models natively. |
+| USDZ / USD / SCN models | ✅ | ❌ | OBJ through Model I/O. |
+| Avatars, labels, stems, zones | ✅ | ❌ | |
+| Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (48 models). |
+| Depth against MapKit buildings | ❌ | ❌ | MapKit does not share its depth buffer, so models always draw over buildings. |
+| Terrain height | ❌ | ❌ | MapKit does not expose it; pass heights above the ground. |
+
+## 📦 Installation
+
+### React Native CLI
+
+```bash
+npm install munim-maps react-native-nitro-modules
+cd ios && pod install
+```
+
+### Expo
+
+```bash
+npx expo install munim-maps react-native-nitro-modules
+npx expo prebuild
+```
+
+munim-maps is native code, so it ships in a new app build, not an over-the-air update.
+
+### Metro
+
+To `require()` `.usdz` files (including the vehicle catalogue), add the extension to Metro:
 
 ```js
 // metro.config.js
 config.resolver.assetExts.push('usdz')
 ```
 
-## Draw over react-native-maps
+## ⚡ Quick Start
+
+### Draw over react-native-maps
 
 Render `MapModelLayer` right after the map, in the same parent. It covers the map, lets every touch through, and finds the map by `testID`.
 
 ```tsx
 import MapView from 'react-native-maps'
 import { MapModelLayer, type MapModel } from 'munim-maps'
+import { VEHICLES } from 'munim-maps/vehicles'
 
 const models: MapModel[] = [
   {
-    id: 'rocket',
-    coordinate: { latitude: 25.99717, longitude: -97.15696 },
-    source: require('./assets/starship.usdz'),
-    altitude: 20,
+    id: 'friend',
+    coordinate: { latitude: 41.8853, longitude: -87.6318 },
+    altitude: 15, // metres above the ground
+    image: { uri: 'https://example.com/avatar.jpg' },
+    imageBorder: { color: '#0A84FF', width: 3 },
+    badge: '5F',
+    stem: '#0A84FF',
   },
   {
-    id: 'drop',
-    coordinate: { latitude: 25.9952, longitude: -97.1575 },
-    shape: 'pyramid',
-    color: '#30D158',
-    emissive: true,
-    screenSize: 36, // stays 36 points tall at any zoom, like a marker
-    spinDegreesPerSecond: 90,
+    id: 'car',
+    coordinate: { latitude: 41.8841, longitude: -87.6244 },
+    source: VEHICLES['car-sedan'],
+    tint: '#2E6FD8',
+    heading: 0,
+    screenSize: 15,
   },
 ]
 
@@ -64,24 +337,58 @@ export function Map() {
 }
 ```
 
-To animate, update the model (for example its `altitude`) from state. Only models whose fields changed are touched natively.
-
-## A map with models built in
+### A map with models built in
 
 ```tsx
 import { MunimMapView } from 'munim-maps'
 
 <MunimMapView
   style={{ flex: 1 }}
-  initialCamera={{ latitude: 25.9965, longitude: -97.1559, distance: 1100, pitch: 55, heading: 35 }}
+  initialCamera={{ latitude: 41.8838, longitude: -87.6305, distance: 2600, pitch: 62, heading: 20 }}
   mapStyle="muted"
   models={models}
+  zones={[{ id: 'park', circle: { center: { latitude: 41.8826, longitude: -87.6226 }, radius: 260 }, color: '#FF3B3040' }]}
 />
 ```
 
-`ref` methods: `setCamera(camera, animated)`, `getCamera()`, `measureAlignment()`.
+## 🔧 API Reference
 
-## Models
+### `MapModelLayer`
+
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `models` | `MapModel[]` | required | |
+| `zones` | `MapZone[]` | `[]` | |
+| `mapTestID` | `string` | nearest map | `testID` of the map to draw over. |
+| `lighting` | `'auto' \| 'day' \| 'night'` | `auto` | `auto` follows the map's light or dark appearance. |
+| `maxCameraDistance` | `number` | `50000` | Hide everything when the camera is farther away, in metres. |
+| `onModelPress` | `(id: string) => void` | | |
+| `onAttachChange` | `(attached: boolean) => void` | | Fires when the map is found or lost. |
+| `onError` | `(message: string) => void` | | Load failures and other problems. |
+| `style` | `ViewStyle` | fills the parent | |
+
+Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
+
+### `MunimMapView`
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `initialCamera` | `MapCamera` | required |
+| `models` | `MapModel[]` | `[]` |
+| `zones` | `MapZone[]` | `[]` |
+| `mapStyle` | `'standard' \| 'muted' \| 'hybrid' \| 'imagery'` | `standard` |
+| `elevation` | `'flat' \| 'realistic'` | `realistic` |
+| `colorScheme` | `'system' \| 'light' \| 'dark'` | `system` |
+| `showsBuildings` | `boolean` | `true` |
+| `showsUserLocation` | `boolean` | `false` |
+| `lighting`, `maxCameraDistance`, `onModelPress`, `onError` | | as above |
+| `onCameraChange` | `(camera: MapCamera) => void` | fires when the camera stops |
+
+Ref (`MunimMapViewRef`): `setCamera(camera, animated)`, `getCamera()`, `measureAlignment()`.
+
+`MapCamera`: `{ latitude, longitude, distance, pitch, heading }` (metres from the camera to the centre, degrees).
+
+### `MapModel`
 
 | Field | Default | |
 | --- | --- | --- |
@@ -89,49 +396,153 @@ import { MunimMapView } from 'munim-maps'
 | `coordinate` | required | `{ latitude, longitude }` of the model's base. |
 | `altitude` | `0` | Metres above the ground. |
 | `heading` | `0` | Degrees clockwise from north. |
-| `scale` | `1` | Multiplier. Model files are read in metres. |
+| `scale` | `1` | Multiplier. Files are read in metres. |
 | `source` | | `require()`d asset, `file://` path or `http(s)://` URL of a USDZ, USD, SCN or OBJ file. Remote files are cached. |
-| `shape` | `box` | Used when there is no `source`: `box`, `sphere`, `cylinder`, `cone`, `capsule`, `pyramid`. |
+| `shape` | `box` | Used without `source` or `image`: `box`, `sphere`, `cylinder`, `cone`, `capsule`, `pyramid`, `gem`. |
 | `size` | `10 × 10 × 10` | Shape size in metres: `{ width, height, length }`. |
 | `color` | `#0A84FF` | Shape colour, `#RRGGBB` or `#RRGGBBAA`. |
-| `emissive` | `false` | Makes the shape glow, for night maps. |
-| `spinDegreesPerSecond` | `0` | Turns the model around its vertical axis. |
+| `tint` | | Recolours an asset's paint (materials named `paint…`). |
+| `emissive` | `false` | Makes a shape glow. |
+| `image` | | PNG or JPEG drawn as a round picture that always faces the camera. Replaces `source` and `shape`. |
+| `imageBorder` | | `{ color, width }` ring around the picture. |
+| `badge` | | Short text in a pill under the picture, such as `5F`. |
+| `label` | | Text in a pill floating above any model. |
+| `stem` | `false` | A line from the ground up to the model. `true` or a colour. |
+| `lift` | `0` | Raises the model this many points above `altitude`, at any zoom. |
+| `screenSize` | `0` (44 for images) | Keeps the model this many points tall at any zoom. |
+| `spinDegreesPerSecond` | `0` | |
 | `playAnimations` | `true` | Loops animations embedded in a USDZ. |
-| `screenSize` | `0` | When set, keeps the model this many points tall at any zoom. |
-| `groundShadow` | `true` | Soft round shadow under the model. |
+| `groundShadow` | `true` (false for images) | |
 | `visible` | `true` | |
 
-Each model is moved so the centre of its base sits on the coordinate.
+### `MapZone`
 
-Layer props: `models`, `mapTestID`, `lighting` (`auto` follows the map's light or dark appearance, or force `day` / `night`), `maxCameraDistance` (hide models when zoomed out past this many metres, default 50 km), `onModelPress`, `onAttachChange`, `onError`.
+| Field | Default | |
+| --- | --- | --- |
+| `id` | required | |
+| `circle` | | `{ center, radius }` in metres, or |
+| `polygon` | | `{ latitude, longitude }[]`, closed automatically. |
+| `height` | `40` | Wall height in metres. |
+| `color` | `#0A84FF40` | The alpha sets how see-through the wall is; the top and bottom edges are solid. |
+| `visible` | `true` | |
 
-## How it works
+### Helpers
 
-MapKit has no public API for custom 3D content, so munim-maps draws the models itself, in a transparent Metal layer laid exactly over the map:
+- `isSupported`: `true` on iOS.
+- `circleToPolygon(center, radiusMeters, segments?)`: the outline of a circle on the ground.
+- `toNativeModel(model)`, `toNativeZone(zone)`: the native shapes, for testing.
+- `munim-maps/vehicles`: `VEHICLES` (name → asset), `VEHICLE_NAMES`, `VehicleName`.
 
-1. **Camera.** Every frame it reads the map's camera (centre, altitude, pitch, heading). MapKit's camera, fitted against `MKMapView.convert` on device, is a pinhole camera centred on the view with a 30° vertical field of view. One detail matters: MapKit draws the centre coordinate at the centre of the map's *safe area*, not of the view, so the camera is moved until the ray through that point lands on it. The field of view is not published, so it is measured from the map each frame rather than hard-coded.
-2. **Positions.** Models are placed in metres around the centre of the map using Web Mercator map points, the same flat projection MapKit draws in at street and city zoom.
-3. **Timing.** Rendering happens in a run-loop observer that runs just before Core Animation commits the frame, after the map has moved, and the Metal drawable is presented inside that same transaction. The models move in the same frame as the map instead of trailing it.
-4. **Touches.** The layer never takes touches. Taps are watched with a recognizer on the map that runs alongside the map's own, and hit-tested against each model's bounds.
+## 📖 Usage Examples
 
-`measureAlignment()` compares where each model's ground point is drawn with where MapKit draws the same coordinate (`MKMapView.convert(_:toPointTo:)`), and checks the rendered pixels. The example app runs it on launch for several camera angles, on both `MunimMapView` and `react-native-maps`.
+### People in buildings
 
-## Limits
+munim-maps places models relative to the ground. Phones report altitude above sea level (iOS) or above the GPS ellipsoid (Android, tens of metres different), so convert to sea level, subtract the ground height there (terrain tiles work well), and pass what is left:
 
-- The map's own 3D buildings and terrain never hide a model; models always draw on top of them.
-- MapKit does not expose terrain height. With `elevation: 'realistic'` in hilly places a model can float above or sink into the ground; use `altitude` to correct it.
-- Zoomed far out (the globe), the flat placement no longer matches, so models hide past `maxCameraDistance`.
-- iOS only.
+```tsx
+{
+  id: friend.id,
+  coordinate: friend.coordinate,
+  altitude: friend.altitude - groundElevation, // metres above the ground
+  image: { uri: friend.avatarUrl },
+  imageBorder: { color: '#0A84FF', width: 3 },
+  badge: `${floor}F`,
+  stem: '#0A84FF',
+}
+```
 
-## Example
+### A friend riding a vehicle
 
-`example/` is an Expo app with two Starbase launch pads whose Starships launch on a loop, on both `MunimMapView` and `react-native-maps`. It runs a self-test on launch and writes `Documents/munim-maps-selftest.json`.
+Two models at the same coordinate: the vehicle on the ground and the avatar lifted above it.
 
-```sh
+```tsx
+const at = { latitude: 41.8841, longitude: -87.6244 }
+const models: MapModel[] = [
+  { id: 'car', coordinate: at, source: VEHICLES['car-pickup'], tint: '#8E5A2E', heading: 45, screenSize: 16 },
+  { id: 'rider', coordinate: at, image: avatar, imageBorder: { color: '#FFFFFF', width: 3 }, screenSize: 40, lift: 20 },
+]
+```
+
+### Power-ups
+
+```tsx
+{
+  id: 'revive',
+  coordinate,
+  shape: 'gem',
+  color: '#FF2D55',
+  emissive: true,
+  screenSize: 28,
+  spinDegreesPerSecond: 90,
+  label: '❤️ Revive',
+}
+```
+
+### Zones
+
+```tsx
+<MapModelLayer
+  mapTestID="map"
+  models={[]}
+  zones={[
+    { id: 'safe', circle: { center, radius: 250 }, height: 40, color: '#30D15833' },
+    { id: 'arena', polygon: corners, height: 60, color: '#FF3B3040' },
+  ]}
+/>
+```
+
+### Animation
+
+Update a model from state, for example its `altitude` or `coordinate`; only models whose fields changed are touched natively. Use `spinDegreesPerSecond` or USDZ animations for motion that should not go through JavaScript.
+
+## ⚙️ How It Works
+
+MapKit has no public API for custom 3D content, so munim-maps draws the models itself, in a transparent Metal layer laid exactly over the map.
+
+1. **Camera.** Every frame it reads the map's camera (centre, altitude, pitch, heading). MapKit's camera, fitted against `MKMapView.convert` on device, is a pinhole camera centred on the view with a 30° vertical field of view; the centre coordinate is drawn at the centre of the map's *safe area*, so the camera is moved until the ray through that point lands on it. The field of view is measured from the map each frame rather than hard-coded.
+2. **Positions.** Models are placed in metres around the centre of the map using Web Mercator map points, the projection MapKit draws in at street and city zoom.
+3. **Timing.** Rendering happens in a run-loop observer at the end of each pass, after the map has moved. SceneKit's transaction is flushed first (otherwise SceneKit draws the previous frame's positions), and the drawable is presented straight from the GPU, the way MapKit presents the map.
+4. **Touches.** The layer never takes touches. Taps are watched by a recognizer on the map that runs alongside the map's own, and hit-tested against each model.
+
+The example app checks all of this on device: a self-test compares every model's ground point with `MKMapView.convert` at five camera angles on both `MunimMapView` and `react-native-maps` (11/11 under a point on iPhone 17 Pro), and a lag test (`munimmapsexample://lagtest`) puts a MapKit `MKCircle` and a model on the same spot and screenshots MapKit's own camera animation (within 0.2 px mid-animation).
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **Nothing draws**: check `onAttachChange` (is the map found?) and `onError`. Give `react-native-maps` a `testID` and pass it as `mapTestID`.
+2. **`require('./x.usdz')` fails to bundle**: add `usdz` to Metro's `assetExts`.
+3. **A model is huge or tiny**: files are read in metres; use `scale`, or `screenSize` for marker-style models.
+4. **Models disappear when zoomed out**: raise `maxCameraDistance` (default 50 km).
+5. **Models float on hills with `elevation: 'realistic'`**: MapKit does not expose terrain height; correct with `altitude`.
+6. **Over-the-air update crashes on an old build**: munim-maps is native; ship it in a new build.
+
+### Xcode 27
+
+Apps built with Xcode 27 must adopt the scene lifecycle or they crash at launch on iOS 27. With Expo, set `enableSceneSupport` in `expo-build-properties`; the example app does.
+
+### Example
+
+`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, the self-test and the lag test.
+
+```bash
 npm install
 cd example && npx expo run:ios --device
 ```
 
-## License
+## 🛣️ Roadmap
 
-Apache-2.0
+- **A full MapKit map**: `MunimMapView` with everything `react-native-maps` offers on iOS (markers with custom views, callouts, clustering, polylines, polygons, circles, tile overlays, every map event) plus newer MapKit features (map feature selection, Look Around), so apps no longer need a second map library.
+- **Android on MapLibre**: the open-source map engine (OpenStreetMap data, no API key), with the same 3D layer.
+
+## 👏 Contributing
+
+We welcome contributions! Please open an issue or a pull request on [GitHub](https://github.com/munimtechnologies/munim-maps).
+
+## 📄 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<img alt="Star the Munim Technologies repo on GitHub to support the project" src="https://user-images.githubusercontent.com/9664363/185428788-d762fd5d-97b3-4f59-8db7-f72405be9677.gif" width="50%">

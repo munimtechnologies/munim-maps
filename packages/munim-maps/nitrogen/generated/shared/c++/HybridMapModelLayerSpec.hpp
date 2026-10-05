@@ -15,6 +15,8 @@
 
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `NativeMapZone` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -22,6 +24,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 
 #include "NativeMapModel.hpp"
 #include <vector>
+#include "NativeMapZone.hpp"
 #include <string>
 #include "MapModelLighting.hpp"
 #include <functional>
@@ -58,6 +61,8 @@ namespace margelo::nitro::munimmaps {
       // Properties
       virtual std::vector<NativeMapModel> getModels() = 0;
       virtual void setModels(const std::vector<NativeMapModel>& models) = 0;
+      virtual std::vector<NativeMapZone> getZones() = 0;
+      virtual void setZones(const std::vector<NativeMapZone>& zones) = 0;
       virtual std::string getMapTestID() = 0;
       virtual void setMapTestID(const std::string& mapTestID) = 0;
       virtual MapModelLighting getLighting() = 0;

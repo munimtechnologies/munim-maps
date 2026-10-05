@@ -53,16 +53,25 @@ namespace margelo::nitro::munimmaps {
     double height     SWIFT_PRIVATE;
     double length     SWIFT_PRIVATE;
     std::string color     SWIFT_PRIVATE;
+    std::string tintColor     SWIFT_PRIVATE;
     bool emissive     SWIFT_PRIVATE;
     double spinDegreesPerSecond     SWIFT_PRIVATE;
     bool playAnimations     SWIFT_PRIVATE;
     double screenSize     SWIFT_PRIVATE;
     bool groundShadow     SWIFT_PRIVATE;
+    std::string imageUri     SWIFT_PRIVATE;
+    std::string imageBorderColor     SWIFT_PRIVATE;
+    double imageBorderWidth     SWIFT_PRIVATE;
+    std::string imageBadge     SWIFT_PRIVATE;
+    double liftPoints     SWIFT_PRIVATE;
+    std::string label     SWIFT_PRIVATE;
+    bool stem     SWIFT_PRIVATE;
+    std::string stemColor     SWIFT_PRIVATE;
     bool visible     SWIFT_PRIVATE;
 
   public:
     NativeMapModel() = default;
-    explicit NativeMapModel(std::string id, double latitude, double longitude, double altitude, double heading, double scale, std::string uri, MapModelShape shape, double width, double height, double length, std::string color, bool emissive, double spinDegreesPerSecond, bool playAnimations, double screenSize, bool groundShadow, bool visible): id(id), latitude(latitude), longitude(longitude), altitude(altitude), heading(heading), scale(scale), uri(uri), shape(shape), width(width), height(height), length(length), color(color), emissive(emissive), spinDegreesPerSecond(spinDegreesPerSecond), playAnimations(playAnimations), screenSize(screenSize), groundShadow(groundShadow), visible(visible) {}
+    explicit NativeMapModel(std::string id, double latitude, double longitude, double altitude, double heading, double scale, std::string uri, MapModelShape shape, double width, double height, double length, std::string color, std::string tintColor, bool emissive, double spinDegreesPerSecond, bool playAnimations, double screenSize, bool groundShadow, std::string imageUri, std::string imageBorderColor, double imageBorderWidth, std::string imageBadge, double liftPoints, std::string label, bool stem, std::string stemColor, bool visible): id(id), latitude(latitude), longitude(longitude), altitude(altitude), heading(heading), scale(scale), uri(uri), shape(shape), width(width), height(height), length(length), color(color), tintColor(tintColor), emissive(emissive), spinDegreesPerSecond(spinDegreesPerSecond), playAnimations(playAnimations), screenSize(screenSize), groundShadow(groundShadow), imageUri(imageUri), imageBorderColor(imageBorderColor), imageBorderWidth(imageBorderWidth), imageBadge(imageBadge), liftPoints(liftPoints), label(label), stem(stem), stemColor(stemColor), visible(visible) {}
 
   public:
     friend bool operator==(const NativeMapModel& lhs, const NativeMapModel& rhs) = default;
@@ -90,11 +99,20 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "length"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "color"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tintColor"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "emissive"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "spinDegreesPerSecond"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "playAnimations"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "screenSize"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "groundShadow"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageUri"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageBorderColor"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageBorderWidth"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageBadge"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "liftPoints"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "label"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "stem"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "stemColor"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))
       );
     }
@@ -112,11 +130,20 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "height"), JSIConverter<double>::toJSI(runtime, arg.height));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "length"), JSIConverter<double>::toJSI(runtime, arg.length));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "color"), JSIConverter<std::string>::toJSI(runtime, arg.color));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "tintColor"), JSIConverter<std::string>::toJSI(runtime, arg.tintColor));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "emissive"), JSIConverter<bool>::toJSI(runtime, arg.emissive));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "spinDegreesPerSecond"), JSIConverter<double>::toJSI(runtime, arg.spinDegreesPerSecond));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "playAnimations"), JSIConverter<bool>::toJSI(runtime, arg.playAnimations));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "screenSize"), JSIConverter<double>::toJSI(runtime, arg.screenSize));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "groundShadow"), JSIConverter<bool>::toJSI(runtime, arg.groundShadow));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "imageUri"), JSIConverter<std::string>::toJSI(runtime, arg.imageUri));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "imageBorderColor"), JSIConverter<std::string>::toJSI(runtime, arg.imageBorderColor));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "imageBorderWidth"), JSIConverter<double>::toJSI(runtime, arg.imageBorderWidth));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "imageBadge"), JSIConverter<std::string>::toJSI(runtime, arg.imageBadge));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "liftPoints"), JSIConverter<double>::toJSI(runtime, arg.liftPoints));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "label"), JSIConverter<std::string>::toJSI(runtime, arg.label));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "stem"), JSIConverter<bool>::toJSI(runtime, arg.stem));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "stemColor"), JSIConverter<std::string>::toJSI(runtime, arg.stemColor));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "visible"), JSIConverter<bool>::toJSI(runtime, arg.visible));
       return obj;
     }
@@ -140,11 +167,20 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "height")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "length")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "color")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tintColor")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "emissive")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "spinDegreesPerSecond")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "playAnimations")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "screenSize")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "groundShadow")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageUri")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageBorderColor")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageBorderWidth")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "imageBadge")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "liftPoints")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "label")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "stem")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "stemColor")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))) return false;
       return true;
     }

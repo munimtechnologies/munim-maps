@@ -36,6 +36,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MapModelLayer.models: ") + exc.what());
       }
     }()),
+    zones([&]() -> CachedProp<std::vector<NativeMapZone>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("zones", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.zones;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::vector<NativeMapZone>>::fromRawValue(*runtime, value, sourceProps.zones);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MapModelLayer.zones: ") + exc.what());
+      }
+    }()),
     mapTestID([&]() -> CachedProp<std::string> {
       try {
         const react::RawValue* rawValue = rawProps.at("mapTestID", nullptr, nullptr);
@@ -110,6 +120,7 @@ namespace margelo::nitro::munimmaps::views {
   bool HybridMapModelLayerProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
       case hashString("models"): return true;
+      case hashString("zones"): return true;
       case hashString("mapTestID"): return true;
       case hashString("lighting"): return true;
       case hashString("maxCameraDistance"): return true;

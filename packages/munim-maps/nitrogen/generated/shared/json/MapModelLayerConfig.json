@@ -5,6 +5,7 @@
   "directEventTypes": {},
   "validAttributes": {
     "models": true,
+    "zones": true,
     "mapTestID": true,
     "lighting": true,
     "maxCameraDistance": true,

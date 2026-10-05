@@ -84,6 +84,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setModels(newViewProps.models.value);
     newViewProps.models.isDirty = false;
   }
+  // zones: array
+  if (newViewProps.zones.isDirty) {
+    swiftPart.setZones(newViewProps.zones.value);
+    newViewProps.zones.isDirty = false;
+  }
   // mapTestID: string
   if (newViewProps.mapTestID.isDirty) {
     swiftPart.setMapTestID(newViewProps.mapTestID.value);

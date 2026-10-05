@@ -16,6 +16,8 @@ namespace margelo::nitro::munimmaps {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridGetter("models", &HybridMapModelLayerSpec::getModels);
       prototype.registerHybridSetter("models", &HybridMapModelLayerSpec::setModels);
+      prototype.registerHybridGetter("zones", &HybridMapModelLayerSpec::getZones);
+      prototype.registerHybridSetter("zones", &HybridMapModelLayerSpec::setZones);
       prototype.registerHybridGetter("mapTestID", &HybridMapModelLayerSpec::getMapTestID);
       prototype.registerHybridSetter("mapTestID", &HybridMapModelLayerSpec::setMapTestID);
       prototype.registerHybridGetter("lighting", &HybridMapModelLayerSpec::getLighting);

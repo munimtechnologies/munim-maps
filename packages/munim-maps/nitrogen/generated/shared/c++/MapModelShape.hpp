@@ -36,6 +36,7 @@ namespace margelo::nitro::munimmaps {
     CONE      SWIFT_NAME(cone) = 4,
     CAPSULE      SWIFT_NAME(capsule) = 5,
     PYRAMID      SWIFT_NAME(pyramid) = 6,
+    GEM      SWIFT_NAME(gem) = 7,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::munimmaps
@@ -55,6 +56,7 @@ namespace margelo::nitro {
         case hashString("cone"): return margelo::nitro::munimmaps::MapModelShape::CONE;
         case hashString("capsule"): return margelo::nitro::munimmaps::MapModelShape::CAPSULE;
         case hashString("pyramid"): return margelo::nitro::munimmaps::MapModelShape::PYRAMID;
+        case hashString("gem"): return margelo::nitro::munimmaps::MapModelShape::GEM;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum MapModelShape - invalid value!");
       }
@@ -68,6 +70,7 @@ namespace margelo::nitro {
         case margelo::nitro::munimmaps::MapModelShape::CONE: return JSIConverter<std::string>::toJSI(runtime, "cone");
         case margelo::nitro::munimmaps::MapModelShape::CAPSULE: return JSIConverter<std::string>::toJSI(runtime, "capsule");
         case margelo::nitro::munimmaps::MapModelShape::PYRAMID: return JSIConverter<std::string>::toJSI(runtime, "pyramid");
+        case margelo::nitro::munimmaps::MapModelShape::GEM: return JSIConverter<std::string>::toJSI(runtime, "gem");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert MapModelShape to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -86,6 +89,7 @@ namespace margelo::nitro {
         case hashString("cone"):
         case hashString("capsule"):
         case hashString("pyramid"):
+        case hashString("gem"):
           return true;
         default:
           return false;

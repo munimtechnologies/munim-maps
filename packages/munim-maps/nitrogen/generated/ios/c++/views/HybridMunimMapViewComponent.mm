@@ -84,6 +84,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setModels(newViewProps.models.value);
     newViewProps.models.isDirty = false;
   }
+  // zones: array
+  if (newViewProps.zones.isDirty) {
+    swiftPart.setZones(newViewProps.zones.value);
+    newViewProps.zones.isDirty = false;
+  }
   // initialCamera: struct
   if (newViewProps.initialCamera.isDirty) {
     swiftPart.setInitialCamera(newViewProps.initialCamera.value);

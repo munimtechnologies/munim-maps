@@ -7,6 +7,7 @@ import type {
   MapAlignmentReport,
   MapModelLighting,
   NativeMapModel,
+  NativeMapZone,
 } from './MapModelLayer.nitro'
 
 export type MapStyle = 'standard' | 'muted' | 'hybrid' | 'imagery'
@@ -26,6 +27,7 @@ export interface MapCamera {
 
 export interface MunimMapViewProps extends HybridViewProps {
   models: NativeMapModel[]
+  zones: NativeMapZone[]
   /** Applied once, when the map first appears. */
   initialCamera: MapCamera
   mapStyle: MapStyle

@@ -5,6 +5,7 @@
   "directEventTypes": {},
   "validAttributes": {
     "models": true,
+    "zones": true,
     "initialCamera": true,
     "mapStyle": true,
     "elevation": true,

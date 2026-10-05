@@ -18,6 +18,8 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapColorScheme` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapColorScheme; }
+// Forward declaration of `MapCoordinate` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapElevation` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapElevation; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
@@ -28,6 +30,8 @@ namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 namespace margelo::nitro::munimmaps { enum class MapStyle; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `NativeMapZone` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 
 // Include C++ defined types
 #include "HybridMapModelLayerSpec.hpp"
@@ -35,11 +39,13 @@ namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 #include "MapAlignmentReport.hpp"
 #include "MapCamera.hpp"
 #include "MapColorScheme.hpp"
+#include "MapCoordinate.hpp"
 #include "MapElevation.hpp"
 #include "MapModelLighting.hpp"
 #include "MapModelShape.hpp"
 #include "MapStyle.hpp"
 #include "NativeMapModel.hpp"
+#include "NativeMapZone.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>
 #include <exception>

@@ -31,6 +31,10 @@ final class HybridMapModelLayer: HybridMapModelLayerSpec {
     didSet { renderer.setModels(models) }
   }
 
+  var zones: [NativeMapZone] = [] {
+    didSet { renderer.setZones(zones) }
+  }
+
   var mapTestID: String = "" {
     didSet {
       if oldValue != mapTestID {

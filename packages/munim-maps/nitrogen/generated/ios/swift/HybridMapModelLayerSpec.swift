@@ -11,6 +11,7 @@ import NitroModules
 public protocol HybridMapModelLayerSpec_protocol: HybridObject, HybridView {
   // Properties
   var models: [NativeMapModel] { get set }
+  var zones: [NativeMapZone] { get set }
   var mapTestID: String { get set }
   var lighting: MapModelLighting { get set }
   var maxCameraDistance: Double { get set }

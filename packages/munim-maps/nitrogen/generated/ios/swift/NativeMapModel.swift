@@ -18,8 +18,8 @@ public extension NativeMapModel {
   /**
    * Create a new instance of `NativeMapModel`.
    */
-  init(id: String, latitude: Double, longitude: Double, altitude: Double, heading: Double, scale: Double, uri: String, shape: MapModelShape, width: Double, height: Double, length: Double, color: String, emissive: Bool, spinDegreesPerSecond: Double, playAnimations: Bool, screenSize: Double, groundShadow: Bool, visible: Bool) {
-    self.init(std.string(id), latitude, longitude, altitude, heading, scale, std.string(uri), shape, width, height, length, std.string(color), emissive, spinDegreesPerSecond, playAnimations, screenSize, groundShadow, visible)
+  init(id: String, latitude: Double, longitude: Double, altitude: Double, heading: Double, scale: Double, uri: String, shape: MapModelShape, width: Double, height: Double, length: Double, color: String, tintColor: String, emissive: Bool, spinDegreesPerSecond: Double, playAnimations: Bool, screenSize: Double, groundShadow: Bool, imageUri: String, imageBorderColor: String, imageBorderWidth: Double, imageBadge: String, liftPoints: Double, label: String, stem: Bool, stemColor: String, visible: Bool) {
+    self.init(std.string(id), latitude, longitude, altitude, heading, scale, std.string(uri), shape, width, height, length, std.string(color), std.string(tintColor), emissive, spinDegreesPerSecond, playAnimations, screenSize, groundShadow, std.string(imageUri), std.string(imageBorderColor), imageBorderWidth, std.string(imageBadge), liftPoints, std.string(label), stem, std.string(stemColor), visible)
   }
 
   @inline(__always)
@@ -83,6 +83,11 @@ public extension NativeMapModel {
   }
   
   @inline(__always)
+  var tintColor: String {
+    return String(self.__tintColor)
+  }
+  
+  @inline(__always)
   var emissive: Bool {
     return self.__emissive
   }
@@ -105,6 +110,46 @@ public extension NativeMapModel {
   @inline(__always)
   var groundShadow: Bool {
     return self.__groundShadow
+  }
+  
+  @inline(__always)
+  var imageUri: String {
+    return String(self.__imageUri)
+  }
+  
+  @inline(__always)
+  var imageBorderColor: String {
+    return String(self.__imageBorderColor)
+  }
+  
+  @inline(__always)
+  var imageBorderWidth: Double {
+    return self.__imageBorderWidth
+  }
+  
+  @inline(__always)
+  var imageBadge: String {
+    return String(self.__imageBadge)
+  }
+  
+  @inline(__always)
+  var liftPoints: Double {
+    return self.__liftPoints
+  }
+  
+  @inline(__always)
+  var label: String {
+    return String(self.__label)
+  }
+  
+  @inline(__always)
+  var stem: Bool {
+    return self.__stem
+  }
+  
+  @inline(__always)
+  var stemColor: String {
+    return String(self.__stemColor)
   }
   
   @inline(__always)

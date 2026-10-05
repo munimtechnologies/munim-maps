@@ -16,6 +16,8 @@ namespace margelo::nitro::munimmaps {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridGetter("models", &HybridMunimMapViewSpec::getModels);
       prototype.registerHybridSetter("models", &HybridMunimMapViewSpec::setModels);
+      prototype.registerHybridGetter("zones", &HybridMunimMapViewSpec::getZones);
+      prototype.registerHybridSetter("zones", &HybridMunimMapViewSpec::setZones);
       prototype.registerHybridGetter("initialCamera", &HybridMunimMapViewSpec::getInitialCamera);
       prototype.registerHybridSetter("initialCamera", &HybridMunimMapViewSpec::setInitialCamera);
       prototype.registerHybridGetter("mapStyle", &HybridMunimMapViewSpec::getMapStyle);

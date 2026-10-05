@@ -18,6 +18,7 @@
 
 #include "NativeMapModel.hpp"
 #include <vector>
+#include "NativeMapZone.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -50,6 +51,7 @@ namespace margelo::nitro::munimmaps::views {
 
   public:
     CachedProp<std::vector<NativeMapModel>> models;
+    CachedProp<std::vector<NativeMapZone>> zones;
     CachedProp<MapCamera> initialCamera;
     CachedProp<MapStyle> mapStyle;
     CachedProp<MapElevation> elevation;

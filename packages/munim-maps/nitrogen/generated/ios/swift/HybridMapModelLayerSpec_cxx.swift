@@ -138,6 +138,23 @@ open class HybridMapModelLayerSpec_cxx {
     }
   }
   
+  public final var zones: bridge.std__vector_NativeMapZone_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativeMapZone_ in
+        var __vector = bridge.create_std__vector_NativeMapZone_(self.__implementation.zones.count)
+        for __item in self.__implementation.zones {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.zones = newValue.map({ __item in __item })
+    }
+  }
+  
   public final var mapTestID: std.string {
     @inline(__always)
     get {

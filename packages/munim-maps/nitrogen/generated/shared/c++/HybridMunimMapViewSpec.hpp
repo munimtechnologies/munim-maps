@@ -15,6 +15,8 @@
 
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `NativeMapZone` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapStyle` to properly resolve imports.
@@ -30,6 +32,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 
 #include "NativeMapModel.hpp"
 #include <vector>
+#include "NativeMapZone.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -70,6 +73,8 @@ namespace margelo::nitro::munimmaps {
       // Properties
       virtual std::vector<NativeMapModel> getModels() = 0;
       virtual void setModels(const std::vector<NativeMapModel>& models) = 0;
+      virtual std::vector<NativeMapZone> getZones() = 0;
+      virtual void setZones(const std::vector<NativeMapZone>& zones) = 0;
       virtual MapCamera getInitialCamera() = 0;
       virtual void setInitialCamera(const MapCamera& initialCamera) = 0;
       virtual MapStyle getMapStyle() = 0;

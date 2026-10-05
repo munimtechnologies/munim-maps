@@ -15,11 +15,13 @@ import MapModelLayerConfig from '../nitrogen/generated/shared/json/MapModelLayer
 import MunimMapViewConfig from '../nitrogen/generated/shared/json/MunimMapViewConfig.json'
 import type {
   MapAlignmentReport,
+  MapCoordinate,
   MapModelLayerMethods,
   MapModelLayerProps,
   MapModelLighting,
   MapModelShape,
   NativeMapModel,
+  NativeMapZone,
 } from './specs/MapModelLayer.nitro'
 import type {
   MapCamera,
@@ -51,6 +53,11 @@ export interface MapModel {
   size?: { width?: number; height?: number; length?: number }
   /** Shape colour, `#RRGGBB` or `#RRGGBBAA`. Default `#0A84FF`. */
   color?: string
+  /**
+   * Recolours an asset's paint (materials named `paint…`), so one model
+   * file can come in any colour. Default: the file's colours.
+   */
+  tint?: string
   /** Makes the shape glow. Default false. */
   emissive?: boolean
   /** Turns the model around its vertical axis. Default 0. */
@@ -62,8 +69,49 @@ export interface MapModel {
    * Default 0, which keeps its real size in metres.
    */
   screenSize?: number
-  /** Soft round shadow on the ground. Default true. */
+  /** Soft round shadow on the ground. Default true, false for images. */
   groundShadow?: boolean
+  /**
+   * A PNG or JPEG drawn as a round picture that always faces the camera,
+   * such as an avatar. Replaces `source` and `shape`. `screenSize` sets its
+   * size in points (default 44).
+   */
+  image?: number | string | { uri: string }
+  /** Ring around `image`. */
+  imageBorder?: { color: string; width?: number }
+  /** Short text in a pill under `image`, such as `4F`. */
+  badge?: string
+  /**
+   * A thin line from the ground up to the model, so a floating model (a
+   * friend on the 8th floor) shows the spot below it. `true` or a colour.
+   */
+  stem?: boolean | string
+  /**
+   * Raises the model this many points above `altitude` at any zoom, for
+   * example to float an avatar over a vehicle model. Default 0.
+   */
+  lift?: number
+  /** Text in a pill floating above the model, such as a name. */
+  label?: string
+  /** Default true. */
+  visible?: boolean
+}
+
+/**
+ * A see-through wall standing on a zone's outline and fading out towards the
+ * top. Give either `polygon` or `circle`.
+ */
+export interface MapZone {
+  id: string
+  polygon?: { latitude: number; longitude: number }[]
+  circle?: { center: { latitude: number; longitude: number }; radius: number }
+  /** Wall height in metres. Default 40. */
+  height?: number
+  /**
+   * `#RRGGBB` or `#RRGGBBAA`. The alpha sets how see-through the wall is;
+   * the top and bottom edges are solid. Default `#0A84FF40`.
+   */
+  color?: string
   /** Default true. */
   visible?: boolean
 }
@@ -87,7 +135,7 @@ const NativeMunimMapView = getHostComponent<
 /** True where munim-maps can draw models (iOS). */
 export const isSupported = Platform.OS === 'ios'
 
-function resolveUri(source: MapModel['source']): string {
+function resolveUri(source: MapModel['source'] | MapModel['image']): string {
   if (source == null) return ''
   if (typeof source === 'string') return source
   if (typeof source === 'number') {
@@ -99,7 +147,8 @@ function resolveUri(source: MapModel['source']): string {
 }
 
 export function toNativeModel(model: MapModel): NativeMapModel {
-  const uri = resolveUri(model.source)
+  const imageUri = resolveUri(model.image)
+  const uri = imageUri ? '' : resolveUri(model.source)
   return {
     id: model.id,
     latitude: model.coordinate.latitude,
@@ -113,13 +162,76 @@ export function toNativeModel(model: MapModel): NativeMapModel {
     height: model.size?.height ?? 10,
     length: model.size?.length ?? 10,
     color: model.color ?? '#0A84FF',
+    tintColor: model.tint ?? '',
     emissive: model.emissive ?? false,
     spinDegreesPerSecond: model.spinDegreesPerSecond ?? 0,
     playAnimations: model.playAnimations ?? true,
-    screenSize: model.screenSize ?? 0,
-    groundShadow: model.groundShadow ?? true,
+    screenSize: model.screenSize ?? (imageUri ? 44 : 0),
+    groundShadow: model.groundShadow ?? !imageUri,
+    imageUri,
+    imageBorderColor: model.imageBorder?.color ?? '',
+    imageBorderWidth: model.imageBorder?.width ?? 3,
+    imageBadge: model.badge ?? '',
+    liftPoints: model.lift ?? 0,
+    label: model.label ?? '',
+    stem: model.stem != null && model.stem !== false,
+    stemColor: typeof model.stem === 'string' ? model.stem : '#FFFFFF',
     visible: model.visible ?? true,
   }
+}
+
+const EARTH_RADIUS_METERS = 6_371_008.8
+
+/** Outline of a circle on the ground, as `segments` points. */
+export function circleToPolygon(
+  center: { latitude: number; longitude: number },
+  radiusMeters: number,
+  segments = 72
+): MapCoordinate[] {
+  const lat = (center.latitude * Math.PI) / 180
+  const lon = (center.longitude * Math.PI) / 180
+  const angular = radiusMeters / EARTH_RADIUS_METERS
+  const points: MapCoordinate[] = []
+  for (let i = 0; i < segments; i += 1) {
+    const bearing = (i / segments) * 2 * Math.PI
+    const pointLat = Math.asin(
+      Math.sin(lat) * Math.cos(angular) +
+        Math.cos(lat) * Math.sin(angular) * Math.cos(bearing)
+    )
+    const pointLon =
+      lon +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(angular) * Math.cos(lat),
+        Math.cos(angular) - Math.sin(lat) * Math.sin(pointLat)
+      )
+    points.push({
+      latitude: (pointLat * 180) / Math.PI,
+      longitude: (pointLon * 180) / Math.PI,
+    })
+  }
+  return points
+}
+
+export function toNativeZone(zone: MapZone): NativeMapZone {
+  const points = zone.polygon
+    ? zone.polygon.map((p) => ({
+        latitude: p.latitude,
+        longitude: p.longitude,
+      }))
+    : zone.circle
+      ? circleToPolygon(zone.circle.center, zone.circle.radius)
+      : []
+  return {
+    id: zone.id,
+    points,
+    height: zone.height ?? 40,
+    color: zone.color ?? '#0A84FF40',
+    visible: zone.visible ?? true,
+  }
+}
+
+function useNativeZones(zones: MapZone[] | undefined): NativeMapZone[] {
+  return useMemo(() => (zones ?? []).map(toNativeZone), [zones])
 }
 
 function useNativeModels(models: MapModel[] | undefined): NativeMapModel[] {
@@ -134,6 +246,7 @@ function useCallbackProp<A extends unknown[]>(
 
 export interface MapModelLayerProperties {
   models: MapModel[]
+  zones?: MapZone[]
   /** `testID` of the map to draw over. Default: the nearest map on screen. */
   mapTestID?: string
   lighting?: MapModelLighting
@@ -156,6 +269,7 @@ export const MapModelLayer = forwardRef<
   MapModelLayerProperties
 >(function MapModelLayerComponent(props, ref) {
   const models = useNativeModels(props.models)
+  const zones = useNativeZones(props.zones)
   const onModelPress = useCallbackProp(props.onModelPress)
   const onAttachChange = useCallbackProp(props.onAttachChange)
   const onError = useCallbackProp(props.onError)
@@ -173,6 +287,7 @@ export const MapModelLayer = forwardRef<
       <NativeMapModelLayer
         style={StyleSheet.absoluteFill}
         models={models}
+        zones={zones}
         mapTestID={props.mapTestID ?? ''}
         lighting={props.lighting ?? 'auto'}
         maxCameraDistance={props.maxCameraDistance ?? 50_000}
@@ -187,6 +302,7 @@ export const MapModelLayer = forwardRef<
 
 export interface MunimMapViewProperties {
   models?: MapModel[]
+  zones?: MapZone[]
   initialCamera: MapCamera
   mapStyle?: MapStyle
   elevation?: MapElevation
@@ -205,6 +321,7 @@ export interface MunimMapViewProperties {
 export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
   function MunimMapViewComponent(props, ref) {
     const models = useNativeModels(props.models)
+    const zones = useNativeZones(props.zones)
     const onModelPress = useCallbackProp(props.onModelPress)
     const onCameraChange = useCallbackProp(props.onCameraChange)
     const onError = useCallbackProp(props.onError)
@@ -221,6 +338,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
       <NativeMunimMapView
         style={props.style}
         models={models}
+        zones={zones}
         initialCamera={props.initialCamera}
         mapStyle={props.mapStyle ?? 'standard'}
         elevation={props.elevation ?? 'realistic'}
@@ -240,6 +358,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
 
 export type {
   MapAlignmentReport,
+  MapCoordinate,
   MapCamera,
   MapColorScheme,
   MapElevation,
@@ -247,4 +366,5 @@ export type {
   MapModelShape,
   MapStyle,
   NativeMapModel,
+  NativeMapZone,
 }

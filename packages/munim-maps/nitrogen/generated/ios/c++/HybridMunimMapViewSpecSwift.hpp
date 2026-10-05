@@ -16,6 +16,10 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
+// Forward declaration of `NativeMapZone` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapZone; }
+// Forward declaration of `MapCoordinate` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapStyle` to properly resolve imports.
@@ -33,6 +37,8 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <vector>
 #include <string>
 #include "MapModelShape.hpp"
+#include "NativeMapZone.hpp"
+#include "MapCoordinate.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -95,6 +101,13 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setModels(const std::vector<NativeMapModel>& models) noexcept override {
       _swiftPart.setModels(models);
+    }
+    inline std::vector<NativeMapZone> getZones() noexcept override {
+      auto __result = _swiftPart.getZones();
+      return __result;
+    }
+    inline void setZones(const std::vector<NativeMapZone>& zones) noexcept override {
+      _swiftPart.setZones(zones);
     }
     inline MapCamera getInitialCamera() noexcept override {
       return _swiftPart.getInitialCamera();

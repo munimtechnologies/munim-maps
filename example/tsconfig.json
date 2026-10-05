@@ -2,7 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "paths": {
-      "munim-maps": ["../packages/munim-maps/src/index.tsx"]
+      "munim-maps": ["../packages/munim-maps/src/index.tsx"],
+      "munim-maps/vehicles": ["../packages/munim-maps/vehicles.d.ts"]
     },
     "strict": true
   }

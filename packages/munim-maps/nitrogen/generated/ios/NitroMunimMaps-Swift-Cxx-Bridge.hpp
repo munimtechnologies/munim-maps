@@ -16,10 +16,14 @@ namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
+// Forward declaration of `MapCoordinate` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `NativeMapZone` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridMapModelLayerSpec_cxx` to properly resolve imports.
@@ -32,8 +36,10 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 #include "HybridMunimMapViewSpec.hpp"
 #include "MapAlignmentReport.hpp"
 #include "MapCamera.hpp"
+#include "MapCoordinate.hpp"
 #include "MapModelShape.hpp"
 #include "NativeMapModel.hpp"
+#include "NativeMapZone.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -57,6 +63,28 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   using std__vector_NativeMapModel_ = std::vector<NativeMapModel>;
   inline std::vector<NativeMapModel> create_std__vector_NativeMapModel_(size_t size) noexcept {
     std::vector<NativeMapModel> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<MapCoordinate>
+  /**
+   * Specialized version of `std::vector<MapCoordinate>`.
+   */
+  using std__vector_MapCoordinate_ = std::vector<MapCoordinate>;
+  inline std::vector<MapCoordinate> create_std__vector_MapCoordinate_(size_t size) noexcept {
+    std::vector<MapCoordinate> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativeMapZone>
+  /**
+   * Specialized version of `std::vector<NativeMapZone>`.
+   */
+  using std__vector_NativeMapZone_ = std::vector<NativeMapZone>;
+  inline std::vector<NativeMapZone> create_std__vector_NativeMapZone_(size_t size) noexcept {
+    std::vector<NativeMapZone> vector;
     vector.reserve(size);
     return vector;
   }
