@@ -1,0 +1,77 @@
+name: Publish GitHub Package
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish GitHub Package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: '@munimtechnologies'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build lib
+        run: npm run build
+
+      - name: Prepare GitHub package manifest
+        working-directory: packages/munim-maps
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          pkg.name = '@munimtechnologies/munim-maps'
+          pkg.publishConfig = {
+            access: 'public',
+            registry: 'https://npm.pkg.github.com/',
+          }
+          pkg.repository = {
+            type: 'git',
+            url: 'git+https://github.com/munimtechnologies/munim-maps.git',
+            directory: 'packages/munim-maps',
+          }
+
+          fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`)
+          NODE
+
+      - name: Publish to GitHub Packages
+        working-directory: packages/munim-maps
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+
+          if npm view "${package_name}@${package_version}" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "${package_name}@${package_version} is already published to GitHub Packages."
+            exit 0
+          fi
+
+          npm publish --registry=https://npm.pkg.github.com --access public
