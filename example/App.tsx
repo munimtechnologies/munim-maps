@@ -464,6 +464,8 @@ function Example() {
   const [panel, setPanel] = useState(true)
   const [terrainHeights, setTerrainHeights] = useState('')
   const [expoAttached, setExpoAttached] = useState(false)
+  // munimmapsexample://expomaps/nearest: no testID, so the layer finds the map itself.
+  const [expoNearest, setExpoNearest] = useState(false)
   const expoAttachedRef = useRef(false)
   const expoLayerRef = useRef<MapModelLayerRef | null>(null)
   const expoMapRef = useRef<AppleMaps.MapView | null>(null)
@@ -574,6 +576,7 @@ function Example() {
         }
       } else if (url?.includes('expomaps')) {
         setStatus('expo-maps')
+        if (url.includes('nearest')) setExpoNearest(true)
         setMode('expomaps')
       } else if (url?.includes('features')) {
         setLaunching(false)
@@ -786,7 +789,7 @@ function Example() {
           </View>
           <MapModelLayer
             ref={expoLayerRef}
-            mapTestID="expo-map"
+            mapTestID={expoNearest ? undefined : 'expo-map'}
             models={models}
             lighting={lighting}
             onAttachChange={onExpoAttachChange}
