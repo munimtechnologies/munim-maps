@@ -1006,7 +1006,7 @@ open class HybridMunimMapViewSpec_cxx {
   @inline(__always)
   public final func flyCamera(keyframes: bridge.std__vector_CameraKeyframe_, start: Double, loop: Bool) -> bridge.Result_void_ {
     do {
-      try self.__implementation.flyCamera(keyframes: keyframes.map({ __item in __item }), start: start, loop: loop)
+      try self.__implementation.flyCamera(keyframes: __nitroVectorToArray_CameraKeyframe(keyframes), start: start, loop: loop)
       return bridge.create_Result_void_()
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
@@ -1077,7 +1077,7 @@ open class HybridMunimMapViewSpec_cxx {
   @inline(__always)
   public final func fitToCoordinates(coordinates: bridge.std__vector_MapCoordinate_, padding: EdgeInsets, animated: Bool) -> bridge.Result_void_ {
     do {
-      try self.__implementation.fitToCoordinates(coordinates: coordinates.map({ __item in __item }), padding: padding, animated: animated)
+      try self.__implementation.fitToCoordinates(coordinates: __nitroVectorToArray_MapCoordinate(coordinates), padding: padding, animated: animated)
       return bridge.create_Result_void_()
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
@@ -1271,4 +1271,32 @@ open class HybridMunimMapViewSpec_cxx {
   public final func onDropView() {
     __implementation.onDropView()
   }
+}
+
+/// munim-maps: see scripts/patch-nitro-vector-args.js (Xcode 26 cannot `.map` some std::vector arguments).
+@inline(__always)
+fileprivate func __nitroVectorToArray_CameraKeyframe(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_CameraKeyframe_) -> [CameraKeyframe] {
+  let count = Int(vector.size())
+  var result: [CameraKeyframe] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(vector[index])
+    index += 1
+  }
+  return result
+}
+
+/// munim-maps: see scripts/patch-nitro-vector-args.js (Xcode 26 cannot `.map` some std::vector arguments).
+@inline(__always)
+fileprivate func __nitroVectorToArray_MapCoordinate(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_MapCoordinate_) -> [MapCoordinate] {
+  let count = Int(vector.size())
+  var result: [MapCoordinate] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(vector[index])
+    index += 1
+  }
+  return result
 }

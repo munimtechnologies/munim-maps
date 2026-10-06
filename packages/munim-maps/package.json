@@ -34,7 +34,7 @@
     "build": "npm run typecheck && tsc",
     "prepack": "npm run build",
     "typescript": "tsc",
-    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js",
+    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js && node scripts/patch-nitro-vector-args.js",
     "specs": "npm run codegen"
   },
   "keywords": [
