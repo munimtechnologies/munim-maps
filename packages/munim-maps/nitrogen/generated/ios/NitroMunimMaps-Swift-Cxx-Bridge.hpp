@@ -12,18 +12,56 @@
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
+// Forward declaration of `LineCap` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `MapAddress` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
+// Forward declaration of `MapFeatureEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `MapModelEffect` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
+// Forward declaration of `MapPathPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPathPoint; }
+// Forward declaration of `MapPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPoint; }
+// Forward declaration of `MapPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `MapRegion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapRegion; }
+// Forward declaration of `MarkerBadgePosition` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerBadgePosition; }
+// Forward declaration of `MarkerBadge` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerBadge; }
+// Forward declaration of `MarkerDragEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
+// Forward declaration of `MarkerStyle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
+// Forward declaration of `NativeCircle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `NativeMapPath` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
+// Forward declaration of `NativeMarker` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMarker; }
+// Forward declaration of `NativePolygon` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolygon; }
+// Forward declaration of `NativePolyline` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolyline; }
+// Forward declaration of `NativeTileOverlay` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `UserLocationEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridMapModelLayerSpec_cxx` to properly resolve imports.
@@ -34,12 +72,31 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 // Include C++ defined types
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
+#include "LineCap.hpp"
+#include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
 #include "MapCamera.hpp"
 #include "MapCoordinate.hpp"
+#include "MapFeatureEvent.hpp"
+#include "MapModelEffect.hpp"
 #include "MapModelShape.hpp"
+#include "MapPathPoint.hpp"
+#include "MapPoint.hpp"
+#include "MapPressEvent.hpp"
+#include "MapRegion.hpp"
+#include "MarkerBadge.hpp"
+#include "MarkerBadgePosition.hpp"
+#include "MarkerDragEvent.hpp"
+#include "MarkerStyle.hpp"
+#include "NativeCircle.hpp"
 #include "NativeMapModel.hpp"
+#include "NativeMapPath.hpp"
 #include "NativeMapZone.hpp"
+#include "NativeMarker.hpp"
+#include "NativePolygon.hpp"
+#include "NativePolyline.hpp"
+#include "NativeTileOverlay.hpp"
+#include "UserLocationEvent.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -85,6 +142,28 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   using std__vector_NativeMapZone_ = std::vector<NativeMapZone>;
   inline std::vector<NativeMapZone> create_std__vector_NativeMapZone_(size_t size) noexcept {
     std::vector<NativeMapZone> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<MapPathPoint>
+  /**
+   * Specialized version of `std::vector<MapPathPoint>`.
+   */
+  using std__vector_MapPathPoint_ = std::vector<MapPathPoint>;
+  inline std::vector<MapPathPoint> create_std__vector_MapPathPoint_(size_t size) noexcept {
+    std::vector<MapPathPoint> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativeMapPath>
+  /**
+   * Specialized version of `std::vector<NativeMapPath>`.
+   */
+  using std__vector_NativeMapPath_ = std::vector<NativeMapPath>;
+  inline std::vector<NativeMapPath> create_std__vector_NativeMapPath_(size_t size) noexcept {
+    std::vector<NativeMapPath> vector;
     vector.reserve(size);
     return vector;
   }
@@ -264,6 +343,83 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return Result<std::shared_ptr<Promise<MapAlignmentReport>>>::withError(error);
   }
   
+  // pragma MARK: std::vector<MarkerBadge>
+  /**
+   * Specialized version of `std::vector<MarkerBadge>`.
+   */
+  using std__vector_MarkerBadge_ = std::vector<MarkerBadge>;
+  inline std::vector<MarkerBadge> create_std__vector_MarkerBadge_(size_t size) noexcept {
+    std::vector<MarkerBadge> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativeMarker>
+  /**
+   * Specialized version of `std::vector<NativeMarker>`.
+   */
+  using std__vector_NativeMarker_ = std::vector<NativeMarker>;
+  inline std::vector<NativeMarker> create_std__vector_NativeMarker_(size_t size) noexcept {
+    std::vector<NativeMarker> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativePolyline>
+  /**
+   * Specialized version of `std::vector<NativePolyline>`.
+   */
+  using std__vector_NativePolyline_ = std::vector<NativePolyline>;
+  inline std::vector<NativePolyline> create_std__vector_NativePolyline_(size_t size) noexcept {
+    std::vector<NativePolyline> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<std::vector<MapCoordinate>>
+  /**
+   * Specialized version of `std::vector<std::vector<MapCoordinate>>`.
+   */
+  using std__vector_std__vector_MapCoordinate__ = std::vector<std::vector<MapCoordinate>>;
+  inline std::vector<std::vector<MapCoordinate>> create_std__vector_std__vector_MapCoordinate__(size_t size) noexcept {
+    std::vector<std::vector<MapCoordinate>> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativePolygon>
+  /**
+   * Specialized version of `std::vector<NativePolygon>`.
+   */
+  using std__vector_NativePolygon_ = std::vector<NativePolygon>;
+  inline std::vector<NativePolygon> create_std__vector_NativePolygon_(size_t size) noexcept {
+    std::vector<NativePolygon> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativeCircle>
+  /**
+   * Specialized version of `std::vector<NativeCircle>`.
+   */
+  using std__vector_NativeCircle_ = std::vector<NativeCircle>;
+  inline std::vector<NativeCircle> create_std__vector_NativeCircle_(size_t size) noexcept {
+    std::vector<NativeCircle> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<NativeTileOverlay>
+  /**
+   * Specialized version of `std::vector<NativeTileOverlay>`.
+   */
+  using std__vector_NativeTileOverlay_ = std::vector<NativeTileOverlay>;
+  inline std::vector<NativeTileOverlay> create_std__vector_NativeTileOverlay_(size_t size) noexcept {
+    std::vector<NativeTileOverlay> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
   // pragma MARK: std::function<void(const MapCamera& /* camera */)>
   /**
    * Specialized version of `std::function<void(const MapCamera&)>`.
@@ -301,6 +457,191 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::function<void()>
+  /**
+   * Specialized version of `std::function<void()>`.
+   */
+  using Func_void = std::function<void()>;
+  /**
+   * Wrapper class for a `std::function<void()>`, this can be used from Swift.
+   */
+  class Func_void_Wrapper final {
+  public:
+    explicit Func_void_Wrapper(std::function<void()>&& func): _function(std::make_unique<std::function<void()>>(std::move(func))) {}
+    inline void call() const noexcept {
+      _function->operator()();
+    }
+  private:
+    std::unique_ptr<std::function<void()>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
+    return Func_void_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void()>>
+  /**
+   * Specialized version of `std::optional<std::function<void()>>`.
+   */
+  using std__optional_std__function_void____ = std::optional<std::function<void()>>;
+  inline std::optional<std::function<void()>> create_std__optional_std__function_void____(const std::function<void()>& value) noexcept {
+    return std::optional<std::function<void()>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void()> get_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const MapPressEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const MapPressEvent&)>`.
+   */
+  using Func_void_MapPressEvent = std::function<void(const MapPressEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapPressEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapPressEvent_Wrapper final {
+  public:
+    explicit Func_void_MapPressEvent_Wrapper(std::function<void(const MapPressEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const MapPressEvent& /* event */)>>(std::move(func))) {}
+    inline void call(MapPressEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapPressEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapPressEvent create_Func_void_MapPressEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapPressEvent_Wrapper wrap_Func_void_MapPressEvent(Func_void_MapPressEvent value) noexcept {
+    return Func_void_MapPressEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const MapPressEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const MapPressEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_MapPressEvent_____event______ = std::optional<std::function<void(const MapPressEvent& /* event */)>>;
+  inline std::optional<std::function<void(const MapPressEvent& /* event */)>> create_std__optional_std__function_void_const_MapPressEvent_____event______(const std::function<void(const MapPressEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const MapPressEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_MapPressEvent_____event______(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const MapPressEvent& /* event */)> get_std__optional_std__function_void_const_MapPressEvent_____event______(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const MarkerDragEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const MarkerDragEvent&)>`.
+   */
+  using Func_void_MarkerDragEvent = std::function<void(const MarkerDragEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MarkerDragEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_MarkerDragEvent_Wrapper final {
+  public:
+    explicit Func_void_MarkerDragEvent_Wrapper(std::function<void(const MarkerDragEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const MarkerDragEvent& /* event */)>>(std::move(func))) {}
+    inline void call(MarkerDragEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MarkerDragEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MarkerDragEvent create_Func_void_MarkerDragEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MarkerDragEvent_Wrapper wrap_Func_void_MarkerDragEvent(Func_void_MarkerDragEvent value) noexcept {
+    return Func_void_MarkerDragEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const MarkerDragEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const MarkerDragEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_MarkerDragEvent_____event______ = std::optional<std::function<void(const MarkerDragEvent& /* event */)>>;
+  inline std::optional<std::function<void(const MarkerDragEvent& /* event */)>> create_std__optional_std__function_void_const_MarkerDragEvent_____event______(const std::function<void(const MarkerDragEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const MarkerDragEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_MarkerDragEvent_____event______(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const MarkerDragEvent& /* event */)> get_std__optional_std__function_void_const_MarkerDragEvent_____event______(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const UserLocationEvent& /* location */)>
+  /**
+   * Specialized version of `std::function<void(const UserLocationEvent&)>`.
+   */
+  using Func_void_UserLocationEvent = std::function<void(const UserLocationEvent& /* location */)>;
+  /**
+   * Wrapper class for a `std::function<void(const UserLocationEvent& / * location * /)>`, this can be used from Swift.
+   */
+  class Func_void_UserLocationEvent_Wrapper final {
+  public:
+    explicit Func_void_UserLocationEvent_Wrapper(std::function<void(const UserLocationEvent& /* location */)>&& func): _function(std::make_unique<std::function<void(const UserLocationEvent& /* location */)>>(std::move(func))) {}
+    inline void call(UserLocationEvent location) const noexcept {
+      _function->operator()(location);
+    }
+  private:
+    std::unique_ptr<std::function<void(const UserLocationEvent& /* location */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_UserLocationEvent create_Func_void_UserLocationEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_UserLocationEvent_Wrapper wrap_Func_void_UserLocationEvent(Func_void_UserLocationEvent value) noexcept {
+    return Func_void_UserLocationEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const UserLocationEvent& /* location */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const UserLocationEvent& / * location * /)>>`.
+   */
+  using std__optional_std__function_void_const_UserLocationEvent_____location______ = std::optional<std::function<void(const UserLocationEvent& /* location */)>>;
+  inline std::optional<std::function<void(const UserLocationEvent& /* location */)>> create_std__optional_std__function_void_const_UserLocationEvent_____location______(const std::function<void(const UserLocationEvent& /* location */)>& value) noexcept {
+    return std::optional<std::function<void(const UserLocationEvent& /* location */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_UserLocationEvent_____location______(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const UserLocationEvent& /* location */)> get_std__optional_std__function_void_const_UserLocationEvent_____location______(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const MapFeatureEvent& /* feature */)>
+  /**
+   * Specialized version of `std::function<void(const MapFeatureEvent&)>`.
+   */
+  using Func_void_MapFeatureEvent = std::function<void(const MapFeatureEvent& /* feature */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapFeatureEvent& / * feature * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapFeatureEvent_Wrapper final {
+  public:
+    explicit Func_void_MapFeatureEvent_Wrapper(std::function<void(const MapFeatureEvent& /* feature */)>&& func): _function(std::make_unique<std::function<void(const MapFeatureEvent& /* feature */)>>(std::move(func))) {}
+    inline void call(MapFeatureEvent feature) const noexcept {
+      _function->operator()(feature);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapFeatureEvent& /* feature */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapFeatureEvent create_Func_void_MapFeatureEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapFeatureEvent_Wrapper wrap_Func_void_MapFeatureEvent(Func_void_MapFeatureEvent value) noexcept {
+    return Func_void_MapFeatureEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const MapFeatureEvent& / * feature * /)>>`.
+   */
+  using std__optional_std__function_void_const_MapFeatureEvent_____feature______ = std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>;
+  inline std::optional<std::function<void(const MapFeatureEvent& /* feature */)>> create_std__optional_std__function_void_const_MapFeatureEvent_____feature______(const std::function<void(const MapFeatureEvent& /* feature */)>& value) noexcept {
+    return std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_MapFeatureEvent_____feature______(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const MapFeatureEvent& /* feature */)> get_std__optional_std__function_void_const_MapFeatureEvent_____feature______(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
   // pragma MARK: std::shared_ptr<Promise<MapCamera>>
   /**
    * Specialized version of `std::shared_ptr<Promise<MapCamera>>`.
@@ -311,6 +652,166 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline PromiseHolder<MapCamera> wrap_std__shared_ptr_Promise_MapCamera__(std::shared_ptr<Promise<MapCamera>> promise) noexcept {
     return PromiseHolder<MapCamera>(std::move(promise));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<MapRegion>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MapRegion>>`.
+   */
+  using std__shared_ptr_Promise_MapRegion__ = std::shared_ptr<Promise<MapRegion>>;
+  inline std::shared_ptr<Promise<MapRegion>> create_std__shared_ptr_Promise_MapRegion__() noexcept {
+    return Promise<MapRegion>::create();
+  }
+  inline PromiseHolder<MapRegion> wrap_std__shared_ptr_Promise_MapRegion__(std::shared_ptr<Promise<MapRegion>> promise) noexcept {
+    return PromiseHolder<MapRegion>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MapRegion& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MapRegion&)>`.
+   */
+  using Func_void_MapRegion = std::function<void(const MapRegion& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapRegion& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapRegion_Wrapper final {
+  public:
+    explicit Func_void_MapRegion_Wrapper(std::function<void(const MapRegion& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapRegion& /* result */)>>(std::move(func))) {}
+    inline void call(MapRegion result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapRegion& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapRegion create_Func_void_MapRegion(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapRegion_Wrapper wrap_Func_void_MapRegion(Func_void_MapRegion value) noexcept {
+    return Func_void_MapRegion_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<MapPoint>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MapPoint>>`.
+   */
+  using std__shared_ptr_Promise_MapPoint__ = std::shared_ptr<Promise<MapPoint>>;
+  inline std::shared_ptr<Promise<MapPoint>> create_std__shared_ptr_Promise_MapPoint__() noexcept {
+    return Promise<MapPoint>::create();
+  }
+  inline PromiseHolder<MapPoint> wrap_std__shared_ptr_Promise_MapPoint__(std::shared_ptr<Promise<MapPoint>> promise) noexcept {
+    return PromiseHolder<MapPoint>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MapPoint& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MapPoint&)>`.
+   */
+  using Func_void_MapPoint = std::function<void(const MapPoint& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapPoint& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapPoint_Wrapper final {
+  public:
+    explicit Func_void_MapPoint_Wrapper(std::function<void(const MapPoint& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapPoint& /* result */)>>(std::move(func))) {}
+    inline void call(MapPoint result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapPoint& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapPoint create_Func_void_MapPoint(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapPoint_Wrapper wrap_Func_void_MapPoint(Func_void_MapPoint value) noexcept {
+    return Func_void_MapPoint_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<MapCoordinate>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MapCoordinate>>`.
+   */
+  using std__shared_ptr_Promise_MapCoordinate__ = std::shared_ptr<Promise<MapCoordinate>>;
+  inline std::shared_ptr<Promise<MapCoordinate>> create_std__shared_ptr_Promise_MapCoordinate__() noexcept {
+    return Promise<MapCoordinate>::create();
+  }
+  inline PromiseHolder<MapCoordinate> wrap_std__shared_ptr_Promise_MapCoordinate__(std::shared_ptr<Promise<MapCoordinate>> promise) noexcept {
+    return PromiseHolder<MapCoordinate>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MapCoordinate& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MapCoordinate&)>`.
+   */
+  using Func_void_MapCoordinate = std::function<void(const MapCoordinate& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapCoordinate& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapCoordinate_Wrapper final {
+  public:
+    explicit Func_void_MapCoordinate_Wrapper(std::function<void(const MapCoordinate& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapCoordinate& /* result */)>>(std::move(func))) {}
+    inline void call(MapCoordinate result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapCoordinate& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapCoordinate create_Func_void_MapCoordinate(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapCoordinate_Wrapper wrap_Func_void_MapCoordinate(Func_void_MapCoordinate value) noexcept {
+    return Func_void_MapCoordinate_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<std::string>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<std::string>>`.
+   */
+  using std__shared_ptr_Promise_std__string__ = std::shared_ptr<Promise<std::string>>;
+  inline std::shared_ptr<Promise<std::string>> create_std__shared_ptr_Promise_std__string__() noexcept {
+    return Promise<std::string>::create();
+  }
+  inline PromiseHolder<std::string> wrap_std__shared_ptr_Promise_std__string__(std::shared_ptr<Promise<std::string>> promise) noexcept {
+    return PromiseHolder<std::string>(std::move(promise));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<MapAddress>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MapAddress>>`.
+   */
+  using std__shared_ptr_Promise_MapAddress__ = std::shared_ptr<Promise<MapAddress>>;
+  inline std::shared_ptr<Promise<MapAddress>> create_std__shared_ptr_Promise_MapAddress__() noexcept {
+    return Promise<MapAddress>::create();
+  }
+  inline PromiseHolder<MapAddress> wrap_std__shared_ptr_Promise_MapAddress__(std::shared_ptr<Promise<MapAddress>> promise) noexcept {
+    return PromiseHolder<MapAddress>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MapAddress& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MapAddress&)>`.
+   */
+  using Func_void_MapAddress = std::function<void(const MapAddress& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapAddress& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapAddress_Wrapper final {
+  public:
+    explicit Func_void_MapAddress_Wrapper(std::function<void(const MapAddress& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapAddress& /* result */)>>(std::move(func))) {}
+    inline void call(MapAddress result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapAddress& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapAddress create_Func_void_MapAddress(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapAddress_Wrapper wrap_Func_void_MapAddress(Func_void_MapAddress value) noexcept {
+    return Func_void_MapAddress_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<bool>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<bool>>`.
+   */
+  using std__shared_ptr_Promise_bool__ = std::shared_ptr<Promise<bool>>;
+  inline std::shared_ptr<Promise<bool>> create_std__shared_ptr_Promise_bool__() noexcept {
+    return Promise<bool>::create();
+  }
+  inline PromiseHolder<bool> wrap_std__shared_ptr_Promise_bool__(std::shared_ptr<Promise<bool>> promise) noexcept {
+    return PromiseHolder<bool>(std::move(promise));
   }
   
   // pragma MARK: std::shared_ptr<HybridMunimMapViewSpec>
@@ -341,6 +842,60 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_MapCamera___ create_Result_std__shared_ptr_Promise_MapCamera___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<MapCamera>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MapRegion>>>
+  using Result_std__shared_ptr_Promise_MapRegion___ = Result<std::shared_ptr<Promise<MapRegion>>>;
+  inline Result_std__shared_ptr_Promise_MapRegion___ create_Result_std__shared_ptr_Promise_MapRegion___(const std::shared_ptr<Promise<MapRegion>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MapRegion>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MapRegion___ create_Result_std__shared_ptr_Promise_MapRegion___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MapRegion>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MapPoint>>>
+  using Result_std__shared_ptr_Promise_MapPoint___ = Result<std::shared_ptr<Promise<MapPoint>>>;
+  inline Result_std__shared_ptr_Promise_MapPoint___ create_Result_std__shared_ptr_Promise_MapPoint___(const std::shared_ptr<Promise<MapPoint>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MapPoint>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MapPoint___ create_Result_std__shared_ptr_Promise_MapPoint___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MapPoint>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MapCoordinate>>>
+  using Result_std__shared_ptr_Promise_MapCoordinate___ = Result<std::shared_ptr<Promise<MapCoordinate>>>;
+  inline Result_std__shared_ptr_Promise_MapCoordinate___ create_Result_std__shared_ptr_Promise_MapCoordinate___(const std::shared_ptr<Promise<MapCoordinate>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MapCoordinate>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MapCoordinate___ create_Result_std__shared_ptr_Promise_MapCoordinate___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MapCoordinate>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<std::string>>>
+  using Result_std__shared_ptr_Promise_std__string___ = Result<std::shared_ptr<Promise<std::string>>>;
+  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::shared_ptr<Promise<std::string>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::string>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::string>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MapAddress>>>
+  using Result_std__shared_ptr_Promise_MapAddress___ = Result<std::shared_ptr<Promise<MapAddress>>>;
+  inline Result_std__shared_ptr_Promise_MapAddress___ create_Result_std__shared_ptr_Promise_MapAddress___(const std::shared_ptr<Promise<MapAddress>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MapAddress>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MapAddress___ create_Result_std__shared_ptr_Promise_MapAddress___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MapAddress>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<bool>>>
+  using Result_std__shared_ptr_Promise_bool___ = Result<std::shared_ptr<Promise<bool>>>;
+  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::shared_ptr<Promise<bool>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<bool>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<bool>>>::withError(error);
   }
 
 } // namespace margelo::nitro::munimmaps::bridge::swift

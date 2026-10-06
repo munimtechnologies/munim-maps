@@ -89,6 +89,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setZones(newViewProps.zones.value);
     newViewProps.zones.isDirty = false;
   }
+  // paths: array
+  if (newViewProps.paths.isDirty) {
+    swiftPart.setPaths(newViewProps.paths.value);
+    newViewProps.paths.isDirty = false;
+  }
   // mapTestID: string
   if (newViewProps.mapTestID.isDirty) {
     swiftPart.setMapTestID(newViewProps.mapTestID.value);
@@ -103,6 +108,16 @@ using namespace margelo::nitro::munimmaps::views;
   if (newViewProps.maxCameraDistance.isDirty) {
     swiftPart.setMaxCameraDistance(newViewProps.maxCameraDistance.value);
     newViewProps.maxCameraDistance.isDirty = false;
+  }
+  // realisticElevation: boolean
+  if (newViewProps.realisticElevation.isDirty) {
+    swiftPart.setRealisticElevation(newViewProps.realisticElevation.value);
+    newViewProps.realisticElevation.isDirty = false;
+  }
+  // globe: boolean
+  if (newViewProps.globe.isDirty) {
+    swiftPart.setGlobe(newViewProps.globe.value);
+    newViewProps.globe.isDirty = false;
   }
   // onModelPress: optional
   if (newViewProps.onModelPress.isDirty) {

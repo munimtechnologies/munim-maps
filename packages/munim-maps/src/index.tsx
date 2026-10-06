@@ -16,21 +16,51 @@ import MunimMapViewConfig from '../nitrogen/generated/shared/json/MunimMapViewCo
 import type {
   MapAlignmentReport,
   MapCoordinate,
+  MapPathPoint,
   MapModelLayerMethods,
   MapModelLayerProps,
   MapModelLighting,
   MapModelShape,
+  MapModelEffect,
   NativeMapModel,
+  NativeMapPath,
   NativeMapZone,
 } from './specs/MapModelLayer.nitro'
 import type {
+  EdgeInsets,
   MapCamera,
+  MapCameraEasing,
   MapColorScheme,
   MapElevation,
   MapStyle,
   MunimMapViewMethods,
   MunimMapViewProps,
+  UserTrackingMode,
 } from './specs/MunimMapView.nitro'
+import type {
+  LineCap,
+  MapAddress,
+  MapFeatureEvent,
+  MapPoint,
+  MapPressEvent,
+  MapRegion,
+  MarkerBadgePosition,
+  MarkerDragEvent,
+  MarkerStyle,
+  UserLocationEvent,
+} from './specs/MapFeatures.nitro'
+import {
+  toNativeCircle,
+  toNativeMarker,
+  toNativePolygon,
+  toNativePolyline,
+  toNativeTileOverlay,
+  type MapCircle,
+  type MapMarker,
+  type MapPolygon,
+  type MapPolyline,
+  type MapTileOverlay,
+} from './features'
 
 /** A 3D model placed on the map. Only `id` and `coordinate` are required. */
 export interface MapModel {
@@ -93,6 +123,15 @@ export interface MapModel {
   lift?: number
   /** Text in a pill floating above the model, such as a name. */
   label?: string
+  /**
+   * A particle effect: `exhaust` is an engine plume pointing down from the
+   * model's base, sized to the model (a rocket launching); `smoke` is a
+   * billowing cloud on the ground, `size.width` metres across and
+   * `size.height` tall (use it without `source`). Default none.
+   */
+  effect?: 'exhaust' | 'smoke'
+  /** 0...1: throttle the effect up, or let the smoke clear. Default 1. */
+  effectIntensity?: number
   /** Default true. */
   visible?: boolean
 }
@@ -157,7 +196,9 @@ export function toNativeModel(model: MapModel): NativeMapModel {
     heading: model.heading ?? 0,
     scale: model.scale ?? 1,
     uri,
-    shape: uri ? 'none' : (model.shape ?? 'box'),
+    shape: uri
+      ? 'none'
+      : (model.shape ?? (model.effect === 'smoke' ? 'none' : 'box')),
     width: model.size?.width ?? 10,
     height: model.size?.height ?? 10,
     length: model.size?.length ?? 10,
@@ -176,6 +217,8 @@ export function toNativeModel(model: MapModel): NativeMapModel {
     label: model.label ?? '',
     stem: model.stem != null && model.stem !== false,
     stemColor: typeof model.stem === 'string' ? model.stem : '#FFFFFF',
+    effect: model.effect ?? 'none',
+    effectIntensity: model.effectIntensity ?? 1,
     visible: model.visible ?? true,
   }
 }
@@ -234,6 +277,42 @@ function useNativeZones(zones: MapZone[] | undefined): NativeMapZone[] {
   return useMemo(() => (zones ?? []).map(toNativeZone), [zones])
 }
 
+/**
+ * A line drawn in 3D by munim-maps: it can sit above the ground (a flight
+ * path, an orbit) and follows the globe, where MapKit's polylines stay flat.
+ */
+export interface MapPath {
+  id: string
+  coordinates: { latitude: number; longitude: number; altitude?: number }[]
+  /** `#RRGGBB` or `#RRGGBBAA`. Default white. */
+  color?: string
+  /** Width in points. Default 2. */
+  width?: number
+  /** Join the last point back to the first. Default false. */
+  closed?: boolean
+  /** Default true. */
+  visible?: boolean
+}
+
+export function toNativePath(path: MapPath): NativeMapPath {
+  return {
+    id: path.id,
+    points: path.coordinates.map((c) => ({
+      latitude: c.latitude,
+      longitude: c.longitude,
+      altitude: c.altitude ?? 0,
+    })),
+    color: path.color ?? '#FFFFFF',
+    width: path.width ?? 2,
+    closed: path.closed ?? false,
+    visible: path.visible ?? true,
+  }
+}
+
+function useNativePaths(paths: MapPath[] | undefined): NativeMapPath[] {
+  return useMemo(() => (paths ?? []).map(toNativePath), [paths])
+}
+
 function useNativeModels(models: MapModel[] | undefined): NativeMapModel[] {
   return useMemo(() => (models ?? []).map(toNativeModel), [models])
 }
@@ -247,11 +326,26 @@ function useCallbackProp<A extends unknown[]>(
 export interface MapModelLayerProperties {
   models: MapModel[]
   zones?: MapZone[]
+  /** Lines in 3D, above the ground and on the globe. */
+  paths?: MapPath[]
   /** `testID` of the map to draw over. Default: the nearest map on screen. */
   mapTestID?: string
   lighting?: MapModelLighting
   /** Hide models while the camera is farther than this, in metres. Default 50 km. */
   maxCameraDistance?: number
+  /**
+   * Keep the map on realistic elevation: 3D terrain and landmarks up close,
+   * like Apple Maps, even over a map library that sets a flat style
+   * (react-native-maps' `standard`). Default false.
+   */
+  realisticElevation?: boolean
+  /**
+   * Show the standard style as a globe when zoomed far out, like Apple
+   * Maps (MapKit only does this for satellite imagery). Uses a MapKit switch
+   * that is not public API: it may stop working in an iOS update (the map
+   * stays flat) and App Review may reject an app for it. Default false.
+   */
+  globe?: boolean
   onModelPress?: (id: string) => void
   onAttachChange?: (attached: boolean) => void
   onError?: (message: string) => void
@@ -270,6 +364,7 @@ export const MapModelLayer = forwardRef<
 >(function MapModelLayerComponent(props, ref) {
   const models = useNativeModels(props.models)
   const zones = useNativeZones(props.zones)
+  const paths = useNativePaths(props.paths)
   const onModelPress = useCallbackProp(props.onModelPress)
   const onAttachChange = useCallbackProp(props.onAttachChange)
   const onError = useCallbackProp(props.onError)
@@ -288,9 +383,12 @@ export const MapModelLayer = forwardRef<
         style={StyleSheet.absoluteFill}
         models={models}
         zones={zones}
+        paths={paths}
         mapTestID={props.mapTestID ?? ''}
         lighting={props.lighting ?? 'auto'}
         maxCameraDistance={props.maxCameraDistance ?? 50_000}
+        realisticElevation={props.realisticElevation ?? false}
+        globe={props.globe ?? false}
         onModelPress={onModelPress}
         onAttachChange={onAttachChange}
         onError={onError}
@@ -301,20 +399,91 @@ export const MapModelLayer = forwardRef<
 })
 
 export interface MunimMapViewProperties {
+  initialCamera: MapCamera
+  // 3D
   models?: MapModel[]
   zones?: MapZone[]
-  initialCamera: MapCamera
+  /** Lines in 3D, above the ground and on the globe. */
+  paths?: MapPath[]
+  lighting?: MapModelLighting
+  maxCameraDistance?: number
+  // Map features
+  markers?: MapMarker[]
+  polylines?: MapPolyline[]
+  polygons?: MapPolygon[]
+  circles?: MapCircle[]
+  tileOverlays?: MapTileOverlay[]
+  // Look
   mapStyle?: MapStyle
   elevation?: MapElevation
+  /**
+   * Show the standard style as a globe when zoomed far out, like Apple
+   * Maps (MapKit only does this for satellite imagery). Uses a MapKit switch
+   * that is not public API: it may stop working in an iOS update (the map
+   * stays flat) and App Review may reject an app for it. Default false.
+   */
+  globe?: boolean
   colorScheme?: MapColorScheme
   showsBuildings?: boolean
   showsUserLocation?: boolean
-  lighting?: MapModelLighting
-  maxCameraDistance?: number
+  showsCompass?: boolean
+  showsScale?: boolean
+  showsTraffic?: boolean
+  /** `'all'`, `'none'`, or the `MKPOICategory…` values to show. Default `'all'`. */
+  pointsOfInterest?: 'all' | 'none' | string[]
+  userTrackingMode?: UserTrackingMode
+  // Gestures and limits
+  zoomEnabled?: boolean
+  scrollEnabled?: boolean
+  rotateEnabled?: boolean
+  pitchEnabled?: boolean
+  /** Closest and farthest camera distance, in metres. */
+  cameraDistanceRange?: { min?: number; max?: number }
+  /** Keep the camera's centre inside this region. */
+  cameraBoundary?: MapRegion
+  /** Space covered by your own UI. */
+  mapPadding?: Partial<EdgeInsets>
+  /** Places on Apple's map that can be tapped (`onMapFeaturePress`). */
+  selectableMapFeatures?: (
+    'pointsOfInterest' | 'territories' | 'physicalFeatures'
+  )[]
+  // Events
   onModelPress?: (id: string) => void
   onCameraChange?: (camera: MapCamera) => void
+  onCameraMove?: (camera: MapCamera) => void
+  onMapReady?: () => void
+  onPress?: (event: MapPressEvent) => void
+  onLongPress?: (event: MapPressEvent) => void
+  onMarkerPress?: (id: string) => void
+  onMarkerDeselect?: (id: string) => void
+  onCalloutPress?: (id: string) => void
+  onMarkerDragStart?: (event: MarkerDragEvent) => void
+  onMarkerDragEnd?: (event: MarkerDragEvent) => void
+  onUserLocationChange?: (location: UserLocationEvent) => void
+  onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
   style?: StyleProp<ViewStyle>
+}
+
+const NO_REGION: MapRegion = {
+  latitude: 0,
+  longitude: 0,
+  latitudeDelta: 0,
+  longitudeDelta: 0,
+}
+
+function insets(padding?: Partial<EdgeInsets>): EdgeInsets {
+  return {
+    top: padding?.top ?? 0,
+    left: padding?.left ?? 0,
+    bottom: padding?.bottom ?? 0,
+    right: padding?.right ?? 0,
+  }
+}
+
+function useMapped<T, N>(items: T[] | undefined, map: (item: T) => N): N[] {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => (items ?? []).map(map), [items])
 }
 
 /** A MapKit map with models built in. iOS only; renders nothing elsewhere. */
@@ -322,9 +491,29 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
   function MunimMapViewComponent(props, ref) {
     const models = useNativeModels(props.models)
     const zones = useNativeZones(props.zones)
+    const paths = useNativePaths(props.paths)
+    const markers = useMapped(props.markers, toNativeMarker)
+    const polylines = useMapped(props.polylines, toNativePolyline)
+    const polygons = useMapped(props.polygons, toNativePolygon)
+    const circles = useMapped(props.circles, toNativeCircle)
+    const tileOverlays = useMapped(props.tileOverlays, toNativeTileOverlay)
     const onModelPress = useCallbackProp(props.onModelPress)
     const onCameraChange = useCallbackProp(props.onCameraChange)
+    const onCameraMove = useCallbackProp(props.onCameraMove)
+    const onMapReady = useCallbackProp(props.onMapReady)
+    const onPress = useCallbackProp(props.onPress)
+    const onLongPress = useCallbackProp(props.onLongPress)
+    const onMarkerPress = useCallbackProp(props.onMarkerPress)
+    const onMarkerDeselect = useCallbackProp(props.onMarkerDeselect)
+    const onCalloutPress = useCallbackProp(props.onCalloutPress)
+    const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
+    const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
+    const onUserLocationChange = useCallbackProp(props.onUserLocationChange)
+    const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
+    const pointsOfInterest = Array.isArray(props.pointsOfInterest)
+      ? props.pointsOfInterest.join(',')
+      : (props.pointsOfInterest ?? 'all')
     const hybridRef = useMemo(
       () =>
         callback((instance: MunimMapViewRef) => {
@@ -339,16 +528,48 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         style={props.style}
         models={models}
         zones={zones}
+        paths={paths}
         initialCamera={props.initialCamera}
         mapStyle={props.mapStyle ?? 'standard'}
         elevation={props.elevation ?? 'realistic'}
+        globe={props.globe ?? false}
         colorScheme={props.colorScheme ?? 'system'}
         showsBuildings={props.showsBuildings ?? true}
         showsUserLocation={props.showsUserLocation ?? false}
         lighting={props.lighting ?? 'auto'}
         maxCameraDistance={props.maxCameraDistance ?? 50_000}
+        markers={markers}
+        polylines={polylines}
+        polygons={polygons}
+        circles={circles}
+        tileOverlays={tileOverlays}
+        showsCompass={props.showsCompass ?? true}
+        showsScale={props.showsScale ?? false}
+        showsTraffic={props.showsTraffic ?? false}
+        pointsOfInterest={pointsOfInterest}
+        userTrackingMode={props.userTrackingMode ?? 'none'}
+        zoomEnabled={props.zoomEnabled ?? true}
+        scrollEnabled={props.scrollEnabled ?? true}
+        rotateEnabled={props.rotateEnabled ?? true}
+        pitchEnabled={props.pitchEnabled ?? true}
+        minCameraDistance={props.cameraDistanceRange?.min ?? 0}
+        maxCameraDistanceLimit={props.cameraDistanceRange?.max ?? 0}
+        cameraBoundary={props.cameraBoundary ?? NO_REGION}
+        mapPadding={insets(props.mapPadding)}
+        selectableMapFeatures={(props.selectableMapFeatures ?? []).join(',')}
         onModelPress={onModelPress}
         onCameraChange={onCameraChange}
+        onCameraMove={onCameraMove}
+        onMapReady={onMapReady}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        onMarkerPress={onMarkerPress}
+        onMarkerDeselect={onMarkerDeselect}
+        onCalloutPress={onCalloutPress}
+        onMarkerDragStart={onMarkerDragStart}
+        onMarkerDragEnd={onMarkerDragEnd}
+        onUserLocationChange={onUserLocationChange}
+        onMapFeaturePress={onMapFeaturePress}
         onError={onError}
         hybridRef={hybridRef}
       />
@@ -356,15 +577,43 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
   }
 )
 
+export {
+  toNativeCircle,
+  toNativeMarker,
+  toNativePolygon,
+  toNativePolyline,
+  toNativeTileOverlay,
+}
 export type {
+  EdgeInsets,
+  LineCap,
+  MapAddress,
+  MapCircle,
+  MapFeatureEvent,
+  MapMarker,
+  MapPoint,
+  MapPolygon,
+  MapPolyline,
+  MapPressEvent,
+  MapRegion,
+  MapTileOverlay,
+  MarkerBadgePosition,
+  MarkerDragEvent,
+  MarkerStyle,
+  UserLocationEvent,
+  UserTrackingMode,
   MapAlignmentReport,
   MapCoordinate,
+  MapPathPoint,
   MapCamera,
+  MapCameraEasing,
   MapColorScheme,
   MapElevation,
   MapModelLighting,
   MapModelShape,
+  MapModelEffect,
   MapStyle,
   NativeMapModel,
+  NativeMapPath,
   NativeMapZone,
 }

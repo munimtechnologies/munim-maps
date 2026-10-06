@@ -19,14 +19,27 @@
 #include "NativeMapModel.hpp"
 #include <vector>
 #include "NativeMapZone.hpp"
+#include "NativeMapPath.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
 #include "MapColorScheme.hpp"
 #include "MapModelLighting.hpp"
+#include "NativeMarker.hpp"
+#include "NativePolyline.hpp"
+#include "NativePolygon.hpp"
+#include "NativeCircle.hpp"
+#include "NativeTileOverlay.hpp"
 #include <string>
+#include "UserTrackingMode.hpp"
+#include "MapRegion.hpp"
+#include "EdgeInsets.hpp"
 #include <functional>
 #include <optional>
+#include "MapPressEvent.hpp"
+#include "MarkerDragEvent.hpp"
+#include "UserLocationEvent.hpp"
+#include "MapFeatureEvent.hpp"
 #include <memory>
 #include "HybridMunimMapViewSpec.hpp"
 
@@ -52,16 +65,48 @@ namespace margelo::nitro::munimmaps::views {
   public:
     CachedProp<std::vector<NativeMapModel>> models;
     CachedProp<std::vector<NativeMapZone>> zones;
+    CachedProp<std::vector<NativeMapPath>> paths;
     CachedProp<MapCamera> initialCamera;
     CachedProp<MapStyle> mapStyle;
     CachedProp<MapElevation> elevation;
+    CachedProp<bool> globe;
     CachedProp<MapColorScheme> colorScheme;
     CachedProp<bool> showsBuildings;
     CachedProp<bool> showsUserLocation;
     CachedProp<MapModelLighting> lighting;
     CachedProp<double> maxCameraDistance;
+    CachedProp<std::vector<NativeMarker>> markers;
+    CachedProp<std::vector<NativePolyline>> polylines;
+    CachedProp<std::vector<NativePolygon>> polygons;
+    CachedProp<std::vector<NativeCircle>> circles;
+    CachedProp<std::vector<NativeTileOverlay>> tileOverlays;
+    CachedProp<bool> showsCompass;
+    CachedProp<bool> showsScale;
+    CachedProp<bool> showsTraffic;
+    CachedProp<std::string> pointsOfInterest;
+    CachedProp<UserTrackingMode> userTrackingMode;
+    CachedProp<bool> zoomEnabled;
+    CachedProp<bool> scrollEnabled;
+    CachedProp<bool> rotateEnabled;
+    CachedProp<bool> pitchEnabled;
+    CachedProp<double> minCameraDistance;
+    CachedProp<double> maxCameraDistanceLimit;
+    CachedProp<MapRegion> cameraBoundary;
+    CachedProp<EdgeInsets> mapPadding;
+    CachedProp<std::string> selectableMapFeatures;
     CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onModelPress;
     CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraChange;
+    CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraMove;
+    CachedProp<std::optional<std::function<void()>>> onMapReady;
+    CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> onPress;
+    CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> onLongPress;
+    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerPress;
+    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerDeselect;
+    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onCalloutPress;
+    CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
+    CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
+    CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
+    CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;
     CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> hybridRef;
 

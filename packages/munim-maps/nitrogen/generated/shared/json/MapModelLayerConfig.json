@@ -6,9 +6,12 @@
   "validAttributes": {
     "models": true,
     "zones": true,
+    "paths": true,
     "mapTestID": true,
     "lighting": true,
     "maxCameraDistance": true,
+    "realisticElevation": true,
+    "globe": true,
     "onModelPress": true,
     "onAttachChange": true,
     "onError": true,

@@ -50,8 +50,10 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   var onModelPress: ((String) -> Void)?
   var onError: ((String) -> Void)?
+  /// Runs at the start of every frame pass, before anything is drawn.
+  var beforeFrame: (() -> Void)?
 
-  var lighting: MapModelLighting = .auto {
+  var lighting: MunimLighting = .auto {
     didSet { setNeedsRender() }
   }
 
@@ -68,12 +70,17 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   private let scene = SCNScene()
   private let cameraNode = SCNNode()
   private let modelsRoot = SCNNode()
+  /// On the globe, the Earth itself: drawn into depth only, so models on
+  /// the far side are hidden behind it.
+  private let earthOccluder = SCNNode()
   private let ambientLight = SCNNode()
   private let sunLight = SCNNode()
 
   private var entries: [String: Entry] = [:]
   private var zoneEntries: [String: ZoneEntry] = [:]
   private let zonesRoot = SCNNode()
+  private var pathEntries: [String: PathEntry] = [:]
+  private let pathsRoot = SCNNode()
   private var tapRecognizer: UITapGestureRecognizer?
   private var displayLink: CADisplayLink?
   private var commitObserver: CFRunLoopObserver?
@@ -109,6 +116,21 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     scene.rootNode.addChildNode(cameraNode)
     scene.rootNode.addChildNode(modelsRoot)
     scene.rootNode.addChildNode(zonesRoot)
+    scene.rootNode.addChildNode(pathsRoot)
+
+    // A little inside the real radius so models on the ground never sink
+    // into it, and finely divided so the edge of the Earth stays true.
+    let sphere = SCNSphere(radius: CGFloat(MapCameraSnapshot.earthRadius * 0.9995))
+    sphere.segmentCount = 192
+    let occluderMaterial = SCNMaterial()
+    occluderMaterial.colorBufferWriteMask = []
+    occluderMaterial.lightingModel = .constant
+    sphere.materials = [occluderMaterial]
+    earthOccluder.geometry = sphere
+    earthOccluder.renderingOrder = -100
+    earthOccluder.castsShadow = false
+    earthOccluder.isHidden = true
+    scene.rootNode.addChildNode(earthOccluder)
 
     ambientLight.light = SCNLight()
     ambientLight.light?.type = .ambient
@@ -229,7 +251,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   // MARK: Models
 
-  func setModels(_ models: [NativeMapModel]) {
+  func setModels(_ models: [MunimModel]) {
     var seen = Set<String>()
     for model in models {
       guard !seen.contains(model.id) else {
@@ -254,7 +276,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     setNeedsRender()
   }
 
-  func setZones(_ zones: [NativeMapZone]) {
+  func setZones(_ zones: [MunimZone]) {
     var seen = Set<String>()
     for zone in zones where !seen.contains(zone.id) {
       seen.insert(zone.id)
@@ -273,6 +295,25 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     setNeedsRender()
   }
 
+  func setPaths(_ paths: [MunimPath]) {
+    var seen = Set<String>()
+    for path in paths where !seen.contains(path.id) {
+      seen.insert(path.id)
+      if let entry = pathEntries[path.id] {
+        entry.path = path
+      } else {
+        let entry = PathEntry(path: path)
+        pathEntries[path.id] = entry
+        pathsRoot.addChildNode(entry.node)
+      }
+    }
+    for (id, entry) in pathEntries where !seen.contains(id) {
+      entry.node.removeFromParentNode()
+      pathEntries[id] = nil
+    }
+    setNeedsRender()
+  }
+
   fileprivate func refreshAnimationState() {
     animationsActive = entries.values.contains { $0.isAnimating }
   }
@@ -285,8 +326,15 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   private func renderIfNeeded() {
     guard let mapView, hostView.window != nil, !hostView.isHidden else { return }
+    beforeFrame?()
+    // Nothing to draw: skip reading the camera, but clear what was drawn.
+    if entries.isEmpty && zoneEntries.isEmpty && pathEntries.isEmpty {
+      if lastRendered != nil { clearDrawable() }
+      return
+    }
     guard let snapshot = MapCameraSnapshot.read(
-      from: mapView, previousFocalLength: lastSnapshot?.focalLength ?? 0)
+      from: mapView, previousFocalLength: lastSnapshot?.focalLength ?? 0,
+      globe: MapGlobe.isShowingGlobe(mapView))
     else { return }
     lastSnapshot = snapshot
 
@@ -399,9 +447,13 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     cameraNode.camera?.zFar = Double(snapshot.farPlane)
     cameraNode.camera?.projectionTransform = SCNMatrix4(snapshot.projection)
 
+    earthOccluder.isHidden = !snapshot.globe
+    earthOccluder.simdPosition = SIMD3(0, -Float(MapCameraSnapshot.earthRadius), 0)
+
     let tooFar = snapshot.distance > maxCameraDistance
     modelsRoot.isHidden = tooFar
     zonesRoot.isHidden = tooFar
+    pathsRoot.isHidden = tooFar
     if tooFar { return }
 
     for entry in entries.values {
@@ -409,6 +461,9 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     }
     for zone in zoneEntries.values {
       zone.place(in: snapshot)
+    }
+    for path in pathEntries.values {
+      path.place(in: snapshot)
     }
   }
 
@@ -434,16 +489,19 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   // MARK: Taps
 
   @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
-    guard recognizer.state == .ended, let mapView, let snapshot = lastRendered,
-          !modelsRoot.isHidden
-    else { return }
-    let point = recognizer.location(in: mapView)
+    guard recognizer.state == .ended, let mapView else { return }
+    if let id = modelHit(at: recognizer.location(in: mapView)) { onModelPress?(id) }
+  }
+
+  /// The id of the nearest model under `point` (in the map's coordinates).
+  func modelHit(at point: CGPoint) -> String? {
+    guard let snapshot = lastRendered, !modelsRoot.isHidden else { return nil }
     var best: (id: String, depth: Float)?
     for entry in entries.values {
       guard let hit = entry.hitTest(point, in: snapshot) else { continue }
       if best == nil || hit < best!.depth { best = (entry.id, hit) }
     }
-    if let best { onModelPress?(best.id) }
+    return best?.id
   }
 
   func gestureRecognizer(
@@ -455,12 +513,13 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   /// Compares where each model's ground point is drawn with where MapKit
   /// draws the same coordinate, and checks the rendered pixels.
-  func measureAlignment() -> MapAlignmentReport {
+  func measureAlignment() -> MunimAlignmentReport {
     guard let mapView,
           let snapshot = MapCameraSnapshot.read(
-            from: mapView, previousFocalLength: lastSnapshot?.focalLength ?? 0)
+            from: mapView, previousFocalLength: lastSnapshot?.focalLength ?? 0,
+            globe: MapGlobe.isShowingGlobe(mapView))
     else {
-      return MapAlignmentReport(
+      return MunimAlignmentReport(
         attached: mapView != nil, modelsMeasured: 0, maxErrorPoints: -1,
         meanErrorPoints: -1, modelsVisibleInRender: 0, cameraDistance: 0,
         cameraPitch: 0, cameraHeading: 0, fieldOfViewDegrees: 0)
@@ -478,6 +537,11 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
         latitude: entry.model.latitude, longitude: entry.model.longitude)
       let ground = snapshot.scenePosition(
         latitude: coordinate.latitude, longitude: coordinate.longitude, altitude: 0)
+      if snapshot.globe {
+        // Only the side of the globe facing the camera.
+        let up = snapshot.localUp(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        if simd_dot(up, snapshot.position - ground) <= 0 { continue }
+      }
       guard let ours = snapshot.project(ground)?.point else { continue }
       guard mapView.bounds.insetBy(dx: 4, dy: 4).contains(ours) else { continue }
       let theirs = mapView.convert(coordinate, toPointTo: mapView)
@@ -495,7 +559,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       }
     }
 
-    return MapAlignmentReport(
+    return MunimAlignmentReport(
       attached: true,
       modelsMeasured: Double(errors.count),
       maxErrorPoints: errors.max() ?? 0,
@@ -538,15 +602,18 @@ private final class Entry {
   private let labelHolder = SCNNode()
   private var content: SCNNode?
   private var shadow: SCNNode?
-  private(set) var model: NativeMapModel
+  private(set) var model: MunimModel
   private var contentKey = ""
   private var loadGeneration = 0
   private var contentHeight: Float = 1
   private var contentRadius: Float = 1
+  private var contentWidth: Float = 1
+  private var effectNode: SCNNode?
+  private var effectKey = ""
   private var hasEmbeddedAnimations = false
   private var currentScale: Float = 1
 
-  init(model: NativeMapModel) {
+  init(model: MunimModel) {
     id = model.id
     self.model = model
     root.addChildNode(body)
@@ -572,10 +639,11 @@ private final class Entry {
   /// which already triggers a redraw, so only real motion counts here.
   var isAnimating: Bool {
     model.visible && (model.spinDegreesPerSecond != 0
-      || (model.playAnimations && hasEmbeddedAnimations))
+      || (model.playAnimations && hasEmbeddedAnimations)
+      || (model.effect != .none && model.effectIntensity > 0))
   }
 
-  func update(_ model: NativeMapModel, renderer: MapModelRenderer, force: Bool = false) {
+  func update(_ model: MunimModel, renderer: MapModelRenderer, force: Bool = false) {
     let previous = self.model
     self.model = model
     root.isHidden = !model.visible
@@ -590,6 +658,8 @@ private final class Entry {
       contentKey = key
       loadContent(renderer: renderer)
     }
+
+    updateEffect()
 
     if force || previous.spinDegreesPerSecond != model.spinDegreesPerSecond {
       body.removeAction(forKey: "spin")
@@ -617,6 +687,32 @@ private final class Entry {
       let color = UIColor(mapModelHex: model.stemColor) ?? .white
       stem.geometry?.firstMaterial?.diffuse.contents = color
       stemDot.geometry?.firstMaterial?.diffuse.contents = color
+    }
+  }
+
+  /// Builds the particle effect for the current size, and throttles it.
+  private func updateEffect() {
+    guard model.effect != .none else {
+      effectNode?.removeFromParentNode()
+      effectNode = nil
+      effectKey = ""
+      return
+    }
+    // Sized to the model when there is one, otherwise to `width`/`height`.
+    let hasContent = content != nil
+    let height = hasContent ? contentHeight : Float(model.height)
+    let width = hasContent ? contentWidth : Float(model.width)
+    let key = "\(model.effect.stringValue)|\(height)|\(width)"
+    if key != effectKey {
+      effectKey = key
+      effectNode?.removeFromParentNode()
+      let node = MapModelNodes.effectNode(model.effect, height: height, width: width)
+      body.addChildNode(node)
+      effectNode = node
+    }
+    if let effectNode {
+      MapModelNodes.setEffectIntensity(Float(model.effectIntensity), in: effectNode)
+      effectNode.isHidden = !model.visible
     }
   }
 
@@ -669,6 +765,9 @@ private final class Entry {
     let extent = maximum - minimum
     contentHeight = max(0.01, extent.y)
     contentRadius = max(0.01, simd_length(extent) / 2)
+    contentWidth = max(0.01, max(extent.x, extent.z))
+    effectKey = ""
+    updateEffect()
 
     let shadowNode = MapModelNodes.groundShadowNode(diameter: max(extent.x, extent.z) * 1.6)
     shadowNode.isHidden = !model.groundShadow
@@ -685,14 +784,17 @@ private final class Entry {
   }
 
   func place(in snapshot: MapCameraSnapshot) {
+    let ground = snapshot.scenePosition(latitude: model.latitude, longitude: model.longitude, altitude: 0)
+    let local = snapshot.localOrientation(latitude: model.latitude, longitude: model.longitude)
+    let up = local.act(SIMD3<Float>(0, 1, 0))
     var position = snapshot.scenePosition(
       latitude: model.latitude, longitude: model.longitude, altitude: model.altitude)
     let focal = Float(snapshot.focalLength)
     if model.liftPoints != 0, let depth = snapshot.project(position)?.depth, depth > 0 {
-      position.y += Float(model.liftPoints) * depth / focal
+      position += up * (Float(model.liftPoints) * depth / focal)
     }
     root.simdPosition = position
-    root.simdOrientation = simd_quatf(angle: Float(-model.heading * .pi / 180), axis: SIMD3(0, 1, 0))
+    root.simdOrientation = local * simd_quatf(angle: Float(-model.heading * .pi / 180), axis: SIMD3(0, 1, 0))
 
     var scale = Float(model.scale)
     if model.screenSize > 0, let depth = snapshot.project(position)?.depth, depth > 0 {
@@ -704,17 +806,17 @@ private final class Entry {
       currentScale = scale
       root.simdScale = SIMD3(repeating: scale)
     }
-    placeStem(in: snapshot, top: position)
-    placeLabel(in: snapshot, base: position)
+    placeStem(in: snapshot, top: position, ground: ground, up: up)
+    placeLabel(in: snapshot, base: position, up: up)
   }
 
   /// Puts the label 22 points tall, 4 points above the top of the model.
-  private func placeLabel(in snapshot: MapCameraSnapshot, base: SIMD3<Float>) {
+  private func placeLabel(in snapshot: MapCameraSnapshot, base: SIMD3<Float>, up: SIMD3<Float>) {
     guard labelNode != nil, model.visible else { return }
-    let top = base + SIMD3(0, (content == nil ? 0 : contentHeight) * currentScale, 0)
+    let top = base + up * ((content == nil ? 0 : contentHeight) * currentScale)
     let depth = max(1, snapshot.project(top)?.depth ?? Float(snapshot.distance))
     let pointsToMeters = depth / Float(snapshot.focalLength)
-    labelHolder.simdPosition = top + SIMD3(0, 4 * pointsToMeters, 0)
+    labelHolder.simdPosition = top + up * (4 * pointsToMeters)
     labelHolder.simdScale = SIMD3(repeating: 22 * pointsToMeters)
   }
 
@@ -738,21 +840,23 @@ private final class Entry {
   }
 
   /// Keeps the stem about 2 points wide and the dot about 8 points across.
-  private func placeStem(in snapshot: MapCameraSnapshot, top: SIMD3<Float>) {
+  private func placeStem(in snapshot: MapCameraSnapshot, top: SIMD3<Float>, ground: SIMD3<Float>, up: SIMD3<Float>) {
     let show = model.visible && model.stem && model.altitude > 0.5
     stem.isHidden = !show
     stemDot.isHidden = !show
     guard show else { return }
-    let ground = SIMD3(top.x, 0, top.z)
     let middle = (ground + top) / 2
     let focal = Float(snapshot.focalLength)
     let middleDepth = max(1, snapshot.project(middle)?.depth ?? Float(snapshot.distance))
     let groundDepth = max(1, snapshot.project(ground)?.depth ?? Float(snapshot.distance))
     let width = 2 * middleDepth / focal
+    let tilt = simd_quatf(from: SIMD3(0, 1, 0), to: up)
     stem.simdPosition = middle
-    stem.simdScale = SIMD3(width, top.y, width)
+    stem.simdOrientation = tilt
+    stem.simdScale = SIMD3(width, simd_length(top - ground), width)
     let dot = 8 * groundDepth / focal
-    stemDot.simdPosition = ground + SIMD3(0, 0.2, 0)
+    stemDot.simdPosition = ground + up * 0.2
+    stemDot.simdOrientation = tilt
     stemDot.simdScale = SIMD3(dot, 0.05, dot)
   }
 
@@ -760,7 +864,7 @@ private final class Entry {
   func middlePoint(in snapshot: MapCameraSnapshot) -> CGPoint? {
     guard content != nil else { return nil }
     let base = root.simdPosition
-    let middle = base + SIMD3(0, contentHeight * currentScale / 2, 0)
+    let middle = base + root.simdOrientation.act(SIMD3(0, contentHeight * currentScale / 2, 0))
     return snapshot.project(middle)?.point
   }
 
@@ -768,7 +872,7 @@ private final class Entry {
   func hitTest(_ point: CGPoint, in snapshot: MapCameraSnapshot) -> Float? {
     guard model.visible, content != nil else { return nil }
     let base = root.simdPosition
-    let center = base + SIMD3(0, contentHeight * currentScale / 2, 0)
+    let center = base + root.simdOrientation.act(SIMD3(0, contentHeight * currentScale / 2, 0))
     guard let projected = snapshot.project(center), projected.depth > 0 else { return nil }
     let radius = CGFloat(Float(snapshot.focalLength) * contentRadius * currentScale / projected.depth)
     let slop = max(radius, 22)
@@ -797,22 +901,83 @@ private extension UIImage {
   }
 }
 
+// MARK: - Paths
+
+/// A ribbon a fixed number of points wide, rebuilt each frame so it keeps
+/// facing the camera.
+private final class PathEntry {
+  let node = SCNNode()
+  var path: MunimPath {
+    didSet { if oldValue.color != path.color { material.diffuse.contents = color } }
+  }
+  private let material = SCNMaterial()
+
+  init(path: MunimPath) {
+    self.path = path
+    material.lightingModel = .constant
+    material.isDoubleSided = true
+    material.blendMode = .alpha
+    material.writesToDepthBuffer = false
+    material.diffuse.contents = color
+    node.renderingOrder = 40
+    node.castsShadow = false
+  }
+
+  private var color: UIColor { UIColor(mapModelHex: path.color) ?? .white }
+
+  func place(in snapshot: MapCameraSnapshot) {
+    let count = path.coordinates.count
+    guard path.visible, count >= 2 else {
+      node.geometry = nil
+      return
+    }
+    let points = path.coordinates.enumerated().map { index, c in
+      snapshot.scenePosition(latitude: c.latitude, longitude: c.longitude, altitude: path.altitude(at: index))
+    }
+    let eye = snapshot.position
+    let focal = Float(snapshot.focalLength)
+    let halfWidth = Float(max(0.5, path.width)) / 2
+    let closed = path.closed && count >= 3
+    var vertices: [SCNVector3] = []
+    vertices.reserveCapacity((count + 1) * 2)
+    for i in 0..<(closed ? count + 1 : count) {
+      let index = i % count
+      let p = points[index]
+      let previous = closed ? points[(index + count - 1) % count] : points[max(0, index - 1)]
+      let next = closed ? points[(index + 1) % count] : points[min(count - 1, index + 1)]
+      let toEye = eye - p
+      var side = simd_cross(next - previous, toEye)
+      let length = simd_length(side)
+      side = length > 0 ? side / length : SIMD3(1, 0, 0)
+      let depth = max(1, simd_length(toEye))
+      let offset = side * (halfWidth * depth / focal)
+      vertices.append(SCNVector3(p - offset))
+      vertices.append(SCNVector3(p + offset))
+    }
+    let element = SCNGeometryElement(
+      indices: (0..<UInt32(vertices.count)).map { $0 }, primitiveType: .triangleStrip)
+    let geometry = SCNGeometry(sources: [SCNGeometrySource(vertices: vertices)], elements: [element])
+    geometry.materials = [material]
+    node.geometry = geometry
+  }
+}
+
 // MARK: - Zones
 
 /// A see-through wall on a zone outline, built once in metres around the
 /// zone's first point and moved with the map each frame.
 private final class ZoneEntry {
   let node = SCNNode()
-  private var zone: NativeMapZone
+  private var zone: MunimZone
   private var key = ""
   private var anchor = CLLocationCoordinate2D()
 
-  init(zone: NativeMapZone) {
+  init(zone: MunimZone) {
     self.zone = zone
     update(zone, force: true)
   }
 
-  func update(_ zone: NativeMapZone, force: Bool = false) {
+  func update(_ zone: MunimZone, force: Bool = false) {
     self.zone = zone
     node.isHidden = !zone.visible
     let points = zone.points.map { "\($0.latitude),\($0.longitude)" }.joined(separator: ";")
@@ -826,6 +991,7 @@ private final class ZoneEntry {
     guard zone.visible, node.geometry != nil else { return }
     node.simdPosition = snapshot.scenePosition(
       latitude: anchor.latitude, longitude: anchor.longitude, altitude: 0)
+    node.simdOrientation = snapshot.localOrientation(latitude: anchor.latitude, longitude: anchor.longitude)
   }
 
   private func buildGeometry() -> SCNGeometry? {

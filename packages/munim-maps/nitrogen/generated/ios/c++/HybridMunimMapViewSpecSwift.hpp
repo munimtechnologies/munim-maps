@@ -16,10 +16,16 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
+// Forward declaration of `MapModelEffect` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
+// Forward declaration of `NativeMapPath` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapPath; }
+// Forward declaration of `MapPathPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPathPoint; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapStyle` to properly resolve imports.
@@ -30,6 +36,44 @@ namespace margelo::nitro::munimmaps { enum class MapElevation; }
 namespace margelo::nitro::munimmaps { enum class MapColorScheme; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
+// Forward declaration of `NativeMarker` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMarker; }
+// Forward declaration of `MarkerStyle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
+// Forward declaration of `MarkerBadge` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerBadge; }
+// Forward declaration of `MarkerBadgePosition` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerBadgePosition; }
+// Forward declaration of `NativePolyline` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolyline; }
+// Forward declaration of `LineCap` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `NativePolygon` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolygon; }
+// Forward declaration of `NativeCircle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCircle; }
+// Forward declaration of `NativeTileOverlay` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `UserTrackingMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
+// Forward declaration of `MapRegion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapRegion; }
+// Forward declaration of `EdgeInsets` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct EdgeInsets; }
+// Forward declaration of `MapPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `MarkerDragEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
+// Forward declaration of `UserLocationEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
+// Forward declaration of `MapFeatureEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `MapCameraEasing` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
+// Forward declaration of `MapPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPoint; }
+// Forward declaration of `MapAddress` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 
@@ -37,16 +81,38 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <vector>
 #include <string>
 #include "MapModelShape.hpp"
+#include "MapModelEffect.hpp"
 #include "NativeMapZone.hpp"
 #include "MapCoordinate.hpp"
+#include "NativeMapPath.hpp"
+#include "MapPathPoint.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
 #include "MapColorScheme.hpp"
 #include "MapModelLighting.hpp"
+#include "NativeMarker.hpp"
+#include "MarkerStyle.hpp"
+#include "MarkerBadge.hpp"
+#include "MarkerBadgePosition.hpp"
+#include "NativePolyline.hpp"
+#include "LineCap.hpp"
+#include "NativePolygon.hpp"
+#include "NativeCircle.hpp"
+#include "NativeTileOverlay.hpp"
+#include "UserTrackingMode.hpp"
+#include "MapRegion.hpp"
+#include "EdgeInsets.hpp"
 #include <functional>
 #include <optional>
+#include "MapPressEvent.hpp"
+#include "MarkerDragEvent.hpp"
+#include "UserLocationEvent.hpp"
+#include "MapFeatureEvent.hpp"
+#include "MapCameraEasing.hpp"
 #include <NitroModules/Promise.hpp>
+#include "MapPoint.hpp"
+#include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
 
 #include "NitroMunimMaps-Swift-Cxx-Umbrella.hpp"
@@ -109,6 +175,13 @@ namespace margelo::nitro::munimmaps {
     inline void setZones(const std::vector<NativeMapZone>& zones) noexcept override {
       _swiftPart.setZones(zones);
     }
+    inline std::vector<NativeMapPath> getPaths() noexcept override {
+      auto __result = _swiftPart.getPaths();
+      return __result;
+    }
+    inline void setPaths(const std::vector<NativeMapPath>& paths) noexcept override {
+      _swiftPart.setPaths(paths);
+    }
     inline MapCamera getInitialCamera() noexcept override {
       return _swiftPart.getInitialCamera();
     }
@@ -128,6 +201,12 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setElevation(MapElevation elevation) noexcept override {
       _swiftPart.setElevation(static_cast<int>(elevation));
+    }
+    inline bool getGlobe() noexcept override {
+      return _swiftPart.getGlobe();
+    }
+    inline void setGlobe(bool globe) noexcept override {
+      _swiftPart.setGlobe(std::forward<decltype(globe)>(globe));
     }
     inline MapColorScheme getColorScheme() noexcept override {
       auto __result = _swiftPart.getColorScheme();
@@ -161,6 +240,128 @@ namespace margelo::nitro::munimmaps {
     inline void setMaxCameraDistance(double maxCameraDistance) noexcept override {
       _swiftPart.setMaxCameraDistance(std::forward<decltype(maxCameraDistance)>(maxCameraDistance));
     }
+    inline std::vector<NativeMarker> getMarkers() noexcept override {
+      auto __result = _swiftPart.getMarkers();
+      return __result;
+    }
+    inline void setMarkers(const std::vector<NativeMarker>& markers) noexcept override {
+      _swiftPart.setMarkers(markers);
+    }
+    inline std::vector<NativePolyline> getPolylines() noexcept override {
+      auto __result = _swiftPart.getPolylines();
+      return __result;
+    }
+    inline void setPolylines(const std::vector<NativePolyline>& polylines) noexcept override {
+      _swiftPart.setPolylines(polylines);
+    }
+    inline std::vector<NativePolygon> getPolygons() noexcept override {
+      auto __result = _swiftPart.getPolygons();
+      return __result;
+    }
+    inline void setPolygons(const std::vector<NativePolygon>& polygons) noexcept override {
+      _swiftPart.setPolygons(polygons);
+    }
+    inline std::vector<NativeCircle> getCircles() noexcept override {
+      auto __result = _swiftPart.getCircles();
+      return __result;
+    }
+    inline void setCircles(const std::vector<NativeCircle>& circles) noexcept override {
+      _swiftPart.setCircles(circles);
+    }
+    inline std::vector<NativeTileOverlay> getTileOverlays() noexcept override {
+      auto __result = _swiftPart.getTileOverlays();
+      return __result;
+    }
+    inline void setTileOverlays(const std::vector<NativeTileOverlay>& tileOverlays) noexcept override {
+      _swiftPart.setTileOverlays(tileOverlays);
+    }
+    inline bool getShowsCompass() noexcept override {
+      return _swiftPart.getShowsCompass();
+    }
+    inline void setShowsCompass(bool showsCompass) noexcept override {
+      _swiftPart.setShowsCompass(std::forward<decltype(showsCompass)>(showsCompass));
+    }
+    inline bool getShowsScale() noexcept override {
+      return _swiftPart.getShowsScale();
+    }
+    inline void setShowsScale(bool showsScale) noexcept override {
+      _swiftPart.setShowsScale(std::forward<decltype(showsScale)>(showsScale));
+    }
+    inline bool getShowsTraffic() noexcept override {
+      return _swiftPart.getShowsTraffic();
+    }
+    inline void setShowsTraffic(bool showsTraffic) noexcept override {
+      _swiftPart.setShowsTraffic(std::forward<decltype(showsTraffic)>(showsTraffic));
+    }
+    inline std::string getPointsOfInterest() noexcept override {
+      auto __result = _swiftPart.getPointsOfInterest();
+      return __result;
+    }
+    inline void setPointsOfInterest(const std::string& pointsOfInterest) noexcept override {
+      _swiftPart.setPointsOfInterest(pointsOfInterest);
+    }
+    inline UserTrackingMode getUserTrackingMode() noexcept override {
+      auto __result = _swiftPart.getUserTrackingMode();
+      return static_cast<UserTrackingMode>(__result);
+    }
+    inline void setUserTrackingMode(UserTrackingMode userTrackingMode) noexcept override {
+      _swiftPart.setUserTrackingMode(static_cast<int>(userTrackingMode));
+    }
+    inline bool getZoomEnabled() noexcept override {
+      return _swiftPart.getZoomEnabled();
+    }
+    inline void setZoomEnabled(bool zoomEnabled) noexcept override {
+      _swiftPart.setZoomEnabled(std::forward<decltype(zoomEnabled)>(zoomEnabled));
+    }
+    inline bool getScrollEnabled() noexcept override {
+      return _swiftPart.getScrollEnabled();
+    }
+    inline void setScrollEnabled(bool scrollEnabled) noexcept override {
+      _swiftPart.setScrollEnabled(std::forward<decltype(scrollEnabled)>(scrollEnabled));
+    }
+    inline bool getRotateEnabled() noexcept override {
+      return _swiftPart.getRotateEnabled();
+    }
+    inline void setRotateEnabled(bool rotateEnabled) noexcept override {
+      _swiftPart.setRotateEnabled(std::forward<decltype(rotateEnabled)>(rotateEnabled));
+    }
+    inline bool getPitchEnabled() noexcept override {
+      return _swiftPart.getPitchEnabled();
+    }
+    inline void setPitchEnabled(bool pitchEnabled) noexcept override {
+      _swiftPart.setPitchEnabled(std::forward<decltype(pitchEnabled)>(pitchEnabled));
+    }
+    inline double getMinCameraDistance() noexcept override {
+      return _swiftPart.getMinCameraDistance();
+    }
+    inline void setMinCameraDistance(double minCameraDistance) noexcept override {
+      _swiftPart.setMinCameraDistance(std::forward<decltype(minCameraDistance)>(minCameraDistance));
+    }
+    inline double getMaxCameraDistanceLimit() noexcept override {
+      return _swiftPart.getMaxCameraDistanceLimit();
+    }
+    inline void setMaxCameraDistanceLimit(double maxCameraDistanceLimit) noexcept override {
+      _swiftPart.setMaxCameraDistanceLimit(std::forward<decltype(maxCameraDistanceLimit)>(maxCameraDistanceLimit));
+    }
+    inline MapRegion getCameraBoundary() noexcept override {
+      return _swiftPart.getCameraBoundary();
+    }
+    inline void setCameraBoundary(const MapRegion& cameraBoundary) noexcept override {
+      _swiftPart.setCameraBoundary(std::forward<decltype(cameraBoundary)>(cameraBoundary));
+    }
+    inline EdgeInsets getMapPadding() noexcept override {
+      return _swiftPart.getMapPadding();
+    }
+    inline void setMapPadding(const EdgeInsets& mapPadding) noexcept override {
+      _swiftPart.setMapPadding(std::forward<decltype(mapPadding)>(mapPadding));
+    }
+    inline std::string getSelectableMapFeatures() noexcept override {
+      auto __result = _swiftPart.getSelectableMapFeatures();
+      return __result;
+    }
+    inline void setSelectableMapFeatures(const std::string& selectableMapFeatures) noexcept override {
+      _swiftPart.setSelectableMapFeatures(selectableMapFeatures);
+    }
     inline std::optional<std::function<void(const std::string& /* id */)>> getOnModelPress() noexcept override {
       auto __result = _swiftPart.getOnModelPress();
       return __result;
@@ -174,6 +375,83 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setOnCameraChange(const std::optional<std::function<void(const MapCamera& /* camera */)>>& onCameraChange) noexcept override {
       _swiftPart.setOnCameraChange(onCameraChange);
+    }
+    inline std::optional<std::function<void(const MapCamera& /* camera */)>> getOnCameraMove() noexcept override {
+      auto __result = _swiftPart.getOnCameraMove();
+      return __result;
+    }
+    inline void setOnCameraMove(const std::optional<std::function<void(const MapCamera& /* camera */)>>& onCameraMove) noexcept override {
+      _swiftPart.setOnCameraMove(onCameraMove);
+    }
+    inline std::optional<std::function<void()>> getOnMapReady() noexcept override {
+      auto __result = _swiftPart.getOnMapReady();
+      return __result;
+    }
+    inline void setOnMapReady(const std::optional<std::function<void()>>& onMapReady) noexcept override {
+      _swiftPart.setOnMapReady(onMapReady);
+    }
+    inline std::optional<std::function<void(const MapPressEvent& /* event */)>> getOnPress() noexcept override {
+      auto __result = _swiftPart.getOnPress();
+      return __result;
+    }
+    inline void setOnPress(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& onPress) noexcept override {
+      _swiftPart.setOnPress(onPress);
+    }
+    inline std::optional<std::function<void(const MapPressEvent& /* event */)>> getOnLongPress() noexcept override {
+      auto __result = _swiftPart.getOnLongPress();
+      return __result;
+    }
+    inline void setOnLongPress(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& onLongPress) noexcept override {
+      _swiftPart.setOnLongPress(onLongPress);
+    }
+    inline std::optional<std::function<void(const std::string& /* id */)>> getOnMarkerPress() noexcept override {
+      auto __result = _swiftPart.getOnMarkerPress();
+      return __result;
+    }
+    inline void setOnMarkerPress(const std::optional<std::function<void(const std::string& /* id */)>>& onMarkerPress) noexcept override {
+      _swiftPart.setOnMarkerPress(onMarkerPress);
+    }
+    inline std::optional<std::function<void(const std::string& /* id */)>> getOnMarkerDeselect() noexcept override {
+      auto __result = _swiftPart.getOnMarkerDeselect();
+      return __result;
+    }
+    inline void setOnMarkerDeselect(const std::optional<std::function<void(const std::string& /* id */)>>& onMarkerDeselect) noexcept override {
+      _swiftPart.setOnMarkerDeselect(onMarkerDeselect);
+    }
+    inline std::optional<std::function<void(const std::string& /* id */)>> getOnCalloutPress() noexcept override {
+      auto __result = _swiftPart.getOnCalloutPress();
+      return __result;
+    }
+    inline void setOnCalloutPress(const std::optional<std::function<void(const std::string& /* id */)>>& onCalloutPress) noexcept override {
+      _swiftPart.setOnCalloutPress(onCalloutPress);
+    }
+    inline std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragStart() noexcept override {
+      auto __result = _swiftPart.getOnMarkerDragStart();
+      return __result;
+    }
+    inline void setOnMarkerDragStart(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragStart) noexcept override {
+      _swiftPart.setOnMarkerDragStart(onMarkerDragStart);
+    }
+    inline std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragEnd() noexcept override {
+      auto __result = _swiftPart.getOnMarkerDragEnd();
+      return __result;
+    }
+    inline void setOnMarkerDragEnd(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragEnd) noexcept override {
+      _swiftPart.setOnMarkerDragEnd(onMarkerDragEnd);
+    }
+    inline std::optional<std::function<void(const UserLocationEvent& /* location */)>> getOnUserLocationChange() noexcept override {
+      auto __result = _swiftPart.getOnUserLocationChange();
+      return __result;
+    }
+    inline void setOnUserLocationChange(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& onUserLocationChange) noexcept override {
+      _swiftPart.setOnUserLocationChange(onUserLocationChange);
+    }
+    inline std::optional<std::function<void(const MapFeatureEvent& /* feature */)>> getOnMapFeaturePress() noexcept override {
+      auto __result = _swiftPart.getOnMapFeaturePress();
+      return __result;
+    }
+    inline void setOnMapFeaturePress(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& onMapFeaturePress) noexcept override {
+      _swiftPart.setOnMapFeaturePress(onMapFeaturePress);
     }
     inline std::optional<std::function<void(const std::string& /* message */)>> getOnError() noexcept override {
       auto __result = _swiftPart.getOnError();
@@ -191,8 +469,100 @@ namespace margelo::nitro::munimmaps {
         std::rethrow_exception(__result.error());
       }
     }
+    inline void animateCamera(const MapCamera& camera, double durationMs, MapCameraEasing easing) override {
+      auto __result = _swiftPart.animateCamera(std::forward<decltype(camera)>(camera), std::forward<decltype(durationMs)>(durationMs), static_cast<int>(easing));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
     inline std::shared_ptr<Promise<MapCamera>> getCamera() override {
       auto __result = _swiftPart.getCamera();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline void setRegion(const MapRegion& region, double durationMs) override {
+      auto __result = _swiftPart.setRegion(std::forward<decltype(region)>(region), std::forward<decltype(durationMs)>(durationMs));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline std::shared_ptr<Promise<MapRegion>> getVisibleRegion() override {
+      auto __result = _swiftPart.getVisibleRegion();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline void fitToCoordinates(const std::vector<MapCoordinate>& coordinates, const EdgeInsets& padding, bool animated) override {
+      auto __result = _swiftPart.fitToCoordinates(coordinates, std::forward<decltype(padding)>(padding), std::forward<decltype(animated)>(animated));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void fitToMarkers(const std::string& ids, const EdgeInsets& padding, bool animated) override {
+      auto __result = _swiftPart.fitToMarkers(ids, std::forward<decltype(padding)>(padding), std::forward<decltype(animated)>(animated));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline std::shared_ptr<Promise<MapPoint>> pointForCoordinate(const MapCoordinate& coordinate) override {
+      auto __result = _swiftPart.pointForCoordinate(std::forward<decltype(coordinate)>(coordinate));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MapCoordinate>> coordinateForPoint(const MapPoint& point) override {
+      auto __result = _swiftPart.coordinateForPoint(std::forward<decltype(point)>(point));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline void selectMarker(const std::string& id) override {
+      auto __result = _swiftPart.selectMarker(id);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void deselectMarker(const std::string& id) override {
+      auto __result = _swiftPart.deselectMarker(id);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline std::shared_ptr<Promise<std::string>> takeSnapshot(double width, double height) override {
+      auto __result = _swiftPart.takeSnapshot(std::forward<decltype(width)>(width), std::forward<decltype(height)>(height));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MapAddress>> addressForCoordinate(const MapCoordinate& coordinate) override {
+      auto __result = _swiftPart.addressForCoordinate(std::forward<decltype(coordinate)>(coordinate));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<bool>> hasLookAround(const MapCoordinate& coordinate) override {
+      auto __result = _swiftPart.hasLookAround(std::forward<decltype(coordinate)>(coordinate));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<bool>> openLookAround(const MapCoordinate& coordinate) override {
+      auto __result = _swiftPart.openLookAround(std::forward<decltype(coordinate)>(coordinate));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

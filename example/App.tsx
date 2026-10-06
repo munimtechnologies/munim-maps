@@ -11,10 +11,17 @@ import {
   type MapModel,
   type MapModelLayerRef,
   type MapZone,
+  type MapMarker,
+  type MapPolyline,
+  type MapPolygon,
+  type MapCircle,
+  type MapTileOverlay,
   type MapModelLighting,
   type MunimMapViewRef,
 } from 'munim-maps'
 import { VEHICLES } from 'munim-maps/vehicles'
+import { Demo, SHOTS, type Shot } from './Demo'
+import { ORBIT_PATHS, satelliteModels } from './orbits'
 import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 
 const starship = require('./assets/starship.usdz')
@@ -48,7 +55,72 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space'
+
+// Map features on MunimMapView: every marker style, shapes, a tile overlay.
+const LOOP = { latitude: 41.8826, longitude: -87.6233 }
+const FEATURE_CAMERA: MapCamera = { latitude: 41.8835, longitude: -87.6290, distance: 7000, pitch: 0, heading: 0 }
+const CAFES = Array.from({ length: 6 }, (_, i) => ({
+  latitude: 41.8865 + (i % 3) * 0.0006,
+  longitude: -87.6335 + Math.floor(i / 3) * 0.0008,
+}))
+const FEATURE_MARKERS: MapMarker[] = [
+  { id: 'pin', coordinate: { latitude: 41.8789, longitude: -87.6359 }, style: 'pin', color: '#FF3B30', title: 'Willis Tower', subtitle: '233 S Wacker Dr', callout: true },
+  { id: 'pizza', coordinate: { latitude: 41.8921, longitude: -87.6264 }, style: 'marker', glyph: '🍕', color: '#FF9F0A', title: 'Pizza', callout: true },
+  {
+    id: 'friend',
+    coordinate: { latitude: 41.8853, longitude: -87.6318 },
+    style: 'avatar',
+    image: avatars[1],
+    size: 46,
+    border: { color: '#0A84FF', width: 3 },
+    badges: [
+      { text: '5F', position: 'top-left' },
+      { text: '🚗', position: 'bottom-right', color: '#FFFFFF' },
+    ],
+  },
+  { id: 'park-label', coordinate: LOOP, style: 'label', title: 'Millennium Park', color: '#30D158' },
+  { id: 'dot', coordinate: { latitude: 41.8807, longitude: -87.6278 }, style: 'dot', color: '#AF52DE', size: 16 },
+  { id: 'photo', coordinate: { latitude: 41.8758, longitude: -87.6244 }, style: 'image', image: avatars[2], size: 40 },
+  { id: 'drag-me', coordinate: { latitude: 41.8735, longitude: -87.6305 }, style: 'marker', glyph: '✋', color: '#5856D6', title: 'Drag me', draggable: true },
+  ...CAFES.map((coordinate, i) => ({
+    id: `cafe-${i}`,
+    coordinate,
+    style: 'marker' as const,
+    glyph: '☕️',
+    color: '#8D6E63',
+    clusteringId: 'cafes',
+  })),
+]
+const FEATURE_POLYLINES: MapPolyline[] = [
+  { id: 'route', coordinates: [{ latitude: 41.8789, longitude: -87.6359 }, { latitude: 41.8826, longitude: -87.6290 }, { latitude: 41.8921, longitude: -87.6264 }], strokeColor: '#0A84FF', strokeWidth: 5 },
+  { id: 'dashed', coordinates: [{ latitude: 41.8735, longitude: -87.6305 }, { latitude: 41.8758, longitude: -87.6244 }], strokeColor: '#FF2D55', strokeWidth: 3, dashPattern: [6, 8] },
+]
+const FEATURE_POLYGONS: MapPolygon[] = [
+  {
+    id: 'block',
+    coordinates: [
+      { latitude: 41.8870, longitude: -87.6240 },
+      { latitude: 41.8870, longitude: -87.6190 },
+      { latitude: 41.8840, longitude: -87.6190 },
+      { latitude: 41.8840, longitude: -87.6240 },
+    ],
+    holes: [[
+      { latitude: 41.8860, longitude: -87.6225 },
+      { latitude: 41.8860, longitude: -87.6205 },
+      { latitude: 41.8850, longitude: -87.6205 },
+      { latitude: 41.8850, longitude: -87.6225 },
+    ]],
+    strokeColor: '#FF9F0A',
+    fillColor: '#FF9F0A33',
+  },
+]
+const FEATURE_CIRCLES: MapCircle[] = [
+  { id: 'radius', center: { latitude: 41.8807, longitude: -87.6278 }, radius: 250, strokeColor: '#AF52DE', fillColor: '#AF52DE22', dashPattern: [4, 6] },
+]
+const TERRAIN_TILES: MapTileOverlay[] = [
+  { id: 'terrain', urlTemplate: 'https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png', opacity: 0.35 },
+]
 
 // Lag check: MapKit draws a blue ring (an MKCircle overlay, part of the map
 // itself) and munim-maps draws a red puck at the same spot. While MapKit
@@ -177,6 +249,34 @@ const POWER_UPS: MapModel[] = [
   spinDegreesPerSecond: 90,
   label: drop.label,
 }))
+// Cities around the world for the globe screen.
+const GLOBE_CITIES: [string, number, number, string][] = [
+  ['nyc', 40.7128, -74.006, '#FF453A'],
+  ['london', 51.5072, -0.1276, '#FF9F0A'],
+  ['paris', 48.8566, 2.3522, '#FFD60A'],
+  ['cairo', 30.0444, 31.2357, '#30D158'],
+  ['rio', -22.9068, -43.1729, '#64D2FF'],
+  ['lagos', 6.5244, 3.3792, '#0A84FF'],
+  ['tokyo', 35.6762, 139.6503, '#BF5AF2'],
+  ['sydney', -33.8688, 151.2093, '#FF375F'],
+  ['honolulu', 21.3069, -157.8583, '#FF9F0A'],
+  ['anchorage', 61.2181, -149.9003, '#64D2FF'],
+  ['lima', -12.0464, -77.0428, '#30D158'],
+  ['chicago', 41.8781, -87.6298, '#FFD60A'],
+  ['berlin', 52.52, 13.405, '#FF453A'],
+  ['reykjavik', 64.1466, -21.9426, '#0A84FF'],
+  ['capetown', -33.9249, 18.4241, '#BF5AF2'],
+  ['mumbai', 19.076, 72.8777, '#FF375F'],
+]
+const GLOBE_MODELS: MapModel[] = GLOBE_CITIES.map(([id, latitude, longitude, color]) => ({
+  id: `globe-${id}`,
+  coordinate: { latitude, longitude },
+  shape: 'gem',
+  color,
+  emissive: true,
+  screenSize: 22,
+}))
+
 const CITY_MODELS: MapModel[] = [...ELEVATION_MODELS, ...MOVING, ...FLYING, ...POWER_UPS]
 const CITY_ZONES: MapZone[] = [
   {
@@ -303,6 +403,13 @@ function Example() {
   const insets = useSafeAreaInsets()
   const [mode, setMode] = useState<Mode>('munim')
   const [orbiting, setOrbiting] = useState(false)
+  const [tiles, setTiles] = useState(false)
+  const [globe, setGlobe] = useState(false)
+  const [demoShot, setDemoShot] = useState<Shot | null>(null)
+  const [globeSwitch, setGlobeSwitch] = useState(true)
+  const [globeStyle, setGlobeStyle] = useState<'standard' | 'hybrid'>('standard')
+  const [lastEvent, setLastEvent] = useState('')
+  const featuresReady = useRef(false)
   const [lighting, setLighting] = useState<MapModelLighting>('auto')
   const [launching, setLaunching] = useState(true)
   const [status, setStatus] = useState('Running self-test…')
@@ -310,6 +417,16 @@ function Example() {
   const [attached, setAttached] = useState(false)
   const seconds = useLaunchClock(launching)
   const models = useMemo(() => buildModels(seconds, launching), [seconds, launching])
+  const satellites = useMemo(() => (mode === 'space' ? satelliteModels(seconds) : []), [mode, seconds])
+
+  // Drift slowly round the Earth on the satellite screen.
+  useEffect(() => {
+    if (mode !== 'space' || !orbiting) return
+    munimRef.current?.setCamera(
+      { latitude: 22, longitude: -55 + seconds * 2, distance: 24_000_000, pitch: 0, heading: 0 },
+      false
+    )
+  }, [mode, orbiting, seconds])
 
   const munimRef = useRef<MunimMapViewRef | null>(null)
   const layerRef = useRef<MapModelLayerRef | null>(null)
@@ -334,7 +451,53 @@ function Example() {
     if (ran.current) return
     ran.current = true
     void Linking.getInitialURL().then((url) => {
-      if (url?.includes('lagtest')) {
+      const shot = /demo\/(\w+)/.exec(url ?? '')?.[1] as Shot | undefined
+      if (shot && SHOTS.includes(shot)) {
+        setLaunching(false)
+        setDemoShot(shot)
+      } else if (url?.includes('orbit')) {
+        setStatus('Satellites')
+        if (url.includes('still')) setLaunching(false)
+        setMode('space')
+      } else if (url?.includes('cities')) {
+        setLaunching(false)
+        setStatus('Globe: cities')
+        if (url.includes('hybrid')) setGlobeStyle('hybrid')
+        if (url.includes('noglobe')) setGlobeSwitch(false)
+        setMode('globe')
+        const far = /far(\d+)/.exec(url)
+        if (far) {
+          setTimeout(() => {
+            munimRef.current?.setCamera(
+              url.includes('eu') ? { latitude: 50, longitude: 5, distance: Number(far[1]) * 1000, pitch: 0, heading: 0 } : { latitude: 25, longitude: -30, distance: Number(far[1]) * 1000, pitch: 0, heading: 0 },
+              false
+            )
+          }, 3000)
+        }
+      } else if (url?.includes('munimglobe')) {
+        setLaunching(false)
+        setStatus('Globe: MunimMapView standard + globe')
+        setGlobe(true)
+        setMode('elevation')
+        setTimeout(() => {
+          munimRef.current?.setCamera({ latitude: 30, longitude: -60, distance: 25_000_000, pitch: 0, heading: 0 }, true)
+        }, 3000)
+      } else if (url?.includes('globe')) {
+        setLaunching(false)
+        setStatus('Globe: react-native-maps flat standard + globe')
+        setGlobe(true)
+        setMode('rnmaps')
+        setTimeout(() => {
+          rnMapRef.current?.animateCamera(
+            { center: { latitude: 30, longitude: -60 }, altitude: 25_000_000, pitch: 0, heading: 0 },
+            { duration: 1 }
+          )
+        }, 3000)
+      } else if (url?.includes('features')) {
+        setLaunching(false)
+        setStatus('Features')
+        setMode('features')
+      } else if (url?.includes('lagtest')) {
         setLaunching(false)
         setStatus('Lag test')
         setMode('lag')
@@ -365,6 +528,9 @@ function Example() {
             heading: camera.heading,
             altitude: camera.distance * Math.cos((camera.pitch * Math.PI) / 180),
           }),
+        featuresReady: () => featuresReady.current,
+        markerIds: () => FEATURE_MARKERS.map((m) => m.id),
+        setGlobeStyle,
         waitForLayerAttached: async (timeoutMs) => {
           const end = Date.now() + timeoutMs
           while (Date.now() < end) {
@@ -379,7 +545,7 @@ function Example() {
       .then((report) => {
         writeReport(report)
         setStatus(`Self-test: ${report.passed} passed, ${report.failed} failed`)
-        setMode('elevation')
+        setMode(report.failed > 0 ? 'features' : 'elevation')
         setOrbiting(true)
       })
       .catch((error) => {
@@ -420,9 +586,71 @@ function Example() {
     return () => clearInterval(timer)
   }, [orbiting, mode])
 
+  if (demoShot) {
+    return (
+      <>
+        <StatusBar hidden />
+        <Demo shot={demoShot} />
+      </>
+    )
+  }
+
   return (
     <View style={styles.root}>
-      {mode === 'elevation' ? (
+      {mode === 'features' ? (
+        <MunimMapView
+          key="features"
+          ref={munimRef}
+          style={StyleSheet.absoluteFill}
+          initialCamera={FEATURE_CAMERA}
+          markers={FEATURE_MARKERS}
+          polylines={FEATURE_POLYLINES}
+          polygons={FEATURE_POLYGONS}
+          circles={FEATURE_CIRCLES}
+          tileOverlays={tiles ? TERRAIN_TILES : []}
+          showsScale
+          selectableMapFeatures={['pointsOfInterest']}
+          onMapReady={() => {
+            featuresReady.current = true
+            setLastEvent('map ready')
+          }}
+          onPress={(e) => setLastEvent(`press ${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}`)}
+          onLongPress={(e) => setLastEvent(`long press ${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}`)}
+          onMarkerPress={(id) => setLastEvent(`marker ${id}`)}
+          onCalloutPress={(id) => setLastEvent(`callout ${id}`)}
+          onMarkerDragEnd={(e) => setLastEvent(`dragged ${e.id} to ${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}`)}
+          onMapFeaturePress={(f) => setLastEvent(`place ${f.title} (${f.category || f.kind})`)}
+          onCameraChange={(c) => setLastEvent(`camera ${c.distance.toFixed(0)} m`)}
+          onError={(message) => console.warn('MUNIM_MAPS', message)}
+        />
+      ) : mode === 'space' ? (
+        <MunimMapView
+          key="space"
+          ref={munimRef}
+          style={StyleSheet.absoluteFill}
+          initialCamera={{ latitude: 22, longitude: -55, distance: 24_000_000, pitch: 0, heading: 0 }}
+          globe
+          models={satellites}
+          paths={ORBIT_PATHS}
+          maxCameraDistance={100_000_000}
+          lighting="day"
+          onModelPress={setPressed}
+          onError={(message) => setStatus(`Error: ${message}`)}
+        />
+      ) : mode === 'globe' ? (
+        <MunimMapView
+          key="globe"
+          ref={munimRef}
+          style={StyleSheet.absoluteFill}
+          initialCamera={{ latitude: 30, longitude: -40, distance: 20_000_000, pitch: 0, heading: 0 }}
+          mapStyle={globeStyle}
+          globe={globeSwitch}
+          models={GLOBE_MODELS}
+          maxCameraDistance={100_000_000}
+          onModelPress={setPressed}
+          onError={(message) => console.warn('MUNIM_MAPS', message)}
+        />
+      ) : mode === 'elevation' ? (
         <MunimMapView
           key="elevation"
           ref={munimRef}
@@ -430,6 +658,7 @@ function Example() {
           initialCamera={CHICAGO_CAMERA}
           models={CITY_MODELS}
           zones={CITY_ZONES}
+          globe={globe}
           lighting={lighting}
           onModelPress={setPressed}
           onError={(message) => console.warn('MUNIM_MAPS', message)}
@@ -488,6 +717,7 @@ function Example() {
           <MapModelLayer
             ref={layerRef}
             mapTestID="rn-map"
+            globe={globe}
             models={models}
             lighting={lighting}
             onAttachChange={onAttachChange}
@@ -502,6 +732,10 @@ function Example() {
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />
           <Toggle label="Elevation" on={mode === 'elevation'} onPress={() => setMode('elevation')} />
+        </View>
+        <View style={styles.row}>
+          <Toggle label="Features" on={mode === 'features'} onPress={() => setMode('features')} />
+          {mode === 'features' ? <Toggle label="Tiles" on={tiles} onPress={() => setTiles((v) => !v)} /> : null}
         </View>
         <View style={styles.row}>
           <Toggle label={launching ? 'Launching' : 'Launch'} on={launching} onPress={() => setLaunching((v) => !v)} />
@@ -519,6 +753,7 @@ function Example() {
           <Text style={styles.status}>{attached ? 'Layer attached to the map' : 'Looking for the map…'}</Text>
         ) : null}
         {pressed ? <Text style={styles.status}>Tapped: {pressed}</Text> : null}
+        {mode === 'features' && lastEvent ? <Text style={styles.status}>Last event: {lastEvent}</Text> : null}
       </View>
       <StatusBar style="auto" />
     </View>

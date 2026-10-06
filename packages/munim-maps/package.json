@@ -1,6 +1,6 @@
 {
   "name": "munim-maps",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Animated 3D models on Apple Maps (MapKit) for Expo and React Native, including on react-native-maps, powered by Nitro Modules",
   "main": "lib/index",
   "module": "lib/index",
@@ -22,9 +22,9 @@
     "*.podspec",
     "README.md",
     "LICENSE",
-    "vehicles",
     "vehicles.js",
-    "vehicles.d.ts"
+    "vehicles.d.ts",
+    "ios/Vehicles/Models"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

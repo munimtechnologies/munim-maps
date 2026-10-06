@@ -8,7 +8,7 @@ import UIKit
 enum MapModelNodes {
   /// Builds the node for a built-in shape, `width` x `height` x `length`
   /// metres, with its base centred on the origin.
-  static func shapeNode(for model: NativeMapModel) -> SCNNode? {
+  static func shapeNode(for model: MunimModel) -> SCNNode? {
     let geometry: SCNGeometry
     switch model.shape {
     case .none:
@@ -254,7 +254,7 @@ enum MapModelNodes {
 
   /// A round picture with an optional ring and badge, on a plane that always
   /// faces the camera. The plane is 1 unit tall with its base on the origin.
-  static func avatarNode(image: UIImage, model: NativeMapModel) -> SCNNode {
+  static func avatarNode(image: UIImage, model: MunimModel) -> SCNNode {
     let texture = avatarTexture(image: image, model: model)
     let aspect = texture.size.width / max(1, texture.size.height)
     let plane = SCNPlane(width: aspect, height: 1)
@@ -279,7 +279,7 @@ enum MapModelNodes {
     return normalized(holder)
   }
 
-  private static func avatarTexture(image: UIImage, model: NativeMapModel) -> UIImage {
+  private static func avatarTexture(image: UIImage, model: MunimModel) -> UIImage {
     let diameter: CGFloat = 192
     // Points on screen to pixels in the texture.
     let pixelsPerPoint = diameter / CGFloat(model.screenSize > 0 ? model.screenSize : 44)
@@ -411,6 +411,123 @@ enum MapModelNodes {
   }
 
   /// A soft round shadow, `diameter` metres across, lying on the ground.
+  // MARK: Effects
+
+  /// Particle systems for an effect, in the model's own units (base at the
+  /// origin, y up), so they scale and turn with the model.
+  static func effectNode(_ effect: MunimEffect, height: Float, width: Float) -> SCNNode {
+    let holder = EffectNode()
+    switch effect {
+    case .none:
+      break
+    case .exhaust:
+      let h = CGFloat(height)
+      let w = CGFloat(width)
+      // Flame: white-hot at the nozzles, orange, then gone.
+      let flame = particles(
+        birthRate: 700, life: 0.42, lifeVariation: 0.12, size: w * 0.32, growth: 2.2,
+        speed: h * 1.5, spread: 3.5, blend: .additive,
+        colors: [(0, UIColor(red: 1, green: 0.97, blue: 0.86, alpha: 1)),
+                 (0.3, UIColor(red: 1, green: 0.66, blue: 0.2, alpha: 0.9)),
+                 (1, UIColor(red: 0.85, green: 0.25, blue: 0.05, alpha: 0))])
+      flame.emittingDirection = SCNVector3(0, -1, 0)
+      flame.emitterShape = SCNSphere(radius: w * 0.14)
+      holder.add(flame, at: SIMD3(0, -Float(h) * 0.01, 0))
+      // Exhaust trail: the grey column the flame leaves below it.
+      let trail = particles(
+        birthRate: 80, life: 2.2, lifeVariation: 0.6, size: w * 0.5, growth: 4,
+        speed: h * 0.7, spread: 8, blend: .alpha,
+        colors: [(0, UIColor(white: 0.95, alpha: 0)),
+                 (0.12, UIColor(white: 0.9, alpha: 0.35)),
+                 (1, UIColor(white: 0.78, alpha: 0))])
+      trail.emittingDirection = SCNVector3(0, -1, 0)
+      trail.emitterShape = SCNSphere(radius: w * 0.3)
+      holder.add(trail, at: SIMD3(0, -Float(h) * 0.45, 0))
+    case .smoke:
+      let h = CGFloat(height)
+      let w = CGFloat(width)
+      // A billowing cloud rising from the ground...
+      let billow = particles(
+        birthRate: 34, life: 4.5, lifeVariation: 1.5, size: w * 0.12, growth: 2.4,
+        speed: h * 0.16, spread: 50, blend: .alpha,
+        colors: [(0, UIColor(red: 0.95, green: 0.93, blue: 0.9, alpha: 0)),
+                 (0.15, UIColor(red: 0.93, green: 0.91, blue: 0.88, alpha: 0.42)),
+                 (1, UIColor(red: 0.8, green: 0.78, blue: 0.75, alpha: 0))])
+      billow.emittingDirection = SCNVector3(0, 1, 0)
+      billow.emitterShape = SCNBox(width: w * 0.35, height: h * 0.1, length: w * 0.35, chamferRadius: 0)
+      billow.acceleration = SCNVector3(0, Float(h) * 0.02, 0)
+      holder.add(billow, at: SIMD3(0, Float(h) * 0.1, 0))
+      // ...and rolling out sideways along the ground.
+      let roll = particles(
+        birthRate: 30, life: 3.5, lifeVariation: 1, size: w * 0.09, growth: 2.2,
+        speed: w * 0.28, spread: 90, blend: .alpha,
+        colors: [(0, UIColor(white: 0.96, alpha: 0)),
+                 (0.15, UIColor(white: 0.92, alpha: 0.38)),
+                 (1, UIColor(white: 0.85, alpha: 0))])
+      roll.emittingDirection = SCNVector3(0, 0.15, 0)
+      roll.emitterShape = SCNSphere(radius: w * 0.08)
+      roll.dampingFactor = 0.8
+      holder.add(roll, at: SIMD3(0, Float(h) * 0.05, 0))
+    }
+    return holder
+  }
+
+  static func setEffectIntensity(_ intensity: Float, in node: SCNNode) {
+    (node as? EffectNode)?.intensity = max(0, min(1, intensity))
+  }
+
+  private static func particles(
+    birthRate: CGFloat, life: CGFloat, lifeVariation: CGFloat, size: CGFloat, growth: CGFloat,
+    speed: CGFloat, spread: CGFloat, blend: SCNParticleBlendMode,
+    colors: [(Double, UIColor)]
+  ) -> SCNParticleSystem {
+    let system = SCNParticleSystem()
+    system.particleImage = softParticle
+    system.birthRate = birthRate
+    system.particleLifeSpan = life
+    system.particleLifeSpanVariation = lifeVariation
+    system.particleSize = size
+    system.particleSizeVariation = size * 0.25
+    system.particleVelocity = speed
+    system.particleVelocityVariation = speed * 0.2
+    system.spreadingAngle = spread
+    system.particleAngleVariation = 180
+    system.particleAngularVelocityVariation = 40
+    system.blendMode = blend
+    system.isLightingEnabled = false
+    system.isLocal = true
+    system.sortingMode = blend == .alpha ? .distance : .none
+    system.loops = true
+
+    let sizeAnimation = CAKeyframeAnimation()
+    sizeAnimation.values = [1, growth]
+    sizeAnimation.keyTimes = [0, 1]
+    system.propertyControllers = [
+      .size: SCNParticlePropertyController(animation: sizeAnimation),
+      .color: SCNParticlePropertyController(animation: {
+        let animation = CAKeyframeAnimation()
+        animation.values = colors.map(\.1)
+        animation.keyTimes = colors.map { NSNumber(value: $0.0) }
+        return animation
+      }()),
+    ]
+    return system
+  }
+
+  /// A soft round puff, white so the colour animation tints it.
+  private static let softParticle: UIImage = {
+    let size = CGSize(width: 64, height: 64)
+    return UIGraphicsImageRenderer(size: size).image { context in
+      let colors = [UIColor.white.cgColor, UIColor.white.withAlphaComponent(0.55).cgColor,
+                    UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+      guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors,
+                                      locations: [0, 0.45, 1]) else { return }
+      let center = CGPoint(x: 32, y: 32)
+      context.cgContext.drawRadialGradient(gradient, startCenter: center, startRadius: 0,
+                                           endCenter: center, endRadius: 32, options: [])
+    }
+  }()
+
   static func groundShadowNode(diameter: Float) -> SCNNode {
     let plane = SCNPlane(width: 1, height: 1)
     let material = SCNMaterial()
@@ -498,5 +615,26 @@ extension UIColor {
     let b = CGFloat((number >> (hasAlpha ? 8 : 0)) & 0xFF) / 255
     let a = hasAlpha ? CGFloat(number & 0xFF) / 255 : 1
     self.init(red: r, green: g, blue: b, alpha: a)
+  }
+}
+
+/// Holds an effect's particle systems and their full birth rates, so the
+/// effect can be throttled.
+final class EffectNode: SCNNode {
+  private var systems: [(SCNParticleSystem, CGFloat)] = []
+
+  var intensity: Float = 1 {
+    didSet {
+      guard intensity != oldValue else { return }
+      for (system, rate) in systems { system.birthRate = rate * CGFloat(intensity) }
+    }
+  }
+
+  func add(_ system: SCNParticleSystem, at position: SIMD3<Float>) {
+    let emitter = SCNNode()
+    emitter.simdPosition = position
+    emitter.addParticleSystem(system)
+    addChildNode(emitter)
+    systems.append((system, system.birthRate))
   }
 }

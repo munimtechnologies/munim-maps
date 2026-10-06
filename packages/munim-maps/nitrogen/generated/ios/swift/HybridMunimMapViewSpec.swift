@@ -12,21 +12,66 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   // Properties
   var models: [NativeMapModel] { get set }
   var zones: [NativeMapZone] { get set }
+  var paths: [NativeMapPath] { get set }
   var initialCamera: MapCamera { get set }
   var mapStyle: MapStyle { get set }
   var elevation: MapElevation { get set }
+  var globe: Bool { get set }
   var colorScheme: MapColorScheme { get set }
   var showsBuildings: Bool { get set }
   var showsUserLocation: Bool { get set }
   var lighting: MapModelLighting { get set }
   var maxCameraDistance: Double { get set }
+  var markers: [NativeMarker] { get set }
+  var polylines: [NativePolyline] { get set }
+  var polygons: [NativePolygon] { get set }
+  var circles: [NativeCircle] { get set }
+  var tileOverlays: [NativeTileOverlay] { get set }
+  var showsCompass: Bool { get set }
+  var showsScale: Bool { get set }
+  var showsTraffic: Bool { get set }
+  var pointsOfInterest: String { get set }
+  var userTrackingMode: UserTrackingMode { get set }
+  var zoomEnabled: Bool { get set }
+  var scrollEnabled: Bool { get set }
+  var rotateEnabled: Bool { get set }
+  var pitchEnabled: Bool { get set }
+  var minCameraDistance: Double { get set }
+  var maxCameraDistanceLimit: Double { get set }
+  var cameraBoundary: MapRegion { get set }
+  var mapPadding: EdgeInsets { get set }
+  var selectableMapFeatures: String { get set }
   var onModelPress: ((_ id: String) -> Void)? { get set }
   var onCameraChange: ((_ camera: MapCamera) -> Void)? { get set }
+  var onCameraMove: ((_ camera: MapCamera) -> Void)? { get set }
+  var onMapReady: (() -> Void)? { get set }
+  var onPress: ((_ event: MapPressEvent) -> Void)? { get set }
+  var onLongPress: ((_ event: MapPressEvent) -> Void)? { get set }
+  var onMarkerPress: ((_ id: String) -> Void)? { get set }
+  var onMarkerDeselect: ((_ id: String) -> Void)? { get set }
+  var onCalloutPress: ((_ id: String) -> Void)? { get set }
+  var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)? { get set }
+  var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)? { get set }
+  var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)? { get set }
+  var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)? { get set }
   var onError: ((_ message: String) -> Void)? { get set }
 
   // Methods
   func setCamera(camera: MapCamera, animated: Bool) throws -> Void
+  func animateCamera(camera: MapCamera, durationMs: Double, easing: MapCameraEasing) throws -> Void
   func getCamera() throws -> Promise<MapCamera>
+  func setRegion(region: MapRegion, durationMs: Double) throws -> Void
+  func getVisibleRegion() throws -> Promise<MapRegion>
+  func fitToCoordinates(coordinates: [MapCoordinate], padding: EdgeInsets, animated: Bool) throws -> Void
+  func fitToMarkers(ids: String, padding: EdgeInsets, animated: Bool) throws -> Void
+  func pointForCoordinate(coordinate: MapCoordinate) throws -> Promise<MapPoint>
+  func coordinateForPoint(point: MapPoint) throws -> Promise<MapCoordinate>
+  func selectMarker(id: String) throws -> Void
+  func deselectMarker(id: String) throws -> Void
+  func takeSnapshot(width: Double, height: Double) throws -> Promise<String>
+  func addressForCoordinate(coordinate: MapCoordinate) throws -> Promise<MapAddress>
+  func hasLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
+  func openLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
   func measureAlignment() throws -> Promise<MapAlignmentReport>
 }
 

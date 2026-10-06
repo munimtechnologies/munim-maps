@@ -155,6 +155,23 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var paths: bridge.std__vector_NativeMapPath_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativeMapPath_ in
+        var __vector = bridge.create_std__vector_NativeMapPath_(self.__implementation.paths.count)
+        for __item in self.__implementation.paths {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.paths = newValue.map({ __item in __item })
+    }
+  }
+  
   public final var initialCamera: MapCamera {
     @inline(__always)
     get {
@@ -185,6 +202,17 @@ open class HybridMunimMapViewSpec_cxx {
     @inline(__always)
     set {
       self.__implementation.elevation = margelo.nitro.munimmaps.MapElevation(rawValue: newValue)!
+    }
+  }
+  
+  public final var globe: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.globe
+    }
+    @inline(__always)
+    set {
+      self.__implementation.globe = newValue
     }
   }
   
@@ -240,6 +268,245 @@ open class HybridMunimMapViewSpec_cxx {
     @inline(__always)
     set {
       self.__implementation.maxCameraDistance = newValue
+    }
+  }
+  
+  public final var markers: bridge.std__vector_NativeMarker_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativeMarker_ in
+        var __vector = bridge.create_std__vector_NativeMarker_(self.__implementation.markers.count)
+        for __item in self.__implementation.markers {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.markers = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var polylines: bridge.std__vector_NativePolyline_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativePolyline_ in
+        var __vector = bridge.create_std__vector_NativePolyline_(self.__implementation.polylines.count)
+        for __item in self.__implementation.polylines {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.polylines = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var polygons: bridge.std__vector_NativePolygon_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativePolygon_ in
+        var __vector = bridge.create_std__vector_NativePolygon_(self.__implementation.polygons.count)
+        for __item in self.__implementation.polygons {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.polygons = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var circles: bridge.std__vector_NativeCircle_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativeCircle_ in
+        var __vector = bridge.create_std__vector_NativeCircle_(self.__implementation.circles.count)
+        for __item in self.__implementation.circles {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.circles = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var tileOverlays: bridge.std__vector_NativeTileOverlay_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativeTileOverlay_ in
+        var __vector = bridge.create_std__vector_NativeTileOverlay_(self.__implementation.tileOverlays.count)
+        for __item in self.__implementation.tileOverlays {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.tileOverlays = newValue.map({ __item in __item })
+    }
+  }
+  
+  public final var showsCompass: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showsCompass
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showsCompass = newValue
+    }
+  }
+  
+  public final var showsScale: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showsScale
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showsScale = newValue
+    }
+  }
+  
+  public final var showsTraffic: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showsTraffic
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showsTraffic = newValue
+    }
+  }
+  
+  public final var pointsOfInterest: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.pointsOfInterest)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.pointsOfInterest = String(newValue)
+    }
+  }
+  
+  public final var userTrackingMode: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.userTrackingMode.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.userTrackingMode = margelo.nitro.munimmaps.UserTrackingMode(rawValue: newValue)!
+    }
+  }
+  
+  public final var zoomEnabled: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.zoomEnabled
+    }
+    @inline(__always)
+    set {
+      self.__implementation.zoomEnabled = newValue
+    }
+  }
+  
+  public final var scrollEnabled: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.scrollEnabled
+    }
+    @inline(__always)
+    set {
+      self.__implementation.scrollEnabled = newValue
+    }
+  }
+  
+  public final var rotateEnabled: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.rotateEnabled
+    }
+    @inline(__always)
+    set {
+      self.__implementation.rotateEnabled = newValue
+    }
+  }
+  
+  public final var pitchEnabled: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.pitchEnabled
+    }
+    @inline(__always)
+    set {
+      self.__implementation.pitchEnabled = newValue
+    }
+  }
+  
+  public final var minCameraDistance: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.minCameraDistance
+    }
+    @inline(__always)
+    set {
+      self.__implementation.minCameraDistance = newValue
+    }
+  }
+  
+  public final var maxCameraDistanceLimit: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.maxCameraDistanceLimit
+    }
+    @inline(__always)
+    set {
+      self.__implementation.maxCameraDistanceLimit = newValue
+    }
+  }
+  
+  public final var cameraBoundary: MapRegion {
+    @inline(__always)
+    get {
+      return self.__implementation.cameraBoundary
+    }
+    @inline(__always)
+    set {
+      self.__implementation.cameraBoundary = newValue
+    }
+  }
+  
+  public final var mapPadding: EdgeInsets {
+    @inline(__always)
+    get {
+      return self.__implementation.mapPadding
+    }
+    @inline(__always)
+    set {
+      self.__implementation.mapPadding = newValue
+    }
+  }
+  
+  public final var selectableMapFeatures: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.selectableMapFeatures)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.selectableMapFeatures = String(newValue)
     }
   }
   
@@ -307,6 +574,358 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var onCameraMove: bridge.std__optional_std__function_void_const_MapCamera_____camera______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MapCamera_____camera______ in
+        if let __unwrappedValue = self.__implementation.onCameraMove {
+          return bridge.create_std__optional_std__function_void_const_MapCamera_____camera______({ () -> bridge.Func_void_MapCamera in
+            let __closureWrapper = Func_void_MapCamera(__unwrappedValue)
+            return bridge.create_Func_void_MapCamera(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onCameraMove = { () -> ((_ camera: MapCamera) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MapCamera_____camera______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MapCamera_____camera______(newValue)
+          return { () -> (MapCamera) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MapCamera(__unwrapped)
+            return { (__camera: MapCamera) -> Void in
+              __wrappedFunction.call(__camera)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onMapReady: bridge.std__optional_std__function_void____ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void____ in
+        if let __unwrappedValue = self.__implementation.onMapReady {
+          return bridge.create_std__optional_std__function_void____({ () -> bridge.Func_void in
+            let __closureWrapper = Func_void(__unwrappedValue)
+            return bridge.create_Func_void(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMapReady = { () -> (() -> Void)? in
+        if bridge.has_value_std__optional_std__function_void____(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void____(newValue)
+          return { () -> () -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void(__unwrapped)
+            return { () -> Void in
+              __wrappedFunction.call()
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onPress: bridge.std__optional_std__function_void_const_MapPressEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MapPressEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onPress {
+          return bridge.create_std__optional_std__function_void_const_MapPressEvent_____event______({ () -> bridge.Func_void_MapPressEvent in
+            let __closureWrapper = Func_void_MapPressEvent(__unwrappedValue)
+            return bridge.create_Func_void_MapPressEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onPress = { () -> ((_ event: MapPressEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MapPressEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MapPressEvent_____event______(newValue)
+          return { () -> (MapPressEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MapPressEvent(__unwrapped)
+            return { (__event: MapPressEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onLongPress: bridge.std__optional_std__function_void_const_MapPressEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MapPressEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onLongPress {
+          return bridge.create_std__optional_std__function_void_const_MapPressEvent_____event______({ () -> bridge.Func_void_MapPressEvent in
+            let __closureWrapper = Func_void_MapPressEvent(__unwrappedValue)
+            return bridge.create_Func_void_MapPressEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onLongPress = { () -> ((_ event: MapPressEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MapPressEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MapPressEvent_____event______(newValue)
+          return { () -> (MapPressEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MapPressEvent(__unwrapped)
+            return { (__event: MapPressEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onMarkerPress: bridge.std__optional_std__function_void_const_std__string_____id______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_std__string_____id______ in
+        if let __unwrappedValue = self.__implementation.onMarkerPress {
+          return bridge.create_std__optional_std__function_void_const_std__string_____id______({ () -> bridge.Func_void_std__string in
+            let __closureWrapper = Func_void_std__string(__unwrappedValue)
+            return bridge.create_Func_void_std__string(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMarkerPress = { () -> ((_ id: String) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_std__string_____id______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____id______(newValue)
+          return { () -> (String) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
+            return { (__id: String) -> Void in
+              __wrappedFunction.call(std.string(__id))
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onMarkerDeselect: bridge.std__optional_std__function_void_const_std__string_____id______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_std__string_____id______ in
+        if let __unwrappedValue = self.__implementation.onMarkerDeselect {
+          return bridge.create_std__optional_std__function_void_const_std__string_____id______({ () -> bridge.Func_void_std__string in
+            let __closureWrapper = Func_void_std__string(__unwrappedValue)
+            return bridge.create_Func_void_std__string(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMarkerDeselect = { () -> ((_ id: String) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_std__string_____id______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____id______(newValue)
+          return { () -> (String) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
+            return { (__id: String) -> Void in
+              __wrappedFunction.call(std.string(__id))
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onCalloutPress: bridge.std__optional_std__function_void_const_std__string_____id______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_std__string_____id______ in
+        if let __unwrappedValue = self.__implementation.onCalloutPress {
+          return bridge.create_std__optional_std__function_void_const_std__string_____id______({ () -> bridge.Func_void_std__string in
+            let __closureWrapper = Func_void_std__string(__unwrappedValue)
+            return bridge.create_Func_void_std__string(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onCalloutPress = { () -> ((_ id: String) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_std__string_____id______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_std__string_____id______(newValue)
+          return { () -> (String) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_std__string(__unwrapped)
+            return { (__id: String) -> Void in
+              __wrappedFunction.call(std.string(__id))
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onMarkerDragStart: bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onMarkerDragStart {
+          return bridge.create_std__optional_std__function_void_const_MarkerDragEvent_____event______({ () -> bridge.Func_void_MarkerDragEvent in
+            let __closureWrapper = Func_void_MarkerDragEvent(__unwrappedValue)
+            return bridge.create_Func_void_MarkerDragEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMarkerDragStart = { () -> ((_ event: MarkerDragEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MarkerDragEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MarkerDragEvent_____event______(newValue)
+          return { () -> (MarkerDragEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MarkerDragEvent(__unwrapped)
+            return { (__event: MarkerDragEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onMarkerDragEnd: bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onMarkerDragEnd {
+          return bridge.create_std__optional_std__function_void_const_MarkerDragEvent_____event______({ () -> bridge.Func_void_MarkerDragEvent in
+            let __closureWrapper = Func_void_MarkerDragEvent(__unwrappedValue)
+            return bridge.create_Func_void_MarkerDragEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMarkerDragEnd = { () -> ((_ event: MarkerDragEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MarkerDragEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MarkerDragEvent_____event______(newValue)
+          return { () -> (MarkerDragEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MarkerDragEvent(__unwrapped)
+            return { (__event: MarkerDragEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onUserLocationChange: bridge.std__optional_std__function_void_const_UserLocationEvent_____location______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_UserLocationEvent_____location______ in
+        if let __unwrappedValue = self.__implementation.onUserLocationChange {
+          return bridge.create_std__optional_std__function_void_const_UserLocationEvent_____location______({ () -> bridge.Func_void_UserLocationEvent in
+            let __closureWrapper = Func_void_UserLocationEvent(__unwrappedValue)
+            return bridge.create_Func_void_UserLocationEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onUserLocationChange = { () -> ((_ location: UserLocationEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_UserLocationEvent_____location______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_UserLocationEvent_____location______(newValue)
+          return { () -> (UserLocationEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_UserLocationEvent(__unwrapped)
+            return { (__location: UserLocationEvent) -> Void in
+              __wrappedFunction.call(__location)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onMapFeaturePress: bridge.std__optional_std__function_void_const_MapFeatureEvent_____feature______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MapFeatureEvent_____feature______ in
+        if let __unwrappedValue = self.__implementation.onMapFeaturePress {
+          return bridge.create_std__optional_std__function_void_const_MapFeatureEvent_____feature______({ () -> bridge.Func_void_MapFeatureEvent in
+            let __closureWrapper = Func_void_MapFeatureEvent(__unwrappedValue)
+            return bridge.create_Func_void_MapFeatureEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMapFeaturePress = { () -> ((_ feature: MapFeatureEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MapFeatureEvent_____feature______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MapFeatureEvent_____feature______(newValue)
+          return { () -> (MapFeatureEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MapFeatureEvent(__unwrapped)
+            return { (__feature: MapFeatureEvent) -> Void in
+              __wrappedFunction.call(__feature)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var onError: bridge.std__optional_std__function_void_const_std__string_____message______ {
     @inline(__always)
     get {
@@ -352,6 +971,17 @@ open class HybridMunimMapViewSpec_cxx {
   }
   
   @inline(__always)
+  public final func animateCamera(camera: MapCamera, durationMs: Double, easing: Int32) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.animateCamera(camera: camera, durationMs: durationMs, easing: margelo.nitro.munimmaps.MapCameraEasing(rawValue: easing)!)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
   public final func getCamera() -> bridge.Result_std__shared_ptr_Promise_MapCamera___ {
     do {
       let __result = try self.__implementation.getCamera()
@@ -367,6 +997,194 @@ open class HybridMunimMapViewSpec_cxx {
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
       return bridge.create_Result_std__shared_ptr_Promise_MapCamera___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func setRegion(region: MapRegion, durationMs: Double) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.setRegion(region: region, durationMs: durationMs)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func getVisibleRegion() -> bridge.Result_std__shared_ptr_Promise_MapRegion___ {
+    do {
+      let __result = try self.__implementation.getVisibleRegion()
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MapRegion__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MapRegion__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MapRegion__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MapRegion___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MapRegion___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func fitToCoordinates(coordinates: bridge.std__vector_MapCoordinate_, padding: EdgeInsets, animated: Bool) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.fitToCoordinates(coordinates: coordinates.map({ __item in __item }), padding: padding, animated: animated)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func fitToMarkers(ids: std.string, padding: EdgeInsets, animated: Bool) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.fitToMarkers(ids: String(ids), padding: padding, animated: animated)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func pointForCoordinate(coordinate: MapCoordinate) -> bridge.Result_std__shared_ptr_Promise_MapPoint___ {
+    do {
+      let __result = try self.__implementation.pointForCoordinate(coordinate: coordinate)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MapPoint__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MapPoint__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MapPoint__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MapPoint___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MapPoint___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func coordinateForPoint(point: MapPoint) -> bridge.Result_std__shared_ptr_Promise_MapCoordinate___ {
+    do {
+      let __result = try self.__implementation.coordinateForPoint(point: point)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MapCoordinate__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MapCoordinate__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MapCoordinate__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MapCoordinate___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MapCoordinate___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func selectMarker(id: std.string) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.selectMarker(id: String(id))
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func deselectMarker(id: std.string) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.deselectMarker(id: String(id))
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func takeSnapshot(width: Double, height: Double) -> bridge.Result_std__shared_ptr_Promise_std__string___ {
+    do {
+      let __result = try self.__implementation.takeSnapshot(width: width, height: height)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_std__string__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_std__string__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_std__string__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(std.string(__result)) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_std__string___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_std__string___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func addressForCoordinate(coordinate: MapCoordinate) -> bridge.Result_std__shared_ptr_Promise_MapAddress___ {
+    do {
+      let __result = try self.__implementation.addressForCoordinate(coordinate: coordinate)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MapAddress__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MapAddress__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MapAddress__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MapAddress___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MapAddress___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func hasLookAround(coordinate: MapCoordinate) -> bridge.Result_std__shared_ptr_Promise_bool___ {
+    do {
+      let __result = try self.__implementation.hasLookAround(coordinate: coordinate)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_bool__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_bool__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_bool__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_bool___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_bool___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func openLookAround(coordinate: MapCoordinate) -> bridge.Result_std__shared_ptr_Promise_bool___ {
+    do {
+      let __result = try self.__implementation.openLookAround(coordinate: coordinate)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_bool__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_bool__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_bool__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_bool___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_bool___(__exceptionPtr)
     }
   }
   

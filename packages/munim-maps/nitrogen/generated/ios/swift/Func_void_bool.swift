@@ -8,21 +8,21 @@
 import NitroModules
 
 /**
- * Wraps a Swift `(_ attached: Bool) -> Void` as a class.
+ * Wraps a Swift `(_ value: Bool) -> Void` as a class.
  * This class can be used from C++, e.g. to wrap the Swift closure as a `std::function`.
  */
 public final class Func_void_bool {
   public typealias bridge = margelo.nitro.munimmaps.bridge.swift
 
-  private let closure: (_ attached: Bool) -> Void
+  private let closure: (_ value: Bool) -> Void
 
-  public init(_ closure: @escaping (_ attached: Bool) -> Void) {
+  public init(_ closure: @escaping (_ value: Bool) -> Void) {
     self.closure = closure
   }
 
   @inline(__always)
-  public func call(attached: Bool) -> Void {
-    self.closure(attached)
+  public func call(value: Bool) -> Void {
+    self.closure(value)
   }
 
   /**

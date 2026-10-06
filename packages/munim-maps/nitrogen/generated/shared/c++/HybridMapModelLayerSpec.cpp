@@ -18,12 +18,18 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("models", &HybridMapModelLayerSpec::setModels);
       prototype.registerHybridGetter("zones", &HybridMapModelLayerSpec::getZones);
       prototype.registerHybridSetter("zones", &HybridMapModelLayerSpec::setZones);
+      prototype.registerHybridGetter("paths", &HybridMapModelLayerSpec::getPaths);
+      prototype.registerHybridSetter("paths", &HybridMapModelLayerSpec::setPaths);
       prototype.registerHybridGetter("mapTestID", &HybridMapModelLayerSpec::getMapTestID);
       prototype.registerHybridSetter("mapTestID", &HybridMapModelLayerSpec::setMapTestID);
       prototype.registerHybridGetter("lighting", &HybridMapModelLayerSpec::getLighting);
       prototype.registerHybridSetter("lighting", &HybridMapModelLayerSpec::setLighting);
       prototype.registerHybridGetter("maxCameraDistance", &HybridMapModelLayerSpec::getMaxCameraDistance);
       prototype.registerHybridSetter("maxCameraDistance", &HybridMapModelLayerSpec::setMaxCameraDistance);
+      prototype.registerHybridGetter("realisticElevation", &HybridMapModelLayerSpec::getRealisticElevation);
+      prototype.registerHybridSetter("realisticElevation", &HybridMapModelLayerSpec::setRealisticElevation);
+      prototype.registerHybridGetter("globe", &HybridMapModelLayerSpec::getGlobe);
+      prototype.registerHybridSetter("globe", &HybridMapModelLayerSpec::setGlobe);
       prototype.registerHybridGetter("onModelPress", &HybridMapModelLayerSpec::getOnModelPress);
       prototype.registerHybridSetter("onModelPress", &HybridMapModelLayerSpec::setOnModelPress);
       prototype.registerHybridGetter("onAttachChange", &HybridMapModelLayerSpec::getOnAttachChange);

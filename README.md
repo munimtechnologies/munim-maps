@@ -44,8 +44,21 @@
 </p>
 
 <p align="center">
-  <img alt="Friends on upper floors, vehicles, power-ups and zone walls on Apple Maps" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/hero.jpg" width="100%">
+  <img alt="A Starship launch, city traffic, friends on their floor and satellites on the globe, drawn by munim-maps on Apple Maps" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/hero.jpg" width="100%">
 </p>
+
+
+<table align="center">
+  <tr>
+    <td align="center"><img alt="Starship ignition and liftoff" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-launch.gif" width="180"><br><sub>Starship launch</sub></td>
+    <td align="center"><img alt="Cars, buses and bikes moving through Chicago" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-traffic.gif" width="180"><br><sub>Traffic</sub></td>
+    <td align="center"><img alt="Friends floating at their floor on Chicago skyscrapers" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-friends.gif" width="180"><br><sub>Friends on their floor</sub></td>
+    <td align="center"><img alt="Satellites orbiting the globe on the standard map" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-orbit.gif" width="180"><br><sub>Satellites on the globe</sub></td>
+    <td align="center"><img alt="F-22, F-35, YF-23 and F-16 over Manhattan" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-jets.gif" width="180"><br><sub>Jets over Manhattan</sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Recorded on an iPhone 17 Pro. Open any shot in the example app with <code>munimmapsexample://demo/launch</code>, <code>traffic</code>, <code>friends</code>, <code>orbit</code> or <code>jets</code>.</sub></p>
 
 ## Introduction
 
@@ -57,7 +70,11 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 **Built with React Native's Nitro modules architecture** for high performance and reliability.
 
-**Comes with a catalogue of 48 detailed vehicles**: cars, trucks, buses, bikes, motorcycles, trains, boats, airliners, fighter jets (F-16, F-22, F-35, YF-23), a helicopter, a hot air balloon and rockets (Starship, Falcon 9, Saturn V, Space Shuttle), all recolourable at runtime.
+**Comes with a catalogue of 55 detailed vehicles**: cars, trucks, buses, bikes, motorcycles, trains, boats, airliners, fighter jets (F-16, F-22, F-35, YF-23), a helicopter, a hot air balloon, rockets (Starship, Falcon 9, Saturn V, Space Shuttle) and spacecraft (ISS, Starlink, Hubble, GPS, CubeSat, Crew Dragon, James Webb), all recolourable at runtime.
+
+**The globe on the standard map**: zoomed far out, the normal map becomes a globe like it does in Apple Maps, and models, satellites and 3D paths follow it.
+
+**Not using React Native?** The same map and 3D layer are a Swift package for UIKit and SwiftUI apps; see [Swift Package Manager](#swift-package-manager).
 
 **Note**: iOS only for now. On Android both components render nothing; see [Platform Support Matrix](#platform-support-matrix).
 
@@ -105,19 +122,29 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 - 🏷️ **Labels**: text pills that float above any model, for power-ups or names
 - 👆 **Taps**: `onModelPress` with the model's id; the map keeps every gesture
 
+### Globe, satellites and paths
+
+- 🌍 **Globe on the standard map**: `globe` turns the normal map into a globe when zoomed far out, as Apple Maps does (MapKit only does this for satellite imagery). See the [note on how](#the-globe-uses-a-private-mapkit-switch)
+- 🛰️ **Models on the globe**: when MapKit draws a globe (the standard map with `globe`, or `hybrid`/`imagery` with realistic elevation), models are placed on the sphere and hidden behind the Earth when they go round the far side
+- 🪐 **Orbits and flight paths**: `paths` are lines drawn in 3D, a fixed number of points wide, that can sit at any height and follow the globe; MapKit's own polylines stay flat even on the globe
+
 ### Zones
 
 - 🧱 **Zone walls**: circles or polygons stand up as see-through walls with solid top and bottom edges, like a map outline turned into a fence
 - 🔄 **Live updates**: change a zone's radius or points and the wall rebuilds (shrinking zones)
 
-### Maps
+### A full MapKit map
 
-- 🗺️ **`MunimMapView`**: a MapKit map with `standard`, `muted`, `hybrid` and `imagery` styles, flat or realistic elevation, light/dark, buildings, user location and a camera API
-- 🧩 **`MapModelLayer`**: draws over an existing MapKit map, including `react-native-maps` on iOS, found by `testID`
+- 🗺️ **`MunimMapView`**: everything react-native-maps does on iOS, without a second library: markers, polylines, polygons, circles, tile overlays, every map event and the camera API
+- 📍 **Markers**: MapKit pins and balloons (with emoji or text), images, round avatars with a ring and corner badges, label pills and dots; clustering, dragging, callouts, z-order
+- ✏️ **Shapes**: polylines (dashed, geodesic), polygons with holes, circles, and tile overlays (your own tiles, over or instead of Apple's map)
+- 🍎 **New MapKit**: `standard`, `muted`, `hybrid` and `imagery` styles, realistic elevation, point-of-interest filters, traffic, tappable map features (`onMapFeaturePress`), Look Around, camera distance limits and boundaries
+- 🧭 **Camera and conversions**: `setCamera`, `setRegion`, `fitToCoordinates`, `fitToMarkers`, `pointForCoordinate`, `coordinateForPoint`, snapshots and reverse geocoding
+- 🧩 **`MapModelLayer`**: or keep your map and draw the 3D over it, including `react-native-maps` on iOS
 
 ### Accuracy
 
-- 🎯 **Matched to MapKit's own camera** to under a point, measured on device against `MKMapView.convert`
+- 🎯 **Matched to MapKit's own camera** to under a point, measured on device against `MKMapView.convert` (on the globe, checked against MapKit's city labels)
 - ⏱️ **Same-frame motion**: models stay within 0.2 px of MapKit's own overlays while MapKit animates the camera
 - ⚡ **High performance**: Nitro modules, Metal rendering, redraws only when the camera moves or something animates
 
@@ -128,8 +155,9 @@ munim-maps does not need its own map. Pick whichever fits your app; models, vehi
 | Map | How | Status |
 | --- | --- | --- |
 | **Apple MapKit, built in** | `<MunimMapView>` | ✅ Tested on device |
-| **[react-native-maps](https://github.com/react-native-maps/react-native-maps)** (iOS, Apple Maps provider) | `<MapView testID="map">` then `<MapModelLayer mapTestID="map">` | ✅ Tested on device (self-test 11/11) |
+| **[react-native-maps](https://github.com/react-native-maps/react-native-maps)** (iOS, Apple Maps provider) | `<MapView testID="map">` then `<MapModelLayer mapTestID="map">` | ✅ Tested on device (self-test) |
 | **Any other React Native map built on MapKit** (`MKMapView`) | `<MapModelLayer>` after it; give the map a `testID` or let the layer find the nearest MapKit map | Supported; not yet tested with specific libraries |
+| **UIKit or SwiftUI, no React Native** | `MunimMapKitView`, `MunimMap` or `MunimModelLayer` from the Swift package | ✅ Builds with Swift Package Manager |
 | **Google Maps, Mapbox, MapLibre** | Not supported: they are not MapKit. On Android, Mapbox's `ModelLayer` draws glTF models natively. | ❌ |
 
 ### Over react-native-maps
@@ -251,6 +279,22 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 Rockets stand upright; animate a launch by raising `altitude`.
 
+### Spacecraft
+
+<img alt="Spacecraft" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/vehicles-space.jpg" width="100%">
+
+| Name | Spacecraft |
+| --- | --- |
+| `satellite-iss` | International Space Station: truss, eight solar array wings with roll-out arrays, radiators, the modules, Canadarm2 and docked visitors (109 m) |
+| `satellite-starlink` | Starlink satellite: flat bus with two long solar wings |
+| `satellite-hubble` | Hubble Space Telescope with its aperture door open, solar arrays and antennas |
+| `satellite-gps` | GPS III satellite in gold foil with two solar wings |
+| `satellite-cubesat` | 3U CubeSat with folding panels and antenna whips |
+| `satellite-dragon` | Crew Dragon capsule and trunk, nose cone open |
+| `satellite-jwst` | James Webb Space Telescope: 18 gold mirror segments and the five-layer sunshield |
+
+Spacecraft lie flat, facing their direction of travel. `screenSize` sets a model's *height* on screen, so for flat craft use a small value: Starlink is about 1 m tall and 31 m wide, so `screenSize: 1.3` draws it about 40 points wide. Put them in orbit with `altitude` (the ISS flies at about 420 km) and a `globe` map; see [Satellites in orbit](#satellites-in-orbit).
+
 The models are generated from code (`scripts/vehicles/make-vehicles.swift`, lofted cross-sections with real proportions) and have no logos or brand names.
 
 ## Platform Support Matrix
@@ -261,7 +305,9 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`, loft
 | `MapModelLayer` over `react-native-maps` | ✅ | ❌ | iOS `react-native-maps` uses MapKit. On Android, Mapbox's own `ModelLayer` draws glTF models natively. |
 | USDZ / USD / SCN models | ✅ | ❌ | OBJ through Model I/O. |
 | Avatars, labels, stems, zones | ✅ | ❌ | |
-| Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (48 models). |
+| Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (55 models). |
+| Globe on the standard map | ✅ | ❌ | Uses a private MapKit switch; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). |
+| Models and paths on the globe | ✅ | ❌ | Also on `hybrid` / `imagery` with realistic elevation, which are globes by default. |
 | Depth against MapKit buildings | ❌ | ❌ | MapKit does not share its depth buffer, so models always draw over buildings. |
 | Terrain height | ❌ | ❌ | MapKit does not expose it; pass heights above the ground. |
 
@@ -282,6 +328,44 @@ npx expo prebuild
 ```
 
 munim-maps is native code, so it ships in a new app build, not an over-the-air update.
+
+### Swift Package Manager
+
+For native iOS apps without React Native. In Xcode, **File → Add Package Dependencies…** and enter `https://github.com/munimtechnologies/munim-maps`, or in `Package.swift`:
+
+```swift
+.package(url: "https://github.com/munimtechnologies/munim-maps", from: "0.3.0")
+```
+
+Add the `MunimMaps` product, and `MunimMapsVehicles` for the vehicle catalogue (it bundles the USDZ files, so it is a separate product). iOS 16 or later.
+
+```swift
+import MunimMaps
+import MunimMapsVehicles
+
+// SwiftUI
+MunimMap(
+  initialCamera: MunimCamera(latitude: 41.8838, longitude: -87.6305, distance: 2600, pitch: 60),
+  models: [
+    MunimModel(id: "car", coordinate: .init(latitude: 41.8841, longitude: -87.6244),
+               uri: MunimVehicles.url("car-ev")!.absoluteString, tintColor: "#E5484D", screenSize: 15),
+  ],
+  globe: true
+)
+
+// UIKit: a full map...
+let map = MunimMapKitView(frame: view.bounds)
+map.models = models
+map.markers = [MunimMarker(id: "cafe", coordinate: cafe, title: "Cafe")]
+
+// ...or 3D over an MKMapView you already have
+let layer = MunimModelLayer()
+layer.install(over: mapView)
+layer.models = models
+layer.onModelPress = { id in print(id) }
+```
+
+`MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…).
 
 ### Metro
 
@@ -361,7 +445,10 @@ import { MunimMapView } from 'munim-maps'
 | `zones` | `MapZone[]` | `[]` | |
 | `mapTestID` | `string` | nearest map | `testID` of the map to draw over. |
 | `lighting` | `'auto' \| 'day' \| 'night'` | `auto` | `auto` follows the map's light or dark appearance. |
-| `maxCameraDistance` | `number` | `50000` | Hide everything when the camera is farther away, in metres. |
+| `paths` | `MapPath[]` | `[]` | Lines in 3D: at any height, and on the globe. |
+| `maxCameraDistance` | `number` | `50000` | Hide everything when the camera is farther away, in metres. Raise it for the globe. |
+| `realisticElevation` | `boolean` | `false` | Keep the map on realistic elevation even when the map library sets a flat style. |
+| `globe` | `boolean` | `false` | The standard map as a globe when zoomed out. [Private MapKit switch](#the-globe-uses-a-private-mapkit-switch). |
 | `onModelPress` | `(id: string) => void` | | |
 | `onAttachChange` | `(attached: boolean) => void` | | Fires when the map is found or lost. |
 | `onError` | `(message: string) => void` | | Load failures and other problems. |
@@ -376,6 +463,8 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `initialCamera` | `MapCamera` | required |
 | `models` | `MapModel[]` | `[]` |
 | `zones` | `MapZone[]` | `[]` |
+| `paths` | `MapPath[]` | `[]` |
+| `globe` | `boolean` | `false` |
 | `mapStyle` | `'standard' \| 'muted' \| 'hybrid' \| 'imagery'` | `standard` |
 | `elevation` | `'flat' \| 'realistic'` | `realistic` |
 | `colorScheme` | `'system' \| 'light' \| 'dark'` | `system` |
@@ -384,7 +473,64 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `lighting`, `maxCameraDistance`, `onModelPress`, `onError` | | as above |
 | `onCameraChange` | `(camera: MapCamera) => void` | fires when the camera stops |
 
-Ref (`MunimMapViewRef`): `setCamera(camera, animated)`, `getCamera()`, `measureAlignment()`.
+**Map features**
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `markers` | `MapMarker[]` | `[]` |
+| `polylines` | `MapPolyline[]` | `[]` |
+| `polygons` | `MapPolygon[]` | `[]` |
+| `circles` | `MapCircle[]` | `[]` |
+| `tileOverlays` | `MapTileOverlay[]` | `[]` |
+| `showsCompass` / `showsScale` / `showsTraffic` | `boolean` | `true` / `false` / `false` |
+| `pointsOfInterest` | `'all' \| 'none' \| string[]` | `all` (`MKPOICategory…` values) |
+| `userTrackingMode` | `'none' \| 'follow' \| 'follow-with-heading'` | `none` |
+| `zoomEnabled` / `scrollEnabled` / `rotateEnabled` / `pitchEnabled` | `boolean` | `true` |
+| `cameraDistanceRange` | `{ min?, max? }` (metres) | MapKit's |
+| `cameraBoundary` | `MapRegion` | none |
+| `mapPadding` | `{ top, left, bottom, right }` | `0` |
+| `selectableMapFeatures` | `('pointsOfInterest' \| 'territories' \| 'physicalFeatures')[]` | `[]` |
+
+**Events**: `onMapReady`, `onPress`, `onLongPress`, `onCameraMove` (every frame), `onCameraChange` (when it stops), `onMarkerPress`, `onMarkerDeselect`, `onCalloutPress`, `onMarkerDragStart`, `onMarkerDragEnd`, `onUserLocationChange`, `onMapFeaturePress`, `onModelPress`, `onError`.
+
+**Ref (`MunimMapViewRef`)**: `setCamera(camera, animated)`, `getCamera()`, `setRegion(region, durationMs)`, `getVisibleRegion()`, `fitToCoordinates(coordinates, padding, animated)`, `fitToMarkers(ids, padding, animated)` (comma-separated ids, empty for all), `pointForCoordinate(coordinate)`, `coordinateForPoint(point)`, `selectMarker(id)`, `deselectMarker(id)`, `takeSnapshot(width, height)` (PNG path), `addressForCoordinate(coordinate)`, `hasLookAround(coordinate)`, `openLookAround(coordinate)`, `measureAlignment()`.
+
+### `MapMarker`
+
+| Field | Default | |
+| --- | --- | --- |
+| `id`, `coordinate` | required | |
+| `title`, `subtitle` | | Shown in the callout, and as the text of a `label`. |
+| `style` | `marker` | `pin`, `marker` (balloon), `image`, `avatar`, `label`, `dot`. |
+| `color` | | Pin, balloon, dot or label colour. |
+| `glyph` | | Text or emoji inside a `marker` balloon. |
+| `image` | | `require()`, URL or `{ uri }` for `image` and `avatar`. |
+| `size` | | Width (`image`) or diameter (`avatar`, `dot`) in points. |
+| `border` | ring 2 for avatars | `{ color, width }`. |
+| `badges` | | `{ text, position, color, textColor }[]`: pills at `top-left`, `top-right`, `bottom-left`, `bottom-right` or `bottom`. |
+| `anchor` | centre (bottom for images) | `{ x, y }` in 0...1. |
+| `zIndex`, `draggable`, `clusteringId`, `callout`, `opacity`, `visible` | | |
+
+### `MapPolyline`, `MapPolygon`, `MapCircle`, `MapTileOverlay`
+
+- `MapPolyline`: `coordinates`, `strokeColor`, `strokeWidth`, `dashPattern` (`[4, 10]`), `geodesic`, `lineCap`, `zIndex`.
+- `MapPolygon`: `coordinates`, `holes`, `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `zIndex`.
+- `MapCircle`: `center`, `radius` (metres), `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `zIndex`.
+- `MapTileOverlay`: `urlTemplate` (`{z}/{x}/{y}`), `replacesMap`, `minimumZoom`, `maximumZoom`, `opacity`, `zIndex`.
+
+### Coming from react-native-maps
+
+| react-native-maps | munim-maps |
+| --- | --- |
+| `<MapView provider={PROVIDER_DEFAULT}>` (iOS) | `<MunimMapView>` |
+| `<Marker coordinate title description pinColor>` | `markers={[{ id, coordinate, title, subtitle, style: 'pin', color }]}` |
+| `<Marker>` with a custom child view | `style: 'avatar'` / `'image'` / `'label'` with `badges` (markers are native, not React views) |
+| `<Polyline>` / `<Polygon>` / `<Circle>` | `polylines` / `polygons` / `circles` |
+| `<UrlTile urlTemplate>` | `tileOverlays` |
+| `mapType="mutedStandard"` / `"hybridFlyover"` | `mapStyle="muted"` / `mapStyle="hybrid" elevation="realistic"` |
+| `onRegionChange` / `onRegionChangeComplete` | `onCameraMove` / `onCameraChange` |
+| `animateCamera` / `animateToRegion` / `fitToCoordinates` | `setCamera` / `setRegion` / `fitToCoordinates` |
+| `pointForCoordinate` / `coordinateForPoint` / `addressForCoordinate` / `takeSnapshot` | same names |
 
 `MapCamera`: `{ latitude, longitude, distance, pitch, heading }` (metres from the camera to the centre, degrees).
 
@@ -426,11 +572,24 @@ Ref (`MunimMapViewRef`): `setCamera(camera, animated)`, `getCamera()`, `measureA
 | `color` | `#0A84FF40` | The alpha sets how see-through the wall is; the top and bottom edges are solid. |
 | `visible` | `true` | |
 
+### `MapPath`
+
+| Field | Default | |
+| --- | --- | --- |
+| `id` | required | |
+| `coordinates` | required | `{ latitude, longitude, altitude? }[]`, altitude in metres above the ground. |
+| `color` | `#FFFFFF` | `#RRGGBB` or `#RRGGBBAA`. |
+| `width` | `2` | Points on screen, at any zoom. |
+| `closed` | `false` | Join the last point back to the first (an orbit). |
+| `visible` | `true` | |
+
+Unlike `MapPolyline` (a MapKit overlay, flat on the ground), a path is drawn by the 3D layer, so it also works over `react-native-maps`.
+
 ### Helpers
 
 - `isSupported`: `true` on iOS.
 - `circleToPolygon(center, radiusMeters, segments?)`: the outline of a circle on the ground.
-- `toNativeModel(model)`, `toNativeZone(zone)`: the native shapes, for testing.
+- `toNativeModel(model)`, `toNativeZone(zone)`, `toNativePath(path)`: the native shapes, for testing.
 - `munim-maps/vehicles`: `VEHICLES` (name → asset), `VEHICLE_NAMES`, `VehicleName`.
 
 ## 📖 Usage Examples
@@ -491,6 +650,23 @@ const models: MapModel[] = [
 />
 ```
 
+### Satellites in orbit
+
+```tsx
+import { VEHICLES } from 'munim-maps/vehicles'
+
+<MunimMapView
+  style={{ flex: 1 }}
+  initialCamera={{ latitude: 22, longitude: -55, distance: 24_000_000, pitch: 0, heading: 0 }}
+  globe
+  maxCameraDistance={100_000_000}
+  models={[{ id: 'iss', coordinate: issGround, altitude: 420_000, heading: issHeading, source: VEHICLES['satellite-iss'], screenSize: 26 }]}
+  paths={[{ id: 'iss-orbit', coordinates: orbit.map((c) => ({ ...c, altitude: 420_000 })), color: '#FFD60AAA', width: 1.5, closed: true }]}
+/>
+```
+
+`example/orbits.ts` moves the ISS, a Starlink train, Hubble, a CubeSat and GPS satellites along circular orbits.
+
 ### Animation
 
 Update a model from state, for example its `altitude` or `coordinate`; only models whose fields changed are touched natively. Use `spinDegreesPerSecond` or USDZ animations for motion that should not go through JavaScript.
@@ -500,11 +676,11 @@ Update a model from state, for example its `altitude` or `coordinate`; only mode
 MapKit has no public API for custom 3D content, so munim-maps draws the models itself, in a transparent Metal layer laid exactly over the map.
 
 1. **Camera.** Every frame it reads the map's camera (centre, altitude, pitch, heading). MapKit's camera, fitted against `MKMapView.convert` on device, is a pinhole camera centred on the view with a 30° vertical field of view; the centre coordinate is drawn at the centre of the map's *safe area*, so the camera is moved until the ray through that point lands on it. The field of view is measured from the map each frame rather than hard-coded.
-2. **Positions.** Models are placed in metres around the centre of the map using Web Mercator map points, the projection MapKit draws in at street and city zoom.
+2. **Positions.** Models are placed in metres around the centre of the map using Web Mercator map points, the projection MapKit draws in at street and city zoom. When MapKit draws a globe, they are placed on a sphere instead, still in metres around the centre, with the camera `distance` metres back along the ray through the centre point, and an invisible Earth hides whatever is on the far side.
 3. **Timing.** Rendering happens in a run-loop observer at the end of each pass, after the map has moved. SceneKit's transaction is flushed first (otherwise SceneKit draws the previous frame's positions), and the drawable is presented straight from the GPU, the way MapKit presents the map.
 4. **Touches.** The layer never takes touches. Taps are watched by a recognizer on the map that runs alongside the map's own, and hit-tested against each model.
 
-The example app checks all of this on device: a self-test compares every model's ground point with `MKMapView.convert` at five camera angles on both `MunimMapView` and `react-native-maps` (11/11 under a point on iPhone 17 Pro), and a lag test (`munimmapsexample://lagtest`) puts a MapKit `MKCircle` and a model on the same spot and screenshots MapKit's own camera animation (within 0.2 px mid-animation).
+The example app checks all of this on device: a self-test compares every model's ground point with `MKMapView.convert` at five camera angles on both `MunimMapView` and `react-native-maps` (under a point on iPhone 17 Pro), the same close in with the globe switched on,, and a lag test (`munimmapsexample://lagtest`) puts a MapKit `MKCircle` and a model on the same spot and screenshots MapKit's own camera animation (within 0.2 px mid-animation).
 
 ## 🔍 Troubleshooting
 
@@ -517,13 +693,24 @@ The example app checks all of this on device: a self-test compares every model's
 5. **Models float on hills with `elevation: 'realistic'`**: MapKit does not expose terrain height; correct with `altitude`.
 6. **Over-the-air update crashes on an old build**: munim-maps is native; ship it in a new build.
 
+### The globe uses a private MapKit switch
+
+MapKit's public API shows the globe only for satellite imagery with realistic elevation. Apple Maps shows it for the standard map through a switch on VectorKit, the engine that draws `MKMapView`; `globe` turns that switch on. It is not public API, so:
+
+- it can stop working in an iOS update (munim-maps checks that the switch exists before using it, so the map then just stays flat);
+- App Review may reject an app that uses it.
+
+Leave `globe` off (the default) if that matters to you; `mapStyle="hybrid"` or `"imagery"` with realistic elevation are globes through public API.
+
+MapKit's `convert` methods keep answering as if the map were flat even while it draws the globe, so far-out positions from `pointForCoordinate` / `coordinateForPoint` are off on the globe. munim-maps' own models and paths are placed on the sphere and are not affected.
+
 ### Xcode 27
 
 Apps built with Xcode 27 must adopt the scene lifecycle or they crash at launch on iOS 27. With Expo, set `enableSceneSupport` in `expo-build-properties`; the example app does.
 
 ### Example
 
-`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, the self-test and the lag test.
+`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), the self-test and the lag test.
 
 ```bash
 npm install
@@ -532,7 +719,6 @@ cd example && npx expo run:ios --device
 
 ## 🛣️ Roadmap
 
-- **A full MapKit map**: `MunimMapView` with everything `react-native-maps` offers on iOS (markers with custom views, callouts, clustering, polylines, polygons, circles, tile overlays, every map event) plus newer MapKit features (map feature selection, Look Around), so apps no longer need a second map library.
 - **Android on MapLibre**: the open-source map engine (OpenStreetMap data, no API key), with the same 3D layer.
 
 ## 👏 Contributing

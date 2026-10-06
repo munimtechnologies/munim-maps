@@ -46,6 +46,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MapModelLayer.zones: ") + exc.what());
       }
     }()),
+    paths([&]() -> CachedProp<std::vector<NativeMapPath>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("paths", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.paths;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::vector<NativeMapPath>>::fromRawValue(*runtime, value, sourceProps.paths);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MapModelLayer.paths: ") + exc.what());
+      }
+    }()),
     mapTestID([&]() -> CachedProp<std::string> {
       try {
         const react::RawValue* rawValue = rawProps.at("mapTestID", nullptr, nullptr);
@@ -74,6 +84,26 @@ namespace margelo::nitro::munimmaps::views {
         return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.maxCameraDistance);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("MapModelLayer.maxCameraDistance: ") + exc.what());
+      }
+    }()),
+    realisticElevation([&]() -> CachedProp<bool> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("realisticElevation", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.realisticElevation;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.realisticElevation);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MapModelLayer.realisticElevation: ") + exc.what());
+      }
+    }()),
+    globe([&]() -> CachedProp<bool> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("globe", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.globe;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.globe);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MapModelLayer.globe: ") + exc.what());
       }
     }()),
     onModelPress([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
@@ -121,9 +151,12 @@ namespace margelo::nitro::munimmaps::views {
     switch (hashString(propName)) {
       case hashString("models"): return true;
       case hashString("zones"): return true;
+      case hashString("paths"): return true;
       case hashString("mapTestID"): return true;
       case hashString("lighting"): return true;
       case hashString("maxCameraDistance"): return true;
+      case hashString("realisticElevation"): return true;
+      case hashString("globe"): return true;
       case hashString("onModelPress"): return true;
       case hashString("onAttachChange"): return true;
       case hashString("onError"): return true;

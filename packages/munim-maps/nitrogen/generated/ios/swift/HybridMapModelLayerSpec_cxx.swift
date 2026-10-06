@@ -155,6 +155,23 @@ open class HybridMapModelLayerSpec_cxx {
     }
   }
   
+  public final var paths: bridge.std__vector_NativeMapPath_ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__vector_NativeMapPath_ in
+        var __vector = bridge.create_std__vector_NativeMapPath_(self.__implementation.paths.count)
+        for __item in self.__implementation.paths {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.paths = newValue.map({ __item in __item })
+    }
+  }
+  
   public final var mapTestID: std.string {
     @inline(__always)
     get {
@@ -185,6 +202,28 @@ open class HybridMapModelLayerSpec_cxx {
     @inline(__always)
     set {
       self.__implementation.maxCameraDistance = newValue
+    }
+  }
+  
+  public final var realisticElevation: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.realisticElevation
+    }
+    @inline(__always)
+    set {
+      self.__implementation.realisticElevation = newValue
+    }
+  }
+  
+  public final var globe: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.globe
+    }
+    @inline(__always)
+    set {
+      self.__implementation.globe = newValue
     }
   }
   

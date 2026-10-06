@@ -18,6 +18,12 @@ export type MapModelShape =
   | 'pyramid'
   | 'gem'
 
+/**
+ * A particle effect drawn with a model: `exhaust` is an engine plume from
+ * the model's base, `smoke` a billowing cloud on the ground.
+ */
+export type MapModelEffect = 'none' | 'exhaust' | 'smoke'
+
 /** `day` and `night` fix the lighting; `auto` follows the map's appearance. */
 export type MapModelLighting = 'auto' | 'day' | 'night'
 
@@ -81,6 +87,9 @@ export interface NativeMapModel {
   stem: boolean
   /** Stem colour, `#RRGGBB(AA)`. */
   stemColor: string
+  effect: MapModelEffect
+  /** 0...1, to throttle the effect up or let it die away. */
+  effectIntensity: number
   visible: boolean
 }
 
@@ -104,6 +113,29 @@ export interface NativeMapZone {
   visible: boolean
 }
 
+export interface MapPathPoint {
+  latitude: number
+  longitude: number
+  /** Metres above the ground. */
+  altitude: number
+}
+
+/**
+ * A line drawn in 3D: it can sit above the ground and follows the globe,
+ * where MapKit's own overlays stay flat.
+ */
+export interface NativeMapPath {
+  id: string
+  points: MapPathPoint[]
+  /** `#RRGGBB` or `#RRGGBBAA`. */
+  color: string
+  /** Points on screen. */
+  width: number
+  /** Join the last point back to the first. */
+  closed: boolean
+  visible: boolean
+}
+
 /** How far the drawn models are from where MapKit draws the same points. */
 export interface MapAlignmentReport {
   attached: boolean
@@ -123,6 +155,7 @@ export interface MapAlignmentReport {
 export interface MapModelLayerProps extends HybridViewProps {
   models: NativeMapModel[]
   zones: NativeMapZone[]
+  paths: NativeMapPath[]
   /**
    * `testID` of the map to draw over. Empty means the nearest MapKit map on
    * screen, which is right when there is only one.
@@ -131,6 +164,18 @@ export interface MapModelLayerProps extends HybridViewProps {
   lighting: MapModelLighting
   /** Hide every model while the camera is farther away than this, in metres. */
   maxCameraDistance: number
+  /**
+   * Keep the map on realistic elevation (3D terrain and landmarks, like
+   * Apple Maps), even when the map library sets a flat style. iOS 16+.
+   */
+  realisticElevation: boolean
+  /**
+   * Show the standard style as a globe when zoomed far out, like Apple
+   * Maps (MapKit only does this for satellite imagery). Uses a MapKit switch
+   * that is not public API: it may stop working in an iOS update (the map
+   * stays flat) and App Review may reject an app for it. Default false.
+   */
+  globe: boolean
   onModelPress?: (id: string) => void
   /** Fires with `true` when a map is found and `false` when it goes away. */
   onAttachChange?: (attached: boolean) => void

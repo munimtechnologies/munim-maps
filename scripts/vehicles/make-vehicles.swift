@@ -1611,6 +1611,871 @@ func shuttleStack() -> SCNNode {
   return standUp(r)
 }
 
+// MARK: Spacecraft
+// Satellites float, so each one is built around its own centre, collapsed
+// into one mesh per material (hundreds of small parts would otherwise each
+// become a USD prim) and lifted so its lowest point sits on y = 0. Front
+// (-Z) is the direction of travel; big flat parts (solar arrays, radiators,
+// sunshields) lie in the XZ plane so they read from above.
+
+let foilGold = material("mli-gold", 0xC8962F, metal: 0.9, rough: 0.34)
+let foilAmber = material("mli-amber", 0xA8701E, metal: 0.85, rough: 0.42)
+let foilSilver = material("mli-silver", 0xCDD1D6, metal: 0.95, rough: 0.24)
+let cells = material("solar-cell", 0x0B1430, metal: 0.25, rough: 0.32)
+let cellGrid = material("solar-grid", 0x9AA6B6, metal: 0.8, rough: 0.3)
+let issCells = material("solar-iss", 0xB57C34, metal: 0.6, rough: 0.33)
+let issGrid = material("solar-iss-grid", 0x4A3218, rough: 0.5)
+let rosaCells = material("solar-rosa", 0x1A2236, metal: 0.3, rough: 0.3)
+let panelBack = material("panel-back", 0xE4E5E3, rough: 0.55)
+let radiatorWhite = material("radiator", 0xF3F4F1, metal: 0.05, rough: 0.4)
+let radiatorLine = material("radiator-line", 0xA3A8AE, rough: 0.5)
+let trussSilver = material("truss", 0xB9BEC4, metal: 0.85, rough: 0.3)
+let dishWhite = material("dish", 0xF0F0EC, metal: 0.1, rough: 0.45)
+let mirrorGold = material("mirror-gold", 0xF8C232, metal: 0.55, rough: 0.28) // fully metallic renders black without an environment map
+let composite = material("composite", 0x2B2D31, metal: 0.3, rough: 0.55)
+let handrail = material("handrail", 0xE3B81C, rough: 0.5)
+let moduleBand = material("module-band", 0xB4B6B3, metal: 0.3, rough: 0.5)
+let soyuzGreen = material("soyuz-mli", 0x7F8B72, metal: 0.2, rough: 0.7)
+
+var rngState: UInt32 = 0x5EED
+/// Deterministic noise in 0..<1, so regenerating gives the same models.
+func rnd() -> Float {
+  rngState = rngState &* 1664525 &+ 1013904223
+  return Float(rngState >> 8) / Float(1 << 24)
+}
+
+/// A flat rectangle facing +Y (single-sided), for cell grids and decals.
+func QuadMesh(width: Float, length: Float) -> SCNGeometry {
+  let hx = width / 2, hz = length / 2
+  return meshGeometry([V3(-hx, 0, -hz), V3(hx, 0, -hz), V3(hx, 0, hz), V3(-hx, 0, hz)],
+                      Array(repeating: V3(0, 1, 0), count: 4), [0, 2, 1, 0, 3, 2])
+}
+
+/// A surface of revolution about Y. `profile` holds (height, radius) points
+/// running from the bottom up the outside to the top (run it top-down for an
+/// inward-facing lining). Ends with radius > 0 get flat caps when `caps` is
+/// set; `from`/`to` sweep part of the way round; `twoSided` adds back faces.
+func LatheMesh(_ profile: [SIMD2<Float>], sides: Int = 28, caps: Bool = true, twoSided: Bool = false,
+               from a0: Float = 0, to a1: Float = 2 * .pi) -> SCNGeometry {
+  var p: [V3] = [], n: [V3] = [], idx: [UInt32] = []
+  let count = profile.count
+  for j in 0..<count {
+    let d = profile[min(count - 1, j + 1)] - profile[max(0, j - 1)]
+    var nr = d.x, ny = -d.y
+    let len = max(1e-6, (nr * nr + ny * ny).squareRoot())
+    nr /= len; ny /= len
+    for i in 0...sides {
+      let a = a0 + (a1 - a0) * Float(i) / Float(sides)
+      p.append(V3(cos(a) * profile[j].y, profile[j].x, sin(a) * profile[j].y))
+      n.append(V3(cos(a) * nr, ny, sin(a) * nr))
+    }
+  }
+  let row = UInt32(sides + 1)
+  for j in 0..<UInt32(count - 1) {
+    for i in 0..<UInt32(sides) {
+      let a = j * row + i, b = (j + 1) * row + i
+      idx += [a, b, a + 1, a + 1, b, b + 1]
+    }
+  }
+  if twoSided {
+    let base = UInt32(p.count)
+    p += p; n += n.map { -$0 }
+    let back = stride(from: 0, to: idx.count, by: 3).flatMap { [idx[$0] + base, idx[$0 + 2] + base, idx[$0 + 1] + base] }
+    idx += back
+  }
+  if caps {
+    for (k, down) in [(0, true), (count - 1, false)] where profile[k].y > 0.0001 {
+      let c = UInt32(p.count)
+      let y = profile[k].x, r = profile[k].y
+      let normal = V3(0, down ? -1 : 1, 0)
+      p.append(V3(0, y, 0)); n.append(normal)
+      for i in 0...sides {
+        let a = a0 + (a1 - a0) * Float(i) / Float(sides)
+        p.append(V3(cos(a) * r, y, sin(a) * r)); n.append(normal)
+      }
+      for i in 0..<UInt32(sides) { idx += down ? [c, c + 1 + i, c + 2 + i] : [c, c + 2 + i, c + 1 + i] }
+    }
+  }
+  return meshGeometry(p, n, idx)
+}
+
+/// A parabolic dish opening towards +Y, visible from both sides.
+func DishMesh(radius: Float, depth: Float, sides: Int = 24, rings: Int = 6) -> SCNGeometry {
+  let profile = (0...rings).map { k -> SIMD2<Float> in
+    let t = Float(k) / Float(rings)
+    return SIMD2(depth * t * t, radius * max(t, 0.001))
+  }
+  return LatheMesh(profile, sides: sides, caps: false, twoSided: true)
+}
+
+/// An empty node placed and rotated inside `parent`, to build parts in.
+@discardableResult
+func holder(_ parent: SCNNode, _ p: V3, rx: Float = 0, ry: Float = 0, rz: Float = 0) -> SCNNode {
+  let n = SCNNode()
+  n.simdPosition = p
+  n.simdEulerAngles = V3(rx, ry, rz)
+  parent.addChildNode(n)
+  return n
+}
+
+/// A node at `a` whose local +Y points at `b`, and the distance between them.
+func axisHolder(_ parent: SCNNode, _ a: V3, _ b: V3) -> (SCNNode, Float) {
+  let n = SCNNode()
+  n.simdPosition = a
+  n.simdOrientation = simd_quatf(from: V3(0, 1, 0), to: simd_normalize(b - a))
+  parent.addChildNode(n)
+  return (n, simd_length(b - a))
+}
+
+/// A thin uncapped rod from `a` to `b`, for lattice members and booms (a
+/// third of the vertices of a capped tube).
+@discardableResult
+func rod(_ parent: SCNNode, _ a: V3, _ b: V3, _ r: Float, _ m: SCNMaterial, sides: Int = 4) -> SCNNode {
+  let (h, L) = axisHolder(parent, a, b)
+  return put(h, LatheMesh([SIMD2(0, r), SIMD2(L, r)], sides: sides, caps: false), m, 0, 0, 0)
+}
+
+/// A rigid solar panel lying flat with its cells up, centred on (x, y, z):
+/// `w` across X, `l` along Z, a backing sheet `t` thick, a cols x rows cell
+/// grid and an edge frame.
+func solarPanel(_ p: SCNNode, x: Float, y: Float, z: Float, w: Float, l: Float, cols: Int, rows: Int, t: Float,
+                cell: SCNMaterial = cells, grid: SCNMaterial = cellGrid, back: SCNMaterial = panelBack,
+                frame: SCNMaterial? = trussSilver) {
+  box(p, w, t, l, back, x, y, z)
+  let top = y + t / 2 + t * 0.2
+  put(p, QuadMesh(width: w * 0.99, length: l * 0.99), cell, x, top, z)
+  let lw = min(w / Float(max(1, cols)), l / Float(max(1, rows))) * 0.06
+  for i in stride(from: 1, to: cols, by: 1) {
+    put(p, QuadMesh(width: lw, length: l * 0.99), grid, x - w / 2 + w * Float(i) / Float(cols), top + t * 0.2, z)
+  }
+  for j in stride(from: 1, to: rows, by: 1) {
+    put(p, QuadMesh(width: w * 0.99, length: lw), grid, x, top + t * 0.2, z - l / 2 + l * Float(j) / Float(rows))
+  }
+  if let f = frame {
+    let e = lw * 1.6
+    box(p, w + e, t * 1.6, e, f, x, y, z - l / 2)
+    box(p, w + e, t * 1.6, e, f, x, y, z + l / 2)
+    box(p, e, t * 1.6, l, f, x - w / 2, y, z)
+    box(p, e, t * 1.6, l, f, x + w / 2, y, z)
+  }
+}
+
+/// Reads an SCNGeometrySource of 3-vectors (float or double components).
+func vectors(_ s: SCNGeometrySource) -> [V3] {
+  var out: [V3] = []
+  out.reserveCapacity(s.vectorCount)
+  s.data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+    for i in 0..<s.vectorCount {
+      let o = s.dataOffset + i * s.dataStride
+      if s.bytesPerComponent == 8 {
+        out.append(V3(Float(raw.loadUnaligned(fromByteOffset: o, as: Double.self)),
+                      Float(raw.loadUnaligned(fromByteOffset: o + 8, as: Double.self)),
+                      Float(raw.loadUnaligned(fromByteOffset: o + 16, as: Double.self))))
+      } else {
+        out.append(V3(raw.loadUnaligned(fromByteOffset: o, as: Float.self),
+                      raw.loadUnaligned(fromByteOffset: o + 4, as: Float.self),
+                      raw.loadUnaligned(fromByteOffset: o + 8, as: Float.self)))
+      }
+    }
+  }
+  return out
+}
+
+/// Reads a triangle element's indices.
+func triangleIndices(_ e: SCNGeometryElement) -> [UInt32] {
+  let count = e.primitiveCount * 3
+  var out: [UInt32] = []
+  out.reserveCapacity(count)
+  e.data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+    for i in 0..<count {
+      switch e.bytesPerIndex {
+      case 1: out.append(UInt32(raw.load(fromByteOffset: i, as: UInt8.self)))
+      case 2: out.append(UInt32(raw.loadUnaligned(fromByteOffset: i * 2, as: UInt16.self)))
+      default: out.append(raw.loadUnaligned(fromByteOffset: i * 4, as: UInt32.self))
+      }
+    }
+  }
+  return out
+}
+
+/// Builds a spacecraft's parts, collapses them into one mesh per material and
+/// lifts the result so its lowest point is on y = 0.
+func spacecraft(_ build: (SCNNode) -> Void) -> SCNNode {
+  let parts = SCNNode()
+  build(parts)
+  var groups: [(SCNMaterial, Mesh)] = []
+  var slot: [ObjectIdentifier: Int] = [:]
+  parts.enumerateHierarchy { node, _ in
+    guard let g = node.geometry,
+          let vs = g.sources(for: .vertex).first, let ns = g.sources(for: .normal).first else { return }
+    let m = g.firstMaterial ?? black
+    let t = node.simdConvertTransform(matrix_identity_float4x4, to: parts)
+    let rot = simd_float3x3(V3(t.columns.0.x, t.columns.0.y, t.columns.0.z),
+                            V3(t.columns.1.x, t.columns.1.y, t.columns.1.z),
+                            V3(t.columns.2.x, t.columns.2.y, t.columns.2.z))
+    let normalMatrix = rot.inverse.transpose
+    let key = ObjectIdentifier(m)
+    if slot[key] == nil { slot[key] = groups.count; groups.append((m, Mesh())) }
+    let mesh = groups[slot[key]!].1
+    let base = UInt32(mesh.positions.count)
+    for v in vectors(vs) {
+      let w = t * SIMD4<Float>(v.x, v.y, v.z, 1)
+      mesh.positions.append(V3(w.x, w.y, w.z))
+    }
+    for v in vectors(ns) {
+      let w = normalMatrix * v
+      mesh.normals.append(simd_length(w) > 1e-6 ? simd_normalize(w) : V3(0, 1, 0))
+    }
+    for e in 0..<g.elementCount { mesh.indices += triangleIndices(g.element(at: e)).map { base + $0 } }
+  }
+  let minY = groups.map { $0.1.positions.map { $0.y }.min() ?? 0 }.min() ?? 0
+  let root = SCNNode()
+  for (m, mesh) in groups {
+    mesh.positions = mesh.positions.map { V3($0.x, $0.y - minY, $0.z) }
+    root.addChildNode(SCNNode(geometry: mesh.geometry(m)))
+  }
+  return root
+}
+
+/// A pressurised module from `a` to `b`: hull, debris-shield seams and
+/// berthing rings at both ends.
+func module(_ p: SCNNode, _ a: V3, _ b: V3, r: Float, _ m: SCNMaterial, bands: Int = 3) {
+  let (h, L) = axisHolder(p, a, b)
+  put(h, CylinderMesh(radius: CGFloat(r), height: CGFloat(L), sides: 28), m, 0, L / 2, 0)
+  for i in 0..<bands {
+    let y = L * (Float(i) + 0.5) / Float(bands)
+    put(h, LatheMesh([SIMD2(y - 0.07, r + 0.04), SIMD2(y + 0.07, r + 0.04)], sides: 28, caps: false), moduleBand, 0, 0, 0)
+  }
+  for y in [Float(0), L] {
+    put(h, TubeMesh(innerRadius: CGFloat(r * 0.42), outerRadius: CGFloat(r * 0.62), height: 0.3, sides: 20), trussSilver, 0, y, 0)
+  }
+}
+
+/// A square box truss from x0 to x1: four longerons, a frame at every bay
+/// and alternating diagonals on each face.
+func lattice(_ p: SCNNode, from x0: Float, to x1: Float, y: Float, z: Float, size s: Float, bays: Int, r: Float, _ m: SCNMaterial) {
+  let h = s / 2
+  let corners: [SIMD2<Float>] = [SIMD2(-h, -h), SIMD2(h, -h), SIMD2(h, h), SIMD2(-h, h)] // (y, z) offsets
+  for c in corners { rod(p, V3(x0, y + c.x, z + c.y), V3(x1, y + c.x, z + c.y), r, m, sides: 6) }
+  for b in 0...bays {
+    let x = x0 + (x1 - x0) * Float(b) / Float(bays)
+    let xn = x0 + (x1 - x0) * Float(b + 1) / Float(bays)
+    for k in 0..<4 {
+      let a = corners[k], c = corners[(k + 1) % 4]
+      rod(p, V3(x, y + a.x, z + a.y), V3(x, y + c.x, z + c.y), r * 0.7, m)
+      if b < bays {
+        let flip = (b + k) % 2 == 0
+        rod(p, V3(flip ? x : xn, y + a.x, z + a.y), V3(flip ? xn : x, y + c.x, z + c.y), r * 0.6, m)
+      }
+    }
+  }
+}
+
+/// Wrinkled foil: small, slightly tilted patches over a face of size w x l
+/// (the face's normal is the holder's +Y).
+func crinkle(_ p: SCNNode, w: Float, l: Float, count: Int, size: Float, _ m: SCNMaterial) {
+  for _ in 0..<count {
+    let x = (rnd() - 0.5) * (w - size), z = (rnd() - 0.5) * (l - size)
+    put(p, QuadMesh(width: size * (0.5 + rnd()), length: size * (0.5 + rnd())), m, x, 0.004 + rnd() * 0.004, z,
+        rx: (rnd() - 0.5) * 0.25, ry: rnd() * 3, rz: (rnd() - 0.5) * 0.25)
+  }
+}
+
+// Starlink V2 mini: a flat 2.7 m x 4.1 m bus and two 13 m solar wings,
+// about 30 m tip to tip.
+func starlink() -> SCNNode {
+  spacecraft { r in
+    let bus = material("paint", 0x5F646B, metal: 0.75, rough: 0.32)
+    let W: Float = 2.7, L: Float = 4.1, H: Float = 0.34
+    box(r, W, H, L, bus, 0, 0, 0)
+    // Zenith deck: dark radiator panels in a silver frame.
+    for z in [-1.32, 0, 1.32] as [Float] {
+      put(r, QuadMesh(width: W * 0.86, length: 1.2), composite, 0, H / 2 + 0.006, z)
+    }
+    for x in [-W / 2, W / 2] {
+      box(r, 0.05, 0.05, L, foilSilver, x * 0.98, H / 2, 0)
+    }
+    // Three laser terminals with mirror heads, two star trackers, stacking posts.
+    for (x, z) in [(-0.85, -1.62), (0.85, -1.62), (0, 1.7)] as [(Float, Float)] {
+      put(r, CylinderMesh(radius: 0.17, height: 0.18, sides: 18), bus, x, H / 2 + 0.09, z)
+      put(r, LatheMesh([SIMD2(0, 0.15), SIMD2(0.07, 0.14), SIMD2(0.13, 0.09), SIMD2(0.16, 0)], sides: 18), chrome, x, H / 2 + 0.18, z)
+    }
+    for x in [-0.6, 0.6] as [Float] {
+      let st = holder(r, V3(x, H / 2 + 0.1, 0.75), rx: 0.4, rz: x > 0 ? -0.4 : 0.4)
+      put(st, CylinderMesh(radius: 0.07, height: 0.18, sides: 12), black, 0, 0, 0)
+      put(st, CylinderMesh(radius: 0.05, height: 0.02, sides: 12), glass, 0, 0.095, 0)
+    }
+    for (x, z) in [(-1.2, -1.9), (1.2, -1.9), (-1.2, 1.9), (1.2, 1.9)] as [(Float, Float)] {
+      put(r, CylinderMesh(radius: 0.06, height: 0.14, sides: 10), trussSilver, x, H / 2 + 0.07, z)
+    }
+    // Nadir: four phased-array antennas and two gimballed gateway dishes.
+    for (x, z) in [(-0.66, -0.95), (0.66, -0.95), (-0.66, 0.95), (0.66, 0.95)] as [(Float, Float)] {
+      box(r, 1.2, 0.06, 1.12, dishWhite, x, -H / 2 - 0.03, z)
+      for k in 1..<4 { box(r, 1.2, 0.065, 0.012, moduleBand, x, -H / 2 - 0.03, z - 0.56 + 1.12 * Float(k) / 4) }
+    }
+    for z in [-1.82, 1.82] as [Float] {
+      tube(r, V3(0, -H / 2, z), V3(0, -H / 2 - 0.22, z), 0.04, trussSilver)
+      put(r, DishMesh(radius: 0.21, depth: 0.08), dishWhite, 0, -H / 2 - 0.22, z, rx: .pi)
+    }
+    // Argon Hall thruster on the aft edge.
+    put(r, CylinderMesh(radius: 0.1, height: 0.12, sides: 16), trussSilver, 0, 0, L / 2 + 0.06, rx: .pi / 2)
+    put(r, CylinderMesh(radius: 0.07, height: 0.02, sides: 16), black, 0, 0, L / 2 + 0.125, rx: .pi / 2)
+    // Solar wings: a yoke, a hinge drum and six hinged panels each side.
+    for s in [-1, 1] as [Float] {
+      let root = s * (W / 2 + 0.9)
+      tube(r, V3(s * W / 2, 0, -1.3), V3(root, 0, 0), 0.04, trussSilver)
+      tube(r, V3(s * W / 2, 0, 1.3), V3(root, 0, 0), 0.04, trussSilver)
+      put(r, CylinderMesh(radius: 0.09, height: 0.6, sides: 12), trussSilver, root, 0, 0, rx: .pi / 2)
+      let pw: Float = 2.12, gap: Float = 0.06
+      for i in 0..<6 {
+        let cx = s * (W / 2 + 1.0 + pw / 2 + Float(i) * (pw + gap))
+        solarPanel(r, x: cx, y: 0, z: 0, w: pw, l: L, cols: 4, rows: 10, t: 0.035)
+        if i > 0 { box(r, gap, 0.04, 0.3, black, cx - s * (pw + gap) / 2, 0, L * 0.3); box(r, gap, 0.04, 0.3, black, cx - s * (pw + gap) / 2, 0, -L * 0.3) }
+      }
+      tube(r, V3(root, -0.05, 0), V3(s * (W / 2 + 1.0 + 6 * (pw + gap)), -0.05, 0), 0.035, trussSilver)
+    }
+  }
+}
+
+// Hubble Space Telescope: 13.2 m long, 4.2 m across the aft shroud, rigid
+// solar wings either side, high-gain antennas above and below, aperture door
+// open at the front.
+func hubble() -> SCNNode {
+  spacecraft { r in
+    let skin = material("paint", 0xC9CDD2, metal: 0.92, rough: 0.27)
+    // Body frame: local +Y runs forward (-Z) from the aft bulkhead; local +Z is up.
+    let b = holder(r, V3(0, 0, 6.6), rx: -.pi / 2)
+    put(b, LatheMesh([SIMD2(-0.12, 0.001), SIMD2(-0.09, 1.0), SIMD2(-0.02, 1.9), SIMD2(0.06, 2.13), SIMD2(3.6, 2.13)], sides: 36), skin, 0, 0, 0)
+    put(b, CylinderMesh(radius: 2.0, height: 1.5, sides: 30), foilSilver, 0, 4.35, 0)
+    put(b, LatheMesh([SIMD2(5.1, 2.13), SIMD2(5.5, 1.56)], sides: 36), skin, 0, 0, 0)
+    put(b, LatheMesh([SIMD2(5.5, 1.55), SIMD2(13.2, 1.55)], sides: 36, caps: false), skin, 0, 0, 0)
+    put(b, LatheMesh([SIMD2(13.18, 1.5), SIMD2(10.5, 1.5)], sides: 30, caps: false), black, 0, 0, 0) // baffle lining
+    put(b, CylinderMesh(radius: 1.5, height: 0.04, sides: 30), black, 0, 10.6, 0)
+    for y in [5.5, 7.4, 9.3, 11.2] as [Float] {
+      put(b, LatheMesh([SIMD2(y - 0.04, 1.585), SIMD2(y + 0.04, 1.585)], sides: 36, caps: false), moduleBand, 0, 0, 0)
+    }
+    put(b, TubeMesh(innerRadius: 1.44, outerRadius: 1.63, height: 0.12, sides: 36), skin, 0, 13.2, 0)
+    for y in [1.2, 2.4, 3.6] as [Float] {
+      put(b, LatheMesh([SIMD2(y - 0.03, 2.155), SIMD2(y + 0.03, 2.155)], sides: 36, caps: false), moduleBand, 0, 0, 0)
+    }
+    // Ten equipment bays with yellow handrails.
+    for k in 0..<10 {
+      let bay = holder(b, V3(0, 0, 0), ry: -(Float(k) + 0.5) * .pi / 5)
+      box(bay, 0.1, 1.44, 1.34, k % 3 == 0 ? foilSilver : skin, 2.08, 4.35, 0)
+      box(bay, 0.03, 1.2, 0.03, moduleBand, 2.14, 4.35, 0)
+      for z in [-0.42, 0.42] as [Float] { tube(bay, V3(2.2, 3.85, z), V3(2.2, 4.85, z), 0.025, handrail, sides: 6) }
+    }
+    // White blanket patches on the forward shell and light shield.
+    for _ in 0..<9 {
+      let a = rnd() * 2 * .pi, y = 6.0 + rnd() * 6.6
+      let patch = holder(b, V3(0, 0, 0), ry: -a)
+      box(patch, 0.02, 0.5 + rnd() * 0.9, 0.4 + rnd() * 0.6, radiatorWhite, 1.56, y, 0)
+    }
+    // Soft-capture ring and grapple fixtures at the back, magnetometers at the front.
+    put(b, TubeMesh(innerRadius: 0.55, outerRadius: 0.78, height: 0.22, sides: 24), trussSilver, 0, -0.2, 0)
+    for k in 0..<3 {
+      let a = Float(k) * 2 * .pi / 3
+      box(b, 0.2, 0.3, 0.2, black, cos(a) * 0.68, -0.4, sin(a) * 0.68)
+    }
+    for x in [-1.3, 1.3] as [Float] {
+      put(b, CylinderMesh(radius: 0.1, height: 0.3, sides: 10), radiatorWhite, x, 2.2, 2.25, rx: .pi / 2)
+      box(b, 0.25, 0.3, 0.25, foilSilver, x * 0.5, 13.0, 1.62)
+    }
+    // Aperture door, hinged at the top of the opening and swung up 105 degrees.
+    let door = holder(b, V3(0, 13.25, 1.6), rx: 1.83)
+    put(door, CylinderMesh(radius: 1.62, height: 0.1, sides: 30), skin, 0, 0.05, -1.6)
+    put(door, CylinderMesh(radius: 1.45, height: 0.02, sides: 30), black, 0, -0.01, -1.6)
+    tube(door, V3(-0.4, 0.05, 0), V3(0.4, 0.05, 0), 0.08, trussSilver)
+    // Low-gain antennas fore and aft.
+    put(b, LatheMesh([SIMD2(0, 0.18), SIMD2(0.5, 0.05)], sides: 12), radiatorWhite, 0, 13.0, -1.62, rx: -.pi / 2)
+    // Solar wings: two rigid panels either side of a mast, parallel to the tube.
+    for s in [-1, 1] as [Float] {
+      tube(r, V3(s * 1.5, 0, 0.8), V3(s * 4.6, 0, 0.8), 0.07, trussSilver)
+      put(r, CylinderMesh(radius: 0.18, height: 0.3, sides: 14), foilSilver, s * 1.7, 0, 0.8, rz: .pi / 2)
+      tube(r, V3(s * 4.6, -0.06, -2.85), V3(s * 4.6, -0.06, 4.45), 0.05, trussSilver)
+      for dz in [-1.85, 1.85] as [Float] {
+        solarPanel(r, x: s * 4.6, y: 0, z: 0.8 + dz, w: 2.6, l: 3.5, cols: 5, rows: 12, t: 0.05, frame: foilGold)
+      }
+    }
+    // High-gain antennas on booms above and below.
+    for s in [-1, 1] as [Float] {
+      tube(r, V3(0, s * 1.55, -2.0), V3(0, s * 4.3, -2.0), 0.06, trussSilver)
+      box(r, 0.3, 0.3, 0.3, foilSilver, 0, s * 4.3, -2.0)
+      put(r, DishMesh(radius: 0.66, depth: 0.2), dishWhite, 0, s * 4.45, -2.0, rx: s > 0 ? -0.35 : .pi + 0.35)
+      tube(r, V3(0, s * 4.45, -2.0), V3(0, s * 4.95, -2.0 - 0.2), 0.03, trussSilver)
+    }
+  }
+}
+
+// GPS III: an A2100-class bus (1.8 x 3.4 x 2.5 m) in gold foil with mirror
+// radiators on the array faces, two three-panel wings (about 17 m span) and
+// the L-band helix array on the Earth-facing (bottom) face.
+func gps3() -> SCNNode {
+  spacecraft { r in
+    let foil = material("paint", 0xC8962F, metal: 0.9, rough: 0.34)
+    let X: Float = 1.8, Y: Float = 3.4, Z: Float = 2.46
+    box(r, X, Y, Z, foil, 0, 0, 0)
+    // Crinkled foil on the fore/aft faces and the top.
+    crinkle(holder(r, V3(0, Y / 2, 0)), w: X, l: Z, count: 14, size: 0.45, foilAmber)
+    for s in [-1, 1] as [Float] {
+      crinkle(holder(r, V3(0, 0, s * Z / 2), rx: s * .pi / 2), w: X, l: Y, count: 16, size: 0.5, foilAmber)
+    }
+    // Mirror radiators (OSR tiles) on the array faces.
+    for s in [-1, 1] as [Float] {
+      let face = holder(r, V3(s * X / 2, 0, 0), rz: -s * .pi / 2)
+      // Local X runs up the face, local Z along it.
+      box(face, Y * 0.86, 0.03, Z * 0.9, foilSilver, 0, 0.015, 0)
+      for i in 1..<10 { put(face, QuadMesh(width: 0.02, length: Z * 0.9), radiatorLine, -Y * 0.43 + Y * 0.86 * Float(i) / 10, 0.035, 0) }
+      for j in 1..<8 { put(face, QuadMesh(width: Y * 0.86, length: 0.02), radiatorLine, 0, 0.035, -Z * 0.45 + Z * 0.9 * Float(j) / 8) }
+    }
+    // Zenith: apogee engine, thruster pods, a laser reflector array.
+    put(r, CylinderMesh(radius: 0.14, height: 0.14, sides: 14), engineBell, 0, Y / 2 + 0.07, 0.4)
+    put(r, LatheMesh([SIMD2(0, 0.1), SIMD2(0.2, 0.2), SIMD2(0.42, 0.32)], sides: 18, caps: false, twoSided: true), engineBell, 0, Y / 2 + 0.12, 0.4)
+    for (x, z) in [(-0.75, -1.08), (0.75, -1.08), (-0.75, 1.08), (0.75, 1.08)] as [(Float, Float)] {
+      box(r, 0.16, 0.12, 0.16, trussSilver, x, Y / 2 + 0.06, z)
+      put(r, CylinderMesh(radius: 0.03, height: 0.08, sides: 8), engineBell, x, Y / 2 + 0.15, z)
+    }
+    box(r, 0.5, 0.06, 0.4, composite, -0.4, Y / 2 + 0.03, -0.55)
+    for i in 0..<3 { for j in 0..<3 { put(r, CylinderMesh(radius: 0.04, height: 0.02, sides: 10), glass, -0.55 + Float(i) * 0.15, Y / 2 + 0.065, -0.68 + Float(j) * 0.13) } }
+    // Earth face: ground plane with twelve helix radomes, a UHF crosslink helix and an S-band dish.
+    box(r, X * 0.98, 0.06, Z * 0.98, radiatorWhite, 0, -Y / 2 - 0.03, 0)
+    put(r, CylinderMesh(radius: 0.9, height: 0.06, sides: 30), composite, 0, -Y / 2 - 0.08, -0.15)
+    var spots: [SIMD2<Float>] = (0..<4).map { k in let a = Float(k) * .pi / 2 + .pi / 4; return SIMD2(cos(a) * 0.28, sin(a) * 0.28) }
+    spots += (0..<8).map { k in let a = Float(k) * .pi / 4; return SIMD2(cos(a) * 0.68, sin(a) * 0.68) }
+    for c in spots {
+      put(r, CylinderMesh(radius: 0.1, height: 0.7, sides: 14), radiatorWhite, c.x, -Y / 2 - 0.46, -0.15 + c.y)
+      put(r, LatheMesh([SIMD2(0, 0.1), SIMD2(0.06, 0.07), SIMD2(0.1, 0.001)], sides: 14), radiatorWhite, c.x, -Y / 2 - 0.81, -0.15 + c.y, rx: .pi)
+    }
+    let uhf = holder(r, V3(0.55, -Y / 2 - 0.06, 1.0))
+    tube(uhf, V3(0, 0, 0), V3(0, -1.1, 0), 0.03, trussSilver)
+    for k in 0..<24 {
+      let a0 = Float(k) * 0.7, a1 = Float(k + 1) * 0.7
+      tube(uhf, V3(cos(a0) * 0.2, -0.1 - Float(k) * 0.04, sin(a0) * 0.2), V3(cos(a1) * 0.2, -0.1 - Float(k + 1) * 0.04, sin(a1) * 0.2), 0.015, foilGold, sides: 4)
+    }
+    put(r, DishMesh(radius: 0.22, depth: 0.07), dishWhite, -0.55, -Y / 2 - 0.2, 1.0, rx: .pi)
+    tube(r, V3(-0.55, -Y / 2, 1.0), V3(-0.55, -Y / 2 - 0.2, 1.0), 0.03, trussSilver)
+    // Solar wings: drive, yoke and three panels each side.
+    for s in [-1, 1] as [Float] {
+      put(r, CylinderMesh(radius: 0.2, height: 0.25, sides: 16), trussSilver, s * (X / 2 + 0.12), 0.2, 0, rz: .pi / 2)
+      let root = s * (X / 2 + 1.6)
+      tube(r, V3(s * (X / 2 + 0.2), 0.2, 0), V3(root, 0.2, -1.2), 0.045, trussSilver)
+      tube(r, V3(s * (X / 2 + 0.2), 0.2, 0), V3(root, 0.2, 1.2), 0.045, trussSilver)
+      for i in 0..<3 {
+        let cx = s * (X / 2 + 1.6 + 1.0 + Float(i) * 2.05)
+        solarPanel(r, x: cx, y: 0.2, z: 0, w: 2.0, l: 2.6, cols: 6, rows: 8, t: 0.04)
+        box(r, 0.05, 0.05, 2.5, black, cx - s * 1.025, 0.2, 0)
+      }
+    }
+  }
+}
+
+// 3U CubeSat: 10 x 10 x 34 cm, two double-deployed panels each side
+// (about 0.5 m span) and four tape-spring antennas at the front end.
+func cubesat() -> SCNNode {
+  spacecraft { r in
+    let frame = material("paint", 0xB3B8BF, metal: 0.85, rough: 0.3)
+    let pcb = material("pcb", 0x1A1C22, rough: 0.6)
+    let s: Float = 0.1, L: Float = 0.3405, h = s / 2
+    box(r, s * 0.95, s * 0.95, L - 0.014, pcb, 0, 0, 0)
+    // Corner rails, standing proud at both ends, with separation springs.
+    for (x, y) in [(-1, -1), (1, -1), (1, 1), (-1, 1)] as [(Float, Float)] {
+      box(r, 0.0085, 0.0085, L, frame, x * (h - 0.00425), y * (h - 0.00425), 0)
+      put(r, CylinderMesh(radius: 0.0025, height: 0.006, sides: 8), chrome, x * (h - 0.00425), y * (h - 0.00425), L / 2 + 0.003, rx: .pi / 2)
+    }
+    // Frame ribs between the three units and round the end plates.
+    for z in [-L / 2 + 0.004, -0.0567, 0.0567, L / 2 - 0.004] as [Float] {
+      for (w, hh, x, y) in [(s, 0.004, 0, h - 0.002), (s, 0.004, 0, -h + 0.002), (0.004, s, h - 0.002, 0), (0.004, s, -h + 0.002, 0)] as [(Float, Float, Float, Float)] {
+        box(r, w, hh, 0.006, frame, x, y, z)
+      }
+    }
+    // Body-mounted cells on top and bottom (two per unit), GPS patch and sun sensor.
+    for face in [Float(1), -1] {
+      let f = holder(r, V3(0, face * (h * 0.95 + 0.0005), 0), rx: face > 0 ? 0 : .pi)
+      for z in [-0.1135, 0, 0.1135] as [Float] where !(face > 0 && z > 0.1) {
+        for x in [-0.021, 0.021] as [Float] {
+          put(f, QuadMesh(width: 0.038, length: 0.075), cells, x, 0.0003, z)
+          put(f, QuadMesh(width: 0.038, length: 0.002), cellGrid, x, 0.0006, z - 0.03)
+          put(f, QuadMesh(width: 0.038, length: 0.002), cellGrid, x, 0.0006, z + 0.03)
+        }
+      }
+    }
+    box(r, 0.03, 0.004, 0.03, dishWhite, 0.015, h + 0.002, 0.11)
+    box(r, 0.012, 0.004, 0.012, glass, -0.025, h + 0.002, 0.12)
+    // Nadir camera.
+    put(r, CylinderMesh(radius: 0.017, height: 0.012, sides: 16), black, 0, -h - 0.006, 0.11)
+    put(r, CylinderMesh(radius: 0.011, height: 0.002, sides: 16), glass, 0, -h - 0.012, 0.11)
+    // Deployed panels, hinged at the top edges of the side faces.
+    for side in [-1, 1] as [Float] {
+      for k in 0..<2 {
+        let cx = side * (h + 0.05 + Float(k) * 0.1015)
+        solarPanel(r, x: cx, y: h + 0.002, z: 0, w: 0.097, l: 0.32, cols: 2, rows: 4, t: 0.0025, frame: frame)
+        put(r, CylinderMesh(radius: 0.002, height: 0.3, sides: 8), frame, cx - side * 0.0505, h + 0.002, 0, rx: .pi / 2)
+      }
+    }
+    // Antenna deployer and four tape whips in an X (two long VHF, two short UHF).
+    box(r, s * 0.92, s * 0.92, 0.008, composite, 0, 0, -L / 2 - 0.002)
+    for k in 0..<4 {
+      let a = Float(k) * .pi / 2 + .pi / 4
+      let len: Float = k % 2 == 0 ? 0.5 : 0.17
+      let whip = holder(r, V3(0, 0, -L / 2 - 0.006), rz: a)
+      box(whip, len, 0.0008, 0.006, chrome, 0.04 + len / 2, 0, 0)
+    }
+  }
+}
+
+/// Crew Dragon (capsule and trunk) built along +Z: docking ring at z = 0,
+/// trunk end at z = 7.1, nose cone open and hinged up.
+func buildDragon(_ p: SCNNode, capsule: SCNMaterial) {
+  // Lathe frame: local +Y runs forward from the trunk end; local +Z is up.
+  let d = holder(p, V3(0, 0, 7.1), rx: -.pi / 2)
+  let shell = rocketWhite
+  // Trunk: radiators round the bottom half, solar cells round the top half, four fins.
+  put(d, LatheMesh([SIMD2(0, 1.83), SIMD2(3.4, 1.83)], sides: 40), shell, 0, 0, 0)
+  put(d, TubeMesh(innerRadius: 1.8, outerRadius: 1.88, height: 0.2, sides: 40), black, 0, 0.1, 0)
+  put(d, LatheMesh([SIMD2(0.35, 1.845), SIMD2(3.25, 1.845)], sides: 24, caps: false, from: 0.02, to: .pi - 0.02), cells, 0, 0, 0)
+  for k in 1..<12 {
+    let a = Float(k) / 12 * .pi
+    let line = holder(d, V3(0, 0, 0), ry: -a)
+    box(line, 0.012, 2.9, 0.025, cellGrid, 1.85, 1.8, 0)
+  }
+  for y in [0.93, 1.51, 2.09, 2.67] as [Float] {
+    put(d, LatheMesh([SIMD2(y - 0.012, 1.852), SIMD2(y + 0.012, 1.852)], sides: 24, caps: false, from: 0.02, to: .pi - 0.02), cellGrid, 0, 0, 0)
+  }
+  for k in 0..<4 {
+    let a = Float(k) * .pi / 2 + .pi / 4
+    put(d, PanelMesh([SIMD2(1.8, 0), SIMD2(2.45, 0), SIMD2(2.45, 0.45), SIMD2(1.8, 1.5)]), shell, 0, 0, 0, ry: -a)
+  }
+  put(d, LatheMesh([SIMD2(3.4, 1.83), SIMD2(3.62, 1.9)], sides: 40), black, 0, 0, 0)
+  // Capsule: black heat-shield rim, sloped side wall, forward bulkhead.
+  put(d, LatheMesh([SIMD2(3.62, 1.82), SIMD2(3.7, 2.0), SIMD2(3.84, 2.0)], sides: 40, caps: false), black, 0, 0, 0)
+  put(d, LatheMesh([SIMD2(3.84, 2.0), SIMD2(3.92, 1.99), SIMD2(6.45, 1.27), SIMD2(6.62, 1.14), SIMD2(6.72, 0.95), SIMD2(6.78, 0.7)], sides: 40), capsule, 0, 0, 0)
+  let wall = atan2(Float(0.72), Float(2.53))
+  func wallRadius(_ y: Float) -> Float { 1.99 - (y - 3.92) * 0.72 / 2.53 }
+  // SuperDraco pods (two nozzles each) at the four corners.
+  for k in 0..<4 {
+    let pod = holder(d, V3(0, 0, 0), ry: -(Float(k) * .pi / 2 + .pi / 4))
+    box(pod, 0.16, 1.1, 0.72, capsule, wallRadius(4.75) + 0.04, 4.75, 0, rz: wall)
+    for z in [-0.18, 0.18] as [Float] {
+      put(pod, CylinderMesh(radius: 0.09, height: 0.18, sides: 12), black, wallRadius(4.2) + 0.1, 4.2, z, rz: wall)
+    }
+    box(pod, 0.08, 0.14, 0.22, black, wallRadius(6.2) + 0.03, 6.2, 0.25, rz: wall) // Draco cluster
+    box(pod, 0.08, 0.14, 0.22, black, wallRadius(6.2) + 0.03, 6.2, -0.25, rz: wall)
+  }
+  // Side hatch with its window on top, two more windows.
+  let hatch = holder(d, V3(0, 0, 0), ry: -.pi / 2)
+  box(hatch, 0.03, 1.0, 0.9, moduleBand, wallRadius(5.0) + 0.005, 5.0, 0, rz: wall)
+  box(hatch, 0.05, 0.3, 0.3, glass, wallRadius(5.15) + 0.02, 5.15, 0, rz: wall)
+  for a in [Float(0.45), Float.pi - 0.45] {
+    let w = holder(d, V3(0, 0, 0), ry: -a)
+    box(w, 0.05, 0.32, 0.3, glass, wallRadius(5.3) + 0.01, 5.3, 0, rz: wall)
+  }
+  // Docking adapter with guide petals.
+  put(d, TubeMesh(innerRadius: 0.48, outerRadius: 0.66, height: 0.3, sides: 28), trussSilver, 0, 6.93, 0)
+  for k in 0..<3 {
+    let a = Float(k) * 2 * .pi / 3
+    let petal = holder(d, V3(0, 0, 0), ry: -a)
+    box(petal, 0.08, 0.25, 0.3, trussSilver, 0.55, 7.15, 0, rz: 0.4)
+  }
+  // Nose cone, hinged at the top of the bulkhead and swung up over 100 degrees.
+  let cone = holder(d, V3(0, 6.8, 1.02), rx: 1.85)
+  put(cone, LatheMesh([SIMD2(0, 1.06), SIMD2(0.25, 0.99), SIMD2(0.55, 0.78), SIMD2(0.8, 0.42), SIMD2(0.92, 0.1), SIMD2(0.94, 0.001)], sides: 36), capsule, 0, 0, -1.02)
+  put(cone, CylinderMesh(radius: 0.98, height: 0.02, sides: 36), black, 0, -0.012, -1.02)
+  tube(cone, V3(-0.3, 0, 0), V3(0.3, 0, 0), 0.07, trussSilver)
+}
+
+func crewDragon() -> SCNNode {
+  spacecraft { r in buildDragon(holder(r, V3(0, 0, -3.55)), capsule: material("paint", 0xF3F3F1, metal: 0.1, rough: 0.45)) }
+}
+
+/// Soyuz (orbital, descent and service modules) or Progress (cargo,
+/// refuelling and service modules) built along +Z from the docking probe at
+/// z = 0, with solar wings flat in the XZ plane.
+func buildSoyuz(_ p: SCNNode, cargo: Bool) {
+  let s = holder(p, V3(0, 0, 0), rx: .pi / 2) // local +Y runs aft along +Z
+  tube(p, V3(0, 0, -0.35), V3(0, 0, 0.1), 0.08, trussSilver)
+  if cargo {
+    put(s, LatheMesh([SIMD2(0, 0.3), SIMD2(0.3, 0.9), SIMD2(0.9, 1.13), SIMD2(2.6, 1.13), SIMD2(3.0, 0.9)], sides: 28), soyuzGreen, 0, 0, 0)
+    put(s, LatheMesh([SIMD2(3.0, 1.1), SIMD2(4.4, 1.1)], sides: 28), soyuzGreen, 0, 0, 0)
+  } else {
+    put(s, LatheMesh([SIMD2(0, 0.3), SIMD2(0.3, 0.8), SIMD2(0.9, 1.12), SIMD2(1.8, 1.12), SIMD2(2.4, 0.8), SIMD2(2.6, 0.5)], sides: 28), soyuzGreen, 0, 0, 0)
+    put(s, LatheMesh([SIMD2(2.6, 0.9), SIMD2(3.0, 1.2), SIMD2(4.2, 2.05), SIMD2(4.4, 2.1)], sides: 28), soyuzGreen, 0, 0, 0)
+  }
+  put(s, LatheMesh([SIMD2(4.4, 1.36), SIMD2(7.0, 1.36), SIMD2(7.2, 1.05)], sides: 28), radiatorWhite, 0, 0, 0)
+  put(s, TubeMesh(innerRadius: 1.36, outerRadius: 1.42, height: 0.2, sides: 28), moduleBand, 0, 5.2, 0)
+  for side in [-1, 1] as [Float] {
+    tube(p, V3(side * 1.36, 0, 5.8), V3(side * 1.9, 0, 5.8), 0.05, trussSilver)
+    for i in 0..<4 {
+      solarPanel(p, x: side * (1.95 + 0.5 + Float(i) * 1.02), y: 0, z: 5.8, w: 1.0, l: 1.9, cols: 2, rows: 4, t: 0.03)
+    }
+  }
+  tube(p, V3(0.6, 0.6, 0.6), V3(1.4, 1.4, -0.4), 0.02, trussSilver) // Kurs antenna
+}
+
+// James Webb Space Telescope: 18 gold hexagonal segments (6.6 m across)
+// tipped 45 degrees up towards the front, secondary mirror on a tripod, a
+// five-layer kite-shaped sunshield (21.2 x 14.2 m) and the bus beneath.
+func jwst() -> SCNNode {
+  spacecraft { r in
+    let shield = material("paint", 0xC4B2E2, metal: 0.55, rough: 0.25) // aluminised Kapton, purple-silver
+    let seam = material("seam", 0x9A8FB8, metal: 0.5, rough: 0.35)
+    shield.isDoubleSided = true
+    let tipZ: Float = 10.6, halfW: Float = 7.08, shoulder: Float = 1.8
+    func outline(_ k: Float) -> [SIMD2<Float>] {
+      [SIMD2(0, -tipZ * k), SIMD2(halfW * k, -shoulder * k), SIMD2(halfW * k, shoulder * k),
+       SIMD2(0, tipZ * k), SIMD2(-halfW * k, shoulder * k), SIMD2(-halfW * k, -shoulder * k)]
+    }
+    // Five membranes, spaced apart, the sun-facing one largest.
+    let layerY: [Float] = [0, 0.16, 0.3, 0.42, 0.52]
+    for (i, y) in layerY.enumerated() {
+      put(r, PanelMesh(outline(1 - Float(i) * 0.018)), shield, 0, y, 0, rx: -.pi / 2)
+    }
+    // Seams on the top layer and a cable round its edge.
+    let topY = layerY.last! + 0.012, k5: Float = 1 - 4 * 0.018
+    func half(_ z: Float) -> Float { abs(z) < shoulder * k5 ? halfW * k5 : halfW * k5 * (tipZ * k5 - abs(z)) / ((tipZ - shoulder) * k5) }
+    for z in stride(from: Float(-8), through: 8, by: 2) {
+      put(r, QuadMesh(width: 2 * half(z) * 0.98, length: 0.05), seam, 0, topY, z)
+    }
+    for x in [-4.5, -2.25, 2.25, 4.5] as [Float] {
+      let zr = shoulder * k5 + (halfW * k5 - abs(x)) / (halfW * k5) * (tipZ - shoulder) * k5
+      put(r, QuadMesh(width: 0.05, length: 2 * zr * 0.97), seam, x, topY, 0)
+    }
+    let edge = outline(k5)
+    for i in 0..<edge.count {
+      let a = edge[i], b = edge[(i + 1) % edge.count]
+      rod(r, V3(a.x, topY, a.y), V3(b.x, topY, b.y), 0.04, trussSilver)
+    }
+    // Mid booms out to the sides, pallets and spreader bars at the tips.
+    for s in [-1, 1] as [Float] {
+      rod(r, V3(0, 0.6, 0), V3(s * halfW * 0.97, 0.6, 0), 0.07, trussSilver, sides: 8)
+      box(r, 2.8, 0.5, 1.0, composite, 0, -0.3, s * (tipZ - 0.9))
+      box(r, 2.6, 0.08, 0.9, foilSilver, 0, -0.03, s * (tipZ - 0.9))
+      tube(r, V3(0, -0.3, s * 1.6), V3(0, -0.3, s * (tipZ - 1.4)), 0.12, composite)
+      tube(r, V3(-1.6, 0.58, s * (tipZ - 1.0)), V3(1.6, 0.58, s * (tipZ - 1.0)), 0.05, trussSilver)
+    }
+    // Momentum trim flap at the aft tip.
+    put(r, PanelMesh([SIMD2(-1.0, 0), SIMD2(1.0, 0), SIMD2(0.75, 1.4), SIMD2(-0.75, 1.4)]), shield, 0, 0.3, tipZ - 0.2, rx: 0.75)
+    tube(r, V3(0, 0.3, tipZ - 0.2), V3(0, 1.3, tipZ + 0.7), 0.04, trussSilver)
+    // Spacecraft bus under the shield: solar array, high-gain dish, star trackers.
+    box(r, 3.2, 1.4, 3.2, composite, 0, -1.25, 0.4)
+    for s in [-1, 1] as [Float] {
+      box(r, 0.03, 1.0, 2.4, foilGold, s * 1.62, -1.25, 0.4)
+      put(r, CylinderMesh(radius: 0.12, height: 0.3, sides: 12), black, s * 1.0, -0.6, -1.25, rx: -0.6)
+    }
+    let array = holder(r, V3(0, -1.75, 4.9), rz: .pi)
+    solarPanel(array, x: 0, y: 0, z: 0, w: 2.1, l: 5.6, cols: 3, rows: 10, t: 0.05)
+    tube(r, V3(0, -1.7, 2.0), V3(0, -1.75, 2.2), 0.06, trussSilver)
+    tube(r, V3(0.8, -1.95, 0.4), V3(0.8, -2.5, 0.4), 0.05, trussSilver)
+    put(r, DishMesh(radius: 0.32, depth: 0.1), dishWhite, 0.8, -2.5, 0.4, rx: .pi)
+    // Optical telescope: deployable tower, instrument module, backplane, mirror.
+    tube(r, V3(0, -0.55, 0.6), V3(0, 1.6, 1.15), 0.3, composite)
+    let C = V3(0, 4.2, 1.4)
+    let up = V3(0, 0.7071, 0.7071), normal = V3(0, 0.7071, -0.7071)
+    let isim = C - normal * 1.3 - up * 1.6
+    box(r, 2.2, 2.0, 2.0, composite, isim.x, isim.y, isim.z, rx: -.pi / 4)
+    box(r, 2.24, 1.6, 1.6, foilSilver, isim.x, isim.y - 0.1, isim.z + 0.15, rx: -.pi / 4)
+    let m = holder(r, C, rx: -.pi / 4) // mirror frame: +Y is the boresight, +Z is up the mirror
+    put(m, CylinderMesh(radius: 3.05, height: 0.35, sides: 6), composite, 0, -0.35, 0)
+    box(m, 1.4, 0.8, 5.6, composite, 0, -0.85, 0)
+    let Rc: Float = 0.762, wFlat: Float = 1.32 + 0.012, focal: Float = 7.95
+    let hexTurn = simd_quatf(angle: .pi / 6, axis: V3(0, 1, 0))
+    for q in -2...2 {
+      for rr in -2...2 where max(abs(q), abs(rr), abs(q + rr)) >= 1 && max(abs(q), abs(rr), abs(q + rr)) <= 2 {
+        let u = wFlat * (Float(q) + Float(rr) / 2)
+        let v = (wFlat / Float(3).squareRoot()) * 1.5 * Float(rr)
+        let seg = SCNNode(geometry: CylinderMesh(radius: CGFloat(Rc), height: 0.06, sides: 6))
+        seg.geometry!.materials = [mirrorGold]
+        seg.simdPosition = V3(u, (u * u + v * v) / (4 * focal), v)
+        let n = simd_normalize(V3(-u / (2 * focal), 1, -v / (2 * focal)))
+        seg.simdOrientation = simd_quatf(from: V3(0, 1, 0), to: n) * hexTurn
+        m.addChildNode(seg)
+      }
+    }
+    // Aft optics baffle poking out of the centre.
+    put(m, CylinderMesh(radius: 0.32, height: 0.9, sides: 16), black, 0, 0.45, 0)
+    put(m, TubeMesh(innerRadius: 0.32, outerRadius: 0.38, height: 0.06, sides: 16), foilSilver, 0, 0.9, 0)
+    // Secondary mirror on three struts.
+    let S = C + normal * 7.0
+    for a in [C + up * 3.25, C + V3(2.3, 0, 0) - up * 2.4, C + V3(-2.3, 0, 0) - up * 2.4] {
+      tube(r, a, S - normal * 0.25, 0.07, composite, sides: 8)
+    }
+    let (sm, _) = axisHolder(r, S, S - normal)
+    put(sm, CylinderMesh(radius: 0.42, height: 0.06, sides: 6), mirrorGold, 0, 0, 0)
+    put(sm, CylinderMesh(radius: 0.48, height: 0.4, sides: 6), composite, 0, -0.23, 0)
+  }
+}
+
+/// One ISS solar array wing: two 34 m blankets either side of a lattice mast,
+/// with blanket boxes at the root and tip; `rosa` adds a roll-out array
+/// (iROSA) mounted over it.
+func issWing(_ p: SCNNode, x: Float, y: Float, zRoot: Float, dir: Float, rosa: Bool) {
+  let len: Float = 33.5, start: Float = 1.3
+  box(p, 11.4, 0.45, 0.8, foilSilver, x, y, zRoot + dir * 0.7)
+  box(p, 11.4, 0.4, 0.7, foilSilver, x, y, zRoot + dir * (start + len + 0.35))
+  // Mast: three longerons with battens.
+  let tri: [SIMD2<Float>] = [SIMD2(-0.3, -0.25), SIMD2(0.3, -0.25), SIMD2(0, 0.28)]
+  for c in tri { rod(p, V3(x + c.x, y + c.y, zRoot + dir * start), V3(x + c.x, y + c.y, zRoot + dir * (start + len)), 0.04, trussSilver) }
+  for k in 0...14 {
+    let z = zRoot + dir * (start + len * Float(k) / 14)
+    for i in 0..<3 { rod(p, V3(x + tri[i].x, y + tri[i].y, z), V3(x + tri[(i + 1) % 3].x, y + tri[(i + 1) % 3].y, z), 0.03, trussSilver) }
+  }
+  for s in [-1, 1] as [Float] {
+    let cx = x + s * 2.95, cz = zRoot + dir * (start + len / 2)
+    box(p, 4.6, 0.06, len, panelBack, cx, y, cz)
+    put(p, QuadMesh(width: 4.55, length: len * 0.995), issCells, cx, y + 0.045, cz)
+    for k in 1..<20 { put(p, QuadMesh(width: 4.55, length: 0.07), issGrid, cx, y + 0.06, cz - len / 2 + len * Float(k) / 20) }
+    put(p, QuadMesh(width: 0.06, length: len * 0.995), issGrid, cx, y + 0.06, cz)
+  }
+  if rosa {
+    let h = holder(p, V3(x, y + 0.7, zRoot + dir * 3.0), rx: -dir * 0.07)
+    let rl: Float = 18.3
+    box(h, 6.0, 0.05, rl, panelBack, 0, 0, dir * rl / 2)
+    put(h, QuadMesh(width: 5.95, length: rl * 0.995), rosaCells, 0, 0.04, dir * rl / 2)
+    for k in 1..<14 { put(h, QuadMesh(width: 5.95, length: 0.05), cellGrid, 0, 0.05, dir * rl * Float(k) / 14) }
+    put(h, QuadMesh(width: 0.05, length: rl * 0.995), cellGrid, 0, 0.05, dir * rl / 2)
+    for s in [-1, 1] as [Float] { rod(h, V3(s * 3.05, 0, 0), V3(s * 3.05, 0, dir * rl), 0.08, trussSilver, sides: 6) }
+    box(h, 6.4, 0.3, 0.5, foilSilver, 0, 0, 0)
+    box(h, 6.2, 0.25, 0.4, foilSilver, 0, 0, dir * rl)
+    tube(p, V3(x - 2, y, zRoot + dir * 1.3), V3(x - 2, y + 0.7, zRoot + dir * 3.0), 0.06, trussSilver)
+    tube(p, V3(x + 2, y, zRoot + dir * 1.3), V3(x + 2, y + 0.7, zRoot + dir * 3.0), 0.06, trussSilver)
+  }
+}
+
+/// A deployed radiator: `w` wide, `l` long, swung down `pitch` from the
+/// anchor towards +Z (dir 1) or -Z (dir -1), with panel seams and edge beams.
+func radiatorWing(_ p: SCNNode, at a: V3, w: Float, l: Float, panels: Int, pitch: Float, dir: Float) {
+  let h = holder(p, a, rx: dir * pitch)
+  box(h, w, 0.08, l, radiatorWhite, 0, 0, dir * l / 2)
+  for k in 1..<panels { put(h, QuadMesh(width: w, length: 0.06), radiatorLine, 0, 0.045, dir * l * Float(k) / Float(panels)) }
+  for s in [-1, 1] as [Float] { rod(h, V3(s * w / 2, 0, 0), V3(s * w / 2, 0, dir * l), 0.06, trussSilver) }
+}
+
+// International Space Station: 109 m integrated truss with eight solar
+// array wings (six with iROSA overlays), heat-rejection and photovoltaic
+// radiators, and the pressurised modules from Harmony (front) to Zvezda,
+// with a Crew Dragon, a Soyuz and a Progress docked.
+func iss() -> SCNNode {
+  spacecraft { r in
+    let hull = material("paint", 0xE8E7E0, metal: 0.12, rough: 0.62)
+    let ty: Float = 4.6, tz: Float = -10 // truss axis
+    // Integrated truss: S0 in the middle, S1/P1, S3/P3, the alpha joints, then
+    // the two array segments either side.
+    lattice(r, from: -6.7, to: 6.7, y: ty, z: tz, size: 4.4, bays: 3, r: 0.12, trussSilver)
+    box(r, 12.6, 2.6, 2.6, foilSilver, 0, ty, tz)
+    for s in [-1, 1] as [Float] {
+      lattice(r, from: s * 6.7, to: s * 20.4, y: ty, z: tz, size: 4.0, bays: 3, r: 0.11, trussSilver)
+      box(r, 12.6, 1.6, 1.8, radiatorWhite, s * 13.5, ty - 0.4, tz)
+      box(r, 3.0, 1.2, 1.2, foilGold, s * 10.5, ty + 1.0, tz + 0.6)
+      lattice(r, from: s * 20.4, to: s * 24.5, y: ty, z: tz, size: 3.6, bays: 1, r: 0.1, trussSilver)
+      box(r, 3.6, 2.2, 2.2, foilSilver, s * 22.4, ty, tz)
+      put(r, CylinderMesh(radius: 2.1, height: 2.0, sides: 28), foilSilver, s * 25.5, ty, tz, rz: .pi / 2)
+      put(r, TubeMesh(innerRadius: 2.1, outerRadius: 2.25, height: 0.3, sides: 28), trussSilver, s * 24.7, ty, tz, rz: .pi / 2)
+      put(r, TubeMesh(innerRadius: 2.1, outerRadius: 2.25, height: 0.3, sides: 28), trussSilver, s * 26.3, ty, tz, rz: .pi / 2)
+      lattice(r, from: s * 26.5, to: s * 54.0, y: ty, z: tz, size: 3.0, bays: 9, r: 0.09, trussSilver)
+      for xc in [33.0, 48.0] as [Float] {
+        box(r, 11.0, 1.3, 1.3, radiatorWhite, s * xc, ty, tz)
+        for dz in [-1, 1] as [Float] {
+          put(r, CylinderMesh(radius: 0.7, height: 1.0, sides: 18), foilSilver, s * xc, ty, tz + dz * 2.0, rx: .pi / 2)
+        }
+      }
+      // Main heat-rejection radiators off S1/P1 and photovoltaic radiators.
+      for xc in [11.4, 15.2, 19.0] as [Float] {
+        radiatorWing(r, at: V3(s * xc, ty - 1.8, tz + 1.8), w: 3.4, l: 22.5, panels: 8, pitch: 0.52, dir: 1)
+      }
+      radiatorWing(r, at: V3(s * 40.5, ty - 1.4, tz - 1.4), w: 3.1, l: 13.2, panels: 7, pitch: 0.55, dir: -1)
+      // Express logistics carriers on S3/P3.
+      for (dy, top) in [(Float(-2.3), false), (Float(2.3), true)] where !(s > 0 && top) {
+        box(r, 4.2, 0.3, 4.6, trussSilver, s * 22.4, ty + dy, tz)
+        for (i, m) in [radiatorWhite, foilGold, composite, foilSilver].enumerated() {
+          let px = s * 22.4 + (Float(i % 2) - 0.5) * 2.0, pz = tz + (Float(i / 2) - 0.5) * 2.2
+          box(r, 1.6, 1.0, 1.8, m, px, ty + dy + (top ? 0.65 : -0.65), pz)
+        }
+      }
+      // Wings: P4/S4 and P6/S6, each with one wing forward and one aft.
+      for (xc, rosaFwd, rosaAft) in [(Float(33), true, true), (Float(48), s < 0, s < 0)] {
+        issWing(r, x: s * xc, y: ty, zRoot: tz - 1.6, dir: -1, rosa: rosaFwd)
+        issWing(r, x: s * xc, y: ty, zRoot: tz + 1.6, dir: 1, rosa: rosaAft)
+      }
+    }
+    // AMS-02 on top of S3.
+    put(r, TubeMesh(innerRadius: 0.8, outerRadius: 1.6, height: 1.5, sides: 28), foilSilver, 22.4, ty + 3.1, tz)
+    box(r, 3.4, 0.12, 2.4, radiatorWhite, 22.4, ty + 4.0, tz - 1.9, rx: 0.4)
+    box(r, 3.4, 0.12, 2.4, radiatorWhite, 22.4, ty + 4.0, tz + 1.9, rx: -0.4)
+    box(r, 2.2, 1.0, 2.2, foilGold, 22.4, ty + 2.1, tz)
+    // S0 struts down to Destiny.
+    for (x, z) in [(-1.6, -12.5), (1.6, -12.5), (-1.6, -7.5), (1.6, -7.5)] as [(Float, Float)] {
+      tube(r, V3(x, ty - 2.2, z), V3(x * 0.6, 1.6, z), 0.14, trussSilver)
+    }
+    // Mobile base and Canadarm2 reaching forward over Harmony.
+    box(r, 5.6, 2.4, 1.4, foilGold, 5.0, ty, tz - 2.9)
+    let shoulder = V3(5.0, ty + 1.6, tz - 3.8), elbow = V3(5.0, ty + 7.6, tz - 9.5), wrist = V3(5.0, ty + 3.6, tz - 15.5)
+    tube(r, V3(5.0, ty, tz - 3.6), shoulder, 0.3, composite)
+    tube(r, shoulder, elbow, 0.2, radiatorWhite)
+    tube(r, elbow, wrist, 0.2, radiatorWhite)
+    for j in [shoulder, elbow, wrist] { put(r, CylinderMesh(radius: 0.36, height: 0.9, sides: 14), composite, j.x, j.y, j.z, rz: .pi / 2) }
+    tube(r, wrist, wrist + V3(0, -1.4, -0.6), 0.25, composite)
+    // US segment: Harmony with Columbus and Kibo, Destiny, Unity with Quest,
+    // Tranquility, the Cupola, Leonardo and BEAM.
+    module(r, V3(0, 0, -22.2), V3(0, 0, -15.0), r: 2.2, hull)
+    put(r, LatheMesh([SIMD2(0, 1.4), SIMD2(1.7, 0.95)], sides: 24), hull, 0, 0, -22.2, rx: -.pi / 2)
+    put(r, TubeMesh(innerRadius: 0.6, outerRadius: 0.95, height: 0.4, sides: 24), trussSilver, 0, 0, -24.1, rx: .pi / 2)
+    module(r, V3(2.2, 0, -18.6), V3(9.1, 0, -18.6), r: 2.25, hull)
+    box(r, 0.8, 1.6, 2.2, foilGold, 9.4, 1.0, -18.6)
+    box(r, 0.6, 1.2, 1.6, radiatorWhite, 9.3, -1.2, -18.0)
+    module(r, V3(-2.2, 0, -18.6), V3(-13.4, 0, -18.6), r: 2.2, hull, bands: 4)
+    module(r, V3(-6.6, 2.0, -18.6), V3(-6.6, 6.2, -18.6), r: 2.1, hull, bands: 2)
+    box(r, 6.0, 0.8, 5.0, trussSilver, -16.6, -0.6, -18.6)
+    for (i, m) in [foilGold, radiatorWhite, foilSilver, composite, radiatorWhite, foilGold].enumerated() {
+      box(r, 1.6, 1.0, 1.4, m, -14.6 - Float(i % 3) * 1.9, 0.3, -20.0 + Float(i / 3) * 2.8)
+    }
+    tube(r, V3(-13.4, 1.6, -18.6), V3(-15.0, 4.6, -16.8), 0.14, radiatorWhite)
+    tube(r, V3(-15.0, 4.6, -16.8), V3(-18.0, 3.4, -17.6), 0.12, radiatorWhite)
+    module(r, V3(0, 0, -15.0), V3(0, 0, -6.5), r: 2.15, hull)
+    module(r, V3(0, 0, -6.5), V3(0, 0, -1.0), r: 2.3, hull, bands: 2)
+    module(r, V3(2.3, 0, -3.75), V3(5.5, 0, -3.75), r: 2.0, hull, bands: 2)
+    module(r, V3(5.5, 0, -3.75), V3(7.8, 0, -3.75), r: 1.0, hull, bands: 1)
+    for (y, z) in [(Float(2.0), Float(-5.2)), (2.0, -2.3), (-2.0, -5.2), (-2.0, -2.3)] {
+      put(r, LatheMesh([SIMD2(-0.6, 0.001), SIMD2(-0.42, 0.42), SIMD2(0, 0.6), SIMD2(0.42, 0.42), SIMD2(0.6, 0.001)], sides: 14), foilSilver, 4.2, y, z)
+    }
+    module(r, V3(-2.3, 0, -3.75), V3(-9.0, 0, -3.75), r: 2.25, hull)
+    module(r, V3(-6.2, 0, -6.0), V3(-6.2, 0, -12.4), r: 2.2, hull)
+    put(r, LatheMesh([SIMD2(0, 1.5), SIMD2(0.5, 1.5), SIMD2(0.9, 1.25), SIMD2(1.2, 0.75), SIMD2(1.3, 0.001)], sides: 6), hull, -5.4, -2.2, -3.75, rx: .pi)
+    put(r, CylinderMesh(radius: 0.62, height: 0.04, sides: 20), glass, -5.4, -3.52, -3.75)
+    for k in 0..<6 {
+      let a = Float(k) * .pi / 3 + .pi / 6
+      box(r, 0.7, 0.06, 0.5, glass, -5.4 + cos(a) * 1.1, -3.25, -3.75 + sin(a) * 1.1, rx: sin(a) * 0.55, rz: -cos(a) * 0.55)
+    }
+    put(r, LatheMesh([SIMD2(0, 1.0), SIMD2(0.4, 1.5), SIMD2(1.6, 1.5), SIMD2(2.0, 0.9)], sides: 24), hull, -6.2, 0, -1.5, rx: .pi / 2)
+    // Russian segment: PMA-1, Zarya (with Rassvet below), Zvezda (with Poisk
+    // above and Nauka with Prichal below) and Zvezda's solar wings.
+    put(r, LatheMesh([SIMD2(0, 1.5), SIMD2(1.8, 1.05)], sides: 24), hull, 0, 0, -1.0, rx: .pi / 2)
+    put(r, LatheMesh([SIMD2(0, 0.95), SIMD2(0.4, 1.35), SIMD2(1.5, 1.4), SIMD2(2.2, 2.05), SIMD2(12.6, 2.05)], sides: 28), hull, 0, 0, 0.8, rx: .pi / 2)
+    for z in [5.0, 8.4, 11.6] as [Float] {
+      put(r, TubeMesh(innerRadius: 2.05, outerRadius: 2.1, height: 0.14, sides: 28), moduleBand, 0, 0, z, rx: .pi / 2)
+    }
+    for s in [-1, 1] as [Float] { box(r, 0.08, 1.6, 6.0, radiatorWhite, s * 2.08, 0.6, 8.0) }
+    module(r, V3(0, -1.3, 2.3), V3(0, -7.3, 2.3), r: 1.17, hull, bands: 2)
+    put(r, LatheMesh([SIMD2(0, 0.6), SIMD2(0.2, 1.05), SIMD2(0.7, 1.15), SIMD2(1.3, 1.05), SIMD2(1.9, 1.45),
+                      SIMD2(5.9, 1.45), SIMD2(6.9, 2.07), SIMD2(11.6, 2.07), SIMD2(12.0, 1.4), SIMD2(13.1, 1.0)], sides: 28), hull, 0, 0, 13.4, rx: .pi / 2)
+    for z in [21.6, 23.4] as [Float] {
+      put(r, TubeMesh(innerRadius: 2.07, outerRadius: 2.12, height: 0.14, sides: 28), moduleBand, 0, 0, z, rx: .pi / 2)
+    }
+    module(r, V3(0, 1.0, 14.1), V3(0, 5.1, 14.1), r: 1.27, hull, bands: 1)
+    module(r, V3(0, -1.0, 14.1), V3(0, -14.1, 14.1), r: 2.1, hull, bands: 4)
+    put(r, LatheMesh([SIMD2(-1.65, 0.001), SIMD2(-1.2, 1.12), SIMD2(0, 1.65), SIMD2(1.2, 1.12), SIMD2(1.65, 0.001)], sides: 24), hull, 0, -15.7, 14.1)
+    for s in [-1, 1] as [Float] {
+      tube(r, V3(s * 2.1, -12.0, 14.1), V3(s * 3.0, -12.0, 14.1), 0.08, trussSilver)
+      for i in 0..<2 { solarPanel(r, x: s * (3.0 + 1.0 + Float(i) * 2.05), y: -12.0, z: 14.1, w: 2.0, l: 2.6, cols: 3, rows: 4, t: 0.05) }
+      tube(r, V3(s * 2.07, 0, 23.0), V3(s * 2.7, 0, 23.0), 0.08, trussSilver)
+      for i in 0..<4 { solarPanel(r, x: s * (2.75 + 1.55 + Float(i) * 3.15), y: 0, z: 23.0, w: 3.1, l: 3.3, cols: 3, rows: 4, t: 0.05) }
+    }
+    // Visiting vehicles: Crew Dragon on Harmony's front port, Soyuz under
+    // Rassvet, Progress on Zvezda's aft port.
+    buildDragon(holder(r, V3(0, 0, -24.4), ry: .pi), capsule: rocketWhite)
+    buildSoyuz(holder(r, V3(0, -7.6, 2.3), rx: .pi / 2), cargo: false)
+    buildSoyuz(holder(r, V3(0, 0, 26.9)), cargo: true)
+  }
+}
+
 // MARK: Export
 
 /// The USD exporter needs one material per geometry element.
@@ -1680,3 +2545,11 @@ save(falcon9(), "rocket-falcon9")
 save(saturnV(), "rocket-saturnv")
 save(shuttleStack(), "rocket-shuttle")
 print("more ok")
+save(iss(), "satellite-iss")
+save(starlink(), "satellite-starlink")
+save(hubble(), "satellite-hubble")
+save(gps3(), "satellite-gps")
+save(cubesat(), "satellite-cubesat")
+save(crewDragon(), "satellite-dragon")
+save(jwst(), "satellite-jwst")
+print("satellites ok")

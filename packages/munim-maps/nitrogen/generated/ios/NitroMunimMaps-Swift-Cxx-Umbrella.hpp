@@ -8,12 +8,20 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `EdgeInsets` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct EdgeInsets; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
+// Forward declaration of `LineCap` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `MapAddress` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
+// Forward declaration of `MapCameraEasing` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapColorScheme` to properly resolve imports.
@@ -22,30 +30,88 @@ namespace margelo::nitro::munimmaps { enum class MapColorScheme; }
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapElevation` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapElevation; }
+// Forward declaration of `MapFeatureEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `MapModelEffect` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
+// Forward declaration of `MapPathPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPathPoint; }
+// Forward declaration of `MapPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPoint; }
+// Forward declaration of `MapPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `MapRegion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapRegion; }
 // Forward declaration of `MapStyle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapStyle; }
+// Forward declaration of `MarkerBadgePosition` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerBadgePosition; }
+// Forward declaration of `MarkerBadge` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerBadge; }
+// Forward declaration of `MarkerDragEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
+// Forward declaration of `MarkerStyle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
+// Forward declaration of `NativeCircle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `NativeMapPath` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
+// Forward declaration of `NativeMarker` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMarker; }
+// Forward declaration of `NativePolygon` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolygon; }
+// Forward declaration of `NativePolyline` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolyline; }
+// Forward declaration of `NativeTileOverlay` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `UserLocationEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
+// Forward declaration of `UserTrackingMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 
 // Include C++ defined types
+#include "EdgeInsets.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
+#include "LineCap.hpp"
+#include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
 #include "MapCamera.hpp"
+#include "MapCameraEasing.hpp"
 #include "MapColorScheme.hpp"
 #include "MapCoordinate.hpp"
 #include "MapElevation.hpp"
+#include "MapFeatureEvent.hpp"
+#include "MapModelEffect.hpp"
 #include "MapModelLighting.hpp"
 #include "MapModelShape.hpp"
+#include "MapPathPoint.hpp"
+#include "MapPoint.hpp"
+#include "MapPressEvent.hpp"
+#include "MapRegion.hpp"
 #include "MapStyle.hpp"
+#include "MarkerBadge.hpp"
+#include "MarkerBadgePosition.hpp"
+#include "MarkerDragEvent.hpp"
+#include "MarkerStyle.hpp"
+#include "NativeCircle.hpp"
 #include "NativeMapModel.hpp"
+#include "NativeMapPath.hpp"
 #include "NativeMapZone.hpp"
+#include "NativeMarker.hpp"
+#include "NativePolygon.hpp"
+#include "NativePolyline.hpp"
+#include "NativeTileOverlay.hpp"
+#include "UserLocationEvent.hpp"
+#include "UserTrackingMode.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>
 #include <exception>

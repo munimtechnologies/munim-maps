@@ -71,6 +71,78 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapPressEvent& /* event */)>
+  Func_void_MapPressEvent create_Func_void_MapPressEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapPressEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapPressEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MarkerDragEvent& /* event */)>
+  Func_void_MarkerDragEvent create_Func_void_MarkerDragEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MarkerDragEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MarkerDragEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const UserLocationEvent& /* location */)>
+  Func_void_UserLocationEvent create_Func_void_UserLocationEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_UserLocationEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const UserLocationEvent& location) mutable -> void {
+      swiftClosure.call(location);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapFeatureEvent& /* feature */)>
+  Func_void_MapFeatureEvent create_Func_void_MapFeatureEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapFeatureEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapFeatureEvent& feature) mutable -> void {
+      swiftClosure.call(feature);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapRegion& /* result */)>
+  Func_void_MapRegion create_Func_void_MapRegion(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapRegion::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapRegion& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapPoint& /* result */)>
+  Func_void_MapPoint create_Func_void_MapPoint(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapPoint::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapPoint& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapCoordinate& /* result */)>
+  Func_void_MapCoordinate create_Func_void_MapCoordinate(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapCoordinate::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapCoordinate& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapAddress& /* result */)>
+  Func_void_MapAddress create_Func_void_MapAddress(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapAddress::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapAddress& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMunimMapViewSpec>
   std::shared_ptr<HybridMunimMapViewSpec> create_std__shared_ptr_HybridMunimMapViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroMunimMaps::HybridMunimMapViewSpec_cxx swiftPart = NitroMunimMaps::HybridMunimMapViewSpec_cxx::fromUnsafe(swiftUnsafePointer);

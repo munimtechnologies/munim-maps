@@ -16,10 +16,16 @@ namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
+// Forward declaration of `MapModelEffect` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
+// Forward declaration of `NativeMapPath` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapPath; }
+// Forward declaration of `MapPathPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPathPoint; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -29,8 +35,11 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <vector>
 #include <string>
 #include "MapModelShape.hpp"
+#include "MapModelEffect.hpp"
 #include "NativeMapZone.hpp"
 #include "MapCoordinate.hpp"
+#include "NativeMapPath.hpp"
+#include "MapPathPoint.hpp"
 #include "MapModelLighting.hpp"
 #include <functional>
 #include <optional>
@@ -97,6 +106,13 @@ namespace margelo::nitro::munimmaps {
     inline void setZones(const std::vector<NativeMapZone>& zones) noexcept override {
       _swiftPart.setZones(zones);
     }
+    inline std::vector<NativeMapPath> getPaths() noexcept override {
+      auto __result = _swiftPart.getPaths();
+      return __result;
+    }
+    inline void setPaths(const std::vector<NativeMapPath>& paths) noexcept override {
+      _swiftPart.setPaths(paths);
+    }
     inline std::string getMapTestID() noexcept override {
       auto __result = _swiftPart.getMapTestID();
       return __result;
@@ -116,6 +132,18 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setMaxCameraDistance(double maxCameraDistance) noexcept override {
       _swiftPart.setMaxCameraDistance(std::forward<decltype(maxCameraDistance)>(maxCameraDistance));
+    }
+    inline bool getRealisticElevation() noexcept override {
+      return _swiftPart.getRealisticElevation();
+    }
+    inline void setRealisticElevation(bool realisticElevation) noexcept override {
+      _swiftPart.setRealisticElevation(std::forward<decltype(realisticElevation)>(realisticElevation));
+    }
+    inline bool getGlobe() noexcept override {
+      return _swiftPart.getGlobe();
+    }
+    inline void setGlobe(bool globe) noexcept override {
+      _swiftPart.setGlobe(std::forward<decltype(globe)>(globe));
     }
     inline std::optional<std::function<void(const std::string& /* id */)>> getOnModelPress() noexcept override {
       auto __result = _swiftPart.getOnModelPress();

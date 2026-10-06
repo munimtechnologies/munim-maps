@@ -12,9 +12,12 @@ public protocol HybridMapModelLayerSpec_protocol: HybridObject, HybridView {
   // Properties
   var models: [NativeMapModel] { get set }
   var zones: [NativeMapZone] { get set }
+  var paths: [NativeMapPath] { get set }
   var mapTestID: String { get set }
   var lighting: MapModelLighting { get set }
   var maxCameraDistance: Double { get set }
+  var realisticElevation: Bool { get set }
+  var globe: Bool { get set }
   var onModelPress: ((_ id: String) -> Void)? { get set }
   var onAttachChange: ((_ attached: Bool) -> Void)? { get set }
   var onError: ((_ message: String) -> Void)? { get set }

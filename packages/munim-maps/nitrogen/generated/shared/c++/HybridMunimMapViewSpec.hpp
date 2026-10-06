@@ -17,6 +17,8 @@
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
+// Forward declaration of `NativeMapPath` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapStyle` to properly resolve imports.
@@ -27,21 +29,70 @@ namespace margelo::nitro::munimmaps { enum class MapElevation; }
 namespace margelo::nitro::munimmaps { enum class MapColorScheme; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
+// Forward declaration of `NativeMarker` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMarker; }
+// Forward declaration of `NativePolyline` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolyline; }
+// Forward declaration of `NativePolygon` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativePolygon; }
+// Forward declaration of `NativeCircle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCircle; }
+// Forward declaration of `NativeTileOverlay` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `UserTrackingMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
+// Forward declaration of `MapRegion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapRegion; }
+// Forward declaration of `EdgeInsets` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct EdgeInsets; }
+// Forward declaration of `MapPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `MarkerDragEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
+// Forward declaration of `UserLocationEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
+// Forward declaration of `MapFeatureEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `MapCameraEasing` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
+// Forward declaration of `MapCoordinate` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapCoordinate; }
+// Forward declaration of `MapPoint` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapPoint; }
+// Forward declaration of `MapAddress` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 
 #include "NativeMapModel.hpp"
 #include <vector>
 #include "NativeMapZone.hpp"
+#include "NativeMapPath.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
 #include "MapColorScheme.hpp"
 #include "MapModelLighting.hpp"
+#include "NativeMarker.hpp"
+#include "NativePolyline.hpp"
+#include "NativePolygon.hpp"
+#include "NativeCircle.hpp"
+#include "NativeTileOverlay.hpp"
 #include <string>
+#include "UserTrackingMode.hpp"
+#include "MapRegion.hpp"
+#include "EdgeInsets.hpp"
 #include <functional>
 #include <optional>
+#include "MapPressEvent.hpp"
+#include "MarkerDragEvent.hpp"
+#include "UserLocationEvent.hpp"
+#include "MapFeatureEvent.hpp"
+#include "MapCameraEasing.hpp"
 #include <NitroModules/Promise.hpp>
+#include "MapCoordinate.hpp"
+#include "MapPoint.hpp"
+#include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
 
 namespace margelo::nitro::munimmaps {
@@ -75,12 +126,16 @@ namespace margelo::nitro::munimmaps {
       virtual void setModels(const std::vector<NativeMapModel>& models) = 0;
       virtual std::vector<NativeMapZone> getZones() = 0;
       virtual void setZones(const std::vector<NativeMapZone>& zones) = 0;
+      virtual std::vector<NativeMapPath> getPaths() = 0;
+      virtual void setPaths(const std::vector<NativeMapPath>& paths) = 0;
       virtual MapCamera getInitialCamera() = 0;
       virtual void setInitialCamera(const MapCamera& initialCamera) = 0;
       virtual MapStyle getMapStyle() = 0;
       virtual void setMapStyle(MapStyle mapStyle) = 0;
       virtual MapElevation getElevation() = 0;
       virtual void setElevation(MapElevation elevation) = 0;
+      virtual bool getGlobe() = 0;
+      virtual void setGlobe(bool globe) = 0;
       virtual MapColorScheme getColorScheme() = 0;
       virtual void setColorScheme(MapColorScheme colorScheme) = 0;
       virtual bool getShowsBuildings() = 0;
@@ -91,17 +146,90 @@ namespace margelo::nitro::munimmaps {
       virtual void setLighting(MapModelLighting lighting) = 0;
       virtual double getMaxCameraDistance() = 0;
       virtual void setMaxCameraDistance(double maxCameraDistance) = 0;
+      virtual std::vector<NativeMarker> getMarkers() = 0;
+      virtual void setMarkers(const std::vector<NativeMarker>& markers) = 0;
+      virtual std::vector<NativePolyline> getPolylines() = 0;
+      virtual void setPolylines(const std::vector<NativePolyline>& polylines) = 0;
+      virtual std::vector<NativePolygon> getPolygons() = 0;
+      virtual void setPolygons(const std::vector<NativePolygon>& polygons) = 0;
+      virtual std::vector<NativeCircle> getCircles() = 0;
+      virtual void setCircles(const std::vector<NativeCircle>& circles) = 0;
+      virtual std::vector<NativeTileOverlay> getTileOverlays() = 0;
+      virtual void setTileOverlays(const std::vector<NativeTileOverlay>& tileOverlays) = 0;
+      virtual bool getShowsCompass() = 0;
+      virtual void setShowsCompass(bool showsCompass) = 0;
+      virtual bool getShowsScale() = 0;
+      virtual void setShowsScale(bool showsScale) = 0;
+      virtual bool getShowsTraffic() = 0;
+      virtual void setShowsTraffic(bool showsTraffic) = 0;
+      virtual std::string getPointsOfInterest() = 0;
+      virtual void setPointsOfInterest(const std::string& pointsOfInterest) = 0;
+      virtual UserTrackingMode getUserTrackingMode() = 0;
+      virtual void setUserTrackingMode(UserTrackingMode userTrackingMode) = 0;
+      virtual bool getZoomEnabled() = 0;
+      virtual void setZoomEnabled(bool zoomEnabled) = 0;
+      virtual bool getScrollEnabled() = 0;
+      virtual void setScrollEnabled(bool scrollEnabled) = 0;
+      virtual bool getRotateEnabled() = 0;
+      virtual void setRotateEnabled(bool rotateEnabled) = 0;
+      virtual bool getPitchEnabled() = 0;
+      virtual void setPitchEnabled(bool pitchEnabled) = 0;
+      virtual double getMinCameraDistance() = 0;
+      virtual void setMinCameraDistance(double minCameraDistance) = 0;
+      virtual double getMaxCameraDistanceLimit() = 0;
+      virtual void setMaxCameraDistanceLimit(double maxCameraDistanceLimit) = 0;
+      virtual MapRegion getCameraBoundary() = 0;
+      virtual void setCameraBoundary(const MapRegion& cameraBoundary) = 0;
+      virtual EdgeInsets getMapPadding() = 0;
+      virtual void setMapPadding(const EdgeInsets& mapPadding) = 0;
+      virtual std::string getSelectableMapFeatures() = 0;
+      virtual void setSelectableMapFeatures(const std::string& selectableMapFeatures) = 0;
       virtual std::optional<std::function<void(const std::string& /* id */)>> getOnModelPress() = 0;
       virtual void setOnModelPress(const std::optional<std::function<void(const std::string& /* id */)>>& onModelPress) = 0;
       virtual std::optional<std::function<void(const MapCamera& /* camera */)>> getOnCameraChange() = 0;
       virtual void setOnCameraChange(const std::optional<std::function<void(const MapCamera& /* camera */)>>& onCameraChange) = 0;
+      virtual std::optional<std::function<void(const MapCamera& /* camera */)>> getOnCameraMove() = 0;
+      virtual void setOnCameraMove(const std::optional<std::function<void(const MapCamera& /* camera */)>>& onCameraMove) = 0;
+      virtual std::optional<std::function<void()>> getOnMapReady() = 0;
+      virtual void setOnMapReady(const std::optional<std::function<void()>>& onMapReady) = 0;
+      virtual std::optional<std::function<void(const MapPressEvent& /* event */)>> getOnPress() = 0;
+      virtual void setOnPress(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& onPress) = 0;
+      virtual std::optional<std::function<void(const MapPressEvent& /* event */)>> getOnLongPress() = 0;
+      virtual void setOnLongPress(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& onLongPress) = 0;
+      virtual std::optional<std::function<void(const std::string& /* id */)>> getOnMarkerPress() = 0;
+      virtual void setOnMarkerPress(const std::optional<std::function<void(const std::string& /* id */)>>& onMarkerPress) = 0;
+      virtual std::optional<std::function<void(const std::string& /* id */)>> getOnMarkerDeselect() = 0;
+      virtual void setOnMarkerDeselect(const std::optional<std::function<void(const std::string& /* id */)>>& onMarkerDeselect) = 0;
+      virtual std::optional<std::function<void(const std::string& /* id */)>> getOnCalloutPress() = 0;
+      virtual void setOnCalloutPress(const std::optional<std::function<void(const std::string& /* id */)>>& onCalloutPress) = 0;
+      virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragStart() = 0;
+      virtual void setOnMarkerDragStart(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragStart) = 0;
+      virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragEnd() = 0;
+      virtual void setOnMarkerDragEnd(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragEnd) = 0;
+      virtual std::optional<std::function<void(const UserLocationEvent& /* location */)>> getOnUserLocationChange() = 0;
+      virtual void setOnUserLocationChange(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& onUserLocationChange) = 0;
+      virtual std::optional<std::function<void(const MapFeatureEvent& /* feature */)>> getOnMapFeaturePress() = 0;
+      virtual void setOnMapFeaturePress(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& onMapFeaturePress) = 0;
       virtual std::optional<std::function<void(const std::string& /* message */)>> getOnError() = 0;
       virtual void setOnError(const std::optional<std::function<void(const std::string& /* message */)>>& onError) = 0;
 
     public:
       // Methods
       virtual void setCamera(const MapCamera& camera, bool animated) = 0;
+      virtual void animateCamera(const MapCamera& camera, double durationMs, MapCameraEasing easing) = 0;
       virtual std::shared_ptr<Promise<MapCamera>> getCamera() = 0;
+      virtual void setRegion(const MapRegion& region, double durationMs) = 0;
+      virtual std::shared_ptr<Promise<MapRegion>> getVisibleRegion() = 0;
+      virtual void fitToCoordinates(const std::vector<MapCoordinate>& coordinates, const EdgeInsets& padding, bool animated) = 0;
+      virtual void fitToMarkers(const std::string& ids, const EdgeInsets& padding, bool animated) = 0;
+      virtual std::shared_ptr<Promise<MapPoint>> pointForCoordinate(const MapCoordinate& coordinate) = 0;
+      virtual std::shared_ptr<Promise<MapCoordinate>> coordinateForPoint(const MapPoint& point) = 0;
+      virtual void selectMarker(const std::string& id) = 0;
+      virtual void deselectMarker(const std::string& id) = 0;
+      virtual std::shared_ptr<Promise<std::string>> takeSnapshot(double width, double height) = 0;
+      virtual std::shared_ptr<Promise<MapAddress>> addressForCoordinate(const MapCoordinate& coordinate) = 0;
+      virtual std::shared_ptr<Promise<bool>> hasLookAround(const MapCoordinate& coordinate) = 0;
+      virtual std::shared_ptr<Promise<bool>> openLookAround(const MapCoordinate& coordinate) = 0;
       virtual std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() = 0;
 
     protected:

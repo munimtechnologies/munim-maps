@@ -15,10 +15,10 @@ Pod::Spec.new do |s|
   s.frameworks   = "MapKit", "SceneKit", "Metal", "ModelIO", "QuartzCore"
 
   s.source_files = [
-    # Implementation (Swift)
-    "ios/**/*.{swift}",
-    # Autolinking/Registration (Objective-C++)
-    "ios/**/*.{m,mm}",
+    # React Native views (Swift) and the shared core. ios/Vehicles is the
+    # Swift Package's resource target and is not part of the pod.
+    "ios/*.{swift,m,mm,h}",
+    "ios/Core/**/*.swift",
     # Implementation (C++ objects)
     "cpp/**/*.{hpp,cpp}",
   ]

@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-05
+
+### Added
+
+- `MunimMapView` is now a full MapKit map, so apps no longer need react-native-maps on iOS: markers (pins, balloons with glyphs, images, round avatars with ring and corner badges, label pills, dots) with clustering, dragging, callouts and z-order; polylines (dashed, geodesic), polygons with holes, circles and tile overlays; point-of-interest filters, traffic, compass, scale, user location and tracking modes, gesture switches, camera distance limits and boundaries, map padding and tappable map features.
+- `MunimMapView` events and methods: `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, marker and callout events, `onUserLocationChange`, `onMapFeaturePress`; `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `getVisibleRegion`, `fitToCoordinates`, `fitToMarkers`, `pointForCoordinate`, `coordinateForPoint`, `selectMarker`, `deselectMarker`, `takeSnapshot`, `addressForCoordinate`, `hasLookAround`, `openLookAround`.
+- `globe`: the standard map becomes a globe when zoomed far out, like Apple Maps. It uses a MapKit switch that is not public API; see the README.
+- Models, labels, stems and zones are placed on the sphere whenever MapKit draws a globe (the standard map with `globe`, or `hybrid` / `imagery` with realistic elevation), and hidden when they go round the far side.
+- `paths`: lines drawn in 3D, a fixed number of points wide, at any height and on the globe (orbits, flight paths). They also work over react-native-maps.
+- `effect`: particle effects, `exhaust` (an engine plume sized to the model) and `smoke` (a billowing ground cloud), with `effectIntensity` to throttle them.
+- Seven spacecraft in the vehicle catalogue (55 models): the ISS, a Starlink satellite, Hubble, a GPS III satellite, a 3U CubeSat, Crew Dragon and the James Webb Space Telescope.
+- `realisticElevation` on `MapModelLayer`: keeps a map library's flat style on realistic elevation.
+- Swift Package Manager: the `MunimMaps` and `MunimMapsVehicles` products bring `MunimMapKitView`, the SwiftUI `MunimMap` and `MunimModelLayer` to native apps without React Native.
+- Example: satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe, scripted demo shots (`munimmapsexample://demo/<shot>`), and globe checks in the self-test.
+
+### Fixed
+
+- Geodesic polylines crashed: `MKGeodesicPolyline`'s initialiser never returns a subclass, so the overlay's own properties were written past the end of the object.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added

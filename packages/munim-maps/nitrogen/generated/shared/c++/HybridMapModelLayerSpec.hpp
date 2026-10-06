@@ -17,6 +17,8 @@
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
+// Forward declaration of `NativeMapPath` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -25,6 +27,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "NativeMapModel.hpp"
 #include <vector>
 #include "NativeMapZone.hpp"
+#include "NativeMapPath.hpp"
 #include <string>
 #include "MapModelLighting.hpp"
 #include <functional>
@@ -63,12 +66,18 @@ namespace margelo::nitro::munimmaps {
       virtual void setModels(const std::vector<NativeMapModel>& models) = 0;
       virtual std::vector<NativeMapZone> getZones() = 0;
       virtual void setZones(const std::vector<NativeMapZone>& zones) = 0;
+      virtual std::vector<NativeMapPath> getPaths() = 0;
+      virtual void setPaths(const std::vector<NativeMapPath>& paths) = 0;
       virtual std::string getMapTestID() = 0;
       virtual void setMapTestID(const std::string& mapTestID) = 0;
       virtual MapModelLighting getLighting() = 0;
       virtual void setLighting(MapModelLighting lighting) = 0;
       virtual double getMaxCameraDistance() = 0;
       virtual void setMaxCameraDistance(double maxCameraDistance) = 0;
+      virtual bool getRealisticElevation() = 0;
+      virtual void setRealisticElevation(bool realisticElevation) = 0;
+      virtual bool getGlobe() = 0;
+      virtual void setGlobe(bool globe) = 0;
       virtual std::optional<std::function<void(const std::string& /* id */)>> getOnModelPress() = 0;
       virtual void setOnModelPress(const std::optional<std::function<void(const std::string& /* id */)>>& onModelPress) = 0;
       virtual std::optional<std::function<void(bool /* attached */)>> getOnAttachChange() = 0;

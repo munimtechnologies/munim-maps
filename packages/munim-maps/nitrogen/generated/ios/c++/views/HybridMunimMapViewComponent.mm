@@ -89,6 +89,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setZones(newViewProps.zones.value);
     newViewProps.zones.isDirty = false;
   }
+  // paths: array
+  if (newViewProps.paths.isDirty) {
+    swiftPart.setPaths(newViewProps.paths.value);
+    newViewProps.paths.isDirty = false;
+  }
   // initialCamera: struct
   if (newViewProps.initialCamera.isDirty) {
     swiftPart.setInitialCamera(newViewProps.initialCamera.value);
@@ -103,6 +108,11 @@ using namespace margelo::nitro::munimmaps::views;
   if (newViewProps.elevation.isDirty) {
     swiftPart.setElevation(static_cast<int>(newViewProps.elevation.value));
     newViewProps.elevation.isDirty = false;
+  }
+  // globe: boolean
+  if (newViewProps.globe.isDirty) {
+    swiftPart.setGlobe(newViewProps.globe.value);
+    newViewProps.globe.isDirty = false;
   }
   // colorScheme: enum
   if (newViewProps.colorScheme.isDirty) {
@@ -129,6 +139,101 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setMaxCameraDistance(newViewProps.maxCameraDistance.value);
     newViewProps.maxCameraDistance.isDirty = false;
   }
+  // markers: array
+  if (newViewProps.markers.isDirty) {
+    swiftPart.setMarkers(newViewProps.markers.value);
+    newViewProps.markers.isDirty = false;
+  }
+  // polylines: array
+  if (newViewProps.polylines.isDirty) {
+    swiftPart.setPolylines(newViewProps.polylines.value);
+    newViewProps.polylines.isDirty = false;
+  }
+  // polygons: array
+  if (newViewProps.polygons.isDirty) {
+    swiftPart.setPolygons(newViewProps.polygons.value);
+    newViewProps.polygons.isDirty = false;
+  }
+  // circles: array
+  if (newViewProps.circles.isDirty) {
+    swiftPart.setCircles(newViewProps.circles.value);
+    newViewProps.circles.isDirty = false;
+  }
+  // tileOverlays: array
+  if (newViewProps.tileOverlays.isDirty) {
+    swiftPart.setTileOverlays(newViewProps.tileOverlays.value);
+    newViewProps.tileOverlays.isDirty = false;
+  }
+  // showsCompass: boolean
+  if (newViewProps.showsCompass.isDirty) {
+    swiftPart.setShowsCompass(newViewProps.showsCompass.value);
+    newViewProps.showsCompass.isDirty = false;
+  }
+  // showsScale: boolean
+  if (newViewProps.showsScale.isDirty) {
+    swiftPart.setShowsScale(newViewProps.showsScale.value);
+    newViewProps.showsScale.isDirty = false;
+  }
+  // showsTraffic: boolean
+  if (newViewProps.showsTraffic.isDirty) {
+    swiftPart.setShowsTraffic(newViewProps.showsTraffic.value);
+    newViewProps.showsTraffic.isDirty = false;
+  }
+  // pointsOfInterest: string
+  if (newViewProps.pointsOfInterest.isDirty) {
+    swiftPart.setPointsOfInterest(newViewProps.pointsOfInterest.value);
+    newViewProps.pointsOfInterest.isDirty = false;
+  }
+  // userTrackingMode: enum
+  if (newViewProps.userTrackingMode.isDirty) {
+    swiftPart.setUserTrackingMode(static_cast<int>(newViewProps.userTrackingMode.value));
+    newViewProps.userTrackingMode.isDirty = false;
+  }
+  // zoomEnabled: boolean
+  if (newViewProps.zoomEnabled.isDirty) {
+    swiftPart.setZoomEnabled(newViewProps.zoomEnabled.value);
+    newViewProps.zoomEnabled.isDirty = false;
+  }
+  // scrollEnabled: boolean
+  if (newViewProps.scrollEnabled.isDirty) {
+    swiftPart.setScrollEnabled(newViewProps.scrollEnabled.value);
+    newViewProps.scrollEnabled.isDirty = false;
+  }
+  // rotateEnabled: boolean
+  if (newViewProps.rotateEnabled.isDirty) {
+    swiftPart.setRotateEnabled(newViewProps.rotateEnabled.value);
+    newViewProps.rotateEnabled.isDirty = false;
+  }
+  // pitchEnabled: boolean
+  if (newViewProps.pitchEnabled.isDirty) {
+    swiftPart.setPitchEnabled(newViewProps.pitchEnabled.value);
+    newViewProps.pitchEnabled.isDirty = false;
+  }
+  // minCameraDistance: number
+  if (newViewProps.minCameraDistance.isDirty) {
+    swiftPart.setMinCameraDistance(newViewProps.minCameraDistance.value);
+    newViewProps.minCameraDistance.isDirty = false;
+  }
+  // maxCameraDistanceLimit: number
+  if (newViewProps.maxCameraDistanceLimit.isDirty) {
+    swiftPart.setMaxCameraDistanceLimit(newViewProps.maxCameraDistanceLimit.value);
+    newViewProps.maxCameraDistanceLimit.isDirty = false;
+  }
+  // cameraBoundary: struct
+  if (newViewProps.cameraBoundary.isDirty) {
+    swiftPart.setCameraBoundary(newViewProps.cameraBoundary.value);
+    newViewProps.cameraBoundary.isDirty = false;
+  }
+  // mapPadding: struct
+  if (newViewProps.mapPadding.isDirty) {
+    swiftPart.setMapPadding(newViewProps.mapPadding.value);
+    newViewProps.mapPadding.isDirty = false;
+  }
+  // selectableMapFeatures: string
+  if (newViewProps.selectableMapFeatures.isDirty) {
+    swiftPart.setSelectableMapFeatures(newViewProps.selectableMapFeatures.value);
+    newViewProps.selectableMapFeatures.isDirty = false;
+  }
   // onModelPress: optional
   if (newViewProps.onModelPress.isDirty) {
     swiftPart.setOnModelPress(newViewProps.onModelPress.value);
@@ -138,6 +243,61 @@ using namespace margelo::nitro::munimmaps::views;
   if (newViewProps.onCameraChange.isDirty) {
     swiftPart.setOnCameraChange(newViewProps.onCameraChange.value);
     newViewProps.onCameraChange.isDirty = false;
+  }
+  // onCameraMove: optional
+  if (newViewProps.onCameraMove.isDirty) {
+    swiftPart.setOnCameraMove(newViewProps.onCameraMove.value);
+    newViewProps.onCameraMove.isDirty = false;
+  }
+  // onMapReady: optional
+  if (newViewProps.onMapReady.isDirty) {
+    swiftPart.setOnMapReady(newViewProps.onMapReady.value);
+    newViewProps.onMapReady.isDirty = false;
+  }
+  // onPress: optional
+  if (newViewProps.onPress.isDirty) {
+    swiftPart.setOnPress(newViewProps.onPress.value);
+    newViewProps.onPress.isDirty = false;
+  }
+  // onLongPress: optional
+  if (newViewProps.onLongPress.isDirty) {
+    swiftPart.setOnLongPress(newViewProps.onLongPress.value);
+    newViewProps.onLongPress.isDirty = false;
+  }
+  // onMarkerPress: optional
+  if (newViewProps.onMarkerPress.isDirty) {
+    swiftPart.setOnMarkerPress(newViewProps.onMarkerPress.value);
+    newViewProps.onMarkerPress.isDirty = false;
+  }
+  // onMarkerDeselect: optional
+  if (newViewProps.onMarkerDeselect.isDirty) {
+    swiftPart.setOnMarkerDeselect(newViewProps.onMarkerDeselect.value);
+    newViewProps.onMarkerDeselect.isDirty = false;
+  }
+  // onCalloutPress: optional
+  if (newViewProps.onCalloutPress.isDirty) {
+    swiftPart.setOnCalloutPress(newViewProps.onCalloutPress.value);
+    newViewProps.onCalloutPress.isDirty = false;
+  }
+  // onMarkerDragStart: optional
+  if (newViewProps.onMarkerDragStart.isDirty) {
+    swiftPart.setOnMarkerDragStart(newViewProps.onMarkerDragStart.value);
+    newViewProps.onMarkerDragStart.isDirty = false;
+  }
+  // onMarkerDragEnd: optional
+  if (newViewProps.onMarkerDragEnd.isDirty) {
+    swiftPart.setOnMarkerDragEnd(newViewProps.onMarkerDragEnd.value);
+    newViewProps.onMarkerDragEnd.isDirty = false;
+  }
+  // onUserLocationChange: optional
+  if (newViewProps.onUserLocationChange.isDirty) {
+    swiftPart.setOnUserLocationChange(newViewProps.onUserLocationChange.value);
+    newViewProps.onUserLocationChange.isDirty = false;
+  }
+  // onMapFeaturePress: optional
+  if (newViewProps.onMapFeaturePress.isDirty) {
+    swiftPart.setOnMapFeaturePress(newViewProps.onMapFeaturePress.value);
+    newViewProps.onMapFeaturePress.isDirty = false;
   }
   // onError: optional
   if (newViewProps.onError.isDirty) {
