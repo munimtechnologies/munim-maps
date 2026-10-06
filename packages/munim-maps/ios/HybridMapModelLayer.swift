@@ -28,6 +28,14 @@ final class HybridMapModelLayer: HybridMapModelLayerSpec {
     didSet { layer.paths = paths.map(\.core) }
   }
 
+  var occlusion: MapOcclusion = .none {
+    didSet { layer.buildingOcclusion = occlusion == .buildings }
+  }
+
+  var buildingTilesUrl: String = "" {
+    didSet { layer.buildingTilesURL = buildingTilesUrl }
+  }
+
   var mapTestID: String = "" {
     didSet { layer.mapIdentifier = mapTestID }
   }

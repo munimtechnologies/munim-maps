@@ -94,6 +94,16 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setPaths(newViewProps.paths.value);
     newViewProps.paths.isDirty = false;
   }
+  // occlusion: enum
+  if (newViewProps.occlusion.isDirty) {
+    swiftPart.setOcclusion(static_cast<int>(newViewProps.occlusion.value));
+    newViewProps.occlusion.isDirty = false;
+  }
+  // buildingTilesUrl: string
+  if (newViewProps.buildingTilesUrl.isDirty) {
+    swiftPart.setBuildingTilesUrl(newViewProps.buildingTilesUrl.value);
+    newViewProps.buildingTilesUrl.isDirty = false;
+  }
   // mapTestID: string
   if (newViewProps.mapTestID.isDirty) {
     swiftPart.setMapTestID(newViewProps.mapTestID.value);

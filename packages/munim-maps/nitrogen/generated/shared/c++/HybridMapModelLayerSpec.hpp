@@ -19,6 +19,8 @@ namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `NativeMapPath` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapPath; }
+// Forward declaration of `MapOcclusion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapOcclusion; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -28,6 +30,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <vector>
 #include "NativeMapZone.hpp"
 #include "NativeMapPath.hpp"
+#include "MapOcclusion.hpp"
 #include <string>
 #include "MapModelLighting.hpp"
 #include <functional>
@@ -68,6 +71,10 @@ namespace margelo::nitro::munimmaps {
       virtual void setZones(const std::vector<NativeMapZone>& zones) = 0;
       virtual std::vector<NativeMapPath> getPaths() = 0;
       virtual void setPaths(const std::vector<NativeMapPath>& paths) = 0;
+      virtual MapOcclusion getOcclusion() = 0;
+      virtual void setOcclusion(MapOcclusion occlusion) = 0;
+      virtual std::string getBuildingTilesUrl() = 0;
+      virtual void setBuildingTilesUrl(const std::string& buildingTilesUrl) = 0;
       virtual std::string getMapTestID() = 0;
       virtual void setMapTestID(const std::string& mapTestID) = 0;
       virtual MapModelLighting getLighting() = 0;

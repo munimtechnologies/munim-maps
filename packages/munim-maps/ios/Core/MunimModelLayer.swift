@@ -31,6 +31,23 @@ public final class MunimModelLayer: NSObject {
     didSet { renderer.setZones(zones) }
   }
 
+  /// Hides models behind buildings, which MapKit cannot do because it does
+  /// not share its depth buffer. Building footprints and heights come from
+  /// vector tiles around the camera (OpenStreetMap data from OpenFreeMap by
+  /// default, so the visible area is requested from that server). Avatars,
+  /// labels and stems always stay visible.
+  public var buildingOcclusion: Bool {
+    get { renderer.buildings.enabled }
+    set { renderer.buildings.enabled = newValue; renderer.setNeedsRender() }
+  }
+
+  /// `{z}/{x}/{y}` URL of Mapbox Vector Tiles with an OpenMapTiles
+  /// `building` layer, for `buildingOcclusion`. Empty uses OpenFreeMap.
+  public var buildingTilesURL: String {
+    get { renderer.buildings.tileURLTemplate }
+    set { renderer.buildings.tileURLTemplate = newValue }
+  }
+
   /// Lines drawn in 3D: above the ground and on the globe.
   public var paths: [MunimPath] = [] {
     didSet { renderer.setPaths(paths) }

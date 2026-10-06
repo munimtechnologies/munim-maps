@@ -20,6 +20,7 @@
 #include <vector>
 #include "NativeMapZone.hpp"
 #include "NativeMapPath.hpp"
+#include "MapOcclusion.hpp"
 #include <string>
 #include "MapModelLighting.hpp"
 #include <functional>
@@ -50,6 +51,8 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::vector<NativeMapModel>> models;
     CachedProp<std::vector<NativeMapZone>> zones;
     CachedProp<std::vector<NativeMapPath>> paths;
+    CachedProp<MapOcclusion> occlusion;
+    CachedProp<std::string> buildingTilesUrl;
     CachedProp<std::string> mapTestID;
     CachedProp<MapModelLighting> lighting;
     CachedProp<double> maxCameraDistance;

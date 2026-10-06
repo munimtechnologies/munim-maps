@@ -172,6 +172,28 @@ open class HybridMapModelLayerSpec_cxx {
     }
   }
   
+  public final var occlusion: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.occlusion.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.occlusion = margelo.nitro.munimmaps.MapOcclusion(rawValue: newValue)!
+    }
+  }
+  
+  public final var buildingTilesUrl: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.buildingTilesUrl)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.buildingTilesUrl = String(newValue)
+    }
+  }
+  
   public final var mapTestID: std.string {
     @inline(__always)
     get {

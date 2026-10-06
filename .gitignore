@@ -51,3 +51,6 @@ packages/*/lib/
 coverage/
 *.orig
 *.tmp
+
+# Real photos used only for the demo video; not part of the example.
+example/assets/friends/

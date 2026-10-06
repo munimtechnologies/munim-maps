@@ -18,6 +18,8 @@ namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 // Forward declaration of `MapModelEffect` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
+// Forward declaration of `MotionKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
@@ -26,6 +28,8 @@ namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `MapPathPoint` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPathPoint; }
+// Forward declaration of `MapOcclusion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapOcclusion; }
 // Forward declaration of `MapModelLighting` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -36,10 +40,12 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <string>
 #include "MapModelShape.hpp"
 #include "MapModelEffect.hpp"
+#include "MotionKeyframe.hpp"
 #include "NativeMapZone.hpp"
 #include "MapCoordinate.hpp"
 #include "NativeMapPath.hpp"
 #include "MapPathPoint.hpp"
+#include "MapOcclusion.hpp"
 #include "MapModelLighting.hpp"
 #include <functional>
 #include <optional>
@@ -112,6 +118,20 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setPaths(const std::vector<NativeMapPath>& paths) noexcept override {
       _swiftPart.setPaths(paths);
+    }
+    inline MapOcclusion getOcclusion() noexcept override {
+      auto __result = _swiftPart.getOcclusion();
+      return static_cast<MapOcclusion>(__result);
+    }
+    inline void setOcclusion(MapOcclusion occlusion) noexcept override {
+      _swiftPart.setOcclusion(static_cast<int>(occlusion));
+    }
+    inline std::string getBuildingTilesUrl() noexcept override {
+      auto __result = _swiftPart.getBuildingTilesUrl();
+      return __result;
+    }
+    inline void setBuildingTilesUrl(const std::string& buildingTilesUrl) noexcept override {
+      _swiftPart.setBuildingTilesUrl(buildingTilesUrl);
     }
     inline std::string getMapTestID() noexcept override {
       auto __result = _swiftPart.getMapTestID();

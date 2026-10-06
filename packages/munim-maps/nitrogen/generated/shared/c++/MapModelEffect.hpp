@@ -32,6 +32,7 @@ namespace margelo::nitro::munimmaps {
     NONE      SWIFT_NAME(none) = 0,
     EXHAUST      SWIFT_NAME(exhaust) = 1,
     SMOKE      SWIFT_NAME(smoke) = 2,
+    CONTRAIL      SWIFT_NAME(contrail) = 3,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::munimmaps
@@ -47,6 +48,7 @@ namespace margelo::nitro {
         case hashString("none"): return margelo::nitro::munimmaps::MapModelEffect::NONE;
         case hashString("exhaust"): return margelo::nitro::munimmaps::MapModelEffect::EXHAUST;
         case hashString("smoke"): return margelo::nitro::munimmaps::MapModelEffect::SMOKE;
+        case hashString("contrail"): return margelo::nitro::munimmaps::MapModelEffect::CONTRAIL;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum MapModelEffect - invalid value!");
       }
@@ -56,6 +58,7 @@ namespace margelo::nitro {
         case margelo::nitro::munimmaps::MapModelEffect::NONE: return JSIConverter<std::string>::toJSI(runtime, "none");
         case margelo::nitro::munimmaps::MapModelEffect::EXHAUST: return JSIConverter<std::string>::toJSI(runtime, "exhaust");
         case margelo::nitro::munimmaps::MapModelEffect::SMOKE: return JSIConverter<std::string>::toJSI(runtime, "smoke");
+        case margelo::nitro::munimmaps::MapModelEffect::CONTRAIL: return JSIConverter<std::string>::toJSI(runtime, "contrail");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert MapModelEffect to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -70,6 +73,7 @@ namespace margelo::nitro {
         case hashString("none"):
         case hashString("exhaust"):
         case hashString("smoke"):
+        case hashString("contrail"):
           return true;
         default:
           return false;

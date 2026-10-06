@@ -24,8 +24,6 @@ import { Demo, SHOTS, type Shot } from './Demo'
 import { ORBIT_PATHS, satelliteModels } from './orbits'
 import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 
-const starship = require('./assets/starship.usdz')
-const tower = require('./assets/tower.usdz')
 const avatars = [
   require('./assets/avatar-a.png'),
   require('./assets/avatar-b.png'),
@@ -303,13 +301,15 @@ const STARBASE = { latitude: 25.9965, longitude: -97.1559 }
 const PADS = [
   {
     id: 'a',
-    tower: { latitude: 25.99695, longitude: -97.15726 },
+    tower: { latitude: 25.997045, longitude: -97.15713 },
     mount: { latitude: 25.99717, longitude: -97.15696 },
+    heading: 51,
   },
   {
     id: 'b',
-    tower: { latitude: 25.99585, longitude: -97.15468 },
-    mount: { latitude: 25.9961, longitude: -97.1544 },
+    tower: { latitude: 25.99629, longitude: -97.154675 },
+    mount: { latitude: 25.99643, longitude: -97.15452 },
+    heading: 45,
   },
 ]
 
@@ -345,32 +345,16 @@ function buildModels(seconds: number, launching: boolean): MapModel[] {
   PADS.forEach((pad, index) => {
     // Stagger the two pads so one is always flying.
     const altitude = launching ? launchAltitude(seconds + index * (CYCLE / 2)) : 0
-    models.push({ id: `tower-${pad.id}`, coordinate: pad.tower, source: tower, heading: 40 })
+    models.push({ id: `tower-${pad.id}`, coordinate: pad.tower, source: VEHICLES['starbase-tower'], heading: pad.heading })
+    models.push({ id: `mount-${pad.id}`, coordinate: pad.mount, source: VEHICLES['starbase-mount'], heading: pad.heading })
     models.push({
       id: `ship-${pad.id}`,
       coordinate: pad.mount,
-      source: starship,
+      source: VEHICLES['rocket-starship'],
       altitude: altitude + 20,
+      heading: pad.heading,
       groundShadow: altitude < 50,
-    })
-    models.push({
-      id: `mount-${pad.id}`,
-      coordinate: pad.mount,
-      shape: 'cylinder',
-      size: { width: 22, height: 20, length: 22 },
-      color: '#3A3D42',
-    })
-    models.push({
-      id: `flame-${pad.id}`,
-      coordinate: pad.mount,
-      shape: 'capsule',
-      size: { width: 7, height: 40, length: 7 },
-      color: '#FF8A2A',
-      emissive: true,
-      groundShadow: false,
-      altitude: altitude - 20,
-      heading: 0,
-      visible: altitude > 0,
+      effect: altitude > 0 ? 'exhaust' : undefined,
     })
   })
   // A marker-style model that keeps its size on screen.

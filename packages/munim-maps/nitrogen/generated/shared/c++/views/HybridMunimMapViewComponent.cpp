@@ -56,6 +56,26 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.paths: ") + exc.what());
       }
     }()),
+    occlusion([&]() -> CachedProp<MapOcclusion> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("occlusion", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.occlusion;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<MapOcclusion>::fromRawValue(*runtime, value, sourceProps.occlusion);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.occlusion: ") + exc.what());
+      }
+    }()),
+    buildingTilesUrl([&]() -> CachedProp<std::string> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("buildingTilesUrl", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.buildingTilesUrl;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.buildingTilesUrl);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.buildingTilesUrl: ") + exc.what());
+      }
+    }()),
     initialCamera([&]() -> CachedProp<MapCamera> {
       try {
         const react::RawValue* rawValue = rawProps.at("initialCamera", nullptr, nullptr);
@@ -492,6 +512,8 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("models"): return true;
       case hashString("zones"): return true;
       case hashString("paths"): return true;
+      case hashString("occlusion"): return true;
+      case hashString("buildingTilesUrl"): return true;
       case hashString("initialCamera"): return true;
       case hashString("mapStyle"): return true;
       case hashString("elevation"): return true;

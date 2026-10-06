@@ -8,6 +8,8 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `CameraKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 // Forward declaration of `EdgeInsets` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct EdgeInsets; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
@@ -38,6 +40,8 @@ namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 namespace margelo::nitro::munimmaps { enum class MapModelLighting; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
+// Forward declaration of `MapOcclusion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapOcclusion; }
 // Forward declaration of `MapPathPoint` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPathPoint; }
 // Forward declaration of `MapPoint` to properly resolve imports.
@@ -56,6 +60,8 @@ namespace margelo::nitro::munimmaps { struct MarkerBadge; }
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `MarkerStyle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
+// Forward declaration of `MotionKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
 // Forward declaration of `NativeCircle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
@@ -78,6 +84,7 @@ namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 
 // Include C++ defined types
+#include "CameraKeyframe.hpp"
 #include "EdgeInsets.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
@@ -93,6 +100,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "MapModelEffect.hpp"
 #include "MapModelLighting.hpp"
 #include "MapModelShape.hpp"
+#include "MapOcclusion.hpp"
 #include "MapPathPoint.hpp"
 #include "MapPoint.hpp"
 #include "MapPressEvent.hpp"
@@ -102,6 +110,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "MarkerBadgePosition.hpp"
 #include "MarkerDragEvent.hpp"
 #include "MarkerStyle.hpp"
+#include "MotionKeyframe.hpp"
 #include "NativeCircle.hpp"
 #include "NativeMapModel.hpp"
 #include "NativeMapPath.hpp"

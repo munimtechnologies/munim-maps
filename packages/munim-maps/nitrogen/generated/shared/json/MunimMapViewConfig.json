@@ -7,6 +7,8 @@
     "models": true,
     "zones": true,
     "paths": true,
+    "occlusion": true,
+    "buildingTilesUrl": true,
     "initialCamera": true,
     "mapStyle": true,
     "elevation": true,

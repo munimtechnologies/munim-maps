@@ -18,6 +18,8 @@ namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 // Forward declaration of `MapModelEffect` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
+// Forward declaration of `MotionKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
@@ -26,6 +28,8 @@ namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `MapPathPoint` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPathPoint; }
+// Forward declaration of `MapOcclusion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapOcclusion; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapStyle` to properly resolve imports.
@@ -70,6 +74,8 @@ namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
 // Forward declaration of `MapCameraEasing` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
+// Forward declaration of `CameraKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 // Forward declaration of `MapPoint` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPoint; }
 // Forward declaration of `MapAddress` to properly resolve imports.
@@ -82,10 +88,12 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <string>
 #include "MapModelShape.hpp"
 #include "MapModelEffect.hpp"
+#include "MotionKeyframe.hpp"
 #include "NativeMapZone.hpp"
 #include "MapCoordinate.hpp"
 #include "NativeMapPath.hpp"
 #include "MapPathPoint.hpp"
+#include "MapOcclusion.hpp"
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -110,6 +118,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
 #include "MapCameraEasing.hpp"
+#include "CameraKeyframe.hpp"
 #include <NitroModules/Promise.hpp>
 #include "MapPoint.hpp"
 #include "MapAddress.hpp"
@@ -181,6 +190,20 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setPaths(const std::vector<NativeMapPath>& paths) noexcept override {
       _swiftPart.setPaths(paths);
+    }
+    inline MapOcclusion getOcclusion() noexcept override {
+      auto __result = _swiftPart.getOcclusion();
+      return static_cast<MapOcclusion>(__result);
+    }
+    inline void setOcclusion(MapOcclusion occlusion) noexcept override {
+      _swiftPart.setOcclusion(static_cast<int>(occlusion));
+    }
+    inline std::string getBuildingTilesUrl() noexcept override {
+      auto __result = _swiftPart.getBuildingTilesUrl();
+      return __result;
+    }
+    inline void setBuildingTilesUrl(const std::string& buildingTilesUrl) noexcept override {
+      _swiftPart.setBuildingTilesUrl(buildingTilesUrl);
     }
     inline MapCamera getInitialCamera() noexcept override {
       return _swiftPart.getInitialCamera();
@@ -471,6 +494,18 @@ namespace margelo::nitro::munimmaps {
     }
     inline void animateCamera(const MapCamera& camera, double durationMs, MapCameraEasing easing) override {
       auto __result = _swiftPart.animateCamera(std::forward<decltype(camera)>(camera), std::forward<decltype(durationMs)>(durationMs), static_cast<int>(easing));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void flyCamera(const std::vector<CameraKeyframe>& keyframes, double start, bool loop) override {
+      auto __result = _swiftPart.flyCamera(keyframes, std::forward<decltype(start)>(start), std::forward<decltype(loop)>(loop));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void stopFlight() override {
+      auto __result = _swiftPart.stopFlight();
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

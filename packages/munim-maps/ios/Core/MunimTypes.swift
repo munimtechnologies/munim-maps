@@ -6,6 +6,35 @@ import Foundation
 
 // MARK: - 3D models
 
+/// Where a moving model is `t` seconds into its motion.
+@_expose(!Cxx)
+public struct MunimKeyframe: Sendable {
+  public var t: Double
+  public var latitude: Double
+  public var longitude: Double
+  /// Metres above the ground.
+  public var altitude: Double
+  /// Degrees clockwise from north; negative turns the model to face where
+  /// it is going.
+  public var heading: Double
+
+  public init(t: Double, latitude: Double, longitude: Double, altitude: Double = 0, heading: Double = -1) {
+    self.t = t
+    self.latitude = latitude
+    self.longitude = longitude
+    self.altitude = altitude
+    self.heading = heading
+  }
+}
+
+/// A model's pose at one moment.
+struct MunimPose {
+  var latitude: Double
+  var longitude: Double
+  var altitude: Double
+  var heading: Double
+}
+
 /// A particle effect drawn with a model.
 @_expose(!Cxx)
 public enum MunimEffect: String, Sendable {
@@ -16,6 +45,9 @@ public enum MunimEffect: String, Sendable {
   /// A billowing smoke cloud on the ground, `width` metres across and
   /// `height` metres tall (a launch pad, a fire). Use without a `uri`.
   case smoke
+  /// Two white trails from the wings that stay behind in the sky as the
+  /// model moves (use with `motion`).
+  case contrail
 
   var stringValue: String { rawValue }
 }
@@ -80,6 +112,22 @@ public struct MunimModel: Sendable {
   public var effect: MunimEffect
   /// 0...1: how strong the effect is, to throttle up or let smoke clear.
   public var effectIntensity: Double
+  /// Draws nothing but hides other models behind it, the way buildings do
+  /// with `buildingOcclusion`: stand-ins for things on the map, such as a
+  /// bridge's railings and towers.
+  public var occluder: Bool = false
+  /// Where an effect comes from, in the model's own metres (x right, y up,
+  /// z towards the back, base centred on the origin): one contrail per
+  /// engine, for example. Empty uses the effect's default.
+  public var effectOrigins: [SIMD3<Float>] = []
+  /// Moves the model along these keyframes on the native frame clock, so
+  /// motion stays smooth whatever the app's own thread is doing. Empty keeps
+  /// it at `coordinate`.
+  public var motion: [MunimKeyframe] = []
+  /// When `t = 0` is, in seconds since 1970 (`Date.now() / 1000`).
+  public var motionStart: Double = 0
+  /// Start again from the first keyframe after the last.
+  public var motionLoop: Bool = false
   public var visible: Bool
 
   public init(
@@ -146,6 +194,47 @@ public struct MunimModel: Sendable {
   public var coordinate: CLLocationCoordinate2D {
     get { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
     set { latitude = newValue.latitude; longitude = newValue.longitude }
+  }
+
+  /// Where the model is at `time` (seconds since 1970).
+  func pose(at time: Double) -> MunimPose {
+    guard let first = motion.first else {
+      return MunimPose(latitude: latitude, longitude: longitude, altitude: altitude, heading: heading)
+    }
+    guard motion.count > 1, let last = motion.last, last.t > first.t else {
+      return MunimPose(latitude: first.latitude, longitude: first.longitude, altitude: first.altitude,
+                       heading: first.heading >= 0 ? first.heading : heading)
+    }
+    var t = time - motionStart
+    if motionLoop {
+      let span = last.t - first.t
+      t = first.t + (t - first.t).truncatingRemainder(dividingBy: span)
+      if t < first.t { t += span }
+    }
+    t = min(max(t, first.t), last.t)
+    var i = 1
+    while i < motion.count - 1, motion[i].t < t { i += 1 }
+    let a = motion[i - 1]
+    let b = motion[i]
+    let f = b.t > a.t ? (t - a.t) / (b.t - a.t) : 0
+    var pose = MunimPose(
+      latitude: a.latitude + (b.latitude - a.latitude) * f,
+      longitude: a.longitude + (b.longitude - a.longitude) * f,
+      altitude: a.altitude + (b.altitude - a.altitude) * f,
+      heading: heading)
+    if a.heading >= 0, b.heading >= 0 {
+      let turn = ((b.heading - a.heading).truncatingRemainder(dividingBy: 360) + 540)
+        .truncatingRemainder(dividingBy: 360) - 180
+      pose.heading = a.heading + turn * f
+    } else {
+      // Face along the segment.
+      let dy = b.latitude - a.latitude
+      let dx = (b.longitude - a.longitude) * cos(a.latitude * .pi / 180)
+      if abs(dx) + abs(dy) > 1e-12 {
+        pose.heading = (atan2(dx, dy) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
+      }
+    }
+    return pose
   }
 }
 

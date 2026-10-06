@@ -33,6 +33,18 @@ public struct MunimCamera: Sendable {
   }
 }
 
+/// Where the camera is `t` seconds into a flight.
+@_expose(!Cxx)
+public struct MunimCameraKeyframe: Sendable {
+  public var t: Double
+  public var camera: MunimCamera
+
+  public init(t: Double, camera: MunimCamera) {
+    self.t = t
+    self.camera = camera
+  }
+}
+
 /// A place on Apple's map that the user tapped.
 @_expose(!Cxx)
 public struct MunimMapFeature: Sendable {
@@ -78,6 +90,17 @@ public final class MunimMapKitView: UIView {
   public var zones: [MunimZone] {
     get { modelLayer.zones }
     set { modelLayer.zones = newValue }
+  }
+
+  /// Hides models behind buildings; see `MunimModelLayer.buildingOcclusion`.
+  public var buildingOcclusion: Bool {
+    get { modelLayer.buildingOcclusion }
+    set { modelLayer.buildingOcclusion = newValue }
+  }
+
+  public var buildingTilesURL: String {
+    get { modelLayer.buildingTilesURL }
+    set { modelLayer.buildingTilesURL = newValue }
   }
 
   public var paths: [MunimPath] {
@@ -283,20 +306,92 @@ public final class MunimMapKitView: UIView {
   }
 
   public func setCamera(_ camera: MunimCamera, animated: Bool) {
+    stopFlight()
     mapView.setCamera(Self.mapKitCamera(camera), animated: animated)
     modelLayer.setNeedsRender()
   }
 
   /// Moves the camera over `duration` seconds, eased or at a steady speed.
+  ///
+  /// The camera is stepped once a frame rather than handed to a UIKit
+  /// animation: during one of those MapKit reports where the camera is
+  /// going, not where it is, so models drawn over it would slide.
   public func animateCamera(_ camera: MunimCamera, duration: TimeInterval, linear: Bool = false) {
     guard duration > 0 else { return setCamera(camera, animated: false) }
-    UIView.animate(
-      withDuration: duration, delay: 0,
-      options: [linear ? .curveLinear : .curveEaseInOut, .allowUserInteraction, .beginFromCurrentState]
-    ) {
-      self.mapView.camera = Self.mapKitCamera(camera)
+    let from = self.camera
+    let steps = linear ? 1 : 24
+    let keyframes = (0...steps).map { i -> MunimCameraKeyframe in
+      let x = Double(i) / Double(steps)
+      let eased = linear ? x : x * x * (3 - 2 * x)
+      return MunimCameraKeyframe(t: x * duration, camera: Self.interpolate(from, camera, eased))
     }
+    flyCamera(keyframes, start: Date().timeIntervalSince1970)
+  }
+
+  private var flight: (keyframes: [MunimCameraKeyframe], start: Double, loop: Bool)?
+  private var flightLink: CADisplayLink?
+
+  /// Flies the camera through keyframes, `t` seconds after `start` (seconds
+  /// since 1970), interpolating every frame. Pass the same clock as models'
+  /// `motionStart` to follow a moving model exactly. Any other camera call
+  /// stops it.
+  public func flyCamera(_ keyframes: [MunimCameraKeyframe], start: Double, loop: Bool = false) {
+    guard keyframes.count > 1 else {
+      stopFlight()
+      if let only = keyframes.first { setCamera(only.camera, animated: false) }
+      return
+    }
+    flight = (keyframes.sorted { $0.t < $1.t }, start, loop)
+    if flightLink == nil {
+      let link = CADisplayLink(target: FlightTarget(self), selector: #selector(FlightTarget.tick))
+      link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 120)
+      link.add(to: .main, forMode: .common)
+      flightLink = link
+    }
+    stepFlight()
+  }
+
+  public func stopFlight() {
+    flight = nil
+    flightLink?.invalidate()
+    flightLink = nil
+  }
+
+  fileprivate func stepFlight() {
+    guard let flight, let first = flight.keyframes.first, let last = flight.keyframes.last else { return }
+    var t = Date().timeIntervalSince1970 - flight.start
+    let span = last.t - first.t
+    if flight.loop, span > 0 {
+      t = first.t + (t - first.t).truncatingRemainder(dividingBy: span)
+      if t < first.t { t += span }
+    }
+    let camera: MunimCamera
+    if t <= first.t {
+      camera = first.camera
+    } else if t >= last.t {
+      camera = last.camera
+      if !flight.loop { stopFlight() }
+    } else {
+      var i = 1
+      while i < flight.keyframes.count - 1, flight.keyframes[i].t < t { i += 1 }
+      let a = flight.keyframes[i - 1]
+      let b = flight.keyframes[i]
+      camera = Self.interpolate(a.camera, b.camera, (t - a.t) / max(1e-9, b.t - a.t))
+    }
+    mapView.camera = Self.mapKitCamera(camera)
     modelLayer.setNeedsRender()
+  }
+
+  private static func interpolate(_ a: MunimCamera, _ b: MunimCamera, _ f: Double) -> MunimCamera {
+    let turn = ((b.heading - a.heading).truncatingRemainder(dividingBy: 360) + 540)
+      .truncatingRemainder(dividingBy: 360) - 180
+    return MunimCamera(
+      latitude: a.latitude + (b.latitude - a.latitude) * f,
+      longitude: a.longitude + (b.longitude - a.longitude) * f,
+      // Zoom at a steady rate in scale, not in metres.
+      distance: exp(log(max(1, a.distance)) + (log(max(1, b.distance)) - log(max(1, a.distance))) * f),
+      pitch: a.pitch + (b.pitch - a.pitch) * f,
+      heading: (a.heading + turn * f + 360).truncatingRemainder(dividingBy: 360))
   }
 
   @nonobjc public var visibleRegion: MKCoordinateRegion { mapView.region }
@@ -589,5 +684,18 @@ private extension UIView {
       view = current.superview
     }
     return false
+  }
+}
+
+/// Breaks the retain cycle between the flight's `CADisplayLink` and the view.
+private final class FlightTarget: NSObject {
+  weak var owner: MunimMapKitView?
+
+  init(_ owner: MunimMapKitView) {
+    self.owner = owner
+  }
+
+  @objc func tick() {
+    owner?.stepFlight()
   }
 }

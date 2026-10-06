@@ -22,10 +22,24 @@ export type MapModelShape =
  * A particle effect drawn with a model: `exhaust` is an engine plume from
  * the model's base, `smoke` a billowing cloud on the ground.
  */
-export type MapModelEffect = 'none' | 'exhaust' | 'smoke'
+export type MapModelEffect = 'none' | 'exhaust' | 'smoke' | 'contrail'
+
+/** What hides models: nothing, or buildings. */
+export type MapOcclusion = 'none' | 'buildings'
 
 /** `day` and `night` fix the lighting; `auto` follows the map's appearance. */
 export type MapModelLighting = 'auto' | 'day' | 'night'
+
+/** Where a moving model is `t` seconds into its motion. */
+export interface MotionKeyframe {
+  t: number
+  latitude: number
+  longitude: number
+  /** Metres above the ground. */
+  altitude: number
+  /** Degrees clockwise from north; negative faces the direction of travel. */
+  heading: number
+}
 
 /**
  * One model as the native side receives it. Every field is required here so
@@ -90,6 +104,15 @@ export interface NativeMapModel {
   effect: MapModelEffect
   /** 0...1, to throttle the effect up or let it die away. */
   effectIntensity: number
+  /** Keyframes interpolated natively every frame. Empty for none. */
+  motion: MotionKeyframe[]
+  /** When `t = 0` is, in seconds since 1970. */
+  motionStart: number
+  motionLoop: boolean
+  /** Draw nothing, but hide other models behind it. */
+  occluder: boolean
+  /** "x,y,z;x,y,z": where the effect starts, in the model's metres. Empty for the default. */
+  effectOrigins: string
   visible: boolean
 }
 
@@ -156,6 +179,15 @@ export interface MapModelLayerProps extends HybridViewProps {
   models: NativeMapModel[]
   zones: NativeMapZone[]
   paths: NativeMapPath[]
+  /**
+   * `buildings` hides models behind buildings (MapKit does not share its
+   * depth buffer). Footprints and heights come from vector tiles around the
+   * camera, OpenStreetMap data from OpenFreeMap unless `buildingTilesUrl`
+   * is set. Avatars, labels and stems stay visible.
+   */
+  occlusion: MapOcclusion
+  /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Empty uses OpenFreeMap. */
+  buildingTilesUrl: string
   /**
    * `testID` of the map to draw over. Empty means the nearest MapKit map on
    * screen, which is right when there is only one.

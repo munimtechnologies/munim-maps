@@ -20,6 +20,8 @@
 #include <vector>
 #include "NativeMapZone.hpp"
 #include "NativeMapPath.hpp"
+#include "MapOcclusion.hpp"
+#include <string>
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -30,7 +32,6 @@
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
-#include <string>
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
@@ -66,6 +67,8 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::vector<NativeMapModel>> models;
     CachedProp<std::vector<NativeMapZone>> zones;
     CachedProp<std::vector<NativeMapPath>> paths;
+    CachedProp<MapOcclusion> occlusion;
+    CachedProp<std::string> buildingTilesUrl;
     CachedProp<MapCamera> initialCamera;
     CachedProp<MapStyle> mapStyle;
     CachedProp<MapElevation> elevation;

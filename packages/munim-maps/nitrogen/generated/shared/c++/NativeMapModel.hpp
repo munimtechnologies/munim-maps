@@ -32,10 +32,14 @@
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 // Forward declaration of `MapModelEffect` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
+// Forward declaration of `MotionKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
 
 #include <string>
 #include "MapModelShape.hpp"
 #include "MapModelEffect.hpp"
+#include "MotionKeyframe.hpp"
+#include <vector>
 
 namespace margelo::nitro::munimmaps {
 
@@ -72,11 +76,16 @@ namespace margelo::nitro::munimmaps {
     std::string stemColor     SWIFT_PRIVATE;
     MapModelEffect effect     SWIFT_PRIVATE;
     double effectIntensity     SWIFT_PRIVATE;
+    std::vector<MotionKeyframe> motion     SWIFT_PRIVATE;
+    double motionStart     SWIFT_PRIVATE;
+    bool motionLoop     SWIFT_PRIVATE;
+    bool occluder     SWIFT_PRIVATE;
+    std::string effectOrigins     SWIFT_PRIVATE;
     bool visible     SWIFT_PRIVATE;
 
   public:
     NativeMapModel() = default;
-    explicit NativeMapModel(std::string id, double latitude, double longitude, double altitude, double heading, double scale, std::string uri, MapModelShape shape, double width, double height, double length, std::string color, std::string tintColor, bool emissive, double spinDegreesPerSecond, bool playAnimations, double screenSize, bool groundShadow, std::string imageUri, std::string imageBorderColor, double imageBorderWidth, std::string imageBadge, double liftPoints, std::string label, bool stem, std::string stemColor, MapModelEffect effect, double effectIntensity, bool visible): id(id), latitude(latitude), longitude(longitude), altitude(altitude), heading(heading), scale(scale), uri(uri), shape(shape), width(width), height(height), length(length), color(color), tintColor(tintColor), emissive(emissive), spinDegreesPerSecond(spinDegreesPerSecond), playAnimations(playAnimations), screenSize(screenSize), groundShadow(groundShadow), imageUri(imageUri), imageBorderColor(imageBorderColor), imageBorderWidth(imageBorderWidth), imageBadge(imageBadge), liftPoints(liftPoints), label(label), stem(stem), stemColor(stemColor), effect(effect), effectIntensity(effectIntensity), visible(visible) {}
+    explicit NativeMapModel(std::string id, double latitude, double longitude, double altitude, double heading, double scale, std::string uri, MapModelShape shape, double width, double height, double length, std::string color, std::string tintColor, bool emissive, double spinDegreesPerSecond, bool playAnimations, double screenSize, bool groundShadow, std::string imageUri, std::string imageBorderColor, double imageBorderWidth, std::string imageBadge, double liftPoints, std::string label, bool stem, std::string stemColor, MapModelEffect effect, double effectIntensity, std::vector<MotionKeyframe> motion, double motionStart, bool motionLoop, bool occluder, std::string effectOrigins, bool visible): id(id), latitude(latitude), longitude(longitude), altitude(altitude), heading(heading), scale(scale), uri(uri), shape(shape), width(width), height(height), length(length), color(color), tintColor(tintColor), emissive(emissive), spinDegreesPerSecond(spinDegreesPerSecond), playAnimations(playAnimations), screenSize(screenSize), groundShadow(groundShadow), imageUri(imageUri), imageBorderColor(imageBorderColor), imageBorderWidth(imageBorderWidth), imageBadge(imageBadge), liftPoints(liftPoints), label(label), stem(stem), stemColor(stemColor), effect(effect), effectIntensity(effectIntensity), motion(motion), motionStart(motionStart), motionLoop(motionLoop), occluder(occluder), effectOrigins(effectOrigins), visible(visible) {}
 
   public:
     friend bool operator==(const NativeMapModel& lhs, const NativeMapModel& rhs) = default;
@@ -120,6 +129,11 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "stemColor"))),
         JSIConverter<margelo::nitro::munimmaps::MapModelEffect>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "effect"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "effectIntensity"))),
+        JSIConverter<std::vector<margelo::nitro::munimmaps::MotionKeyframe>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "motion"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "motionStart"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "motionLoop"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "occluder"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "effectOrigins"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))
       );
     }
@@ -153,6 +167,11 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "stemColor"), JSIConverter<std::string>::toJSI(runtime, arg.stemColor));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "effect"), JSIConverter<margelo::nitro::munimmaps::MapModelEffect>::toJSI(runtime, arg.effect));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "effectIntensity"), JSIConverter<double>::toJSI(runtime, arg.effectIntensity));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "motion"), JSIConverter<std::vector<margelo::nitro::munimmaps::MotionKeyframe>>::toJSI(runtime, arg.motion));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "motionStart"), JSIConverter<double>::toJSI(runtime, arg.motionStart));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "motionLoop"), JSIConverter<bool>::toJSI(runtime, arg.motionLoop));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "occluder"), JSIConverter<bool>::toJSI(runtime, arg.occluder));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "effectOrigins"), JSIConverter<std::string>::toJSI(runtime, arg.effectOrigins));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "visible"), JSIConverter<bool>::toJSI(runtime, arg.visible));
       return obj;
     }
@@ -192,6 +211,11 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "stemColor")))) return false;
       if (!JSIConverter<margelo::nitro::munimmaps::MapModelEffect>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "effect")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "effectIntensity")))) return false;
+      if (!JSIConverter<std::vector<margelo::nitro::munimmaps::MotionKeyframe>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "motion")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "motionStart")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "motionLoop")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "occluder")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "effectOrigins")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))) return false;
       return true;
     }

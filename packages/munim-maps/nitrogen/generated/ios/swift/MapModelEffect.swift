@@ -23,6 +23,8 @@ public extension MapModelEffect {
         self = .exhaust
       case "smoke":
         self = .smoke
+      case "contrail":
+        self = .contrail
       default:
         return nil
     }
@@ -39,6 +41,8 @@ public extension MapModelEffect {
         return "exhaust"
       case .smoke:
         return "smoke"
+      case .contrail:
+        return "contrail"
     }
   }
 }

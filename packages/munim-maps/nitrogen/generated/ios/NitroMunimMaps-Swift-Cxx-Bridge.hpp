@@ -8,6 +8,8 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `CameraKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
@@ -44,6 +46,8 @@ namespace margelo::nitro::munimmaps { struct MarkerBadge; }
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `MarkerStyle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
+// Forward declaration of `MotionKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
 // Forward declaration of `NativeCircle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
@@ -70,6 +74,7 @@ namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 
 // Include C++ defined types
+#include "CameraKeyframe.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
 #include "LineCap.hpp"
@@ -88,6 +93,7 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 #include "MarkerBadgePosition.hpp"
 #include "MarkerDragEvent.hpp"
 #include "MarkerStyle.hpp"
+#include "MotionKeyframe.hpp"
 #include "NativeCircle.hpp"
 #include "NativeMapModel.hpp"
 #include "NativeMapPath.hpp"
@@ -113,6 +119,17 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
  */
 namespace margelo::nitro::munimmaps::bridge::swift {
 
+  // pragma MARK: std::vector<MotionKeyframe>
+  /**
+   * Specialized version of `std::vector<MotionKeyframe>`.
+   */
+  using std__vector_MotionKeyframe_ = std::vector<MotionKeyframe>;
+  inline std::vector<MotionKeyframe> create_std__vector_MotionKeyframe_(size_t size) noexcept {
+    std::vector<MotionKeyframe> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
   // pragma MARK: std::vector<NativeMapModel>
   /**
    * Specialized version of `std::vector<NativeMapModel>`.
@@ -640,6 +657,17 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline std::function<void(const MapFeatureEvent& /* feature */)> get_std__optional_std__function_void_const_MapFeatureEvent_____feature______(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& optional) noexcept {
     return optional.value();
+  }
+  
+  // pragma MARK: std::vector<CameraKeyframe>
+  /**
+   * Specialized version of `std::vector<CameraKeyframe>`.
+   */
+  using std__vector_CameraKeyframe_ = std::vector<CameraKeyframe>;
+  inline std::vector<CameraKeyframe> create_std__vector_CameraKeyframe_(size_t size) noexcept {
+    std::vector<CameraKeyframe> vector;
+    vector.reserve(size);
+    return vector;
   }
   
   // pragma MARK: std::shared_ptr<Promise<MapCamera>>

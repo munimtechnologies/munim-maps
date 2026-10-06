@@ -20,6 +20,10 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("zones", &HybridMunimMapViewSpec::setZones);
       prototype.registerHybridGetter("paths", &HybridMunimMapViewSpec::getPaths);
       prototype.registerHybridSetter("paths", &HybridMunimMapViewSpec::setPaths);
+      prototype.registerHybridGetter("occlusion", &HybridMunimMapViewSpec::getOcclusion);
+      prototype.registerHybridSetter("occlusion", &HybridMunimMapViewSpec::setOcclusion);
+      prototype.registerHybridGetter("buildingTilesUrl", &HybridMunimMapViewSpec::getBuildingTilesUrl);
+      prototype.registerHybridSetter("buildingTilesUrl", &HybridMunimMapViewSpec::setBuildingTilesUrl);
       prototype.registerHybridGetter("initialCamera", &HybridMunimMapViewSpec::getInitialCamera);
       prototype.registerHybridSetter("initialCamera", &HybridMunimMapViewSpec::setInitialCamera);
       prototype.registerHybridGetter("mapStyle", &HybridMunimMapViewSpec::getMapStyle);
@@ -106,6 +110,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("onError", &HybridMunimMapViewSpec::setOnError);
       prototype.registerHybridMethod("setCamera", &HybridMunimMapViewSpec::setCamera);
       prototype.registerHybridMethod("animateCamera", &HybridMunimMapViewSpec::animateCamera);
+      prototype.registerHybridMethod("flyCamera", &HybridMunimMapViewSpec::flyCamera);
+      prototype.registerHybridMethod("stopFlight", &HybridMunimMapViewSpec::stopFlight);
       prototype.registerHybridMethod("getCamera", &HybridMunimMapViewSpec::getCamera);
       prototype.registerHybridMethod("setRegion", &HybridMunimMapViewSpec::setRegion);
       prototype.registerHybridMethod("getVisibleRegion", &HybridMunimMapViewSpec::getVisibleRegion);

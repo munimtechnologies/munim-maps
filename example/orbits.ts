@@ -32,9 +32,11 @@ const TIME_SCALE = 140
 const STARLINK_TRAIN: Orbit[] = Array.from({ length: 10 }, (_, i) => ({
   id: `starlink-${i}`,
   model: 'satellite-starlink',
-  inclination: 53,
-  node: -70,
-  phase: 40 - i * 3,
+  // Retrograde, so the train heads north-west across the ISS's track
+  // instead of following it.
+  inclination: 127,
+  node: -25,
+  phase: 34 + i * 4,
   altitude: 550_000,
   screenSize: 0.8,
   track: i === 0 ? '#FFFFFF' : undefined,
@@ -42,9 +44,9 @@ const STARLINK_TRAIN: Orbit[] = Array.from({ length: 10 }, (_, i) => ({
 
 export const ORBITS: Orbit[] = [
   { id: 'iss', model: 'satellite-iss', inclination: 51.6, node: -40, phase: 20, altitude: 420_000, screenSize: 26, track: '#FFD60A' },
-  { id: 'dragon', model: 'satellite-dragon', inclination: 51.6, node: -40, phase: 12, altitude: 400_000, screenSize: 15 },
-  { id: 'hubble', model: 'satellite-hubble', inclination: 28.5, node: -10, phase: 75, altitude: 540_000, screenSize: 24, track: '#64D2FF' },
-  { id: 'cubesat', model: 'satellite-cubesat', inclination: 97.4, node: -20, phase: 150, altitude: 500_000, screenSize: 20, track: '#30D158' },
+  { id: 'dragon', model: 'satellite-dragon', inclination: 51.6, node: -40, phase: 8, altitude: 418_000, screenSize: 15 },
+  { id: 'hubble', model: 'satellite-hubble', inclination: 28.5, node: -60, phase: 7, altitude: 540_000, screenSize: 24, track: '#64D2FF' },
+  { id: 'cubesat', model: 'satellite-cubesat', inclination: 97.4, node: -10, phase: 55, altitude: 500_000, screenSize: 20, track: '#30D158' },
   ...STARLINK_TRAIN,
   { id: 'gps-1', model: 'satellite-gps', inclination: 55, node: -60, phase: 60, altitude: 20_180_000, screenSize: 12, track: '#FF9F0A' },
   { id: 'gps-2', model: 'satellite-gps', inclination: 55, node: 0, phase: -20, altitude: 20_180_000, screenSize: 12 },
@@ -89,6 +91,7 @@ export function satelliteModels(seconds: number, timeScale = TIME_SCALE): MapMod
       heading: bearing(here, ahead),
       source: VEHICLES[orbit.model],
       screenSize: orbit.screenSize,
+      groundShadow: false,
     }
   })
 }

@@ -24,6 +24,16 @@ extension NativeMapModel {
       liftPoints: liftPoints, label: label, stem: stem, stemColor: stemColor,
       effect: MunimEffect(rawValue: effect.stringValue) ?? .none, effectIntensity: effectIntensity,
       visible: visible)
+    model.motion = motion.map {
+      MunimKeyframe(t: $0.t, latitude: $0.latitude, longitude: $0.longitude, altitude: $0.altitude, heading: $0.heading)
+    }
+    model.motionStart = motionStart
+    model.motionLoop = motionLoop
+    model.occluder = occluder
+    model.effectOrigins = effectOrigins.split(separator: ";").compactMap { point in
+      let v = point.split(separator: ",").compactMap { Float($0.trimmingCharacters(in: .whitespaces)) }
+      return v.count == 3 ? SIMD3(v[0], v[1], v[2]) : nil
+    }
     // The JS side has already resolved these; keep them exactly.
     model.shape = MunimShape(rawValue: shape.stringValue) ?? .box
     model.screenSize = screenSize

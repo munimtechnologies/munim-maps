@@ -30,6 +30,8 @@ public struct MunimMap: UIViewRepresentable {
   public var elevation: MunimElevation
   /// The standard style as a globe when zoomed out; see `MunimModelLayer.globe`.
   public var globe: Bool
+  /// Hide models behind buildings; see `MunimModelLayer.buildingOcclusion`.
+  public var buildingOcclusion: Bool
   public var showsUserLocation: Bool
   public var onModelPress: ((String) -> Void)?
   public var onMarkerPress: ((String) -> Void)?
@@ -51,6 +53,7 @@ public struct MunimMap: UIViewRepresentable {
     mapStyle: MunimMapStyle = .standard,
     elevation: MunimElevation = .realistic,
     globe: Bool = false,
+    buildingOcclusion: Bool = false,
     showsUserLocation: Bool = false,
     onModelPress: ((String) -> Void)? = nil,
     onMarkerPress: ((String) -> Void)? = nil,
@@ -70,6 +73,7 @@ public struct MunimMap: UIViewRepresentable {
     self.mapStyle = mapStyle
     self.elevation = elevation
     self.globe = globe
+    self.buildingOcclusion = buildingOcclusion
     self.showsUserLocation = showsUserLocation
     self.onModelPress = onModelPress
     self.onMarkerPress = onMarkerPress
@@ -97,6 +101,7 @@ public struct MunimMap: UIViewRepresentable {
     view.mapStyle = mapStyle
     view.elevation = elevation
     view.globe = globe
+    view.buildingOcclusion = buildingOcclusion
     view.showsUserLocation = showsUserLocation
     view.onModelPress = onModelPress
     view.onMarkerPress = onMarkerPress

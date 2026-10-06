@@ -172,6 +172,28 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var occlusion: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.occlusion.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.occlusion = margelo.nitro.munimmaps.MapOcclusion(rawValue: newValue)!
+    }
+  }
+  
+  public final var buildingTilesUrl: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.buildingTilesUrl)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.buildingTilesUrl = String(newValue)
+    }
+  }
+  
   public final var initialCamera: MapCamera {
     @inline(__always)
     get {
@@ -974,6 +996,28 @@ open class HybridMunimMapViewSpec_cxx {
   public final func animateCamera(camera: MapCamera, durationMs: Double, easing: Int32) -> bridge.Result_void_ {
     do {
       try self.__implementation.animateCamera(camera: camera, durationMs: durationMs, easing: margelo.nitro.munimmaps.MapCameraEasing(rawValue: easing)!)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func flyCamera(keyframes: bridge.std__vector_CameraKeyframe_, start: Double, loop: Bool) -> bridge.Result_void_ {
+    do {
+      try self.__implementation.flyCamera(keyframes: keyframes.map({ __item in __item }), start: start, loop: loop)
+      return bridge.create_Result_void_()
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_void_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func stopFlight() -> bridge.Result_void_ {
+    do {
+      try self.__implementation.stopFlight()
       return bridge.create_Result_void_()
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()

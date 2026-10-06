@@ -48,6 +48,8 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var models: [NativeMapModel] = [] { didSet { map.models = models.map(\.core) } }
   var zones: [NativeMapZone] = [] { didSet { map.zones = zones.map(\.core) } }
   var paths: [NativeMapPath] = [] { didSet { map.paths = paths.map(\.core) } }
+  var occlusion: MapOcclusion = .none { didSet { map.buildingOcclusion = occlusion == .buildings } }
+  var buildingTilesUrl = "" { didSet { map.buildingTilesURL = buildingTilesUrl } }
   var lighting: MapModelLighting = .auto { didSet { map.lighting = lighting.core } }
   var maxCameraDistance: Double = 50_000 { didSet { map.maxCameraDistance = maxCameraDistance } }
 
@@ -171,6 +173,15 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     DispatchQueue.main.async {
       self.map.animateCamera(camera.core, duration: durationMs / 1000, linear: easing == .linear)
     }
+  }
+
+  func flyCamera(keyframes: [CameraKeyframe], start: Double, loop: Bool) throws {
+    let frames = keyframes.map { MunimCameraKeyframe(t: $0.t, camera: $0.camera.core) }
+    DispatchQueue.main.async { self.map.flyCamera(frames, start: start, loop: loop) }
+  }
+
+  func stopFlight() throws {
+    DispatchQueue.main.async { self.map.stopFlight() }
   }
 
   func getCamera() throws -> Promise<MapCamera> {

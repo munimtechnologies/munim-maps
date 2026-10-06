@@ -19,6 +19,8 @@ namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
 // Forward declaration of `NativeMapPath` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapPath; }
+// Forward declaration of `MapOcclusion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapOcclusion; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapStyle` to properly resolve imports.
@@ -55,6 +57,8 @@ namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
 // Forward declaration of `MapCameraEasing` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
+// Forward declaration of `CameraKeyframe` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapPoint` to properly resolve imports.
@@ -68,6 +72,8 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include <vector>
 #include "NativeMapZone.hpp"
 #include "NativeMapPath.hpp"
+#include "MapOcclusion.hpp"
+#include <string>
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -78,7 +84,6 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
-#include <string>
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
@@ -89,6 +94,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
 #include "MapCameraEasing.hpp"
+#include "CameraKeyframe.hpp"
 #include <NitroModules/Promise.hpp>
 #include "MapCoordinate.hpp"
 #include "MapPoint.hpp"
@@ -128,6 +134,10 @@ namespace margelo::nitro::munimmaps {
       virtual void setZones(const std::vector<NativeMapZone>& zones) = 0;
       virtual std::vector<NativeMapPath> getPaths() = 0;
       virtual void setPaths(const std::vector<NativeMapPath>& paths) = 0;
+      virtual MapOcclusion getOcclusion() = 0;
+      virtual void setOcclusion(MapOcclusion occlusion) = 0;
+      virtual std::string getBuildingTilesUrl() = 0;
+      virtual void setBuildingTilesUrl(const std::string& buildingTilesUrl) = 0;
       virtual MapCamera getInitialCamera() = 0;
       virtual void setInitialCamera(const MapCamera& initialCamera) = 0;
       virtual MapStyle getMapStyle() = 0;
@@ -217,6 +227,8 @@ namespace margelo::nitro::munimmaps {
       // Methods
       virtual void setCamera(const MapCamera& camera, bool animated) = 0;
       virtual void animateCamera(const MapCamera& camera, double durationMs, MapCameraEasing easing) = 0;
+      virtual void flyCamera(const std::vector<CameraKeyframe>& keyframes, double start, bool loop) = 0;
+      virtual void stopFlight() = 0;
       virtual std::shared_ptr<Promise<MapCamera>> getCamera() = 0;
       virtual void setRegion(const MapRegion& region, double durationMs) = 0;
       virtual std::shared_ptr<Promise<MapRegion>> getVisibleRegion() = 0;

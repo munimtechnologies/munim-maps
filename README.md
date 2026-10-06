@@ -54,7 +54,7 @@
     <td align="center"><img alt="Cars, buses and bikes moving through Chicago" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-traffic.gif" width="180"><br><sub>Traffic</sub></td>
     <td align="center"><img alt="Friends floating at their floor on Chicago skyscrapers" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-friends.gif" width="180"><br><sub>Friends on their floor</sub></td>
     <td align="center"><img alt="Satellites orbiting the globe on the standard map" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-orbit.gif" width="180"><br><sub>Satellites on the globe</sub></td>
-    <td align="center"><img alt="F-22, F-35, YF-23 and F-16 over Manhattan" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-jets.gif" width="180"><br><sub>Jets over Manhattan</sub></td>
+    <td align="center"><img alt="Fighter jets, airliners with contrails, boats and bridge traffic at the Golden Gate" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-jets.gif" width="180"><br><sub>Jets over the Golden Gate</sub></td>
   </tr>
 </table>
 
@@ -70,7 +70,11 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 **Built with React Native's Nitro modules architecture** for high performance and reliability.
 
-**Comes with a catalogue of 55 detailed vehicles**: cars, trucks, buses, bikes, motorcycles, trains, boats, airliners, fighter jets (F-16, F-22, F-35, YF-23), a helicopter, a hot air balloon, rockets (Starship, Falcon 9, Saturn V, Space Shuttle) and spacecraft (ISS, Starlink, Hubble, GPS, CubeSat, Crew Dragon, James Webb), all recolourable at runtime.
+**Comes with a catalogue of 57 detailed models**: cars, trucks, buses, bikes, motorcycles, trains, boats, airliners, fighter jets (F-16, F-22, F-35, YF-23), a helicopter, a hot air balloon, rockets (Starship, Falcon 9, Saturn V, Space Shuttle), Starbase's launch tower and mount, and spacecraft (ISS, Starlink, Hubble, GPS, CubeSat, Crew Dragon, James Webb), all recolourable at runtime.
+
+**Or bring your own**: any USDZ, USD, glTF / GLB, SceneKit, OBJ, PLY, STL or Alembic file, bundled, downloaded or from disk. See [Bring Your Own Model](#-bring-your-own-model).
+
+**Hidden behind buildings**: with `occlusion="buildings"`, a car driving behind a tower disappears behind it, the way it would in real life.
 
 **The globe on the standard map**: zoomed far out, the normal map becomes a globe like it does in Apple Maps, and models, satellites and 3D paths follow it.
 
@@ -78,14 +82,78 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 **Note**: iOS only for now. On Android both components render nothing; see [Platform Support Matrix](#platform-support-matrix).
 
+## 📦 Installation
+
+### Expo
+
+```bash
+npx expo install munim-maps react-native-nitro-modules
+```
+
+### React Native CLI
+
+```bash
+npm install munim-maps react-native-nitro-modules
+```
+
+munim-maps is native code, so it ships in a new app build, not an over-the-air update.
+
+### Metro
+
+To `require()` model files (including the vehicle catalogue), add their extensions to Metro:
+
+```js
+// metro.config.js
+config.resolver.assetExts.push('usdz', 'glb', 'gltf', 'obj', 'scn')
+```
+
+### Swift Package Manager
+
+For native iOS apps without React Native. In Xcode, **File → Add Package Dependencies…** and enter `https://github.com/munimtechnologies/munim-maps`, or in `Package.swift`:
+
+```swift
+.package(url: "https://github.com/munimtechnologies/munim-maps", from: "0.3.0")
+```
+
+Add the `MunimMaps` product, and `MunimMapsVehicles` for the vehicle catalogue (it bundles the USDZ files, so it is a separate product). iOS 16 or later.
+
+```swift
+import MunimMaps
+import MunimMapsVehicles
+
+// SwiftUI
+MunimMap(
+  initialCamera: MunimCamera(latitude: 41.8838, longitude: -87.6305, distance: 2600, pitch: 60),
+  models: [
+    MunimModel(id: "car", coordinate: .init(latitude: 41.8841, longitude: -87.6244),
+               uri: MunimVehicles.url("car-ev")!.absoluteString, tintColor: "#E5484D", screenSize: 15),
+  ],
+  globe: true
+)
+
+// UIKit: a full map...
+let map = MunimMapKitView(frame: view.bounds)
+map.models = models
+map.markers = [MunimMarker(id: "cafe", coordinate: cafe, title: "Cafe")]
+
+// ...or 3D over an MKMapView you already have
+let layer = MunimModelLayer()
+layer.install(over: mapView)
+layer.models = models
+layer.onModelPress = { id in print(id) }
+```
+
+`MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…).
+
 ## Table of contents
 
+- [📦 Installation](#-installation)
 - [📚 Documentation](#-documentation)
 - [🚀 Features](#-features)
 - [🗺️ Use Your Own Map](#️-use-your-own-map)
+- [🧊 Bring Your Own Model](#-bring-your-own-model)
 - [🚗 Vehicle Catalogue](#-vehicle-catalogue)
 - [Platform Support Matrix](#platform-support-matrix)
-- [📦 Installation](#-installation)
 - [⚡ Quick Start](#-quick-start)
 - [🔧 API Reference](#-api-reference)
 - [📖 Usage Examples](#-usage-examples)
@@ -108,7 +176,9 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 ### Models on the map
 
-- 🧊 **3D models at real coordinates**: USDZ, USD, SCN or OBJ files, bundled with `require()`, from `file://` or downloaded and cached from `http(s)://`
+- 🧊 **3D models at real coordinates**: USDZ, USD, glTF / GLB, SCN, OBJ, PLY, STL or Alembic files, bundled with `require()`, from `file://` or downloaded and cached from `http(s)://` ([details](#-bring-your-own-model))
+- 🏙️ **Hidden behind buildings**: `occlusion="buildings"` hides models behind real building footprints and heights, which MapKit cannot do on its own
+- 🔥 **Exhaust and smoke**: particle effects for rocket launches and fires, stopping at the ground
 - 🔷 **Built-in shapes**: box, sphere, cylinder, cone, capsule, pyramid and gem, with colour and glow
 - 🎨 **Runtime paint**: `tint` recolours a model's paint, so one file comes in any colour
 - 🧭 **Heading, altitude and scale**, plus `spinDegreesPerSecond` and looping USDZ animations
@@ -176,6 +246,48 @@ The layer sits on top of the map, never takes touches (the map keeps every gestu
 ```tsx
 <MunimMapView style={{ flex: 1 }} initialCamera={camera} models={models} zones={zones} />
 ```
+
+## 🧊 Bring Your Own Model
+
+Any 3D file works as a model's `source`, not just the catalogue. Files are read in metres, and munim-maps puts the model's lowest point on the ground at its `coordinate`.
+
+| Format | Extensions | Loaded with | Notes |
+| --- | --- | --- | --- |
+| **USDZ** | `.usdz` | SceneKit | Recommended. Materials, textures and embedded animations. Export from Reality Composer, Blender or Reality Converter. |
+| **USD** | `.usd`, `.usda`, `.usdc` | SceneKit | |
+| **glTF 2.0** | `.glb`, `.gltf` | munim-maps' own loader | PBR materials and textures, skins and the first animation. Prefer `.glb` (one file). Not supported: Draco or meshopt compression, KTX2 textures, morph targets. |
+| **SceneKit** | `.scn` | SceneKit | |
+| **OBJ** | `.obj` (+ `.mtl`) | Model I/O | The `.mtl` and textures must sit next to the `.obj`, so load it from a URL or a folder on disk; a bundled `.obj` comes without materials. |
+| **PLY, STL, Alembic** | `.ply`, `.stl`, `.abc` | Model I/O | Meshes and vertex colours. |
+
+```tsx
+// Bundled with the app (add the extension to Metro's assetExts, see Installation)
+{ id: 'fox', coordinate, source: require('./assets/Fox.glb'), screenSize: 60 }
+
+// Downloaded once and cached
+{ id: 'balloon', coordinate, source: 'https://example.com/models/balloon.usdz', altitude: 40 }
+{ id: 'statue', coordinate, source: { uri: 'https://example.com/statue.gltf' } } // its .bin and textures are fetched too
+
+// A file on the device, such as a download or a LiDAR scan
+{ id: 'scan', coordinate, source: `file://${documentsPath}/room.usdz` }
+```
+
+```swift
+// Swift
+MunimModel(id: "fox", coordinate: c, uri: Bundle.main.url(forResource: "Fox", withExtension: "glb")!.absoluteString, screenSize: 60)
+```
+
+<p align="center">
+  <img alt="A walking fox from a GLB file, a USDZ car and a downloaded USDZ balloon" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-models.gif" width="240">
+</p>
+
+**How models are placed**
+
+- **Size**: metres; `scale` multiplies it, or `screenSize` keeps the model a number of points tall at any zoom, like a marker.
+- **Facing**: at `heading: 0` the model's front faces north. USD and SceneKit files face -Z; glTF files face +Z and are turned for you.
+- **Colour**: `tint` recolours every material whose name starts with `paint`, so name the body material `paint` in your 3D tool to make a model recolourable.
+- **Animation**: animations embedded in USDZ and glTF play on a loop; turn them off with `playAnimations: false`.
+- **Tips**: apply transforms and set the origin before exporting, keep files to a few MB, and bake textures. Sketchfab and the [Khronos glTF samples](https://github.com/KhronosGroup/glTF-Sample-Assets) are good sources of GLB files; Apple's [Reality Converter](https://developer.apple.com/augmented-reality/tools/) turns glTF, OBJ and FBX into USDZ.
 
 ## 🚗 Vehicle Catalogue
 
@@ -272,12 +384,15 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 | Name | Rocket |
 | --- | --- |
-| `rocket-starship` | Starship on Super Heavy: stainless steel, grid fins, chines, heat shield and flaps (122 m) |
+| `rocket-starship` | Starship on Super Heavy: stainless steel rings and welds, four grid fins, chines, the vented hot-staging ring, 33 Raptors, the ship's black hexagonal heat shield and flaps (123 m) |
 | `rocket-falcon9` | Falcon 9 with black interstage, folded landing legs, grid fins and fairing (70 m) |
 | `rocket-saturnv` | Saturn V with roll-pattern bands, fins, five F-1 engines and escape tower (111 m) |
 | `rocket-shuttle` | Space Shuttle stack: orbiter, orange external tank and two boosters |
 
-Rockets stand upright; animate a launch by raising `altitude`.
+| `starbase-tower` | Starbase's launch tower: steel lattice, the "chopsticks" catch arms and the ship quick-disconnect arm (146 m) |
+| `starbase-mount` | Starbase's orbital launch mount: six legs, the ring with hold-down clamps, the booster quick-disconnect and the deluge plate on a concrete pad |
+
+Rockets stand upright; animate a launch by raising `altitude` and add `effect: 'exhaust'`. To stand a Starship on its pad, give the tower, mount and ship the same `heading` (the bearing from the tower to the mount), put the ship at the mount's coordinate with `altitude: 20`, and the tower 22 m behind the mount.
 
 ### Spacecraft
 
@@ -305,76 +420,12 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`, loft
 | `MapModelLayer` over `react-native-maps` | ✅ | ❌ | iOS `react-native-maps` uses MapKit. On Android, Mapbox's own `ModelLayer` draws glTF models natively. |
 | USDZ / USD / SCN models | ✅ | ❌ | OBJ through Model I/O. |
 | Avatars, labels, stems, zones | ✅ | ❌ | |
-| Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (55 models). |
+| Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (57 models). |
 | Globe on the standard map | ✅ | ❌ | Uses a private MapKit switch; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). |
 | Models and paths on the globe | ✅ | ❌ | Also on `hybrid` / `imagery` with realistic elevation, which are globes by default. |
-| Depth against MapKit buildings | ❌ | ❌ | MapKit does not share its depth buffer, so models always draw over buildings. |
+| Hidden behind buildings | ✅ | ❌ | `occlusion="buildings"`: OpenStreetMap footprints and heights. MapKit's own 3D landmarks are not shared, so heights can differ slightly from what you see. |
+| glTF / GLB, OBJ, PLY, STL models | ✅ | ❌ | See [Bring Your Own Model](#-bring-your-own-model). |
 | Terrain height | ❌ | ❌ | MapKit does not expose it; pass heights above the ground. |
-
-## 📦 Installation
-
-### React Native CLI
-
-```bash
-npm install munim-maps react-native-nitro-modules
-cd ios && pod install
-```
-
-### Expo
-
-```bash
-npx expo install munim-maps react-native-nitro-modules
-npx expo prebuild
-```
-
-munim-maps is native code, so it ships in a new app build, not an over-the-air update.
-
-### Swift Package Manager
-
-For native iOS apps without React Native. In Xcode, **File → Add Package Dependencies…** and enter `https://github.com/munimtechnologies/munim-maps`, or in `Package.swift`:
-
-```swift
-.package(url: "https://github.com/munimtechnologies/munim-maps", from: "0.3.0")
-```
-
-Add the `MunimMaps` product, and `MunimMapsVehicles` for the vehicle catalogue (it bundles the USDZ files, so it is a separate product). iOS 16 or later.
-
-```swift
-import MunimMaps
-import MunimMapsVehicles
-
-// SwiftUI
-MunimMap(
-  initialCamera: MunimCamera(latitude: 41.8838, longitude: -87.6305, distance: 2600, pitch: 60),
-  models: [
-    MunimModel(id: "car", coordinate: .init(latitude: 41.8841, longitude: -87.6244),
-               uri: MunimVehicles.url("car-ev")!.absoluteString, tintColor: "#E5484D", screenSize: 15),
-  ],
-  globe: true
-)
-
-// UIKit: a full map...
-let map = MunimMapKitView(frame: view.bounds)
-map.models = models
-map.markers = [MunimMarker(id: "cafe", coordinate: cafe, title: "Cafe")]
-
-// ...or 3D over an MKMapView you already have
-let layer = MunimModelLayer()
-layer.install(over: mapView)
-layer.models = models
-layer.onModelPress = { id in print(id) }
-```
-
-`MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…).
-
-### Metro
-
-To `require()` `.usdz` files (including the vehicle catalogue), add the extension to Metro:
-
-```js
-// metro.config.js
-config.resolver.assetExts.push('usdz')
-```
 
 ## ⚡ Quick Start
 
@@ -449,6 +500,8 @@ import { MunimMapView } from 'munim-maps'
 | `maxCameraDistance` | `number` | `50000` | Hide everything when the camera is farther away, in metres. Raise it for the globe. |
 | `realisticElevation` | `boolean` | `false` | Keep the map on realistic elevation even when the map library sets a flat style. |
 | `globe` | `boolean` | `false` | The standard map as a globe when zoomed out. [Private MapKit switch](#the-globe-uses-a-private-mapkit-switch). |
+| `occlusion` | `'none' \| 'buildings'` | `none` | Hide models behind buildings. See [Hidden behind buildings](#hidden-behind-buildings). |
+| `buildingTilesUrl` | `string` | OpenFreeMap | `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. |
 | `onModelPress` | `(id: string) => void` | | |
 | `onAttachChange` | `(attached: boolean) => void` | | Fires when the map is found or lost. |
 | `onError` | `(message: string) => void` | | Load failures and other problems. |
@@ -465,6 +518,7 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `zones` | `MapZone[]` | `[]` |
 | `paths` | `MapPath[]` | `[]` |
 | `globe` | `boolean` | `false` |
+| `occlusion` / `buildingTilesUrl` | | as above |
 | `mapStyle` | `'standard' \| 'muted' \| 'hybrid' \| 'imagery'` | `standard` |
 | `elevation` | `'flat' \| 'realistic'` | `realistic` |
 | `colorScheme` | `'system' \| 'light' \| 'dark'` | `system` |
@@ -493,7 +547,7 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 
 **Events**: `onMapReady`, `onPress`, `onLongPress`, `onCameraMove` (every frame), `onCameraChange` (when it stops), `onMarkerPress`, `onMarkerDeselect`, `onCalloutPress`, `onMarkerDragStart`, `onMarkerDragEnd`, `onUserLocationChange`, `onMapFeaturePress`, `onModelPress`, `onError`.
 
-**Ref (`MunimMapViewRef`)**: `setCamera(camera, animated)`, `getCamera()`, `setRegion(region, durationMs)`, `getVisibleRegion()`, `fitToCoordinates(coordinates, padding, animated)`, `fitToMarkers(ids, padding, animated)` (comma-separated ids, empty for all), `pointForCoordinate(coordinate)`, `coordinateForPoint(point)`, `selectMarker(id)`, `deselectMarker(id)`, `takeSnapshot(width, height)` (PNG path), `addressForCoordinate(coordinate)`, `hasLookAround(coordinate)`, `openLookAround(coordinate)`, `measureAlignment()`.
+**Ref (`MunimMapViewRef`)**: `setCamera(camera, animated)`, `animateCamera(camera, durationMs, easing)`, `flyCamera(keyframes, start, loop)` (camera keyframes `{ t, camera }` on the same clock as `motion`, stepped natively every frame), `stopFlight()`, `getCamera()`, `setRegion(region, durationMs)`, `getVisibleRegion()`, `fitToCoordinates(coordinates, padding, animated)`, `fitToMarkers(ids, padding, animated)` (comma-separated ids, empty for all), `pointForCoordinate(coordinate)`, `coordinateForPoint(point)`, `selectMarker(id)`, `deselectMarker(id)`, `takeSnapshot(width, height)` (PNG path), `addressForCoordinate(coordinate)`, `hasLookAround(coordinate)`, `openLookAround(coordinate)`, `measureAlignment()`.
 
 ### `MapMarker`
 
@@ -543,7 +597,7 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `altitude` | `0` | Metres above the ground. |
 | `heading` | `0` | Degrees clockwise from north. |
 | `scale` | `1` | Multiplier. Files are read in metres. |
-| `source` | | `require()`d asset, `file://` path or `http(s)://` URL of a USDZ, USD, SCN or OBJ file. Remote files are cached. |
+| `source` | | `require()`d asset, `file://` path or `http(s)://` URL of a USDZ, USD, glTF / GLB, SCN, OBJ, PLY, STL or Alembic file. Remote files are cached. |
 | `shape` | `box` | Used without `source` or `image`: `box`, `sphere`, `cylinder`, `cone`, `capsule`, `pyramid`, `gem`. |
 | `size` | `10 × 10 × 10` | Shape size in metres: `{ width, height, length }`. |
 | `color` | `#0A84FF` | Shape colour, `#RRGGBB` or `#RRGGBBAA`. |
@@ -559,6 +613,11 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `spinDegreesPerSecond` | `0` | |
 | `playAnimations` | `true` | Loops animations embedded in a USDZ. |
 | `groundShadow` | `true` (false for images) | |
+| `effect` | | `'exhaust'`: an engine plume pointing down from the model's base, sized to the model, stopping at the ground. `'smoke'`: a billowing cloud `size.width` metres across, for use without `source`. `'contrail'`: two white trails left in the sky behind a model moving with `motion`. |
+| `effectIntensity` | `1` | 0...1, to throttle up or let the smoke clear. |
+| `effectOrigins` | | `[x, y, z][]` in the model's metres (x right, y up, z back): where the effect starts, such as one contrail per engine. |
+| `occluder` | `false` | Draws nothing but hides other models behind it, like buildings do: stand-ins for things on the map, such as a bridge's railings. |
+| `motion` | | `{ keyframes: [{ t, coordinate, altitude?, heading? }], start, loop? }`: moves the model along keyframes natively every frame, so motion stays smooth whatever JavaScript is doing. `start` is seconds since 1970 (`Date.now() / 1000`); without `heading` the model faces where it is going. |
 | `visible` | `true` | |
 
 ### `MapZone`
@@ -667,6 +726,38 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 `example/orbits.ts` moves the ISS, a Starlink train, Hubble, a CubeSat and GPS satellites along circular orbits.
 
+### Moving models and camera moves
+
+For smooth motion, describe it once as keyframes and let munim-maps move it natively every frame, instead of updating `coordinate` from JavaScript. Models and the camera share one clock, so a camera can follow a moving model exactly:
+
+```tsx
+const start = Date.now() / 1000 + 1
+
+const plane: MapModel = {
+  id: 'jet',
+  coordinate: from,
+  source: VEHICLES['jet-f22'],
+  effect: 'contrail',
+  effectOrigins: [[-0.95, 1.5, 9.1], [0.95, 1.5, 9.1]], // the two nozzles
+  motion: {
+    start,
+    keyframes: [
+      { t: 0, coordinate: from, altitude: 300 },
+      { t: 20, coordinate: to, altitude: 300 },
+    ],
+  },
+}
+
+mapRef.current?.flyCamera(
+  [
+    { t: 0, camera: { ...from, distance: 2000, pitch: 70, heading: 120 } },
+    { t: 20, camera: { ...to, distance: 2000, pitch: 70, heading: 100 } },
+  ],
+  start,
+  false
+)
+```
+
 ### Animation
 
 Update a model from state, for example its `altitude` or `coordinate`; only models whose fields changed are touched natively. Use `spinDegreesPerSecond` or USDZ animations for motion that should not go through JavaScript.
@@ -678,20 +769,29 @@ MapKit has no public API for custom 3D content, so munim-maps draws the models i
 1. **Camera.** Every frame it reads the map's camera (centre, altitude, pitch, heading). MapKit's camera, fitted against `MKMapView.convert` on device, is a pinhole camera centred on the view with a 30° vertical field of view; the centre coordinate is drawn at the centre of the map's *safe area*, so the camera is moved until the ray through that point lands on it. The field of view is measured from the map each frame rather than hard-coded.
 2. **Positions.** Models are placed in metres around the centre of the map using Web Mercator map points, the projection MapKit draws in at street and city zoom. When MapKit draws a globe, they are placed on a sphere instead, still in metres around the centre, with the camera `distance` metres back along the ray through the centre point, and an invisible Earth hides whatever is on the far side.
 3. **Timing.** Rendering happens in a run-loop observer at the end of each pass, after the map has moved. SceneKit's transaction is flushed first (otherwise SceneKit draws the previous frame's positions), and the drawable is presented straight from the GPU, the way MapKit presents the map.
-4. **Touches.** The layer never takes touches. Taps are watched by a recognizer on the map that runs alongside the map's own, and hit-tested against each model.
+4. **Buildings.** With `occlusion="buildings"`, building footprints and heights are loaded from vector tiles around the camera and their walls are drawn into the depth buffer only: nothing shows, but models behind them are hidden. Avatars, labels and stems are drawn on top, so a person inside a building still shows.
+5. **Touches.** The layer never takes touches. Taps are watched by a recognizer on the map that runs alongside the map's own, and hit-tested against each model.
 
-The example app checks all of this on device: a self-test compares every model's ground point with `MKMapView.convert` at five camera angles on both `MunimMapView` and `react-native-maps` (under a point on iPhone 17 Pro), the same close in with the globe switched on,, and a lag test (`munimmapsexample://lagtest`) puts a MapKit `MKCircle` and a model on the same spot and screenshots MapKit's own camera animation (within 0.2 px mid-animation).
+The example app checks all of this on device: a self-test compares every model's ground point with `MKMapView.convert` at five camera angles on both `MunimMapView` and `react-native-maps` (under a point on iPhone 17 Pro), the same close in with the globe switched on, and a lag test (`munimmapsexample://lagtest`) puts a MapKit `MKCircle` and a model on the same spot and screenshots MapKit's own camera animation (within 0.2 px mid-animation).
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
 1. **Nothing draws**: check `onAttachChange` (is the map found?) and `onError`. Give `react-native-maps` a `testID` and pass it as `mapTestID`.
-2. **`require('./x.usdz')` fails to bundle**: add `usdz` to Metro's `assetExts`.
+2. **`require('./x.usdz')` fails to bundle**: add the extension (`usdz`, `glb`…) to Metro's `assetExts`.
 3. **A model is huge or tiny**: files are read in metres; use `scale`, or `screenSize` for marker-style models.
 4. **Models disappear when zoomed out**: raise `maxCameraDistance` (default 50 km).
 5. **Models float on hills with `elevation: 'realistic'`**: MapKit does not expose terrain height; correct with `altitude`.
 6. **Over-the-air update crashes on an old build**: munim-maps is native; ship it in a new build.
+
+### Hidden behind buildings
+
+MapKit does not share its depth buffer, so by default models draw over buildings. `occlusion="buildings"` fixes that with OpenStreetMap building footprints and heights, loaded as vector tiles around the camera (z14, cached on the device):
+
+- By default the tiles come from [OpenFreeMap](https://openfreemap.org), a free service with no API key, so the area being viewed is requested from it. Point `buildingTilesUrl` at your own tiles (any OpenMapTiles-schema vector tiles) to keep requests in-house.
+- Heights come from OpenStreetMap and can differ a little from Apple's 3D buildings, and buildings without a height are treated as about 10 m tall.
+- Avatars, labels and stems are never hidden, so people inside buildings still show; vehicles, shapes and effects are.
 
 ### The globe uses a private MapKit switch
 

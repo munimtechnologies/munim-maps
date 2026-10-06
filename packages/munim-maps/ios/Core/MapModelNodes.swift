@@ -130,8 +130,9 @@ enum MapModelNodes {
     return normalized(holder)
   }
 
-  /// Loads a USDZ, USD, SCN or OBJ file. Remote files are downloaded once
-  /// into the caches directory.
+  /// Loads a USDZ, USD, SCN, glTF / GLB, OBJ, PLY, STL or ABC file. Remote
+  /// files are downloaded once into the caches directory (keeping their
+  /// extension).
   static func loadAsset(
     uri: String,
     completion: @escaping (Result<SCNNode, Error>) -> Void
@@ -142,15 +143,17 @@ enum MapModelNodes {
         completion(.failure(error))
       case .success(let url):
         DispatchQueue.global(qos: .userInitiated).async {
-          completion(Result { try loadScene(at: url) })
+          completion(Result { try loadScene(at: url, sourceURI: uri) })
         }
       }
     }
   }
 
-  private static func loadScene(at url: URL) throws -> SCNNode {
+  private static func loadScene(at url: URL, sourceURI: String) throws -> SCNNode {
     let scene: SCNScene
-    if url.pathExtension.lowercased() == "obj" {
+    if GLTFLoader.canLoad(url) {
+      scene = try GLTFLoader.loadScene(at: url, sourceURI: sourceURI)
+    } else if ["obj", "ply", "stl", "abc"].contains(url.pathExtension.lowercased()) {
       let asset = MDLAsset(url: url)
       asset.loadTextures()
       scene = SCNScene(mdlAsset: asset)
@@ -285,7 +288,12 @@ enum MapModelNodes {
     let pixelsPerPoint = diameter / CGFloat(model.screenSize > 0 ? model.screenSize : 44)
     let badge = model.imageBadge
     let badgeHeight: CGFloat = badge.isEmpty ? 0 : 64
-    let size = CGSize(width: diameter, height: diameter + badgeHeight * 0.6)
+    let font = UIFont.systemFont(ofSize: 40, weight: .heavy)
+    let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
+    let textSize = (badge as NSString).size(withAttributes: attributes)
+    let pillWidth = badge.isEmpty ? 0 : textSize.width + 36
+    // Wider than the picture when the badge needs it ("Floor 103").
+    let size = CGSize(width: max(diameter, pillWidth + 6), height: diameter + badgeHeight * 0.6)
     let ringColor = UIColor(mapModelHex: model.imageBorderColor)
     let ring = ringColor == nil ? 0 : CGFloat(max(0, model.imageBorderWidth)) * pixelsPerPoint
 
@@ -294,7 +302,7 @@ enum MapModelNodes {
     format.opaque = false
     return UIGraphicsImageRenderer(size: size, format: format).image { context in
       let cg = context.cgContext
-      let circle = CGRect(x: 0, y: 0, width: diameter, height: diameter)
+      let circle = CGRect(x: (size.width - diameter) / 2, y: 0, width: diameter, height: diameter)
       if let ringColor, ring > 0 {
         ringColor.setFill()
         cg.fillEllipse(in: circle)
@@ -314,11 +322,7 @@ enum MapModelNodes {
       cg.restoreGState()
 
       guard !badge.isEmpty else { return }
-      let font = UIFont.systemFont(ofSize: 40, weight: .heavy)
-      let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
       let text = badge as NSString
-      let textSize = text.size(withAttributes: attributes)
-      let pillWidth = min(size.width, textSize.width + 28)
       let pill = CGRect(
         x: (size.width - pillWidth) / 2, y: size.height - badgeHeight,
         width: pillWidth, height: badgeHeight - 6)
@@ -415,65 +419,132 @@ enum MapModelNodes {
 
   /// Particle systems for an effect, in the model's own units (base at the
   /// origin, y up), so they scale and turn with the model.
-  static func effectNode(_ effect: MunimEffect, height: Float, width: Float) -> SCNNode {
+  static func effectNode(_ effect: MunimEffect, height: Float, width: Float, origins: [SIMD3<Float>] = []) -> SCNNode {
     let holder = EffectNode()
     switch effect {
     case .none:
       break
     case .exhaust:
+      // A methane engine cluster like Starship's: a long, clean flame,
+      // white-hot at the nozzles and yellow-orange further out, with pinkish
+      // shock diamonds just below the engines and only a faint trail.
       let h = CGFloat(height)
-      let w = CGFloat(width)
-      // Flame: white-hot at the nozzles, orange, then gone.
+      // The engine skirt, not the fins or flaps: rockets are about 8% as
+      // wide as they are tall.
+      let w = min(CGFloat(width), h * 0.08)
+      let plumeLength = h * 0.45
+      // Main flame: about as wide as the engine skirt, barely spreading.
       let flame = particles(
-        birthRate: 700, life: 0.42, lifeVariation: 0.12, size: w * 0.32, growth: 2.2,
-        speed: h * 1.5, spread: 3.5, blend: .additive,
-        colors: [(0, UIColor(red: 1, green: 0.97, blue: 0.86, alpha: 1)),
-                 (0.3, UIColor(red: 1, green: 0.66, blue: 0.2, alpha: 0.9)),
-                 (1, UIColor(red: 0.85, green: 0.25, blue: 0.05, alpha: 0))])
+        birthRate: 1600, life: 0.3, lifeVariation: 0.04, size: w * 0.8, growth: 1.3,
+        speed: plumeLength / 0.3, spread: 1.0, blend: .alpha,
+        colors: [(0, UIColor(red: 1, green: 0.97, blue: 0.9, alpha: 1)),
+                 (0.25, UIColor(red: 1, green: 0.88, blue: 0.5, alpha: 0.95)),
+                 (0.6, UIColor(red: 1, green: 0.6, blue: 0.22, alpha: 0.75)),
+                 (1, UIColor(red: 0.95, green: 0.42, blue: 0.15, alpha: 0))])
       flame.emittingDirection = SCNVector3(0, -1, 0)
-      flame.emitterShape = SCNSphere(radius: w * 0.14)
-      holder.add(flame, at: SIMD3(0, -Float(h) * 0.01, 0))
-      // Exhaust trail: the grey column the flame leaves below it.
+      flame.emitterShape = SCNSphere(radius: w * 0.3)
+      flame.sortingMode = .projectedDepth
+      holder.add(flame, at: SIMD3(0, Float(h) * 0.005, 0), stopsAtGround: true)
+      // A brighter core so the flame glows on any map.
+      let core = particles(
+        birthRate: 800, life: 0.18, lifeVariation: 0.03, size: w * 0.5, growth: 0.8,
+        speed: plumeLength / 0.3, spread: 0.6, blend: .additive,
+        colors: [(0, UIColor(red: 1, green: 0.95, blue: 0.85, alpha: 0.9)),
+                 (1, UIColor(red: 1, green: 0.7, blue: 0.4, alpha: 0))])
+      core.emittingDirection = SCNVector3(0, -1, 0)
+      core.emitterShape = SCNSphere(radius: w * 0.18)
+      holder.add(core, at: SIMD3(0, Float(h) * 0.005, 0), stopsAtGround: true)
+      // Shock diamonds.
+      for i in 0..<4 {
+        let depth = Float(w) * (0.55 + Float(i) * 0.75)
+        let diamond = SCNNode(geometry: SCNSphere(radius: 0.5))
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = UIColor(red: 1, green: 0.78, blue: 0.86, alpha: 1)
+        material.blendMode = .add
+        material.transparency = CGFloat(0.55 - Double(i) * 0.1)
+        material.writesToDepthBuffer = false
+        diamond.geometry?.firstMaterial = material
+        let size = Float(w) * (0.32 - Float(i) * 0.04)
+        diamond.simdScale = SIMD3(size, size * 1.6, size)
+        diamond.simdPosition = SIMD3(0, -depth, 0)
+        diamond.castsShadow = false
+        holder.addGlow(diamond, depth: depth)
+      }
+      // A faint condensation trail behind the flame.
       let trail = particles(
-        birthRate: 80, life: 2.2, lifeVariation: 0.6, size: w * 0.5, growth: 4,
-        speed: h * 0.7, spread: 8, blend: .alpha,
-        colors: [(0, UIColor(white: 0.95, alpha: 0)),
-                 (0.12, UIColor(white: 0.9, alpha: 0.35)),
-                 (1, UIColor(white: 0.78, alpha: 0))])
+        birthRate: 40, life: 1.4, lifeVariation: 0.3, size: w * 0.5, growth: 2.4,
+        speed: h * 0.35, spread: 3, blend: .alpha,
+        colors: [(0, UIColor(white: 0.97, alpha: 0)),
+                 (0.2, UIColor(white: 0.95, alpha: 0.16)),
+                 (1, UIColor(white: 0.9, alpha: 0))])
       trail.emittingDirection = SCNVector3(0, -1, 0)
-      trail.emitterShape = SCNSphere(radius: w * 0.3)
-      holder.add(trail, at: SIMD3(0, -Float(h) * 0.45, 0))
+      trail.emitterShape = SCNSphere(radius: w * 0.25)
+      holder.add(trail, at: SIMD3(0, -Float(plumeLength) * 0.9, 0), stopsAtGround: true)
+    case .contrail:
+      // One trail per engine. Particles are thrown backwards at the model's
+      // own speed (see `EffectNode.speed`), so they hang in the sky.
+      let w = CGFloat(width)
+      let engines = origins.isEmpty
+        ? [SIMD3(-Float(w) * 0.17, height * 0.3, 0), SIMD3(Float(w) * 0.17, height * 0.3, 0)]
+        : origins
+      for origin in engines {
+        let trail = particles(
+          birthRate: 120, life: 7, lifeVariation: 0.5, size: w * 0.06, growth: 5,
+          speed: 0, spread: 0.4, blend: .alpha,
+          colors: [(0, UIColor(white: 1, alpha: 0)),
+                   (0.03, UIColor(white: 1, alpha: 0.85)),
+                   (0.5, UIColor(white: 0.98, alpha: 0.45)),
+                   (1, UIColor(white: 0.97, alpha: 0))])
+        trail.emittingDirection = SCNVector3(0, 0, 1)
+        trail.emitterShape = SCNSphere(radius: w * 0.01)
+        holder.add(trail, at: origin, followsMotion: true)
+      }
     case .smoke:
+      // A launch-pad cloud: steam and dust that boils up low and then rolls
+      // out sideways across the ground, light grey with a sandy tint.
       let h = CGFloat(height)
       let w = CGFloat(width)
-      // A billowing cloud rising from the ground...
       let billow = particles(
-        birthRate: 34, life: 4.5, lifeVariation: 1.5, size: w * 0.12, growth: 2.4,
-        speed: h * 0.16, spread: 50, blend: .alpha,
-        colors: [(0, UIColor(red: 0.95, green: 0.93, blue: 0.9, alpha: 0)),
-                 (0.15, UIColor(red: 0.93, green: 0.91, blue: 0.88, alpha: 0.42)),
-                 (1, UIColor(red: 0.8, green: 0.78, blue: 0.75, alpha: 0))])
-      billow.emittingDirection = SCNVector3(0, 1, 0)
-      billow.emitterShape = SCNBox(width: w * 0.35, height: h * 0.1, length: w * 0.35, chamferRadius: 0)
-      billow.acceleration = SCNVector3(0, Float(h) * 0.02, 0)
-      holder.add(billow, at: SIMD3(0, Float(h) * 0.1, 0))
-      // ...and rolling out sideways along the ground.
-      let roll = particles(
-        birthRate: 30, life: 3.5, lifeVariation: 1, size: w * 0.09, growth: 2.2,
-        speed: w * 0.28, spread: 90, blend: .alpha,
+        birthRate: 14, life: 4.5, lifeVariation: 1.2, size: w * 0.09, growth: 2.2,
+        speed: h * 0.22, spread: 40, blend: .alpha,
         colors: [(0, UIColor(white: 0.96, alpha: 0)),
-                 (0.15, UIColor(white: 0.92, alpha: 0.38)),
+                 (0.12, UIColor(white: 0.93, alpha: 0.65)),
+                 (0.6, UIColor(red: 0.86, green: 0.85, blue: 0.83, alpha: 0.4)),
                  (1, UIColor(white: 0.85, alpha: 0))])
-      roll.emittingDirection = SCNVector3(0, 0.15, 0)
-      roll.emitterShape = SCNSphere(radius: w * 0.08)
-      roll.dampingFactor = 0.8
-      holder.add(roll, at: SIMD3(0, Float(h) * 0.05, 0))
+      billow.emittingDirection = SCNVector3(0, 1, 0)
+      billow.emitterShape = SCNBox(width: w * 0.12, height: h * 0.05, length: w * 0.12, chamferRadius: 0)
+      billow.acceleration = SCNVector3(0, Float(h) * 0.015, 0)
+      billow.dampingFactor = 0.3
+      holder.add(billow, at: SIMD3(0, Float(h) * 0.08, 0))
+      // Rolling out along the ground, faster and lower.
+      let roll = particles(
+        birthRate: 16, life: 3.5, lifeVariation: 1, size: w * 0.06, growth: 2.4,
+        speed: w * 0.42, spread: 90, blend: .alpha,
+        colors: [(0, UIColor(white: 0.95, alpha: 0)),
+                 (0.1, UIColor(red: 0.88, green: 0.86, blue: 0.83, alpha: 0.6)),
+                 (1, UIColor(white: 0.86, alpha: 0))])
+      roll.emittingDirection = SCNVector3(0, 0.05, 0)
+      roll.emitterShape = SCNSphere(radius: w * 0.04)
+      roll.dampingFactor = 0.9
+      holder.add(roll, at: SIMD3(0, Float(h) * 0.04, 0))
     }
     return holder
   }
 
   static func setEffectIntensity(_ intensity: Float, in node: SCNNode) {
     (node as? EffectNode)?.intensity = max(0, min(1, intensity))
+  }
+
+  /// Tells an effect how fast the model moves, in its own units per second.
+  static func setEffectSpeed(_ speed: Float, in node: SCNNode) {
+    (node as? EffectNode)?.speed = speed
+  }
+
+  /// Tells an effect how high above the ground the model is, in the model's
+  /// own units, so plumes stop at the ground.
+  static func setEffectGroundDistance(_ distance: Float, in node: SCNNode) {
+    (node as? EffectNode)?.groundDistance = distance
   }
 
   private static func particles(
@@ -621,20 +692,87 @@ extension UIColor {
 /// Holds an effect's particle systems and their full birth rates, so the
 /// effect can be throttled.
 final class EffectNode: SCNNode {
-  private var systems: [(SCNParticleSystem, CGFloat)] = []
+  private struct Emitter {
+    let system: SCNParticleSystem
+    let birthRate: CGFloat
+    let life: CGFloat
+    let lifeVariation: CGFloat
+    /// Height of the emitter above the model's base, in the model's units.
+    let height: Float
+    /// Plumes pointing down stop at the ground instead of going through it.
+    let stopsAtGround: Bool
+  }
+
+  private var emitters: [Emitter] = []
 
   var intensity: Float = 1 {
+    didSet { if intensity != oldValue { apply() } }
+  }
+
+  /// How far the model's base is above the ground, in the model's own units.
+  var groundDistance: Float = .greatestFiniteMagnitude {
+    didSet { if abs(groundDistance - oldValue) > 0.01 { apply() } }
+  }
+
+  private var glows: [(node: SCNNode, depth: Float)] = []
+
+  /// A glowing shape `depth` below the base, hidden once it would be underground.
+  func addGlow(_ node: SCNNode, depth: Float) {
+    addChildNode(node)
+    glows.append((node, depth))
+  }
+
+  private var motionTrails: [SCNParticleSystem] = []
+
+  /// How fast the model moves, in its own units per second: trails that
+  /// follow motion are thrown backwards this fast, so they stay put.
+  var speed: Float = 0 {
     didSet {
-      guard intensity != oldValue else { return }
-      for (system, rate) in systems { system.birthRate = rate * CGFloat(intensity) }
+      guard abs(speed - oldValue) > 0.01 else { return }
+      for trail in motionTrails {
+        trail.particleVelocity = CGFloat(speed)
+        trail.particleVelocityVariation = 0
+      }
     }
   }
 
-  func add(_ system: SCNParticleSystem, at position: SIMD3<Float>) {
+  func add(_ system: SCNParticleSystem, at position: SIMD3<Float>, followsMotion: Bool) {
+    add(system, at: position)
+    if followsMotion { motionTrails.append(system) }
+  }
+
+  func add(_ system: SCNParticleSystem, at position: SIMD3<Float>, stopsAtGround: Bool = false) {
     let emitter = SCNNode()
     emitter.simdPosition = position
     emitter.addParticleSystem(system)
     addChildNode(emitter)
-    systems.append((system, system.birthRate))
+    emitters.append(Emitter(
+      system: system, birthRate: system.birthRate, life: system.particleLifeSpan,
+      lifeVariation: system.particleLifeSpanVariation, height: position.y, stopsAtGround: stopsAtGround))
+  }
+
+  private func apply() {
+    for glow in glows {
+      glow.node.isHidden = intensity < 0.3 || glow.depth > groundDistance
+      glow.node.opacity = CGFloat(intensity)
+    }
+    for emitter in emitters {
+      var rate = emitter.birthRate * CGFloat(intensity)
+      if emitter.stopsAtGround {
+        // Room between the emitter and the ground; particles die before
+        // they would reach it (the smoke on the pad shows the exhaust
+        // spreading out instead).
+        let room = CGFloat(groundDistance + emitter.height)
+        let fastest = emitter.system.particleVelocity + emitter.system.particleVelocityVariation
+        if room <= 0.5 || fastest <= 0 {
+          rate = 0
+        } else {
+          let scale = min(1, room / (fastest * (emitter.life + emitter.lifeVariation)))
+          emitter.system.particleLifeSpan = emitter.life * scale
+          emitter.system.particleLifeSpanVariation = emitter.lifeVariation * scale
+        }
+      }
+      emitter.system.birthRate = rate
+    }
   }
 }

@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2026-10-05
+## [0.3.0] - 2026-10-06
 
 ### Added
 
@@ -11,14 +11,22 @@ All notable changes to this project are documented in this file. The format is b
 - `globe`: the standard map becomes a globe when zoomed far out, like Apple Maps. It uses a MapKit switch that is not public API; see the README.
 - Models, labels, stems and zones are placed on the sphere whenever MapKit draws a globe (the standard map with `globe`, or `hybrid` / `imagery` with realistic elevation), and hidden when they go round the far side.
 - `paths`: lines drawn in 3D, a fixed number of points wide, at any height and on the globe (orbits, flight paths). They also work over react-native-maps.
-- `effect`: particle effects, `exhaust` (an engine plume sized to the model) and `smoke` (a billowing ground cloud), with `effectIntensity` to throttle them.
-- Seven spacecraft in the vehicle catalogue (55 models): the ISS, a Starlink satellite, Hubble, a GPS III satellite, a 3U CubeSat, Crew Dragon and the James Webb Space Telescope.
+- `occlusion="buildings"`: models are hidden behind buildings, using OpenStreetMap footprints and heights from vector tiles around the camera (OpenFreeMap by default, or `buildingTilesUrl`). Avatars, labels and stems stay visible.
+- glTF 2.0 models (`.glb`, `.gltf`): PBR materials and textures, skins and the first animation, from bundles, URLs (with their buffers and images) or files. PLY, STL and Alembic files load through Model I/O alongside OBJ.
+- `effect`: particle effects, `exhaust` (a methane engine plume with shock diamonds, sized to the model and stopping at the ground), `smoke` (a launch-pad cloud) and `contrail` (trails left in the sky), with `effectIntensity` to throttle them.
+- `occluder`: a model that draws nothing but hides other models behind it, for stand-ins such as a bridge's railings and towers.
+- `effectOrigins`: where an effect starts on a model, such as one contrail per engine.
+- `motion` on models and `flyCamera` on `MunimMapView`: keyframes interpolated natively every frame on one shared clock, so moving models and camera moves stay smooth and locked to the map whatever JavaScript is doing. `animateCamera` now steps the camera the same way instead of a UIKit animation, during which MapKit reported the destination camera and models slid.
+- The four fighter jets are rebuilt from measured three-view drawings, with intakes, control surfaces, nozzles, canopies, camouflage and markings.
+- Seven spacecraft in the vehicle catalogue: the ISS, a Starlink satellite, Hubble, a GPS III satellite, a 3U CubeSat, Crew Dragon and the James Webb Space Telescope.
+- Starbase: `starbase-tower` (the launch tower with its chopsticks and quick-disconnect arm) and `starbase-mount` (the orbital launch mount), and a rebuilt `rocket-starship` with grid fins, chines, the hot-staging ring, 33 Raptors and the ship's heat shield and flaps (57 models).
 - `realisticElevation` on `MapModelLayer`: keeps a map library's flat style on realistic elevation.
 - Swift Package Manager: the `MunimMaps` and `MunimMapsVehicles` products bring `MunimMapKitView`, the SwiftUI `MunimMap` and `MunimModelLayer` to native apps without React Native.
-- Example: satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe, scripted demo shots (`munimmapsexample://demo/<shot>`), and globe checks in the self-test.
+- Example: satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe, scripted demo shots (`munimmapsexample://demo/<shot>`, with traffic on real Chicago streets from OpenStreetMap and a GLB sample), and globe checks in the self-test.
 
 ### Fixed
 
+- Badges longer than the picture (`Floor 103`) were cut off; the badge now widens to fit.
 - Geodesic polylines crashed: `MKGeodesicPolyline`'s initialiser never returns a subclass, so the overlay's own properties were written past the end of the object.
 
 ## [0.2.0] - 2026-10-05

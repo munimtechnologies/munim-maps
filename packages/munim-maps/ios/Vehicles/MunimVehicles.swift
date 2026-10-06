@@ -1,6 +1,6 @@
 import Foundation
 
-/// The munim-maps vehicle catalogue for native apps: 55 USDZ models (cars,
+/// The munim-maps vehicle catalogue for native apps: 57 USDZ models (cars,
 /// trucks, buses, bikes, motorcycles, trains, boats, aircraft, rockets and
 /// satellites) whose paint takes `MunimModel.tintColor`.
 ///

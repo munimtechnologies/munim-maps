@@ -52,6 +52,8 @@ module.exports.VEHICLES = {
   'satellite-starlink': require('./ios/Vehicles/Models/satellite-starlink.usdz'),
   'scooter-kick': require('./ios/Vehicles/Models/scooter-kick.usdz'),
   'scooter-moped': require('./ios/Vehicles/Models/scooter-moped.usdz'),
+  'starbase-mount': require('./ios/Vehicles/Models/starbase-mount.usdz'),
+  'starbase-tower': require('./ios/Vehicles/Models/starbase-tower.usdz'),
   'truck-box': require('./ios/Vehicles/Models/truck-box.usdz'),
   'truck-fire': require('./ios/Vehicles/Models/truck-fire.usdz'),
   'truck-semi': require('./ios/Vehicles/Models/truck-semi.usdz'),

@@ -22,6 +22,8 @@ import type {
   MapModelLighting,
   MapModelShape,
   MapModelEffect,
+  MapOcclusion,
+  MotionKeyframe,
   NativeMapModel,
   NativeMapPath,
   NativeMapZone,
@@ -30,6 +32,7 @@ import type {
   EdgeInsets,
   MapCamera,
   MapCameraEasing,
+  CameraKeyframe,
   MapColorScheme,
   MapElevation,
   MapStyle,
@@ -127,11 +130,41 @@ export interface MapModel {
    * A particle effect: `exhaust` is an engine plume pointing down from the
    * model's base, sized to the model (a rocket launching); `smoke` is a
    * billowing cloud on the ground, `size.width` metres across and
-   * `size.height` tall (use it without `source`). Default none.
+   * `size.height` tall (use it without `source`); `contrail` leaves two
+   * white trails in the sky behind a model moving with `motion`. Default none.
    */
-  effect?: 'exhaust' | 'smoke'
+  effect?: 'exhaust' | 'smoke' | 'contrail'
   /** 0...1: throttle the effect up, or let the smoke clear. Default 1. */
   effectIntensity?: number
+  /**
+   * Moves the model along keyframes on the native frame clock, so motion
+   * stays smooth whatever JavaScript is doing. `t` is seconds after `start`
+   * (seconds since 1970, `Date.now() / 1000`); between keyframes the model
+   * moves in a straight line and, unless a keyframe sets `heading`, faces
+   * where it is going. `coordinate` is ignored while `motion` is set.
+   */
+  /**
+   * Draws nothing but hides other models behind it, like buildings do with
+   * `occlusion="buildings"`: stand-ins for things on the map, such as a
+   * bridge's railings and towers. Usually a `box` shape. Default false.
+   */
+  occluder?: boolean
+  /**
+   * Where the effect starts, in the model's own metres: `[x, y, z]` with x to
+   * the right, y up and z towards the back, the model's base centred on the
+   * origin. For `contrail`, one trail per point (one per engine).
+   */
+  effectOrigins?: [number, number, number][]
+  motion?: {
+    keyframes: {
+      t: number
+      coordinate: { latitude: number; longitude: number }
+      altitude?: number
+      heading?: number
+    }[]
+    start: number
+    loop?: boolean
+  }
   /** Default true. */
   visible?: boolean
 }
@@ -219,6 +252,19 @@ export function toNativeModel(model: MapModel): NativeMapModel {
     stemColor: typeof model.stem === 'string' ? model.stem : '#FFFFFF',
     effect: model.effect ?? 'none',
     effectIntensity: model.effectIntensity ?? 1,
+    motion: (model.motion?.keyframes ?? []).map((k) => ({
+      t: k.t,
+      latitude: k.coordinate.latitude,
+      longitude: k.coordinate.longitude,
+      altitude: k.altitude ?? 0,
+      heading: k.heading ?? -1,
+    })),
+    motionStart: model.motion?.start ?? 0,
+    motionLoop: model.motion?.loop ?? false,
+    occluder: model.occluder ?? false,
+    effectOrigins: (model.effectOrigins ?? [])
+      .map((p) => p.join(','))
+      .join(';'),
     visible: model.visible ?? true,
   }
 }
@@ -328,6 +374,16 @@ export interface MapModelLayerProperties {
   zones?: MapZone[]
   /** Lines in 3D, above the ground and on the globe. */
   paths?: MapPath[]
+  /**
+   * `'buildings'` hides models behind buildings, which MapKit cannot do on
+   * its own. Footprints and heights come from vector tiles around the camera
+   * (OpenStreetMap data from OpenFreeMap by default, so the visible area is
+   * requested from that server). Avatars, labels and stems stay visible.
+   * Default `'none'`.
+   */
+  occlusion?: MapOcclusion
+  /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Default OpenFreeMap. */
+  buildingTilesUrl?: string
   /** `testID` of the map to draw over. Default: the nearest map on screen. */
   mapTestID?: string
   lighting?: MapModelLighting
@@ -384,6 +440,8 @@ export const MapModelLayer = forwardRef<
         models={models}
         zones={zones}
         paths={paths}
+        occlusion={props.occlusion ?? 'none'}
+        buildingTilesUrl={props.buildingTilesUrl ?? ''}
         mapTestID={props.mapTestID ?? ''}
         lighting={props.lighting ?? 'auto'}
         maxCameraDistance={props.maxCameraDistance ?? 50_000}
@@ -405,6 +463,16 @@ export interface MunimMapViewProperties {
   zones?: MapZone[]
   /** Lines in 3D, above the ground and on the globe. */
   paths?: MapPath[]
+  /**
+   * `'buildings'` hides models behind buildings, which MapKit cannot do on
+   * its own. Footprints and heights come from vector tiles around the camera
+   * (OpenStreetMap data from OpenFreeMap by default, so the visible area is
+   * requested from that server). Avatars, labels and stems stay visible.
+   * Default `'none'`.
+   */
+  occlusion?: MapOcclusion
+  /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Default OpenFreeMap. */
+  buildingTilesUrl?: string
   lighting?: MapModelLighting
   maxCameraDistance?: number
   // Map features
@@ -529,6 +597,8 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         models={models}
         zones={zones}
         paths={paths}
+        occlusion={props.occlusion ?? 'none'}
+        buildingTilesUrl={props.buildingTilesUrl ?? ''}
         initialCamera={props.initialCamera}
         mapStyle={props.mapStyle ?? 'standard'}
         elevation={props.elevation ?? 'realistic'}
@@ -607,12 +677,15 @@ export type {
   MapPathPoint,
   MapCamera,
   MapCameraEasing,
+  CameraKeyframe,
   MapColorScheme,
   MapElevation,
   MapModelLighting,
   MapModelShape,
   MapModelEffect,
+  MapOcclusion,
   MapStyle,
+  MotionKeyframe,
   NativeMapModel,
   NativeMapPath,
   NativeMapZone,

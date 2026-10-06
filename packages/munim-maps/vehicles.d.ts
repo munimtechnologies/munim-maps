@@ -50,6 +50,8 @@ export type VehicleName =
   | 'satellite-starlink'
   | 'scooter-kick'
   | 'scooter-moped'
+  | 'starbase-mount'
+  | 'starbase-tower'
   | 'truck-box'
   | 'truck-fire'
   | 'truck-semi'

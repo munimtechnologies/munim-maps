@@ -73,6 +73,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   /// On the globe, the Earth itself: drawn into depth only, so models on
   /// the far side are hidden behind it.
   private let earthOccluder = SCNNode()
+  let buildings = BuildingOccluder()
   private let ambientLight = SCNNode()
   private let sunLight = SCNNode()
 
@@ -101,6 +102,8 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     commandQueue = device?.makeCommandQueue()
     sceneRenderer = device.map { SCNRenderer(device: $0, options: nil) }
     super.init()
+    buildings.onChange = { [weak self] in self?.setNeedsRender() }
+    buildings.onError = { [weak self] message in self?.onError?(message) }
 
     metalLayer.device = device
     metalLayer.pixelFormat = .bgra8Unorm_srgb
@@ -131,6 +134,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     earthOccluder.castsShadow = false
     earthOccluder.isHidden = true
     scene.rootNode.addChildNode(earthOccluder)
+    scene.rootNode.addChildNode(buildings.root)
 
     ambientLight.light = SCNLight()
     ambientLight.light?.type = .ambient
@@ -329,6 +333,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     beforeFrame?()
     // Nothing to draw: skip reading the camera, but clear what was drawn.
     if entries.isEmpty && zoneEntries.isEmpty && pathEntries.isEmpty {
+      // Nothing to hide, so no need for buildings either.
       if lastRendered != nil { clearDrawable() }
       return
     }
@@ -447,6 +452,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     cameraNode.camera?.zFar = Double(snapshot.farPlane)
     cameraNode.camera?.projectionTransform = SCNMatrix4(snapshot.projection)
 
+    if let mapView { buildings.update(for: snapshot, mapView: mapView) }
     earthOccluder.isHidden = !snapshot.globe
     earthOccluder.simdPosition = SIMD3(0, -Float(MapCameraSnapshot.earthRadius), 0)
 
@@ -612,6 +618,7 @@ private final class Entry {
   private var effectKey = ""
   private var hasEmbeddedAnimations = false
   private var currentScale: Float = 1
+  private var currentAltitude: Double = 0
 
   init(model: MunimModel) {
     id = model.id
@@ -619,6 +626,31 @@ private final class Entry {
     root.addChildNode(body)
     stem.isHidden = true
     stemDot.isHidden = true
+    Self.drawOnTop(stem)
+    Self.drawOnTop(stemDot)
+    Self.drawOnTop(labelHolder)
+  }
+
+  /// Depth only: hides what is behind it and shows nothing itself.
+  static func makeOccluder(_ node: SCNNode) {
+    node.enumerateHierarchy { child, _ in
+      child.renderingOrder = -20
+      child.castsShadow = false
+      for material in child.geometry?.materials ?? [] {
+        material.colorBufferWriteMask = []
+        material.writesToDepthBuffer = true
+        material.lightingModel = .constant
+      }
+    }
+  }
+
+  /// Avatars, labels and stems are markers: they stay visible in front of
+  /// buildings and other models, so a person inside a building still shows.
+  static func drawOnTop(_ node: SCNNode) {
+    node.enumerateHierarchy { child, _ in
+      child.renderingOrder = 100
+      for material in child.geometry?.materials ?? [] { material.readsFromDepthBuffer = false }
+    }
   }
 
   func addNodes(to parent: SCNNode) {
@@ -640,7 +672,8 @@ private final class Entry {
   var isAnimating: Bool {
     model.visible && (model.spinDegreesPerSecond != 0
       || (model.playAnimations && hasEmbeddedAnimations)
-      || (model.effect != .none && model.effectIntensity > 0))
+      || (model.effect != .none && model.effectIntensity > 0)
+      || model.motion.count > 1)
   }
 
   func update(_ model: MunimModel, renderer: MapModelRenderer, force: Bool = false) {
@@ -652,7 +685,7 @@ private final class Entry {
       model.uri, model.shape.stringValue, "\(model.width)", "\(model.height)",
       "\(model.length)", model.color, "\(model.emissive)", model.imageUri,
       model.imageBorderColor, "\(model.imageBorderWidth)", model.imageBadge,
-      model.imageUri.isEmpty ? "" : "\(model.screenSize)",
+      model.imageUri.isEmpty ? "" : "\(model.screenSize)", "\(model.occluder)",
     ].joined(separator: "|")
     if force || key != contentKey {
       contentKey = key
@@ -680,6 +713,7 @@ private final class Entry {
     if force || previous.label != model.label {
       labelNode?.removeFromParentNode()
       labelNode = model.label.isEmpty ? nil : MapModelNodes.labelNode(text: model.label)
+      if let labelNode { Self.drawOnTop(labelNode) }
       if let labelNode { labelHolder.addChildNode(labelNode) }
     }
     labelHolder.isHidden = !model.visible
@@ -702,11 +736,11 @@ private final class Entry {
     let hasContent = content != nil
     let height = hasContent ? contentHeight : Float(model.height)
     let width = hasContent ? contentWidth : Float(model.width)
-    let key = "\(model.effect.stringValue)|\(height)|\(width)"
+    let key = "\(model.effect.stringValue)|\(height)|\(width)|\(model.effectOrigins)"
     if key != effectKey {
       effectKey = key
       effectNode?.removeFromParentNode()
-      let node = MapModelNodes.effectNode(model.effect, height: height, width: width)
+      let node = MapModelNodes.effectNode(model.effect, height: height, width: width, origins: model.effectOrigins)
       body.addChildNode(node)
       effectNode = node
     }
@@ -757,6 +791,8 @@ private final class Entry {
     content = node
     shadow = nil
     guard let node else { return }
+    if !model.imageUri.isEmpty { Self.drawOnTop(node) }
+    if model.occluder { Self.makeOccluder(node) }
     body.addChildNode(node)
 
     let bounds = MapModelNodes.subtreeBounds(node)
@@ -784,17 +820,19 @@ private final class Entry {
   }
 
   func place(in snapshot: MapCameraSnapshot) {
-    let ground = snapshot.scenePosition(latitude: model.latitude, longitude: model.longitude, altitude: 0)
-    let local = snapshot.localOrientation(latitude: model.latitude, longitude: model.longitude)
+    let pose = model.pose(at: Date().timeIntervalSince1970)
+    currentAltitude = pose.altitude
+    let ground = snapshot.scenePosition(latitude: pose.latitude, longitude: pose.longitude, altitude: 0)
+    let local = snapshot.localOrientation(latitude: pose.latitude, longitude: pose.longitude)
     let up = local.act(SIMD3<Float>(0, 1, 0))
     var position = snapshot.scenePosition(
-      latitude: model.latitude, longitude: model.longitude, altitude: model.altitude)
+      latitude: pose.latitude, longitude: pose.longitude, altitude: pose.altitude)
     let focal = Float(snapshot.focalLength)
     if model.liftPoints != 0, let depth = snapshot.project(position)?.depth, depth > 0 {
       position += up * (Float(model.liftPoints) * depth / focal)
     }
     root.simdPosition = position
-    root.simdOrientation = local * simd_quatf(angle: Float(-model.heading * .pi / 180), axis: SIMD3(0, 1, 0))
+    root.simdOrientation = local * simd_quatf(angle: Float(-pose.heading * .pi / 180), axis: SIMD3(0, 1, 0))
 
     var scale = Float(model.scale)
     if model.screenSize > 0, let depth = snapshot.project(position)?.depth, depth > 0 {
@@ -805,6 +843,18 @@ private final class Entry {
     if scale != currentScale {
       currentScale = scale
       root.simdScale = SIMD3(repeating: scale)
+    }
+    if let effectNode, scale > 0 {
+      MapModelNodes.setEffectGroundDistance(Float(pose.altitude) / scale, in: effectNode)
+      if model.effect == .contrail {
+        // Ground speed from the motion, in model units.
+        let now = Date().timeIntervalSince1970
+        let ahead = model.pose(at: now + 0.2)
+        let dy = (ahead.latitude - pose.latitude) * 111_320
+        let dx = (ahead.longitude - pose.longitude) * 111_320 * cos(pose.latitude * .pi / 180)
+        let metersPerSecond = Float(hypot(dx, dy) / 0.2)
+        MapModelNodes.setEffectSpeed(metersPerSecond / scale, in: effectNode)
+      }
     }
     placeStem(in: snapshot, top: position, ground: ground, up: up)
     placeLabel(in: snapshot, base: position, up: up)
@@ -841,7 +891,7 @@ private final class Entry {
 
   /// Keeps the stem about 2 points wide and the dot about 8 points across.
   private func placeStem(in snapshot: MapCameraSnapshot, top: SIMD3<Float>, ground: SIMD3<Float>, up: SIMD3<Float>) {
-    let show = model.visible && model.stem && model.altitude > 0.5
+    let show = model.visible && model.stem && currentAltitude > 0.5
     stem.isHidden = !show
     stemDot.isHidden = !show
     guard show else { return }

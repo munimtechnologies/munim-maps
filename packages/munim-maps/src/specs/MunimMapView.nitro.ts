@@ -7,6 +7,7 @@ import type {
   MapAlignmentReport,
   MapModelLighting,
   NativeMapModel,
+  MapOcclusion,
   NativeMapPath,
   NativeMapZone,
 } from './MapModelLayer.nitro'
@@ -30,6 +31,12 @@ export type MapStyle = 'standard' | 'muted' | 'hybrid' | 'imagery'
 export type MapElevation = 'flat' | 'realistic'
 export type MapColorScheme = 'system' | 'light' | 'dark'
 export type MapCameraEasing = 'linear' | 'easeInOut'
+
+/** Where the camera is `t` seconds into a flight. */
+export interface CameraKeyframe {
+  t: number
+  camera: MapCamera
+}
 export type UserTrackingMode = 'none' | 'follow' | 'follow-with-heading'
 
 export interface EdgeInsets {
@@ -54,6 +61,15 @@ export interface MunimMapViewProps extends HybridViewProps {
   models: NativeMapModel[]
   zones: NativeMapZone[]
   paths: NativeMapPath[]
+  /**
+   * `buildings` hides models behind buildings (MapKit does not share its
+   * depth buffer). Footprints and heights come from vector tiles around the
+   * camera, OpenStreetMap data from OpenFreeMap unless `buildingTilesUrl`
+   * is set. Avatars, labels and stems stay visible.
+   */
+  occlusion: MapOcclusion
+  /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Empty uses OpenFreeMap. */
+  buildingTilesUrl: string
   /** Applied once, when the map first appears. */
   initialCamera: MapCamera
   mapStyle: MapStyle
@@ -125,6 +141,13 @@ export interface MunimMapViewMethods extends HybridViewMethods {
     durationMs: number,
     easing: MapCameraEasing
   ): void
+  /**
+   * Flies the camera through keyframes, interpolated natively every frame.
+   * `start` is when `t = 0` is, in seconds since 1970 (`Date.now() / 1000`),
+   * the same clock as models' `motion`, so the camera can follow them.
+   */
+  flyCamera(keyframes: CameraKeyframe[], start: number, loop: boolean): void
+  stopFlight(): void
   getCamera(): Promise<MapCamera>
   /** Animates to a region over `durationMs` (0 jumps). */
   setRegion(region: MapRegion, durationMs: number): void

@@ -13,6 +13,8 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var models: [NativeMapModel] { get set }
   var zones: [NativeMapZone] { get set }
   var paths: [NativeMapPath] { get set }
+  var occlusion: MapOcclusion { get set }
+  var buildingTilesUrl: String { get set }
   var initialCamera: MapCamera { get set }
   var mapStyle: MapStyle { get set }
   var elevation: MapElevation { get set }
@@ -59,6 +61,8 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   // Methods
   func setCamera(camera: MapCamera, animated: Bool) throws -> Void
   func animateCamera(camera: MapCamera, durationMs: Double, easing: MapCameraEasing) throws -> Void
+  func flyCamera(keyframes: [CameraKeyframe], start: Double, loop: Bool) throws -> Void
+  func stopFlight() throws -> Void
   func getCamera() throws -> Promise<MapCamera>
   func setRegion(region: MapRegion, durationMs: Double) throws -> Void
   func getVisibleRegion() throws -> Promise<MapRegion>
