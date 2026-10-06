@@ -338,130 +338,125 @@ struct CarSpec {
 }
 
 func car(_ spec: CarSpec, body: UInt32, extras: (SCNNode, CarSpec) -> Void = { _, _ in }) -> SCNNode {
-  let root = SCNNode()
-  let L = spec.length, W = spec.width, H = spec.height
-  let front = -L / 2
-  let groundClear: Float = spec.wheelRadius * 0.45
-  let beltline = spec.hoodHeight
-  func z(_ f: Float) -> Float { front + f * L }
-
-  // Lower body: nose to tail, rounded at both ends, with half-round wheel
-  // arches cut into the bottom edge so the wheels show.
-  let keys: [(Float, Float, Float, Float)] = [ // (fraction, width scale, bottom, top)
-    (0.0, 0.70, groundClear + 0.12, beltline * 0.78),
-    (0.02, 0.88, groundClear + 0.04, beltline * 0.90),
-    (0.07, 0.97, groundClear, beltline * 0.97),
-    (0.20, 1.0, groundClear, beltline),
-    (0.80, 1.0, groundClear, beltline + 0.02),
-    (0.94, 0.98, groundClear, beltline + 0.02),
-    (0.985, 0.90, groundClear + 0.05, beltline * 0.97),
-    (1.0, 0.74, groundClear + 0.14, beltline * 0.88),
-  ]
-  func base(_ f: Float) -> (Float, Float, Float) {
-    for k in 1..<keys.count where f <= keys[k].0 {
-      let a = keys[k - 1], b = keys[k]
-      let t = (f - a.0) / max(0.0001, b.0 - a.0)
-      return (a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t, a.3 + (b.3 - a.3) * t)
+  let L = spec.length, W = spec.width, H = spec.height, wr = spec.wheelRadius
+  let belt = spec.hoodHeight
+  let p = paint(body)
+  let cs = spec.cabinStart, ce = spec.cabinEnd, rs = spec.roofStart, re = spec.roofEnd
+  let axles = [L / 2 - spec.wheelbase / 2 + spec.frontOverhangBias, L / 2 + spec.wheelbase / 2 + spec.frontOverhangBias]
+  let clear = wr * 0.42
+  return roadVehicle(length: L) { v in
+    // Side profile: bumper, bonnet, windscreen, roof, rear screen, deck, tail.
+    var topKeys: [(Float, Float)] = [(0, belt * 0.7), (0.025, belt * 0.86), (0.08, belt * 0.95), (cs - 0.03, belt + 0.01), (cs, belt + 0.03)]
+    if spec.roofless {
+      topKeys += [(rs, belt + 0.05), (ce, belt + 0.06)]
+    } else {
+      topKeys += [(cs + (rs - cs) * 0.5, belt + (H - belt) * 0.66), (rs, H - 0.01), ((rs + re) / 2, H), (re, H - 0.015)]
+      topKeys += [(ce, belt + (ce > 0.95 ? (H - belt) * 0.35 : 0.06))]
     }
-    return (keys.last!.1, keys.last!.2, keys.last!.3)
-  }
-  let axles = [-spec.wheelbase / 2 + spec.frontOverhangBias, spec.wheelbase / 2 + spec.frontOverhangBias]
-  let archRadius = spec.wheelRadius * 1.12
-  var fractions = keys.map { $0.0 }
-  for axle in axles {
-    for k in -8...8 {
-      let zz = axle + Float(k) / 8 * archRadius
-      fractions.append((zz - front) / L)
+    if ce < 0.95 { topKeys += [(ce + (1 - ce) * 0.55, belt + 0.04)] }
+    topKeys += [(1.0, belt * (ce > 0.95 ? 0.95 : 0.86))]
+    let top = curve(topKeys.map { ($0.0 * L, $0.1) })
+    let hw = curve([(0, W * 0.37), (0.02 * L, W * 0.44), (0.07 * L, W * 0.49), (0.2 * L, W / 2), (0.92 * L, W / 2), (0.98 * L, W * 0.47), (L, W * 0.41)])
+    let bot = archBottom(clear, axles: axles, wheel: wr, gap: 0.05)
+    let botEnds = curve([(0, clear + 0.12), (0.04 * L, clear + 0.02), (0.96 * L, clear + 0.02), (L, clear + 0.14)])
+    let zs = samples(0, L, step: 0.04, dense: [(0, 0.3, 0.015), (L - 0.3, L, 0.015), (axles[0] - 0.55, axles[0] + 0.55, 0.02),
+                                               (axles[1] - 0.55, axles[1] + 0.55, 0.02), (cs * L - 0.2, rs * L + 0.2, 0.02)])
+    shell(v, zs, sharp: [8], capStart: p, capEnd: p, { z in
+      let w = hw(z), t = top(z), b = max(bot(z), botEnds(z))
+      let shoulder = min(belt - 0.02, t - 0.05)
+      let rb: Float = 0.08, rt = min(0.12 * (spec.boxy > 4 ? 0.6 : 1), (t - shoulder) * 0.45 + 0.01)
+      let tumble = max(0, t - shoulder) * (spec.boxy > 4 ? 0.12 : 0.26)
+      var pts: [SIMD2<Float>] = [SIMD2(0, b), SIMD2((w - rb) * 0.5, b)]
+      for i in 0...3 { let a = -Float.pi / 2 + Float.pi / 2 * Float(i) / 3; pts.append(SIMD2(w - rb + rb * cos(a), b + rb + rb * sin(a))) }
+      let lo = b + rb
+      for i in 1...3 { let f = Float(i) / 3; pts.append(SIMD2(w + 0.012 * sin(.pi * f), lo + (shoulder - lo) * f)) }
+      for i in 1...2 { let f = Float(i) / 3; pts.append(SIMD2(w - tumble * f, shoulder + (t - rt - shoulder) * f)) }
+      for i in 0...4 { let a = Float.pi / 2 * Float(i) / 4; pts.append(SIMD2(w - tumble - rt + rt * cos(a), t - rt + rt * sin(a))) }
+      pts.append(SIMD2((w - tumble - rt) * 0.5, t)); pts.append(SIMD2(0, t))
+      return pts
+    }, skin: { f in f.n.y < -0.75 ? trimPlastic : p })
+    let fd = Drape(v, axis: 2), sd = Drape(v, axis: 0)
+    let yB = belt + 0.05, yR = H - 0.07
+    if !spec.roofless {
+      // Glass: windscreen, side windows (split by the B pillar), rear screen.
+      decalPatches(v, fd, [rounded([SIMD2(-W * 0.4, yB), SIMD2(W * 0.4, yB), SIMD2(W * 0.31, yR), SIMD2(-W * 0.31, yR)], r: 0.06)], glass,
+                   below: true, lift: 0.008, k: 8)
+      let zA = cs * L + 0.12, zRoof0 = rs * L + 0.05, zRoof1 = re * L - 0.05, zC = ce * L - (ce > 0.95 ? 0.12 : 0.18)
+      let zB = (zRoof0 + zRoof1) / 2 - (ce > 0.95 ? (zRoof1 - zRoof0) * 0.18 : 0)
+      let yC: Float = ce > 0.95 ? yR - 0.04 : yB
+      let front = [SIMD2(zA, yB), SIMD2(zB - 0.05, yB), SIMD2(zB - 0.05, yR), SIMD2(zRoof0, yR)]
+      let rear = ce > 0.95 ? [SIMD2(zB + 0.05, yB), SIMD2(zC, yB), SIMD2(zC, yC), SIMD2(zB + 0.05, yR)]
+                           : [SIMD2(zB + 0.05, yB), SIMD2(zC, yB), SIMD2(zRoof1, yR), SIMD2(zB + 0.05, yR)]
+      sidePatches(v, sd, [rounded(front, r: 0.05), rounded(rear, r: 0.05)], glass, lift: 0.008, k: 4)
+      if ce > 0.95 {
+        sidePatches(v, sd, [rounded([SIMD2(zC + 0.08, yB), SIMD2(L * 0.985 - 0.06, yB), SIMD2(L * 0.985 - 0.08, yR - 0.06), SIMD2(zC + 0.08, yR - 0.04)], r: 0.04)],
+                    glass, lift: 0.008)
+      }
+      decalPatches(v, fd, [rounded([SIMD2(-W * 0.37, yB + (ce > 0.95 ? 0.05 : 0.02)), SIMD2(W * 0.37, yB + (ce > 0.95 ? 0.05 : 0.02)),
+                                    SIMD2(W * 0.3, yR - 0.02), SIMD2(-W * 0.3, yR - 0.02)], r: 0.06)], glass, below: false, lift: 0.008, k: 8)
     }
-  }
-  fractions = Array(Set(fractions.map { ($0 * 10000).rounded() / 10000 })).filter { $0 >= 0 && $0 <= 1 }.sorted()
-  var lower: [Station] = []
-  for f in fractions {
-    let (ws, b0, t) = base(f)
-    let zz = front + f * L
-    var bottom = b0
-    for axle in axles where abs(zz - axle) < archRadius {
-      let u = (zz - axle) / archRadius
-      bottom = max(bottom, spec.wheelRadius + archRadius * sqrt(max(0, 1 - u * u)) * 0.98)
+    // Door seams, handles, sills.
+    let d0 = cs * L + 0.05, d2 = min(ce * L, axles[1] - wr - 0.1)
+    let dB = (d0 + d2) / 2 + 0.05
+    sideLines(v, sd, [[SIMD2(d0, clear + 0.12), SIMD2(d0, belt - 0.02)], [SIMD2(dB, clear + 0.08), SIMD2(dB, belt + 0.02)],
+                      [SIMD2(d2, clear + 0.14), SIMD2(d2, belt - 0.02)]], width: 0.01, black)
+    sidePatches(v, sd, [rounded([SIMD2(dB - 0.2, belt - 0.12), SIMD2(dB - 0.08, belt - 0.12), SIMD2(dB - 0.08, belt - 0.1), SIMD2(dB - 0.2, belt - 0.1)], r: 0.008),
+                        rounded([SIMD2(d2 - 0.2, belt - 0.12), SIMD2(d2 - 0.08, belt - 0.12), SIMD2(d2 - 0.08, belt - 0.1), SIMD2(d2 - 0.2, belt - 0.1)], r: 0.008)],
+                chrome, lift: 0.014)
+    let R = wr + 0.05
+    sidePatches(v, sd, [rounded([SIMD2(axles[0] + R + 0.02, clear + 0.03), SIMD2(axles[1] - R - 0.02, clear + 0.03), SIMD2(axles[1] - R - 0.02, clear + 0.1),
+                                 SIMD2(axles[0] + R + 0.02, clear + 0.1)], r: 0.02)], trimPlastic, lift: 0.01)
+    // Front: lamps, grille or light bar, lower intake, plate. Rear: lamps, plate, diffuser.
+    let ly = belt * 0.8
+    decalPatches(v, fd, [rounded([SIMD2(W * 0.24, ly - 0.03), SIMD2(W * 0.44, ly - 0.02), SIMD2(W * 0.45, ly + 0.07), SIMD2(W * 0.27, ly + 0.05)], r: 0.03)],
+                 lens, below: true, mirror: true, lift: 0.01)
+    decalPatches(v, fd, [rounded([SIMD2(W * 0.29, ly), SIMD2(W * 0.4, ly + 0.005), SIMD2(W * 0.41, ly + 0.045), SIMD2(W * 0.3, ly + 0.035)], r: 0.015)],
+                 headlight, below: true, mirror: true, lift: 0.016)
+    if spec.grille {
+      decalPatches(v, fd, [rounded([SIMD2(-W * 0.2, ly - 0.16), SIMD2(W * 0.2, ly - 0.16), SIMD2(W * 0.22, ly + 0.02), SIMD2(-W * 0.22, ly + 0.02)], r: 0.04)],
+                   black, below: true, lift: 0.01)
+      decalLines(v, fd, [[SIMD2(-W * 0.19, ly - 0.07), SIMD2(W * 0.19, ly - 0.07)]], width: 0.015, chrome, below: true, mirror: false, lift: 0.016)
+    } else {
+      decalLines(v, fd, [[SIMD2(-W * 0.3, ly + 0.05), SIMD2(W * 0.3, ly + 0.05)]], width: 0.018, headlight, below: true, mirror: false, lift: 0.014)
     }
-    lower.append(Station(z: zz, width: W * ws, bottom: min(bottom, t - 0.08), top: t, n: spec.boxy, bulge: -0.04))
-  }
-  root.addChildNode(loft(lower, segments: 32, paint(body)))
-
-  // Greenhouse: windscreen, roof and rear screen as a glass loft, with a
-  // painted roof panel over it.
-  if spec.roofless {
-    let cs = spec.cabinStart, rs = spec.roofStart
-    root.addChildNode(loft([
-      Station(z: z(cs), width: W * 0.86, bottom: beltline - 0.05, top: beltline + 0.02, n: 3),
-      Station(z: z(rs), width: W * 0.84, bottom: beltline - 0.05, top: beltline + 0.36, n: 3, bulge: -0.05),
-      Station(z: z(rs) + 0.06, width: W * 0.84, bottom: beltline - 0.05, top: beltline + 0.36, n: 3, bulge: -0.05),
-    ], segments: 28, glass))
-    // Cabin tub, seats with headrests, and roll hoops.
-    box(root, W * 0.78, 0.06, L * 0.3, black, 0, beltline - 0.02, z(rs + 0.18))
+    decalPatches(v, fd, [rounded([SIMD2(-W * 0.36, clear + 0.06), SIMD2(W * 0.36, clear + 0.06), SIMD2(W * 0.3, clear + 0.2), SIMD2(-W * 0.3, clear + 0.2)], r: 0.04)],
+                 trimPlastic, below: true, lift: 0.01)
+    decalPatches(v, fd, [rounded([SIMD2(-0.26, clear + 0.22), SIMD2(0.26, clear + 0.22), SIMD2(0.26, clear + 0.33), SIMD2(-0.26, clear + 0.33)], r: 0.01)],
+                 plate, below: true, lift: 0.016)
+    let ty = belt * 0.86
+    decalPatches(v, fd, [rounded([SIMD2(W * 0.18, ty - 0.03), SIMD2(W * 0.45, ty - 0.03), SIMD2(W * 0.44, ty + 0.06), SIMD2(W * 0.2, ty + 0.05)], r: 0.03)],
+                 taillight, below: false, mirror: true, lift: 0.012)
+    decalPatches(v, fd, [rounded([SIMD2(-0.26, ty - 0.24), SIMD2(0.26, ty - 0.24), SIMD2(0.26, ty - 0.13), SIMD2(-0.26, ty - 0.13)], r: 0.01)],
+                 plate, below: false, lift: 0.016)
+    decalPatches(v, fd, [rounded([SIMD2(-W * 0.4, clear + 0.06), SIMD2(W * 0.4, clear + 0.06), SIMD2(W * 0.38, clear + 0.18), SIMD2(-W * 0.38, clear + 0.18)], r: 0.03)],
+                 trimPlastic, below: false, lift: 0.01)
+    if spec.roofless {
+      // Windscreen frame and glass, cabin tub, seats with headrests, roll hoops.
+      let zW = cs * L
+      let plan = (0...8).map { i -> SIMD2<Float> in let t = Float(i) / 8 * 2 - 1; return SIMD2(t * W * 0.42, zW + 0.12 + t * t * 0.12) }
+      screenStrip(v, plan, y0: belt + 0.02, y1: belt + 0.36, rake: 0.32, glass)
+      tube(v, V3(plan[0].x, belt + 0.36, plan[0].y + 0.32), V3(plan[8].x, belt + 0.36, plan[8].y + 0.32), 0.02, black, sides: 6)
+      let up = Drape(v, axis: 1)
+      let c0 = cs * L + 0.4, c1 = ce * L - 0.15
+      decalPatches(v, up, [rounded([SIMD2(-W * 0.4, c0), SIMD2(W * 0.4, c0), SIMD2(W * 0.4, c1), SIMD2(-W * 0.4, c1)], r: 0.18)],
+                   material("interior", 0x2A2522, rough: 0.8), lift: 0.006, k: 6)
+      for side in [-1, 1] as [Float] {
+        let sz = c0 + (c1 - c0) * 0.55
+        motoBody(v, [(sz - 0.28, W * 0.12, belt - 0.02, belt + 0.06), (sz + 0.1, W * 0.13, belt - 0.02, belt + 0.08), (sz + 0.16, W * 0.13, belt - 0.02, belt + 0.5),
+                     (sz + 0.26, W * 0.12, belt - 0.02, belt + 0.48)], x: side * W * 0.2, step: 0.03, rb: 0.3, rt: 0.6, cap: leather) { _ in leather }
+        motoBody(v, [(sz + 0.16, 0.1, belt + 0.5, belt + 0.66), (sz + 0.26, 0.1, belt + 0.5, belt + 0.66)], x: side * W * 0.2, step: 0.03, rb: 0.5, rt: 0.6,
+                 cap: leather) { _ in leather }
+      }
+      put(v, TorusMesh(ringRadius: 0.17, pipeRadius: 0.018, ringSides: 24, pipeSides: 6), black, -W * 0.2, belt + 0.25, c0 + 0.25, rx: -1.2)
+    }
     for side in [-1, 1] as [Float] {
-      box(root, W * 0.28, 0.12, 0.5, leather, side * W * 0.2, beltline + 0.02, z(rs + 0.14))
-      box(root, W * 0.28, 0.55, 0.12, leather, side * W * 0.2, beltline + 0.25, z(rs + 0.25))
-      tube(root, V3(side * W * 0.2 - 0.12, beltline + 0.5, z(rs + 0.3)), V3(side * W * 0.2 + 0.12, beltline + 0.5, z(rs + 0.3)), 0.03, chrome)
-      box(root, 0.06, 0.12, 0.2, paint(body), side * (W / 2 + 0.06), beltline + 0.06, z(cs) + 0.18)
+      sideMirror(v, at: V3(side * (W / 2 - 0.08), belt + 0.08, cs * L + 0.22), side: side, reach: 0.08, w: 0.16, h: 0.11, p)
+      for z in axles {
+        roadWheel(v, x: side * (W / 2 - wr * 0.4), y: wr, z: z, radius: wr, width: 0.23, outward: side, rimRatio: 0.66, rimMaterial: rim, holes: 5, lugs: 5)
+      }
     }
-  } else {
-    let cs = spec.cabinStart, ce = spec.cabinEnd, rs = spec.roofStart, re = spec.roofEnd
-    let cabin: [Station] = [
-      Station(z: z(cs), width: W * 0.86, bottom: beltline - 0.05, top: beltline + 0.02, n: 3),
-      Station(z: z(rs), width: W * 0.80, bottom: beltline - 0.05, top: H - 0.02, n: 3.4, bulge: -0.08),
-      Station(z: z(re), width: W * 0.80, bottom: beltline - 0.05, top: H - 0.02, n: 3.4, bulge: -0.08),
-      Station(z: z(ce), width: W * 0.86, bottom: beltline - 0.05, top: beltline + 0.04, n: 3),
-    ]
-    root.addChildNode(loft(cabin, segments: 32, glass))
-    // Roof panel and pillars in body colour.
-    let roof: [Station] = [
-      Station(z: z(rs) + 0.04, width: W * 0.80, bottom: H - 0.07, top: H, n: 4),
-      Station(z: z(re) - 0.04, width: W * 0.80, bottom: H - 0.07, top: H, n: 4),
-    ]
-    root.addChildNode(loft(roof, segments: 24, paint(body)))
-    // A, B and C pillars.
-    for side in [-1, 1] as [Float] {
-      let x = side * W * 0.405
-      tube(root, V3(x * 0.98, beltline, z(cs) + 0.05), V3(x * 0.93, H - 0.04, z(rs) + 0.05), 0.045, paint(body))
-      tube(root, V3(x * 0.99, beltline, z((rs + re) / 2)), V3(x * 0.93, H - 0.04, z((rs + re) / 2)), 0.05, paint(body))
-      tube(root, V3(x * 0.98, beltline, z(ce) - 0.05), V3(x * 0.93, H - 0.04, z(re) - 0.05), 0.06, paint(body))
-      // Mirrors.
-      box(root, 0.06, 0.12, 0.2, paint(body), side * (W / 2 + 0.06), beltline + 0.06, z(cs) + 0.18)
-      box(root, 0.02, 0.1, 0.16, glass, side * (W / 2 + 0.095), beltline + 0.06, z(cs) + 0.2)
-      // Door handles and sill.
-      box(root, 0.02, 0.025, 0.14, chrome, side * (W / 2 + 0.005), beltline - 0.12, z(0.45))
-      box(root, 0.02, 0.025, 0.14, chrome, side * (W / 2 + 0.005), beltline - 0.12, z(0.62))
-      box(root, 0.03, 0.06, L * 0.5, black, side * (W / 2 - 0.01), groundClear + 0.06, z(0.5))
-    }
+    extras(holder(v, V3(0, 0, L / 2)), spec)
   }
-
-  // Wheels with arches.
-  let axleF = -spec.wheelbase / 2 + spec.frontOverhangBias, axleR = spec.wheelbase / 2 + spec.frontOverhangBias
-  for zAxle in [axleF, axleR] {
-    for side in [-1, 1] as [Float] {
-      let x = side * (W / 2 - spec.wheelRadius * 0.42)
-      carWheel(root, x: x, y: spec.wheelRadius, z: zAxle, radius: spec.wheelRadius, width: 0.24, outward: side)
-      // Dark arch liner just above the tyre.
-      let arch = TubeMesh(innerRadius: CGFloat(spec.wheelRadius * 1.02), outerRadius: CGFloat(spec.wheelRadius * 1.12), height: 0.26)
-      put(root, arch, black, x * 1.01, spec.wheelRadius, zAxle, rz: .pi / 2)
-    }
-  }
-
-  // Lights, grille, bumpers, plates.
-  for side in [-1, 1] as [Float] {
-    box(root, W * 0.2, 0.09, 0.05, headlight, side * W * 0.33, beltline * 0.82, front + 0.03)
-    box(root, W * 0.05, 0.05, 0.05, amber, side * W * 0.45, beltline * 0.76, front + 0.05)
-    box(root, W * 0.2, 0.08, 0.05, taillight, side * W * 0.34, beltline * 0.86, -front - 0.04)
-  }
-  if spec.grille { box(root, W * 0.38, 0.14, 0.04, black, 0, beltline * 0.64, front + 0.02) }
-  else { box(root, W * 0.8, 0.03, 0.04, headlight, 0, beltline * 0.86, front + 0.035) } // light bar
-  box(root, W * 0.92, 0.1, 0.12, plastic, 0, groundClear + 0.14, front + 0.06)
-  box(root, W * 0.92, 0.1, 0.12, plastic, 0, groundClear + 0.16, -front - 0.06)
-  box(root, 0.32, 0.1, 0.02, plate, 0, groundClear + 0.3, front - 0.005)
-  box(root, 0.32, 0.1, 0.02, plate, 0, beltline * 0.62, -front + 0.005)
-  extras(root, spec)
-  return root
 }
 
 let sedan = CarSpec(length: 4.7, width: 1.83, height: 1.45, wheelRadius: 0.33, wheelbase: 2.8,
@@ -571,280 +566,387 @@ func kickScooter(deck: UInt32) -> SCNNode {
   return root
 }
 
+// Classic step-through scooter (Vespa class): 1.85 m, 12-inch wheels.
+// Pressed-steel leg shield and floorboard, bulbous side cowls over the
+// engine, round headlamp in the headset, front fender on the fork link,
+// two-tone seat, rear rack.
 func moped(body: UInt32) -> SCNNode {
-  let root = SCNNode()
+  let L: Float = 1.85, r: Float = 0.235
+  let fz: Float = 0.24, rz: Float = 1.56
   let p = paint(body)
-  // Rear bodywork shell over the engine.
-  root.addChildNode(loft([
-    Station(z: 0.05, width: 0.34, bottom: 0.32, top: 0.62, n: 2.4),
-    Station(z: 0.35, width: 0.52, bottom: 0.3, top: 0.72, n: 2.6),
-    Station(z: 0.65, width: 0.46, bottom: 0.36, top: 0.70, n: 2.6),
-    Station(z: 0.82, width: 0.26, bottom: 0.48, top: 0.62, n: 2.2),
-  ], segments: 24, p))
-  // Floorboard and leg shield.
-  box(root, 0.3, 0.06, 0.5, rubber, 0, 0.3, -0.2)
-  root.addChildNode(loft([
-    Station(z: -0.52, width: 0.40, bottom: 0.3, top: 0.95, n: 3),
-    Station(z: -0.44, width: 0.44, bottom: 0.3, top: 1.0, n: 3),
-  ], segments: 20, p))
-  // Seat, front fender, fork, headset, mirrors.
-  root.addChildNode(loft([
-    Station(z: 0.05, width: 0.26, bottom: 0.7, top: 0.79, n: 3),
-    Station(z: 0.6, width: 0.3, bottom: 0.7, top: 0.8, n: 3),
-  ], segments: 18, leather))
-  for (z, r) in [(Float(-0.62), Float(0.24)), (Float(0.62), Float(0.24))] {
-    let t = TubeMesh(innerRadius: CGFloat(r * 0.6), outerRadius: CGFloat(r), height: 0.11)
-    put(root, t, tyre, 0, r, z, rz: .pi / 2)
-    put(root, CylinderMesh(radius: CGFloat(r * 0.6), height: 0.07), rim, 0, r, z, rz: .pi / 2)
+  return roadVehicle(length: L) { v in
+    motoWheel(v, z: fz, r: r, w: 0.1, rimRatio: 0.6, rimMat: rim)
+    motoWheel(v, z: rz, r: r, w: 0.1, rimRatio: 0.6, rimMat: rim)
+    for (z, x) in [(fz, Float(0.06)), (rz, Float(-0.06))] {
+      put(v, CylinderMesh(radius: CGFloat(r * 0.56), height: 0.02, sides: 24), rim, x, r, z, rz: .pi / 2)
+      put(v, CylinderMesh(radius: CGFloat(r * 0.2), height: 0.04, sides: 14), chrome, x * 1.3, r, z, rz: .pi / 2)
+    }
+    // Front fender, single-sided fork link, steering column.
+    motoBody(v, [(fz - 0.24, 0.06, 0.4, 0.44), (fz - 0.14, 0.085, 0.47, 0.56), (fz + 0.06, 0.085, 0.49, 0.59), (fz + 0.18, 0.07, 0.42, 0.5),
+                 (fz + 0.22, 0.05, 0.3, 0.38)], step: 0.015, rb: 0.6, rt: 0.6, cap: p) { _ in p }
+    tube(v, V3(-0.07, r, fz), V3(-0.07, 0.55, fz + 0.12), 0.025, engineDark, sides: 8)
+    tube(v, V3(0, 0.55, fz + 0.14), V3(0, 1.0, fz + 0.26), 0.03, engineDark, sides: 8)
+    // Leg shield, floorboard and the step-through frame.
+    motoBody(v, [(0.36, 0.2, 0.32, 0.88), (0.42, 0.25, 0.3, 0.98), (0.5, 0.24, 0.3, 0.97), (0.54, 0.17, 0.32, 0.9)], step: 0.02, rb: 0.3, rt: 0.6, cap: p) { _ in p }
+    motoBody(v, [(0.5, 0.17, 0.27, 0.33), (1.0, 0.17, 0.27, 0.33), (1.08, 0.12, 0.28, 0.4)], step: 0.04, rb: 0.3, rt: 0.2, cap: p) { _ in p }
+    // Side cowls over the engine and the tail.
+    motoBody(v, [(0.98, 0.12, 0.34, 0.52), (1.12, 0.26, 0.3, 0.66), (1.42, 0.31, 0.28, 0.72), (1.66, 0.25, 0.34, 0.7), (1.8, 0.14, 0.46, 0.64),
+                 (1.85, 0.06, 0.52, 0.6)], step: 0.02, rb: 0.6, rt: 0.6, cap: p) { _ in p }
+    // Seat (two-tone) and rear rack.
+    motoBody(v, [(1.0, 0.12, 0.7, 0.78), (1.1, 0.16, 0.7, 0.82), (1.62, 0.16, 0.7, 0.83), (1.7, 0.12, 0.7, 0.8)], step: 0.02, rb: 0.4, rt: 0.6, cap: leather) { f in
+      f.n.y > 0.85 ? leather : material("seat-base", 0x6E5A48, rough: 0.6)
+    }
+    for x in [-0.12, 0.12] as [Float] { tube(v, V3(x, 0.78, 1.68), V3(x, 0.8, 1.9), 0.01, chrome, sides: 6) }
+    tube(v, V3(-0.12, 0.8, 1.9), V3(0.12, 0.8, 1.9), 0.01, chrome, sides: 6)
+    // Headset with round headlamp, speedo, bars and mirrors.
+    motoBody(v, [(0.22, 0.08, 0.98, 1.06), (0.3, 0.17, 0.96, 1.12), (0.44, 0.17, 0.97, 1.12), (0.52, 0.1, 1.0, 1.08)], step: 0.015, rb: 0.6, rt: 0.6, cap: p) { _ in p }
+    put(v, LatheMesh([SIMD2(0, 0.07), SIMD2(0.02, 0.07), SIMD2(0.03, 0.001)], sides: 20), chrome, 0, 1.04, 0.225, rx: -.pi / 2)
+    put(v, CylinderMesh(radius: 0.06, height: 0.01, sides: 20), headlight, 0, 1.04, 0.19, rx: .pi / 2)
+    put(v, CylinderMesh(radius: 0.04, height: 0.01, sides: 16), glass, 0, 1.125, 0.38)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.15, 1.06, 0.38), V3(side * 0.34, 1.06, 0.4), 0.016, rubber, sides: 8)
+      tube(v, V3(side * 0.16, 1.1, 0.38), V3(side * 0.24, 1.32, 0.38), 0.007, chrome, sides: 4)
+      put(v, CylinderMesh(radius: 0.045, height: 0.015, sides: 14), chrome, side * 0.24, 1.34, 0.38, rx: .pi / 2)
+    }
+    let fd = Drape(v, axis: 2), up = Drape(v, axis: 1)
+    decalPatches(v, fd, [[SIMD2(-0.04, 0.7), SIMD2(0.04, 0.7), SIMD2(0.07, 0.86), SIMD2(-0.07, 0.86)]], chrome, below: true, lift: 0.004)
+    decalLines(v, up, (0..<4).map { i in let x = -0.12 + Float(i) * 0.08; return [SIMD2(x, 0.55), SIMD2(x, 0.98)] }, width: 0.015, rubber, mirror: false, lift: 0.004)
+    box(v, 0.1, 0.05, 0.02, taillight, 0, 0.62, L + 0.005)
+    tube(v, V3(0.1, 0.25, 1.25), V3(0.14, 0.24, 1.75), 0.03, chrome, sides: 8)
   }
-  root.addChildNode(loft([
-    Station(z: -0.86, width: 0.16, bottom: 0.42, top: 0.5, n: 2.5),
-    Station(z: -0.62, width: 0.2, bottom: 0.47, top: 0.56, n: 2.5),
-    Station(z: -0.42, width: 0.16, bottom: 0.38, top: 0.46, n: 2.5),
-  ], segments: 18, p))
-  tube(root, V3(0, 0.24, -0.62), V3(0, 1.0, -0.48), 0.03, chrome)
-  root.addChildNode(loft([
-    Station(z: -0.56, width: 0.3, bottom: 0.98, top: 1.1, n: 2.4),
-    Station(z: -0.40, width: 0.34, bottom: 0.98, top: 1.12, n: 2.4),
-  ], segments: 18, p))
-  tube(root, V3(-0.36, 1.08, -0.44), V3(0.36, 1.08, -0.44), 0.014, chrome)
-  for x in [-0.36, 0.36] as [Float] { tube(root, V3(x, 1.08, -0.44), V3(x * 0.8, 1.08, -0.44), 0.022, rubber) }
-  for x in [-0.22, 0.22] as [Float] {
-    tube(root, V3(x, 1.1, -0.46), V3(x * 1.3, 1.32, -0.48), 0.008, chrome)
-    put(root, CylinderMesh(radius: 0.045, height: 0.015), chrome, x * 1.3, 1.34, -0.48, rx: .pi / 2)
-  }
-  put(root, CylinderMesh(radius: 0.065, height: 0.04), headlight, 0, 1.03, -0.585, rx: .pi / 2)
-  box(root, 0.1, 0.05, 0.03, taillight, 0, 0.66, 0.84)
-  return root
 }
 
 // MARK: Boats
 
-func speedboat(hull: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let h = paint(hull)
-  root.addChildNode(loft([
-    Station(z: -2.6, width: 0.1, bottom: 0.55, top: 0.95, n: 2),
-    Station(z: -2.0, width: 1.3, bottom: 0.15, top: 1.0, n: 2.2, bulge: 0.15),
-    Station(z: -0.8, width: 2.2, bottom: 0.02, top: 1.0, n: 2.6, bulge: 0.2),
-    Station(z: 1.6, width: 2.3, bottom: 0.0, top: 0.95, n: 3.2, bulge: 0.15),
-    Station(z: 2.3, width: 2.2, bottom: 0.05, top: 0.92, n: 3.6),
-  ], segments: 32, h))
-  // White deck stripe and boot.
-  root.addChildNode(loft([
-    Station(z: -1.9, width: 1.24, bottom: 0.96, top: 1.02, n: 2.2),
-    Station(z: 2.25, width: 2.18, bottom: 0.9, top: 0.96, n: 3.6),
-  ], segments: 28, white))
-  // Windscreen, seats, console, outboard engine, rails.
-  root.addChildNode(loft([
-    Station(z: -0.55, width: 1.8, bottom: 1.0, top: 1.05, n: 3),
-    Station(z: -0.35, width: 1.7, bottom: 1.0, top: 1.42, n: 3, bulge: -0.1),
-  ], segments: 24, glass))
-  for x in [-0.45, 0.45] as [Float] {
-    box(root, 0.55, 0.12, 0.55, white, x, 1.08, 0.3)
-    box(root, 0.55, 0.45, 0.1, white, x, 1.3, 0.55)
+/// A strip of glass (or any panel) standing on a plan-view polyline from y0
+/// to y1, its top leaning back by `rake`; double-sided.
+func screenStrip(_ p: SCNNode, _ plan: [SIMD2<Float>], y0: Float, y1: Float, rake: Float, _ m: SCNMaterial) {
+  let mesh = Mesh()
+  for i in 0..<(plan.count - 1) {
+    let a = plan[i], b = plan[i + 1]
+    let a0 = V3(a.x, y0, a.y), b0 = V3(b.x, y0, b.y), a1 = V3(a.x, y1, a.y + rake), b1 = V3(b.x, y1, b.y + rake)
+    let n = simd_normalize(simd_cross(b0 - a0, a1 - a0))
+    emitTri(mesh, a0, b0, b1, n, n, n); emitTri(mesh, a0, b1, a1, n, n, n)
+    emitTri(mesh, a0, b1, b0, -n, -n, -n); emitTri(mesh, a0, a1, b1, -n, -n, -n)
   }
-  box(root, 1.9, 0.12, 0.6, white, 0, 1.08, 1.6)
-  box(root, 0.36, 0.28, 0.3, black, 0, 1.2, 2.3)
-  box(root, 0.24, 0.9, 0.2, plastic, 0, 0.62, 2.45)
-  box(root, 0.18, 0.06, 0.3, chrome, 0, 0.1, 2.48)
-  for x in [-1.0, 1.0] as [Float] { tube(root, V3(x * 0.55, 1.08, -1.6), V3(x * 1.0, 1.06, -0.6), 0.015, chrome) }
-  return root
+  p.addChildNode(SCNNode(geometry: mesh.geometry(m)))
 }
 
-func sailboat(hull: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let h = paint(hull)
-  root.addChildNode(loft([
-    Station(z: -4.2, width: 0.1, bottom: 0.7, top: 1.15, n: 2),
-    Station(z: -3.2, width: 1.9, bottom: 0.2, top: 1.2, n: 2.2, bulge: 0.15),
-    Station(z: -0.5, width: 3.0, bottom: 0.0, top: 1.15, n: 2.6, bulge: 0.15),
-    Station(z: 3.2, width: 2.5, bottom: 0.2, top: 1.05, n: 3),
-    Station(z: 3.7, width: 2.2, bottom: 0.45, top: 1.0, n: 3),
-  ], segments: 32, h))
-  root.addChildNode(loft([
-    Station(z: -3.6, width: 1.0, bottom: 1.14, top: 1.2, n: 2.2),
-    Station(z: 3.6, width: 2.1, bottom: 1.0, top: 1.06, n: 3),
-  ], segments: 28, wood))
-  root.addChildNode(loft([
-    Station(z: -1.4, width: 1.6, bottom: 1.15, top: 1.5, n: 3),
-    Station(z: 1.0, width: 1.8, bottom: 1.1, top: 1.55, n: 3),
-  ], segments: 24, white))
-  for z in [-1.2, -0.6, 0.0, 0.6] as [Float] {
-    box(root, 1.82, 0.12, 0.25, glass, 0, 1.4, z)
+/// An open-boat hull (keel, chine, topsides, gunwale cap, inner wall and a
+/// recessed floor) through profiles along z. Returns nothing; the skin
+/// closure paints bottom, topsides, cap and floor.
+func openHull(_ v: SCNNode, length L: Float, keel: (Float) -> Float, hw: (Float) -> Float, gunwale: (Float) -> Float, floor: (Float) -> Float,
+              deadrise: Float, step: Float, skin: (Facet) -> SCNMaterial) {
+  shell(v, samples(0, L, step: step, dense: [(0, L * 0.15, step * 0.4)]), sharp: [4, 8, 9, 10], capStart: hullWhite, capEnd: hullWhite, { z in
+    let w = hw(z), k = keel(z), g = gunwale(z), f = min(floor(z), g - 0.01)
+    let chine = SIMD2<Float>(w * 0.78, k + w * 0.78 * deadrise)
+    var half = resample([SIMD2(0, k), chine], 5)
+    half += resample([chine, SIMD2(w, g)], 5).dropFirst()
+    let inner = max(0.01, w - 0.13)
+    half += [SIMD2(w - 0.03, g + 0.04), SIMD2(inner, g + 0.02), SIMD2(inner * 0.98, (g + f) / 2), SIMD2(inner * 0.95, f), SIMD2(0, f)]
+    return half
+  }, skin: skin)
+}
+
+// Bowrider (21 ft class): 6.6 m, 2.5 m beam, 20-degree deep V with chines,
+// painted topsides over a white bottom, open bow with wrap-round seating,
+// a wraparound windscreen with a walk-through, twin consoles (wheel and
+// dash on the right), helm buckets, rear bench and sun pad, bow rails,
+// and a 200 hp outboard on the transom.
+func speedboat(hull: UInt32) -> SCNNode {
+  let L: Float = 6.6
+  let p = paint(hull)
+  let cushion = material("cushion", 0xEDE7DA, rough: 0.75)
+  let mat = material("deck-mat", 0x9AA0A6, rough: 0.85)
+  return roadVehicle(length: L) { v in
+    let keel = curve([(0, 0.85), (0.6, 0.4), (1.6, 0.1), (3.0, 0.0), (L, 0.02)])
+    let hw = curve([(0, 0.04), (0.4, 0.55), (1.2, 0.98), (2.5, 1.2), (5.5, 1.25), (L, 1.2)])
+    let g = curve([(0, 1.16), (1.0, 1.1), (3.0, 1.03), (L, 0.98)])
+    let f = curve([(0, 1.2), (0.55, 1.2), (0.8, 0.62), (5.2, 0.6), (5.45, 0.95), (L, 0.95)])
+    openHull(v, length: L, keel: keel, hw: hw, gunwale: g, floor: f, deadrise: 0.36, step: 0.06) { fc in
+      let y = fc.p.y
+      if fc.n.y > 0.75 && y < 0.7 { return mat }
+      if fc.n.y > 0.75 { return hullWhite }
+      let outward = fc.n.x * (fc.p.x >= 0 ? 1 : -1) > 0.25 || fc.p.z + L / 2 < 0.5
+      return outward && y > 0.5 && fc.n.y < 0.6 ? p : hullWhite
+    }
+    // Windscreen with a walk-through gap.
+    for side in [-1, 1] as [Float] {
+      let plan = (0...8).map { i -> SIMD2<Float> in
+        let t = Float(i) / 8
+        let x = side * (0.28 + t * 0.88)
+        return SIMD2(x, 2.32 + pow(t, 2.2) * 0.55)
+      }
+      screenStrip(v, plan, y0: 1.04, y1: 1.46, rake: 0.18, tint)
+      tube(v, V3(plan[8].x, 1.04, plan[8].y), V3(plan[8].x, 1.46, plan[8].y + 0.18), 0.012, chrome, sides: 4)
+      tube(v, V3(plan[0].x, 1.46, plan[0].y + 0.18), V3(plan[8].x, 1.46, plan[8].y + 0.18), 0.01, chrome, sides: 4)
+      // Console.
+      motoBody(v, [(2.4, 0.3, 0.6, 1.0), (2.6, 0.34, 0.6, 1.08), (3.15, 0.32, 0.6, 1.0)], x: side * 0.6, step: 0.05, rb: 0.2, rt: 0.5, cap: hullWhite) { fc in
+        fc.n.y > 0.55 && fc.n.z < -0.2 ? black : hullWhite
+      }
+      // Bucket seats and bow cushions.
+      motoBody(v, [(3.45, 0.24, 0.62, 0.95), (3.8, 0.26, 0.62, 0.97), (3.9, 0.24, 0.62, 1.45), (4.0, 0.22, 0.65, 1.42)], x: side * 0.6, step: 0.04,
+               rb: 0.4, rt: 0.6, cap: cushion) { _ in cushion }
+      motoBody(v, [(0.85, 0.12, 0.62, 0.86), (1.4, 0.2, 0.62, 0.86), (2.15, 0.22, 0.62, 0.86)], x: side * 0.72, step: 0.05, rb: 0.4, rt: 0.6, cap: cushion) { _ in cushion }
+      // Bow rails.
+      let rail = (0...6).map { i -> V3 in
+        let z = 0.25 + Float(i) * 0.28
+        return V3(side * (hw(z) - 0.06), g(z) + 0.32, z)
+      }
+      for k in 0..<(rail.count - 1) { rod(v, rail[k], rail[k + 1], 0.014, chrome, sides: 6) }
+      for q in rail where q.z > 0.4 { rod(v, q, V3(q.x, g(q.z), q.z), 0.012, chrome, sides: 6) }
+    }
+    put(v, TorusMesh(ringRadius: 0.17, pipeRadius: 0.018, ringSides: 24, pipeSides: 6), black, 0.6, 1.2, 3.02, rx: -1.1)
+    motoBody(v, [(4.6, 1.05, 0.62, 0.95), (5.0, 1.08, 0.62, 0.98), (5.35, 1.06, 0.62, 1.4), (5.45, 1.0, 0.65, 1.38)], step: 0.04, rb: 0.2, rt: 0.5, cap: cushion) { _ in cushion }
+    motoBody(v, [(5.5, 1.0, 0.95, 1.04), (6.3, 1.05, 0.95, 1.06)], step: 0.05, rb: 0.2, rt: 0.6, cap: cushion) { _ in cushion }
+    // Outboard.
+    let ob = holder(v, V3(0, 0, L + 0.1))
+    motoBody(ob, [(-0.05, 0.16, 1.05, 1.5), (0.15, 0.24, 0.98, 1.72), (0.55, 0.22, 1.02, 1.7), (0.7, 0.12, 1.15, 1.55)], step: 0.03, rb: 0.6, rt: 0.6, cap: black) { fc in
+      fc.p.y > 1.6 ? hullWhite : black
+    }
+    motoBody(ob, [(0.05, 0.07, 0.15, 1.0), (0.3, 0.09, 0.15, 1.0), (0.42, 0.04, 0.25, 0.95)], step: 0.04, rb: 0.5, rt: 0.5, cap: black) { _ in black }
+    motoBody(ob, [(0.0, 0.12, 0.42, 0.45), (0.55, 0.14, 0.42, 0.45)], step: 0.05, rb: 0.3, rt: 0.3, cap: engineDark) { _ in engineDark }
+    for k in 0..<3 {
+      let a = Float(k) / 3 * 2 * .pi
+      put(ob, BoxMesh(width: 0.22, height: 0.02, length: 0.12), alu, sin(a) * 0.12, 0.18 + cos(a) * 0.12, 0.42, rx: 0.3, rz: a)
+    }
+    let sd = Drape(v, axis: 0)
+    sideLines(v, sd, [[SIMD2(0.35, 0.98), SIMD2(L - 0.02, 0.85)]], width: 0.05, hullWhite, lift: 0.01)
+    box(v, 0.06, 0.05, 0.05, navRed, -0.06, 1.2, 0.12)
+    box(v, 0.06, 0.05, 0.05, navGreen, 0.06, 1.2, 0.12)
   }
-  // Mast, boom, mainsail and jib (thin double-sided panels).
-  tube(root, V3(0, 1.2, -1.6), V3(0, 13.5, -1.6), 0.08, chrome)
-  tube(root, V3(0, 2.4, -1.6), V3(0, 2.4, 2.4), 0.06, chrome)
-  // Mainsail behind the mast, jib ahead of it (panels in the YZ plane).
-  put(root, PanelMesh([SIMD2(0, 0), SIMD2(0, 10.8), SIMD2(3.9, 0)]), sailcloth, 0.02, 2.5, -1.55, ry: -.pi / 2)
-  put(root, PanelMesh([SIMD2(0, 0), SIMD2(-2.5, 0), SIMD2(0, 10.6)]), sailcloth, 0, 1.3, -1.7, ry: -.pi / 2)
-  tube(root, V3(0, 13.4, -1.6), V3(0, 1.2, -4.15), 0.012, chrome, sides: 4)
-  tube(root, V3(0, 13.4, -1.6), V3(0, 1.2, 3.6), 0.012, chrome, sides: 4)
-  return root
+}
+
+// 33 ft cruising sloop: painted hull with a white boot top, coachroof
+// with long dark ports, a recessed cockpit with wheel, teak side decks,
+// masthead rig with mainsail and jib, lifelines and pulpits.
+func sailboat(hull: UInt32) -> SCNNode {
+  let L: Float = 10.0
+  let p = paint(hull)
+  return roadVehicle(length: L) { v in
+    let keel = curve([(0, 1.1), (0.8, 0.5), (2.5, 0.1), (5.0, 0.0), (8.5, 0.15), (L, 0.55)])
+    let hw = curve([(0, 0.04), (1.0, 0.85), (3.0, 1.5), (5.5, 1.65), (8.0, 1.5), (L, 1.25)])
+    let g = curve([(0, 1.45), (2.0, 1.3), (6.0, 1.18), (L, 1.2)])
+    let f = curve([(0, 2.0), (6.6, 2.0), (6.8, 0.75), (9.4, 0.75), (9.6, 2.0), (L, 2.0)])
+    openHull(v, length: L, keel: keel, hw: hw, gunwale: g, floor: f, deadrise: 0.22, step: 0.08) { fc in
+      if fc.n.y > 0.75 && fc.p.y < 1.0 { return teak }
+      if fc.n.y > 0.75 { return teak }
+      if fc.p.y < 0.35 { return antifoul }
+      return p
+    }
+    // Coachroof.
+    motoBody(v, [(2.6, 0.5, 1.15, 1.5), (3.2, 1.0, 1.15, 1.72), (6.0, 1.05, 1.15, 1.76), (6.7, 1.0, 1.15, 1.72)], step: 0.06, rb: 0.1, rt: 0.3, cap: hullWhite) { _ in hullWhite }
+    let sd = Drape(v, axis: 0)
+    sideLines(v, sd, [[SIMD2(0.9, 0.45), SIMD2(L - 0.05, 0.62)]], width: 0.08, hullWhite, lift: 0.01)
+    sidePatches(v, sd, [rounded([SIMD2(3.4, 1.42), SIMD2(5.9, 1.42), SIMD2(5.7, 1.58), SIMD2(3.6, 1.6)], r: 0.08)], tint, lift: 0.01)
+    // Mast, boom, sails, rigging, wheel, lifelines.
+    let mz: Float = 3.4
+    tube(v, V3(0, 1.75, mz), V3(0, 14.6, mz), 0.09, chrome, sides: 10)
+    tube(v, V3(0, 2.6, mz), V3(0, 2.7, mz + 4.3), 0.06, chrome, sides: 8)
+    put(v, PanelMesh([SIMD2(0, 0), SIMD2(0, 11.8), SIMD2(4.2, 0)]), sailcloth, 0.02, 2.75, mz + 0.05, ry: -.pi / 2)
+    put(v, PanelMesh([SIMD2(0, 0), SIMD2(-3.2, 0), SIMD2(0, 12.0)]), sailcloth, 0, 1.55, mz - 0.1, ry: -.pi / 2)
+    rod(v, V3(0, 14.5, mz), V3(0, 1.45, 0.05), 0.012, chrome, sides: 4)
+    rod(v, V3(0, 14.5, mz), V3(0, 1.2, L - 0.05), 0.012, chrome, sides: 4)
+    for side in [-1, 1] as [Float] {
+      rod(v, V3(0, 9.0, mz), V3(side * 0.9, 9.0, mz), 0.03, chrome, sides: 4)
+      rod(v, V3(side * 0.9, 9.0, mz), V3(side * 1.5, 1.25, mz + 0.4), 0.01, chrome, sides: 4)
+      rod(v, V3(0, 14.4, mz), V3(side * 0.9, 9.0, mz), 0.01, chrome, sides: 4)
+      var stan: [V3] = []
+      for z in stride(from: Float(1.0), through: L - 0.3, by: 1.2) { stan.append(V3(side * (hw(z) - 0.08), g(z), z)) }
+      for q in stan { rod(v, q, q + V3(0, 0.6, 0), 0.015, chrome, sides: 4) }
+      for k in 0..<(stan.count - 1) { rod(v, stan[k] + V3(0, 0.6, 0), stan[k + 1] + V3(0, 0.6, 0), 0.008, chrome, sides: 4) }
+    }
+    put(v, TorusMesh(ringRadius: 0.38, pipeRadius: 0.02, ringSides: 28, pipeSides: 6), chrome, 0, 1.25, 8.9)
+    box(v, 0.12, 0.5, 0.1, engineDark, 0, 0.95, 8.95)
+  }
 }
 
 // MARK: Planes
+// Airliners and the business jet use the fighter toolkit: fuselages lofted
+// through oval sections, NACA-section wings and tails, lathe-turned
+// nacelles, and windows, doors and stripes draped onto the skin. They sit
+// on their landing gear.
 
-/// A tapered, swept wing panel from `x, y, z` outwards to the `side`
-/// (+1 right, -1 left). The loft runs along +Z (span) with the chord along X,
-/// then is turned so the span points sideways, swept back and tilted up.
-func wing(_ parent: SCNNode, root rootChord: Float, tip tipChord: Float, span: Float, sweep: Float,
-          thickness: Float, dihedral: Float, x: Float, y: Float, z: Float, side: Float, _ m: SCNMaterial) {
-  let panel = loft([
-    Station(z: 0, width: rootChord, bottom: -thickness / 2, top: thickness / 2, n: 2.2),
-    Station(z: span, width: tipChord, bottom: -thickness * 0.3, top: thickness * 0.3, n: 2.2),
-  ], segments: 16, m)
-  panel.simdOrientation = simd_quatf(angle: side * .pi / 2, axis: V3(0, 1, 0))
-  let holder = SCNNode()
-  holder.addChildNode(panel)
-  holder.simdPosition = V3(x, y, z)
-  holder.simdOrientation = simd_quatf(angle: -side * atan2(sweep, span), axis: V3(0, 1, 0))
-    * simd_quatf(angle: side * dihedral, axis: V3(0, 0, 1))
-  parent.addChildNode(holder)
+let fanDark = material("intake", 0x1A1C1F, metal: 0.6, rough: 0.4)
+let fanBlades = material("fan", 0x8B9096, metal: 0.9, rough: 0.3)
+let bellyGrey = material("belly", 0xC9CED4, metal: 0.25, rough: 0.4)
+let wingPanel = material("wing", 0xCDD2D8, metal: 0.3, rough: 0.4)
+
+struct AirlinerSpec {
+  var length: Float, radius: Float, span: Float
+  var wingZ: Float          // wing root leading edge from the nose
+  var rootChord: Float, tipChord: Float, sweep: Float
+  var engineD: Float, engineL: Float, engineS: Float
+  var finHeight: Float, finRoot: Float, stabSpan: Float
+  var windows: Int
 }
 
-func airliner(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let L: Float = 38, R: Float = 2.0
-  var fuselage: [Station] = []
-  let shape: [(Float, Float, Float)] = [ // fraction, radius scale, centre y offset
-    (0.0, 0.05, -0.2), (0.02, 0.45, -0.15), (0.06, 0.78, -0.05), (0.12, 0.96, 0), (0.2, 1, 0),
-    (0.7, 1, 0), (0.8, 0.9, 0.15), (0.9, 0.6, 0.45), (0.98, 0.28, 0.75), (1.0, 0.12, 0.8),
-  ]
-  let cy: Float = 3.2
-  for (f, s, dy) in shape {
-    fuselage.append(Station(z: -L / 2 + f * L, width: 2 * R * s, bottom: cy + dy - R * s, top: cy + dy + R * s, n: 2))
-  }
-  root.addChildNode(loft(fuselage, segments: 36, white))
-  // Coloured belly stripe and tail.
-  let stripe = paint(livery)
-  for side in [-1, 1] as [Float] {
-    box(root, 0.05, 0.22, L * 0.62, stripe, side * R * 0.99, cy - 0.3, -1)
-    box(root, 0.05, 0.16, L * 0.6, glass, side * R * 0.985, cy + 0.55, -1.5) // window band
-  }
-  put(root, BoxMesh(width: 1.1, height: 0.5, length: 0.05, chamferRadius: 0), glass, 0, cy + 0.85, -L / 2 + 1.2, rx: -0.9)
-  // Wings with engines.
-  for side in [-1, 1] as [Float] {
-    wing(root, root: 6.2, tip: 1.6, span: 15.5, sweep: 6.0, thickness: 0.7, dihedral: 0.09,
-         x: side * R * 0.7, y: cy - 1.0, z: -1.5, side: side, white)
-    let ex = side * 5.6
-    let engine = loft([
-      Station(z: -4.6, width: 1.9, bottom: cy - 2.95, top: cy - 1.05, n: 2),
-      Station(z: -3.2, width: 2.1, bottom: cy - 3.05, top: cy - 0.95, n: 2),
-      Station(z: -1.6, width: 1.5, bottom: cy - 2.75, top: cy - 1.25, n: 2),
-    ], segments: 24, stripe)
-    engine.simdPosition = V3(ex, 0, 0)
-    root.addChildNode(engine)
-    put(root, CylinderMesh(radius: 0.85, height: 0.05), chrome, ex, cy - 2.0, -4.62, rx: .pi / 2)
-    box(root, 0.3, 0.9, 1.6, white, ex, cy - 1.0, -2.6)
-    box(root, 0.15, 0.08, 0.12, taillight, side * 17.0, cy - 0.3, 1.8)
-  }
-  // Tailplane and fin.
-  for side in [-1, 1] as [Float] {
-    wing(root, root: 3.2, tip: 1.2, span: 6.2, sweep: 2.8, thickness: 0.3, dihedral: 0.12,
-         x: side * 0.5, y: cy + 0.4, z: L / 2 - 4.6, side: side, white)
-  }
-  let fin = loft([
-    Station(z: 0, width: 5.0, bottom: -0.15, top: 0.15, n: 2.2),
-    Station(z: 6.2, width: 2.0, bottom: -0.1, top: 0.1, n: 2.2),
-  ], segments: 16, stripe)
-  fin.simdOrientation = simd_quatf(angle: -.pi / 2, axis: V3(1, 0, 0)) * simd_quatf(angle: .pi / 2, axis: V3(0, 0, 1))
-  let finHolder = SCNNode()
-  finHolder.addChildNode(fin)
-  finHolder.simdPosition = V3(0, cy + 1.3, L / 2 - 4.2)
-  finHolder.simdOrientation = simd_quatf(angle: 0.55, axis: V3(1, 0, 0))
-  root.addChildNode(finHolder)
-  // Landing gear.
-  for (x, z) in [(Float(0), Float(-L / 2 + 4)), (-2.2, 1.0), (2.2, 1.0)] {
-    tube(root, V3(x, cy - 1.6, z), V3(x, 0.55, z), 0.12, chrome)
-    put(root, TubeMesh(innerRadius: 0.2, outerRadius: 0.55, height: 0.4), tyre, x, 0.55, z, rz: .pi / 2)
-  }
-  return root
-}
+let narrowbody = AirlinerSpec(length: 37.6, radius: 1.98, span: 35.8, wingZ: 13.6, rootChord: 6.2, tipChord: 1.5, sweep: 0.47,
+                              engineD: 2.05, engineL: 4.4, engineS: 5.75, finHeight: 6.2, finRoot: 5.6, stabSpan: 12.45, windows: 30)
+let twinAisle = AirlinerSpec(length: 63.7, radius: 3.1, span: 64.8, wingZ: 23.5, rootChord: 11.5, tipChord: 2.4, sweep: 0.55,
+                             engineD: 3.45, engineL: 7.3, engineS: 9.9, finHeight: 9.6, finRoot: 9.5, stabSpan: 21.5, windows: 50)
 
-func privateJet(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let L: Float = 20, R: Float = 1.1, cy: Float = 2.0
-  let shape: [(Float, Float, Float)] = [
-    (0.0, 0.05, -0.1), (0.03, 0.45, -0.08), (0.1, 0.85, 0), (0.18, 1, 0), (0.62, 1, 0),
-    (0.78, 0.85, 0.1), (0.92, 0.5, 0.3), (1.0, 0.12, 0.45),
-  ]
-  root.addChildNode(loft(shape.map { Station(z: -L / 2 + $0.0 * L, width: 2 * R * $0.1, bottom: cy + $0.2 - R * $0.1, top: cy + $0.2 + R * $0.1, n: 2) }, segments: 32, white))
-  let stripe = paint(livery)
-  for side in [-1, 1] as [Float] {
-    box(root, 0.04, 0.14, L * 0.6, stripe, side * R * 0.99, cy - 0.15, -0.5)
-    for i in 0..<6 { box(root, 0.05, 0.26, 0.32, glass, side * R * 0.98, cy + 0.25, -4.5 + Float(i) * 0.9) }
-    wing(root, root: 3.2, tip: 1.0, span: 7.2, sweep: 2.6, thickness: 0.35, dihedral: 0.08,
-         x: side * R * 0.6, y: cy - 0.6, z: -0.3, side: side, white)
-    // Rear-mounted engines.
-    let e = loft([
-      Station(z: 3.4, width: 0.95, bottom: cy - 0.05, top: cy + 0.9, n: 2),
-      Station(z: 5.6, width: 0.8, bottom: cy + 0.05, top: cy + 0.8, n: 2),
-    ], segments: 20, stripe)
-    e.simdPosition = V3(side * 1.65, 0, 0)
-    root.addChildNode(e)
-    tube(root, V3(side * 0.9, cy + 0.4, 4.4), V3(side * 1.3, cy + 0.4, 4.4), 0.12, white)
-  }
-  put(root, BoxMesh(width: 0.9, height: 0.35, length: 0.05, chamferRadius: 0), glass, 0, cy + 0.55, -L / 2 + 1.6, rx: -0.9)
-  // T-tail.
-  let fin = loft([
-    Station(z: 0, width: 2.6, bottom: -0.1, top: 0.1, n: 2.2),
-    Station(z: 3.0, width: 1.4, bottom: -0.07, top: 0.07, n: 2.2),
-  ], segments: 14, stripe)
-  fin.simdOrientation = simd_quatf(angle: -.pi / 2, axis: V3(1, 0, 0)) * simd_quatf(angle: .pi / 2, axis: V3(0, 0, 1))
-  let finHolder = SCNNode(); finHolder.addChildNode(fin)
-  finHolder.simdPosition = V3(0, cy + 0.8, L / 2 - 2.2)
-  finHolder.simdOrientation = simd_quatf(angle: 0.6, axis: V3(1, 0, 0))
-  root.addChildNode(finHolder)
-  for side in [-1, 1] as [Float] {
-    wing(root, root: 1.5, tip: 0.8, span: 2.8, sweep: 0.9, thickness: 0.16, dihedral: 0,
-         x: side * 0.1, y: cy + 3.6, z: L / 2 - 0.9, side: side, white)
-  }
-  for (x, z) in [(Float(0), Float(-L / 2 + 2.5)), (-1.6, 0.8), (1.6, 0.8)] {
-    tube(root, V3(x, cy - 0.9, z), V3(x, 0.32, z), 0.07, chrome)
-    put(root, TubeMesh(innerRadius: 0.1, outerRadius: 0.32, height: 0.22), tyre, x, 0.32, z, rz: .pi / 2)
-  }
-  return root
-}
-
-func propPlane(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let cy: Float = 1.45
+func airliner(livery: UInt32, spec: AirlinerSpec = narrowbody) -> SCNNode {
+  let s = spec, L = s.length, R = s.radius
   let p = paint(livery)
-  root.addChildNode(loft([
-    Station(z: -3.9, width: 0.7, bottom: cy - 0.35, top: cy + 0.3, n: 2.2),
-    Station(z: -3.0, width: 1.1, bottom: cy - 0.55, top: cy + 0.55, n: 2.6),
-    Station(z: -1.2, width: 1.2, bottom: cy - 0.6, top: cy + 0.75, n: 3),
-    Station(z: 0.6, width: 1.1, bottom: cy - 0.55, top: cy + 0.7, n: 3),
-    Station(z: 3.2, width: 0.35, bottom: cy - 0.1, top: cy + 0.35, n: 2.4),
-    Station(z: 4.2, width: 0.18, bottom: cy, top: cy + 0.3, n: 2.2),
-  ], segments: 28, white))
-  for side in [-1, 1] as [Float] {
-    box(root, 0.04, 0.12, 5.5, p, side * 0.58, cy - 0.15, 0.3)
-    box(root, 0.04, 0.42, 1.3, glass, side * 0.585, cy + 0.42, -1.1)
-    // High wing with struts.
-    box(root, 5.3, 0.16, 1.5, white, side * 2.75, cy + 0.82, -1.0)
-    box(root, 0.6, 0.165, 1.51, p, side * 5.1, cy + 0.82, -1.0)
-    tube(root, V3(side * 0.55, cy - 0.4, -0.9), V3(side * 2.6, cy + 0.74, -0.9), 0.04, white)
-    // Tailplane.
-    box(root, 1.6, 0.08, 0.8, white, side * 0.85, cy + 0.2, 3.8)
-    // Main gear with fairings.
-    tube(root, V3(side * 0.5, cy - 0.5, -0.4), V3(side * 1.1, 0.27, -0.4), 0.04, chrome)
-    put(root, TubeMesh(innerRadius: 0.1, outerRadius: 0.27, height: 0.14), tyre, side * 1.1, 0.27, -0.4, rz: .pi / 2)
+  let body = material("white", 0xF4F5F7, metal: 0.25, rough: 0.3)
+  let cy: Float = R + R * 0.75
+  return fighter(length: L) { a in
+    let shape: [(Float, Float, Float)] = [(0.012, 0.32, -0.2), (0.03, 0.58, -0.12), (0.06, 0.82, -0.05), (0.1, 0.96, -0.01), (0.15, 1, 0),
+                                          (0.68, 1, 0), (0.78, 0.88, 0.12), (0.88, 0.6, 0.34), (0.96, 0.3, 0.52), (1.0, 0.1, 0.6)]
+    var keys = [Ring(z: 0, half: noseTip(cy - 0.2 * R, 13))]
+    for (f, k, dy) in shape {
+      let c = cy + dy * R
+      keys.append(Ring(z: f * L, half: ovalHalf(R * k, c - R * k * 0.98, c + R * k, n: 2, count: 13)))
+    }
+    jetBody(a, keys, step: L / 160, capEnd: body) { f in f.n.y < -0.85 && f.p.z + L / 2 > L * 0.3 && f.p.z + L / 2 < L * 0.62 ? bellyGrey : body }
+    // Windows, cockpit glass, doors, cheat line.
+    let sd = Drape(a, axis: 0), fd = Drape(a, axis: 2)
+    let wy = cy + R * 0.18, wh = R * 0.17, ww = R * 0.11
+    let z0 = L * 0.15, z1 = L * 0.74
+    var panes: [[SIMD2<Float>]] = []
+    for i in 0..<s.windows {
+      let z = z0 + (z1 - z0) * Float(i) / Float(s.windows - 1)
+      if abs(z - (s.wingZ + s.rootChord * 0.5)) < R * 0.3 { continue }
+      panes.append(rounded([SIMD2(z - ww, wy - wh), SIMD2(z + ww, wy - wh), SIMD2(z + ww, wy + wh), SIMD2(z - ww, wy + wh)], r: ww * 0.9, steps: 2))
+    }
+    sidePatches(a, sd, panes, glass, lift: 0.01, k: 2)
+    sidePatches(a, sd, [[SIMD2(L * 0.03, cy - R * 0.14), SIMD2(L * 0.97, cy + R * 0.3), SIMD2(L * 0.97, cy + R * 0.36), SIMD2(L * 0.03, cy - R * 0.06)]], p, lift: 0.008, k: 6)
+    for dz in [L * 0.1, L * 0.82] {
+      sideLines(a, sd, [closed(rounded([SIMD2(dz, cy - R * 0.55), SIMD2(dz + R * 0.42, cy - R * 0.55), SIMD2(dz + R * 0.42, cy + R * 0.48),
+                                         SIMD2(dz, cy + R * 0.48)], r: R * 0.1))], width: L * 0.0008, slat)
+    }
+    decalPatches(a, fd, [[SIMD2(0.05, cy + R * 0.12), SIMD2(R * 0.32, cy + R * 0.1), SIMD2(R * 0.3, cy + R * 0.3), SIMD2(0.05, cy + R * 0.36)],
+                         [SIMD2(R * 0.36, cy + R * 0.09), SIMD2(R * 0.62, cy + R * 0.02), SIMD2(R * 0.56, cy + R * 0.22), SIMD2(R * 0.34, cy + R * 0.29)]],
+                 glass, below: true, mirror: true, lift: 0.01, k: 3)
+    // Belly fairing.
+    motoBody(a, [(s.wingZ - 1.5, R * 0.3, cy - R * 1.02, cy - R * 0.7), (s.wingZ + 1, R * 0.86, cy - R * 1.1, cy - R * 0.4),
+                 (s.wingZ + s.rootChord, R * 0.86, cy - R * 1.08, cy - R * 0.4), (s.wingZ + s.rootChord + 2.5, R * 0.3, cy - R * 0.98, cy - R * 0.7)],
+             step: L / 120, rb: 0.6, rt: 0.3, cap: bellyGrey) { _ in bellyGrey }
+    // Wings with winglets and engines.
+    let half = s.span / 2
+    let kinkS = half * 0.36
+    var wings: [WingSurface] = []
+    for side in [-1, 1] as [Float] {
+      let y0 = cy - R * 0.62
+      let dih: Float = 0.09
+      let st = [WS(s: R * 0.4, le: s.wingZ, te: s.wingZ + s.rootChord, t: s.rootChord * 0.14, y: y0),
+                WS(s: kinkS, le: s.wingZ + kinkS * s.sweep, te: s.wingZ + s.rootChord * 0.92 + kinkS * 0.12, t: s.rootChord * 0.1, y: y0 + kinkS * dih),
+                WS(s: half - 0.3, le: s.wingZ + (half - 0.3) * s.sweep * 1.02, te: s.wingZ + (half - 0.3) * s.sweep * 1.02 + s.tipChord, t: s.tipChord * 0.1,
+                   y: y0 + half * dih)]
+      wings.append(wingSkin(a, st, side: side, chord: 9, sub: 4) { _ in wingPanel })
+      let tip = st[2]
+      let wl = finFrame(a, x: tip.s, y: tip.y, cant: 0.3, side: side)
+      wingSkin(wl, [WS(s: 0, le: tip.le, te: tip.te, t: s.tipChord * 0.1, y: 0), WS(s: s.span * 0.07, le: tip.te - s.tipChord * 0.45, te: tip.te + 0.1,
+                                                                                 t: 0.06, y: 0)], side: side, chord: 6, sub: 1) { _ in p }
+      // Engine under the wing, ahead of the leading edge, on a pylon.
+      let ex = side * s.engineS, ez0 = s.wingZ + s.engineS * s.sweep - s.engineL * 0.62
+      let ey = y0 + s.engineS * dih - s.engineD * 0.55
+      let D = s.engineD, EL = s.engineL
+      put(a, LatheMesh([SIMD2(0, D * 0.44), SIMD2(EL * 0.03, D * 0.5), SIMD2(EL * 0.2, D * 0.52), SIMD2(EL * 0.55, D * 0.5), SIMD2(EL * 0.82, D * 0.4),
+                        SIMD2(EL, D * 0.33)], sides: 32, caps: false), p, ex, ey, ez0, rx: .pi / 2)
+      put(a, LatheMesh([SIMD2(-0.001, D * 0.44), SIMD2(EL * 0.12, D * 0.44)], sides: 32, caps: false, twoSided: true), fanDark, ex, ey, ez0, rx: .pi / 2)
+      put(a, CylinderMesh(radius: CGFloat(D * 0.43), height: 0.05, sides: 32), fanBlades, ex, ey, ez0 + EL * 0.14, rx: .pi / 2)
+      put(a, LatheMesh([SIMD2(0, D * 0.13), SIMD2(D * 0.2, 0.001)], sides: 16), chrome, ex, ey, ez0 + EL * 0.14, rx: -.pi / 2)
+      put(a, LatheMesh([SIMD2(EL, D * 0.3), SIMD2(EL + D * 0.4, D * 0.22), SIMD2(EL + D * 0.75, 0.001)], sides: 20), engineSilver, ex, ey, ez0, rx: .pi / 2)
+      strut(a, V3(ex, ey + D * 0.42, ez0 + EL * 0.3), V3(ex, y0 + s.engineS * dih - 0.05, s.wingZ + s.engineS * s.sweep + s.rootChord * 0.45),
+            D * 0.14, 0.4, body, up: V3(1, 0, 0))
+    }
+    for w in wings {
+      wingLines(w, [[SIMD2(kinkS + 0.5, w.z(kinkS + 0.5, 0.78)), SIMD2(half * 0.82, w.z(half * 0.82, 0.76)), SIMD2(half * 0.82, w.z(half * 0.82, 1))],
+                    [SIMD2(R * 0.6, w.z(R * 0.6, 0.78)), SIMD2(kinkS, w.z(kinkS, 0.8)), SIMD2(kinkS, w.z(kinkS, 1))]], width: L * 0.0012, slat)
+    }
+    // Tailplane and fin.
+    let tz = L * 0.83, ty = cy + R * 0.25
+    for side in [-1, 1] as [Float] {
+      wingSkin(a, [WS(s: R * 0.2, le: tz, te: tz + s.finRoot * 0.75, t: 0.5, y: ty), WS(s: s.stabSpan / 2, le: tz + s.stabSpan / 2 * 0.6, te: tz + s.stabSpan / 2 * 0.6 + s.finRoot * 0.28,
+                                                                                    t: 0.15, y: ty + s.stabSpan * 0.04)], side: side, chord: 7, sub: 2) { _ in wingPanel }
+    }
+    let fin = finFrame(a, x: 0, y: cy + R * 0.55, cant: 0, side: 1)
+    wingSkin(fin, [WS(s: -R * 0.3, le: L * 0.76, te: L * 0.76 + s.finRoot * 1.15, t: 0.6, y: 0), WS(s: 0.4, le: L * 0.8, te: L * 0.8 + s.finRoot, t: 0.55, y: 0),
+                   WS(s: s.finHeight, le: L * 0.8 + s.finHeight * 0.8, te: L * 0.8 + s.finHeight * 0.8 + s.finRoot * 0.36, t: 0.18, y: 0)],
+             side: 1, chord: 8, sub: 2) { _ in p }
+    // Gear: nose and two main bogies.
+    let gw = R * 0.32
+    tube(a, V3(0, cy - R * 0.9, L * 0.11), V3(0, gw, L * 0.11), R * 0.05, chrome, sides: 10)
+    for x in [-0.12, 0.12] as [Float] { put(a, TubeMesh(innerRadius: CGFloat(gw * 0.45), outerRadius: CGFloat(gw), height: CGFloat(gw * 0.6), sides: 20), tyre, x * R * 1.6, gw, L * 0.11, rz: .pi / 2) }
+    for side in [-1, 1] as [Float] {
+      let x = side * R * 1.3, z = s.wingZ + s.rootChord * 0.85
+      tube(a, V3(x, cy - R * 0.7, z), V3(x, gw * 1.1, z), R * 0.07, chrome, sides: 10)
+      for dz in (s.length > 50 ? [-0.75, 0, 0.75] : [0]) as [Float] {
+        for dx in [-0.3, 0.3] as [Float] {
+          put(a, TubeMesh(innerRadius: CGFloat(gw * 0.5), outerRadius: CGFloat(gw * 1.25), height: CGFloat(gw * 0.7), sides: 22), tyre, x + dx * R * 0.6, gw * 1.25, z + dz * R * 0.6, rz: .pi / 2)
+        }
+      }
+    }
+    navLights(a, x: half, y: cy - R * 0.62 + half * 0.09 + 0.05, z: s.wingZ + (half - 0.3) * s.sweep + s.tipChord * 0.3)
   }
-  put(root, BoxMesh(width: 1.0, height: 0.5, length: 0.05, chamferRadius: 0), glass, 0, cy + 0.6, -2.0, rx: -0.75)
-  box(root, 0.08, 1.4, 1.1, p, 0, cy + 0.95, 3.85)
-  // Spinner and two-blade propeller.
-  let spinner = loft([
-    Station(z: -4.35, width: 0.06, bottom: cy - 0.05, top: cy + 0.01, n: 2),
-    Station(z: -3.92, width: 0.36, bottom: cy - 0.2, top: cy + 0.16, n: 2),
-  ], segments: 16, chrome)
-  root.addChildNode(spinner)
-  box(root, 0.14, 1.9, 0.04, black, 0, cy - 0.02, -4.0, rz: 0.4)
-  tube(root, V3(0, cy - 0.5, -3.3), V3(0, 0.22, -3.3), 0.04, chrome)
-  put(root, TubeMesh(innerRadius: 0.08, outerRadius: 0.22, height: 0.12), tyre, 0, 0.22, -3.3, rz: .pi / 2)
-  return root
+}
+
+func widebody(livery: UInt32) -> SCNNode { airliner(livery: livery, spec: twinAisle) }
+
+// Long-range business jet (G650 class): 30.4 m, 30.4 m span, big oval
+// windows, swept wing with blended winglets, rear-mounted engines on
+// stub pylons, T-tail.
+func privateJet(livery: UInt32) -> SCNNode {
+  let L: Float = 30.4, R: Float = 1.3
+  let p = paint(livery)
+  let body = material("white", 0xF4F5F7, metal: 0.25, rough: 0.3)
+  let cy: Float = R + 1.0
+  return fighter(length: L) { a in
+    let shape: [(Float, Float, Float)] = [(0.015, 0.35, -0.25), (0.04, 0.62, -0.15), (0.08, 0.86, -0.05), (0.13, 0.98, 0), (0.18, 1, 0),
+                                          (0.62, 1, 0), (0.75, 0.84, 0.12), (0.88, 0.55, 0.32), (0.97, 0.26, 0.48), (1.0, 0.1, 0.52)]
+    var keys = [Ring(z: 0, half: noseTip(cy - 0.25 * R, 13))]
+    for (f, k, dy) in shape {
+      let c = cy + dy * R
+      keys.append(Ring(z: f * L, half: ovalHalf(R * k, c - R * k * 0.98, c + R * k, n: 2, count: 13)))
+    }
+    jetBody(a, keys, step: L / 140, capEnd: body) { _ in body }
+    // Big oval windows, cockpit glass, cheat lines, door.
+    let sd = Drape(a, axis: 0), fd = Drape(a, axis: 2)
+    sidePatches(a, sd, (0..<9).map { i in
+      let z = 6.6 + Float(i) * 1.4
+      return (0..<14).map { k in let t = Float(k) / 14 * 2 * .pi; return SIMD2(z + cos(t) * 0.33, cy + 0.25 + sin(t) * 0.26) }
+    }, glass, lift: 0.01, k: 2)
+    sidePatches(a, sd, [[SIMD2(1.0, cy - 0.55), SIMD2(29.0, cy + 0.2), SIMD2(29.0, cy + 0.3), SIMD2(1.0, cy - 0.43)],
+                        [SIMD2(1.5, cy - 0.75), SIMD2(29.0, cy - 0.05), SIMD2(29.0, cy + 0.0), SIMD2(1.5, cy - 0.68)]], p, lift: 0.008, k: 6)
+    sideLines(a, sd, [closed(rounded([SIMD2(4.4, cy - 0.85), SIMD2(5.3, cy - 0.85), SIMD2(5.3, cy + 0.85), SIMD2(4.4, cy + 0.85)], r: 0.15))], width: 0.03, slat, right: false)
+    decalPatches(a, fd, [[SIMD2(0.05, cy + 0.12), SIMD2(0.42, cy + 0.08), SIMD2(0.4, cy + 0.42), SIMD2(0.05, cy + 0.48)],
+                         [SIMD2(0.46, cy + 0.07), SIMD2(0.82, cy - 0.04), SIMD2(0.74, cy + 0.26), SIMD2(0.44, cy + 0.4)]], glass, below: true, mirror: true, lift: 0.01, k: 3)
+    let half: Float = 15.2, wz: Float = 11.4
+    for side in [-1, 1] as [Float] {
+      let y0 = cy - R * 0.72
+      let st = [WS(s: R * 0.3, le: wz, te: wz + 5.4, t: 0.7, y: y0), WS(s: 4.0, le: wz + 2.6, te: wz + 6.0, t: 0.42, y: y0 + 0.3),
+                WS(s: half - 0.4, le: wz + 9.0, te: wz + 10.4, t: 0.15, y: y0 + 1.0)]
+      wingSkin(a, st, side: side, chord: 9, sub: 4) { _ in wingPanel }
+      let wl = finFrame(a, x: half - 0.4, y: y0 + 1.0, cant: 0.25, side: side)
+      wingSkin(wl, [WS(s: 0, le: wz + 9.0, te: wz + 10.4, t: 0.15, y: 0), WS(s: 1.4, le: wz + 10.2, te: wz + 10.8, t: 0.05, y: 0)], side: side, chord: 5, sub: 1) { _ in p }
+      // Rear engine on a stub pylon.
+      let ex = side * (R + 0.95), ey = cy + R * 0.35, ez0: Float = 19.6, D: Float = 1.45, EL: Float = 4.4
+      put(a, LatheMesh([SIMD2(0, D * 0.44), SIMD2(EL * 0.04, D * 0.5), SIMD2(EL * 0.3, D * 0.52), SIMD2(EL * 0.7, D * 0.47), SIMD2(EL, D * 0.34)],
+                       sides: 28, caps: false), p, ex, ey, ez0, rx: .pi / 2)
+      put(a, CylinderMesh(radius: CGFloat(D * 0.43), height: 0.05, sides: 28), fanBlades, ex, ey, ez0 + 0.4, rx: .pi / 2)
+      put(a, LatheMesh([SIMD2(-0.001, D * 0.44), SIMD2(0.38, D * 0.44)], sides: 28, caps: false, twoSided: true), fanDark, ex, ey, ez0, rx: .pi / 2)
+      put(a, LatheMesh([SIMD2(EL, D * 0.32), SIMD2(EL + 0.5, D * 0.2), SIMD2(EL + 0.8, 0.001)], sides: 20), engineSilver, ex, ey, ez0, rx: .pi / 2)
+      wingSkin(a, [WS(s: R * 0.6, le: ez0 + 1.4, te: ez0 + 3.6, t: 0.3, y: ey), WS(s: R + 0.4, le: ez0 + 1.6, te: ez0 + 3.4, t: 0.25, y: ey)],
+               side: side, chord: 5, sub: 1) { _ in body }
+    }
+    // T-tail.
+    let finF = finFrame(a, x: 0, y: cy + R * 0.55, cant: 0, side: 1)
+    wingSkin(finF, [WS(s: -0.3, le: 22.5, te: 28.6, t: 0.4, y: 0), WS(s: 4.3, le: 26.6, te: 29.6, t: 0.22, y: 0)], side: 1, chord: 7, sub: 2) { _ in p }
+    for side in [-1, 1] as [Float] {
+      wingSkin(a, [WS(s: 0.1, le: 26.5, te: 29.5, t: 0.24, y: cy + R * 0.55 + 4.3), WS(s: 5.0, le: 29.0, te: 30.4, t: 0.1, y: cy + R * 0.55 + 4.5)],
+               side: side, chord: 6, sub: 2) { _ in wingPanel }
+    }
+    // Gear.
+    tube(a, V3(0, cy - R * 0.9, 3.4), V3(0, 0.3, 3.4), 0.08, chrome, sides: 8)
+    for x in [-0.15, 0.15] as [Float] { put(a, TubeMesh(innerRadius: 0.12, outerRadius: 0.3, height: 0.2, sides: 18), tyre, x, 0.3, 3.4, rz: .pi / 2) }
+    for side in [-1, 1] as [Float] {
+      tube(a, V3(side * 1.9, cy - R * 0.7, wz + 4.8), V3(side * 1.9, 0.42, wz + 4.8), 0.1, chrome, sides: 8)
+      for dx in [-0.18, 0.18] as [Float] { put(a, TubeMesh(innerRadius: 0.18, outerRadius: 0.42, height: 0.24, sides: 18), tyre, side * 1.9 + dx, 0.42, wz + 4.8, rz: .pi / 2) }
+    }
+    navLights(a, x: half - 0.4, y: cy - R * 0.72 + 1.05, z: wz + 9.6)
+  }
 }
 
 // MARK: Police and taxi extras
@@ -895,7 +997,9 @@ func pickupBed(_ root: SCNNode, _ spec: CarSpec) {
 
 func paintMaterialOf(_ root: SCNNode) -> SCNMaterial {
   var found: SCNMaterial?
-  root.enumerateHierarchy { n, stop in
+  var top = root
+  while let up = top.parent { top = up }
+  top.enumerateHierarchy { n, stop in
     if let m = n.geometry?.firstMaterial, m.name == "paint" { found = m; stop.pointee = true }
   }
   return found ?? paint(0xC0C0C0)
@@ -928,371 +1032,1769 @@ func offroadGear(_ root: SCNNode, _ spec: CarSpec) {
   box(root, spec.width + 0.05, 0.2, 0.22, black, 0, spec.wheelRadius * 0.9, spec.length / 2 + 0.02)
 }
 
+// MARK: Road vehicle tools
+// Vans, trucks and buses are built like the jets: nose-first along +Z from
+// z = 0 (a holder moves the nose to -L/2), bodies skinned through
+// rounded-box half-sections sampled every few centimetres, then windows,
+// seams, lights and stripes draped onto the skin from the side, the front,
+// the back or above, so they follow its curves exactly. Parts that stick
+// out (mirrors, wheels, bumpers) are added after the drapes are taken.
+
+/// Builds a ground vehicle nose-first along +Z (nose at z = 0) and collapses
+/// it into one mesh per material, wheels on y = 0.
+func roadVehicle(length L: Float, _ build: (SCNNode) -> Void) -> SCNNode {
+  spacecraft { r in build(holder(r, V3(0, 0, -L / 2))) }
+}
+
+/// A smooth curve through (x, y) keys (monotone, so it never overshoots).
+func curve(_ keys: [(Float, Float)]) -> (Float) -> Float {
+  let xs = keys.map { $0.0 }, ys = keys.map { $0.1 }
+  return { monotoneCubic(xs, ys, $0) }
+}
+
+/// A rounded-box half-section from bottom centre round the side to top
+/// centre: `hw` half width, bottom `b`, top `t`, corner radii `rb` and `rt`,
+/// the side leaning in by `lean` at the top and bowing out by `bow` midway.
+func boxHalf(_ hw: Float, _ b: Float, _ t: Float, rb: Float, rt: Float, lean: Float = 0, bow: Float = 0,
+             sides: Int = 6, arc: Int = 5) -> [SIMD2<Float>] {
+  let h = max(0.002, t - b)
+  let rb = max(0.001, min(rb, hw * 0.98, h * 0.49)), rt = max(0.001, min(rt, (hw - lean) * 0.98, h * 0.49))
+  var pts: [SIMD2<Float>] = [SIMD2(0, b), SIMD2(max(0.0005, hw - rb) * 0.5, b)]
+  for i in 0...arc {
+    let a = -Float.pi / 2 + Float.pi / 2 * Float(i) / Float(arc)
+    pts.append(SIMD2(hw - rb + rb * cos(a), b + rb + rb * sin(a)))
+  }
+  let s0 = SIMD2<Float>(hw, b + rb), s1 = SIMD2<Float>(hw - lean, t - rt)
+  for i in 1..<sides {
+    let f = Float(i) / Float(sides)
+    pts.append(s0 + (s1 - s0) * f + SIMD2(bow * sin(.pi * f), 0))
+  }
+  for i in 0...arc {
+    let a = Float.pi / 2 * Float(i) / Float(arc)
+    pts.append(SIMD2(hw - lean - rt + rt * cos(a), t - rt + rt * sin(a)))
+  }
+  pts.append(SIMD2(max(0.0005, hw - lean - rt) * 0.5, t))
+  pts.append(SIMD2(0, t))
+  return pts
+}
+
+/// A body skinned through half-sections given as a function of z, sampled
+/// at `zs`, mirrored about x = `x`.
+func shell(_ p: SCNNode, _ zs: [Float], x: Float = 0, sharp: Set<Int> = [], capStart: SCNMaterial? = nil, capEnd: SCNMaterial? = nil,
+           tolerance: Float = 0.003, _ section: (Float) -> [SIMD2<Float>], skin: (Facet) -> SCNMaterial) {
+  var rows: [[V3]] = []
+  var k = 0
+  for z in zs {
+    let half = section(z)
+    k = half.count
+    var ring = half.map { V3(x + $0.x, $0.y, z) }
+    for i in stride(from: k - 2, through: 1, by: -1) { ring.append(V3(x - half[i].x, half[i].y, z)) }
+    rows.append(ring)
+  }
+  var crease = (0..<k).map { sharp.contains($0) }
+  for i in stride(from: k - 2, through: 1, by: -1) { crease.append(sharp.contains(i)) }
+  gridSkin(p, rows: simplifyRows(rows, zs: zs, tolerance: tolerance), crease: crease, capStart: capStart, capEnd: capEnd, skin: skin)
+}
+
+/// Drops rows that lie within `tolerance` of the straight blend between the
+/// rows kept either side (Douglas-Peucker over whole sections), so flat
+/// sides cost two rows however finely they were sampled.
+func simplifyRows(_ rows: [[V3]], zs: [Float], tolerance: Float) -> [[V3]] {
+  guard rows.count > 2, tolerance > 0 else { return rows }
+  var keep = [Bool](repeating: false, count: rows.count)
+  keep[0] = true; keep[rows.count - 1] = true
+  func split(_ lo: Int, _ hi: Int) {
+    guard hi - lo > 1 else { return }
+    var worst: Float = 0, at = -1
+    for i in (lo + 1)..<hi {
+      let t = (zs[i] - zs[lo]) / max(1e-6, zs[hi] - zs[lo])
+      var dev: Float = 0
+      for j in 0..<rows[i].count {
+        dev = max(dev, simd_length(rows[i][j] - (rows[lo][j] + (rows[hi][j] - rows[lo][j]) * t)))
+      }
+      if dev > worst { worst = dev; at = i }
+    }
+    if worst > tolerance { keep[at] = true; split(lo, at); split(at, hi) }
+  }
+  split(0, rows.count - 1)
+  return rows.indices.filter { keep[$0] }.map { rows[$0] }
+}
+
+/// A polyline resampled to `n` points evenly along its length (so hull
+/// sections with different shapes keep the same point count).
+func resample(_ pts: [SIMD2<Float>], _ n: Int) -> [SIMD2<Float>] {
+  var lens: [Float] = [0]
+  for i in 1..<pts.count { lens.append(lens[i - 1] + simd_length(pts[i] - pts[i - 1])) }
+  let total = max(1e-6, lens[lens.count - 1])
+  return (0..<n).map { j in
+    let d = total * Float(j) / Float(n - 1)
+    var i = 1
+    while i < pts.count - 1 && lens[i] < d { i += 1 }
+    let f = (d - lens[i - 1]) / max(1e-6, lens[i] - lens[i - 1])
+    return pts[i - 1] + (pts[i] - pts[i - 1]) * max(0, min(1, f))
+  }
+}
+
+/// Sample positions from a to b about every `step`, plus extra cuts, sorted.
+func samples(_ a: Float, _ b: Float, step: Float, dense: [(Float, Float, Float)] = []) -> [Float] {
+  var zs: [Float] = []
+  var z = a
+  while z < b - step * 0.3 { zs.append(z); z += step }
+  zs.append(b)
+  for (z0, z1, s) in dense {
+    var q = z0
+    while q < z1 { zs.append(q); q += s }
+  }
+  zs = zs.filter { $0 >= a && $0 <= b }.sorted()
+  var out: [Float] = []
+  for q in zs where out.last.map({ q - $0 > 0.004 }) ?? true { out.append(q) }
+  return out
+}
+
+/// The underside lifted into round wheel arches over each axle.
+func archBottom(_ base: Float, axles: [Float], wheel r: Float, gap: Float = 0.06) -> (Float) -> Float {
+  { z in
+    var b = base
+    let R = r + gap
+    for a in axles where abs(z - a) < R * 1.25 {
+      let u = min(1, abs(z - a) / R)
+      b = max(b, r + R * (1 - u * u).squareRoot() * 0.97)
+    }
+    return b
+  }
+}
+
+/// A road wheel with a rounded tyre, a dished rim, a hub and lug nuts, axle
+/// along X, its outer face towards `outward`. `holes` dark vents ring the
+/// hub (steel and alloy wheels); `dual` adds an inner twin (trucks).
+func roadWheel(_ p: SCNNode, x: Float, y: Float, z: Float, radius r: Float, width w: Float, outward: Float,
+               rimRatio: Float = 0.62, rimMaterial: SCNMaterial = rim, holes: Int = 0, lugs: Int = 6,
+               hub: SCNMaterial = chrome, dual: Bool = false) {
+  let wh = holder(p, V3(x, y, z), ry: outward > 0 ? 0 : .pi)
+  let rr = r * rimRatio, hw = w / 2
+  let mid = (r + rr) / 2, ext = (r - rr) / 2
+  // Tyre: a rounded cross-section swept round the axle (outer face at +X).
+  var prof: [SIMD2<Float>] = [SIMD2(-hw * 0.86, rr * 0.97)]
+  for i in 0...6 {
+    let t = -Float.pi / 2 + Float.pi * Float(i) / 6
+    let s = sin(t), c = cos(t)
+    prof.append(SIMD2(hw * (s < 0 ? -1 : 1) * pow(abs(s), 2 / 3.2), mid + ext * 1.0 * pow(abs(c), 2 / 3.2)))
+  }
+  prof.append(SIMD2(hw * 0.86, rr * 0.97))
+  let tyreG = LatheMesh(prof, sides: 24, caps: false)
+  put(wh, tyreG, tyre, 0, 0, 0, rz: -.pi / 2)
+  if dual { put(wh, LatheMesh(prof, sides: 24, caps: false), tyre, -(w + 0.04), 0, 0, rz: -.pi / 2) }
+  // Rim: barrel, lip, then a dished face down to the hub.
+  let dish: [SIMD2<Float>] = [SIMD2(-hw * 0.85, rr * 0.98), SIMD2(hw * 0.7, rr * 0.98), SIMD2(hw * 0.76, rr * 0.92),
+                              SIMD2(hw * 0.6, rr * 0.82), SIMD2(hw * 0.46, rr * 0.5), SIMD2(hw * 0.44, rr * 0.3),
+                              SIMD2(hw * 0.58, rr * 0.26), SIMD2(hw * 0.62, 0.001)]
+  put(wh, LatheMesh(dish, sides: 20, caps: false, twoSided: true), rimMaterial, 0, 0, 0, rz: -.pi / 2)
+  for i in 0..<lugs {
+    let a = Float(i) / Float(lugs) * 2 * .pi
+    put(wh, CylinderMesh(radius: CGFloat(rr * 0.045), height: CGFloat(w * 0.1), sides: 6), hub,
+        hw * 0.52, sin(a) * rr * 0.36, cos(a) * rr * 0.36, rz: .pi / 2)
+  }
+  for i in 0..<holes {
+    let a = (Float(i) + 0.5) / Float(holes) * 2 * .pi
+    put(wh, CylinderMesh(radius: CGFloat(rr * 0.11), height: 0.01, sides: 8), black,
+        hw * 0.53 + 0.004, sin(a) * rr * 0.64, cos(a) * rr * 0.64, rz: .pi / 2)
+  }
+}
+
+/// A closed outline with rounded corners (radius r), from corner points.
+func rounded(_ pts: [SIMD2<Float>], r: Float, steps: Int = 3) -> [SIMD2<Float>] {
+  var out: [SIMD2<Float>] = []
+  let n = pts.count
+  for i in 0..<n {
+    let p = pts[i], a = pts[(i + n - 1) % n], b = pts[(i + 1) % n]
+    let da = simd_normalize(a - p), db = simd_normalize(b - p)
+    let rr = min(r, simd_length(a - p) * 0.45, simd_length(b - p) * 0.45)
+    let s = p + da * rr, e = p + db * rr
+    for k in 0...steps {
+      let t = Float(k) / Float(steps)
+      // Quadratic Bezier with the corner as control point.
+      out.append(s * (1 - t) * (1 - t) + p * 2 * (1 - t) * t + e * t * t)
+    }
+  }
+  return out
+}
+
+/// An outline's boundary as a closed polyline.
+func closed(_ pts: [SIMD2<Float>]) -> [SIMD2<Float>] { pts + [pts[0]] }
+
+/// Draped onto both sides at once: (z, y) shapes on the right side and
+/// their mirror images on the left.
+func sidePatches(_ p: SCNNode, _ d: Drape, _ polys: [[SIMD2<Float>]], _ m: SCNMaterial, right: Bool = true, left: Bool = true,
+                 lift: Float = 0.012, k: Int = 4) {
+  if right { decalPatches(p, d, polys, m, below: false, lift: lift, k: k) }
+  if left { decalPatches(p, d, polys, m, below: true, lift: lift, k: k) }
+}
+
+func sideLines(_ p: SCNNode, _ d: Drape, _ lines: [[SIMD2<Float>]], width: Float = 0.02, _ m: SCNMaterial, right: Bool = true,
+               left: Bool = true, lift: Float = 0.014) {
+  if right { decalLines(p, d, lines, width: width, m, below: false, mirror: false, lift: lift, maxSteps: 14) }
+  if left { decalLines(p, d, lines, width: width, m, below: true, mirror: false, lift: lift, maxSteps: 14) }
+}
+
+/// A star-of-life style six-armed cross centred at (u, v).
+func starOfLife(_ u: Float, _ v: Float, _ s: Float) -> [[SIMD2<Float>]] {
+  (0..<3).map { k in
+    let a = Float(k) * .pi / 3
+    let d = SIMD2(cos(a), sin(a)), n = SIMD2(-sin(a), cos(a))
+    let c = SIMD2(u, v)
+    return [c - d * s - n * s * 0.2, c + d * s - n * s * 0.2, c + d * s + n * s * 0.2, c - d * s + n * s * 0.2]
+  }
+}
+
+/// A side mirror: an arm from the door to a housing with glass facing back.
+func sideMirror(_ p: SCNNode, at a: V3, side: Float, reach: Float, w: Float, h: Float, _ body: SCNMaterial) {
+  let tip = a + V3(side * reach, 0.02, 0.02)
+  tube(p, a, tip, 0.018, black, sides: 8)
+  let housing = holder(p, tip + V3(side * w * 0.35, 0, 0))
+  shell(housing, samples(-0.05, 0.07, step: 0.03), { z in
+    let f = (z + 0.05) / 0.12
+    return boxHalf(w / 2 * (0.75 + 0.25 * f), -h / 2 * (0.8 + 0.2 * f), h / 2 * (0.8 + 0.2 * f), rb: 0.03, rt: 0.03, sides: 3, arc: 3)
+  }, skin: { _ in body })
+  put(housing, BoxMesh(width: CGFloat(w * 0.88), height: CGFloat(h * 0.86), length: 0.004), glass, 0, 0, 0.072)
+}
+
 // MARK: Vans, trucks and buses
 
-/// A tall box body (van, bus) lofted with a rounded nose. `noseLength` is
-/// how far back the windscreen top is; `hood` adds a bonnet in front.
-func boxBody(_ root: SCNNode, length L: Float, width W: Float, height H: Float, bottom: Float,
-             noseLength: Float, hoodLength: Float = 0, hoodHeight: Float = 0, _ m: SCNMaterial) {
-  let f = -L / 2
-  var st: [Station] = []
-  if hoodLength > 0 {
-    st.append(Station(z: f, width: W * 0.86, bottom: bottom + 0.1, top: hoodHeight * 0.9, n: 4))
-    st.append(Station(z: f + 0.15, width: W * 0.94, bottom: bottom, top: hoodHeight, n: 4.5))
-    st.append(Station(z: f + hoodLength, width: W * 0.96, bottom: bottom, top: hoodHeight + 0.05, n: 4.5))
-  } else {
-    st.append(Station(z: f, width: W * 0.9, bottom: bottom + 0.08, top: H * 0.5, n: 4))
-    st.append(Station(z: f + 0.12, width: W * 0.98, bottom: bottom, top: H * 0.62, n: 5))
-  }
-  st.append(Station(z: f + hoodLength + noseLength, width: W, bottom: bottom, top: H, n: 6))
-  st.append(Station(z: L / 2 - 0.1, width: W, bottom: bottom, top: H, n: 6))
-  st.append(Station(z: L / 2, width: W * 0.96, bottom: bottom + 0.05, top: H - 0.05, n: 6))
-  root.addChildNode(loft(st, segments: 32, m))
-}
+let trimPlastic = material("plastic", 0x2C2D30, rough: 0.7)
+let lens = material("lens", 0xBFC6CF, metal: 0.6, rough: 0.15)
+let reflectorRed = material("reflector", 0xB0121F, rough: 0.35)
+let stripeRed = material("stripe-red", 0xD7192C, rough: 0.4)
+let lifeBlue = material("star-blue", 0x0B4DA2, rough: 0.4)
+let lightRed = material("light-red", 0xFF2D2D, rough: 0.3, emit: true)
+let lightWhite = material("light-white", 0xF4F6FF, rough: 0.3, emit: true)
 
-func wheelsAt(_ root: SCNNode, axles: [Float], track: Float, radius: Float, dual: Bool = false) {
-  for z in axles {
-    for side in [-1, 1] as [Float] {
-      carWheel(root, x: side * track / 2, y: radius, z: z, radius: radius, width: 0.3, spokes: 8, outward: side)
-      if dual { carWheel(root, x: side * (track / 2 - 0.32), y: radius, z: z, radius: radius, width: 0.3, spokes: 8, outward: side) }
-    }
-  }
-}
-
-func windowBand(_ root: SCNNode, width W: Float, y: Float, height: Float, from z0: Float, to z1: Float, panes: Int) {
-  let paneLength = (z1 - z0) / Float(panes)
-  for side in [-1, 1] as [Float] {
-    for i in 0..<panes {
-      box(root, 0.03, height, paneLength * 0.86, glass, side * (W / 2 + 0.005), y, z0 + paneLength * (Float(i) + 0.5))
-    }
-  }
-}
-
+// High-roof delivery van, Sprinter/Transit class: 5.93 m long, 2.02 m wide,
+// 2.72 m tall, 3.67 m wheelbase. Short sloping bonnet, raked windscreen
+// into a roof fairing, flat sides with a sliding door on the right, twin
+// rear doors, wrap-round plastic bumpers and arch flares. The ambulance
+// (Type II) adds a roof light bar, corner flashers, a red stripe and
+// stars of life.
 func deliveryVan(body: UInt32, ambulance: Bool = false) -> SCNNode {
-  let root = SCNNode()
-  let L: Float = 5.9, W: Float = 2.05, H: Float = ambulance ? 2.75 : 2.6, b: Float = 0.38
-  boxBody(root, length: L, width: W, height: H, bottom: b, noseLength: 1.2, hoodLength: 0.75, hoodHeight: 1.15, paint(body))
-  // Windscreen and cab side windows.
-  put(root, BoxMesh(width: CGFloat(W * 0.9), height: 0.85, length: 0.04), glass, 0, 1.75, -L / 2 + 1.35, rx: -0.42)
-  for side in [-1, 1] as [Float] {
-    box(root, 0.03, 0.62, 0.8, glass, side * (W / 2 + 0.005), 1.72, -L / 2 + 1.75)
-    box(root, 0.06, 0.14, 0.22, black, side * (W / 2 + 0.08), 1.5, -L / 2 + 1.25)
-    box(root, 0.02, 1.7, 0.02, black, side * (W / 2 + 0.005), 1.3, -0.2) // sliding door seam
-  }
-  wheelsAt(root, axles: [-L / 2 + 1.05, L / 2 - 1.2], track: W - 0.2, radius: 0.38)
-  for side in [-1, 1] as [Float] {
-    box(root, 0.36, 0.14, 0.04, headlight, side * 0.68, 0.95, -L / 2 + 0.02)
-    box(root, 0.12, 0.6, 0.04, taillight, side * 0.9, 1.3, L / 2 + 0.01)
-  }
-  box(root, W * 0.5, 0.2, 0.04, black, 0, 0.82, -L / 2 + 0.02)
-  if ambulance {
-    let red = material("stripe-red", 0xD7192C, rough: 0.4)
-    for side in [-1, 1] as [Float] { box(root, 0.03, 0.22, L * 0.72, red, side * (W / 2 + 0.008), 1.15, 0.5) }
-    box(root, 0.6, 0.22, 0.03, red, 0, 1.9, L / 2 + 0.005)
-    box(root, 0.22, 0.6, 0.03, red, 0, 1.9, L / 2 + 0.006)
-    box(root, 1.3, 0.12, 0.3, material("light-red", 0xFF2D2D, emit: true), 0, H + 0.06, -L / 2 + 1.9)
-  }
-  return root
-}
-
-func boxTruck(body: UInt32) -> SCNNode {
-  let root = SCNNode()
+  let L: Float = 5.93, hwMax: Float = 1.01, H: Float = ambulance ? 2.78 : 2.72
+  let axles: [Float] = [1.0, 4.67], wr: Float = 0.355
   let p = paint(body)
-  // Cab.
-  boxBody(root, length: 2.4, width: 2.3, height: 2.7, bottom: 0.55, noseLength: 0.7, p)
-  root.childNodes.last?.simdPosition = V3(0, 0, -2.6)
-  put(root, BoxMesh(width: 2.0, height: 0.9, length: 0.04), glass, 0, 2.05, -3.62, rx: -0.2)
-  for side in [-1, 1] as [Float] { box(root, 0.03, 0.7, 0.9, glass, side * 1.155, 2.0, -3.0) }
-  // Cargo box, chassis, wheels.
-  box(root, 2.45, 3.0, 6.0, white, 0, 2.15, 1.25)
-  box(root, 1.2, 0.3, 7.6, black, 0, 0.62, 0.3)
-  wheelsAt(root, axles: [-3.0], track: 2.0, radius: 0.5)
-  wheelsAt(root, axles: [2.6], track: 2.0, radius: 0.5, dual: true)
-  for side in [-1, 1] as [Float] {
-    box(root, 0.4, 0.16, 0.04, headlight, side * 0.75, 1.05, -3.82)
-    box(root, 0.18, 0.3, 0.04, taillight, side * 1.05, 0.9, 4.26)
+  let top = curve([(0, 0.84), (0.1, 0.98), (0.32, 1.08), (0.75, 1.17), (0.97, 1.23), (1.35, 1.72), (1.76, 2.28),
+                   (2.0, H - 0.12), (2.35, H - 0.01), (5.82, H), (L, H - 0.08)])
+  let hw = curve([(0, 0.8), (0.07, 0.91), (0.25, 0.975), (0.6, 0.995), (1.2, hwMax), (5.86, hwMax), (L, 0.97)])
+  let rt = curve([(0, 0.12), (0.9, 0.16), (1.3, 0.24), (2.0, 0.2), (2.4, 0.15), (L, 0.15)])
+  let lean = curve([(0, 0.13), (0.9, 0.12), (1.5, 0.08), (2.4, 0.06), (L, 0.06)])
+  let baseBottom = curve([(0, 0.42), (0.12, 0.36), (5.7, 0.36), (L, 0.46)])
+  let bottom = archBottom(0.36, axles: axles, wheel: wr, gap: 0.07)
+  let zs = samples(0, L, step: 0.07, dense: [(0, 0.35, 0.025), (0.5, 1.5, 0.025), (4.17, 5.17, 0.025), (5.75, L, 0.02)])
+  return roadVehicle(length: L) { v in
+    shell(v, zs, capStart: p, capEnd: p, { z in
+      boxHalf(hw(z), max(baseBottom(z), bottom(z)), top(z), rb: 0.07, rt: rt(z), lean: lean(z), bow: 0.012, sides: 8, arc: 6)
+    }, skin: { f in f.n.y < -0.75 ? trimPlastic : p })
+    // Roof ribs.
+    for x in [-0.55, -0.2, 0.2, 0.55] as [Float] {
+      shell(v, samples(2.5, 5.6, step: 0.5), x: x, { _ in boxHalf(0.035, H - 0.02, H + 0.025, rb: 0.001, rt: 0.02, sides: 1, arc: 2) },
+            skin: { _ in p })
+    }
+    let front = Drape(v, axis: 2), sides = Drape(v, axis: 0), above = Drape(v, axis: 1)
+    // Front: windscreen, wipers, grille, headlights, bumper, plate.
+    decalPatches(v, front, [rounded([SIMD2(-0.86, 1.31), SIMD2(0.86, 1.31), SIMD2(0.8, 2.22), SIMD2(-0.8, 2.22)], r: 0.09)],
+                 glass, below: true, lift: 0.01, k: 8)
+    decalLines(v, front, [[SIMD2(0.06, 1.36), SIMD2(0.62, 1.44)], [SIMD2(-0.72, 1.36), SIMD2(-0.16, 1.44)]], width: 0.025, black,
+               below: true, mirror: false, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(-0.44, 0.64), SIMD2(0.44, 0.64), SIMD2(0.48, 0.93), SIMD2(-0.48, 0.93)], r: 0.06)],
+                 black, below: true, lift: 0.012, k: 5)
+    decalLines(v, front, [[SIMD2(-0.42, 0.72), SIMD2(0.42, 0.72)], [SIMD2(-0.44, 0.8), SIMD2(0.44, 0.8)], [SIMD2(-0.46, 0.88), SIMD2(0.46, 0.88)]],
+               width: 0.022, chrome, below: true, mirror: false, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(0.52, 0.86), SIMD2(0.8, 0.88), SIMD2(0.84, 1.05), SIMD2(0.56, 1.0)], r: 0.04)],
+                 lens, below: true, mirror: true, lift: 0.014)
+    decalPatches(v, front, [rounded([SIMD2(0.58, 0.9), SIMD2(0.72, 0.91), SIMD2(0.74, 0.99), SIMD2(0.6, 0.97)], r: 0.03)],
+                 headlight, below: true, mirror: true, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(-0.82, 0.36), SIMD2(0.82, 0.36), SIMD2(0.82, 0.62), SIMD2(-0.82, 0.62)], r: 0.05)],
+                 trimPlastic, below: true, lift: 0.012)
+    decalPatches(v, front, [rounded([SIMD2(-0.26, 0.44), SIMD2(0.26, 0.44), SIMD2(0.26, 0.56), SIMD2(-0.26, 0.56)], r: 0.015)],
+                 plate, below: true, lift: 0.02)
+    decalPatches(v, front, [ring2(0.64, 0.49, 0.045, 12)], lens, below: true, mirror: true, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(0.12, 2.5), SIMD2(0.26, 2.5), SIMD2(0.26, 2.56), SIMD2(0.12, 2.56)], r: 0.01),
+                            rounded([SIMD2(-0.06, 2.5), SIMD2(0.06, 2.5), SIMD2(0.06, 2.56), SIMD2(-0.06, 2.56)], r: 0.01)],
+                 amber, below: true, mirror: true, lift: 0.015)
+    // Sides: cab door window, door seams, bumper wraps, cladding, arch flares.
+    sidePatches(v, sides, [rounded([SIMD2(1.22, 1.38), SIMD2(2.0, 1.38), SIMD2(2.0, 2.14), SIMD2(1.84, 2.18)], r: 0.06)], glass, lift: 0.01, k: 6)
+    sideLines(v, sides, [[SIMD2(1.46, 0.43), SIMD2(1.46, 0.96), SIMD2(1.14, 1.3)], [SIMD2(2.06, 0.43), SIMD2(2.06, 2.22)]], width: 0.012, black)
+    sidePatches(v, sides, [rounded([SIMD2(1.86, 1.2), SIMD2(1.98, 1.2), SIMD2(1.98, 1.24), SIMD2(1.86, 1.24)], r: 0.01)], trimPlastic, lift: 0.02)
+    sideLines(v, sides, [closed(rounded([SIMD2(2.14, 0.43), SIMD2(3.44, 0.43), SIMD2(3.44, 2.4), SIMD2(2.14, 2.4)], r: 0.07))], width: 0.012,
+              black, left: false)
+    sideLines(v, sides, [[SIMD2(3.44, 1.96), SIMD2(5.78, 1.96)]], width: 0.03, trimPlastic, left: false)
+    sidePatches(v, sides, [rounded([SIMD2(2.26, 1.2), SIMD2(2.38, 1.2), SIMD2(2.38, 1.24), SIMD2(2.26, 1.24)], r: 0.01)], trimPlastic,
+                left: false, lift: 0.02)
+    sideLines(v, sides, [[SIMD2(5.8, 0.48), SIMD2(5.8, H - 0.1)]], width: 0.012, black)
+    let R = wr + 0.07
+    sidePatches(v, sides, [rounded([SIMD2(0.0, 0.36), SIMD2(axles[0] - R - 0.02, 0.36), SIMD2(axles[0] - R - 0.02, 0.62), SIMD2(0.0, 0.62)], r: 0.03),
+                           rounded([SIMD2(axles[0] + R + 0.02, 0.37), SIMD2(axles[1] - R - 0.02, 0.37), SIMD2(axles[1] - R - 0.02, 0.5),
+                                    SIMD2(axles[0] + R + 0.02, 0.5)], r: 0.02),
+                           rounded([SIMD2(axles[1] + R + 0.02, 0.37), SIMD2(L, 0.37), SIMD2(L, 0.6), SIMD2(axles[1] + R + 0.02, 0.6)], r: 0.03)],
+                trimPlastic, lift: 0.012)
+    for a in axles {
+      let arc = (0...16).map { i -> SIMD2<Float> in
+        let t = Float.pi * Float(i) / 16
+        return SIMD2(a - cos(t) * (R + 0.03), wr + sin(t) * (R + 0.03) * 0.97)
+      }
+      sideLines(v, sides, [arc], width: 0.075, trimPlastic, lift: 0.016)
+    }
+    sidePatches(v, sides, [rounded([SIMD2(0.3, 0.72), SIMD2(0.42, 0.72), SIMD2(0.42, 0.76), SIMD2(0.3, 0.76)], r: 0.01)], amber, lift: 0.02)
+    // Rear: twin doors, windows, tail lights, bumper, plate.
+    decalPatches(v, front, [rounded([SIMD2(0.8, 0.66), SIMD2(0.95, 0.66), SIMD2(0.95, 1.6), SIMD2(0.8, 1.6)], r: 0.03)],
+                 taillight, below: false, mirror: true, lift: 0.014)
+    sidePatches(v, sides, [rounded([SIMD2(5.86, 0.66), SIMD2(L, 0.66), SIMD2(L, 1.6), SIMD2(5.86, 1.6)], r: 0.01)], taillight, lift: 0.014)
+    decalLines(v, front, [[SIMD2(0, 0.62), SIMD2(0, H - 0.12)], closed(rounded([SIMD2(-0.76, 0.62), SIMD2(0.76, 0.62), SIMD2(0.76, H - 0.12),
+                                                                              SIMD2(-0.76, H - 0.12)], r: 0.06))],
+               width: 0.014, black, below: false, mirror: false, lift: 0.012)
+    decalPatches(v, front, [rounded([SIMD2(0.08, 1.72), SIMD2(0.66, 1.72), SIMD2(0.66, 2.38), SIMD2(0.08, 2.38)], r: 0.05)],
+                 glass, below: false, mirror: true, lift: 0.01, k: 5)
+    decalPatches(v, front, [rounded([SIMD2(-0.88, 0.36), SIMD2(0.88, 0.36), SIMD2(0.88, 0.6), SIMD2(-0.88, 0.6)], r: 0.04)],
+                 trimPlastic, below: false, lift: 0.012)
+    decalPatches(v, front, [rounded([SIMD2(-0.26, 0.66), SIMD2(0.26, 0.66), SIMD2(0.26, 0.78), SIMD2(-0.26, 0.78)], r: 0.015)],
+                 plate, below: false, lift: 0.016)
+    decalPatches(v, front, [rounded([SIMD2(0.12, H - 0.08), SIMD2(0.3, H - 0.08), SIMD2(0.3, H - 0.04), SIMD2(0.12, H - 0.04)], r: 0.01)],
+                 taillight, below: false, mirror: true, lift: 0.014)
+    if ambulance {
+      sidePatches(v, sides, [rounded([SIMD2(0.08, 1.02), SIMD2(5.86, 1.02), SIMD2(5.86, 1.22), SIMD2(0.08, 1.22)], r: 0.02)], stripeRed, lift: 0.011)
+      sidePatches(v, sides, [rounded([SIMD2(2.6, 1.42), SIMD2(3.3, 1.42), SIMD2(3.3, 2.2), SIMD2(2.6, 2.2)], r: 0.05)], glass, lift: 0.01)
+      sidePatches(v, sides, starOfLife(4.4, 1.75, 0.34), lifeBlue, lift: 0.012)
+      decalPatches(v, front, starOfLife(0, 1.1, 0.22), lifeBlue, below: false, lift: 0.014)
+      decalPatches(v, front, [rounded([SIMD2(-0.82, 1.0), SIMD2(0.82, 1.0), SIMD2(0.82, 0.86), SIMD2(-0.82, 0.86)], r: 0.01)],
+                   stripeRed, below: false, lift: 0.012)
+      decalPatches(v, above, starOfLife(0, 4.0, 0.6), lifeBlue, lift: 0.04)
+      // Light bar across the roof front, flashers at the rear corners and scene lights.
+      let bar = holder(v, V3(0, H + 0.03, 2.45))
+      shell(bar, samples(-0.14, 0.14, step: 0.035), { z in
+        let f = 1 - pow(abs(z) / 0.14, 4)
+        return boxHalf(0.78 * (0.9 + 0.1 * f), 0, 0.13 * (0.7 + 0.3 * f), rb: 0.02, rt: 0.05, sides: 2, arc: 3)
+      }, skin: { f in
+        if f.n.y < -0.5 { return black }
+        let seg = Int(((f.p.x + 0.78) / 0.26).rounded(.down))
+        return seg % 2 == 0 ? lightRed : lightWhite
+      })
+      for x in [-0.86, 0.86] as [Float] {
+        box(v, 0.14, 0.12, 0.08, lightRed, x, H - 0.12, L + 0.02)
+        box(v, 0.04, 0.12, 0.22, lightRed, x * 1.16, H - 0.12, 0.0 + L - 0.25)
+        box(v, 0.04, 0.12, 0.22, lightWhite, x * 1.16, H - 0.12, 3.9)
+      }
+      box(v, 0.24, 0.07, 0.03, lightRed, 0.0, 0.98, -0.01)
+    }
+    // Mirrors, step, exhaust and wheels.
+    for side in [-1, 1] as [Float] {
+      sideMirror(v, at: V3(side * 0.96, 1.5, 1.32), side: side, reach: 0.12, w: 0.2, h: 0.34, trimPlastic)
+    }
+    box(v, 1.4, 0.07, 0.22, trimPlastic, 0, 0.45, L + 0.08)
+    tube(v, V3(-0.6, 0.32, L - 0.6), V3(-0.6, 0.3, L + 0.02), 0.035, chrome)
+    for z in axles {
+      for side in [-1, 1] as [Float] {
+        roadWheel(v, x: side * 0.86, y: wr, z: z, radius: wr, width: 0.235, outward: side, rimRatio: 0.6,
+                  rimMaterial: rim, holes: 6, lugs: 6)
+      }
+    }
   }
-  return root
 }
 
+
+let frpWhite = material("box", 0xF2F3F1, metal: 0.05, rough: 0.45)
+let alu = material("aluminium", 0xBCC2C8, metal: 0.85, rough: 0.3)
+let doorGrey = material("door", 0xD6D9DC, metal: 0.4, rough: 0.4)
+let slat = material("slat", 0x9EA4AA, metal: 0.4, rough: 0.5)
+let reflectorWhite = material("reflector-white", 0xF7F7F2, rough: 0.3)
+
+/// Rear reflective tape: alternating red and white segments along a line.
+func dotTape(_ p: SCNNode, _ d: Drape, from a: SIMD2<Float>, to b: SIMD2<Float>, segment: Float = 0.3, width: Float = 0.05,
+             below: Bool, mirror: Bool = false) {
+  let n = max(2, Int(simd_length(b - a) / segment))
+  var reds: [[SIMD2<Float>]] = [], whites: [[SIMD2<Float>]] = []
+  for i in 0..<n {
+    let s = a + (b - a) * (Float(i) / Float(n)), e = a + (b - a) * (Float(i + 1) / Float(n))
+    if i % 2 == 0 { reds.append([s, e]) } else { whites.append([s, e]) }
+  }
+  decalLines(p, d, reds, width: width, reflectorRed, below: below, mirror: mirror, lift: 0.016)
+  decalLines(p, d, whites, width: width, reflectorWhite, below: below, mirror: mirror, lift: 0.016)
+}
+
+/// A low cab-forward cab (box truck, fire engine): bowed flat front,
+/// near-vertical windscreen, door windows. Returns the drapes taken.
+func cabForward(_ v: SCNNode, length cl: Float, hw hwMax: Float, bottom: Float, top H: Float, axle: Float, wheel wr: Float,
+                _ p: SCNMaterial, roofStep: (Float, Float)? = nil) {
+  let top = curve([(0, H - 0.2), (0.12, H - 0.08), (0.4, H - 0.01), (cl, H)])
+  let hw = curve([(0, hwMax - 0.16), (0.05, hwMax - 0.06), (0.14, hwMax - 0.01), (0.3, hwMax), (cl, hwMax)])
+  let bot = archBottom(bottom, axles: [axle], wheel: wr, gap: 0.08)
+  let zs = samples(0, cl, step: 0.06, dense: [(0, 0.2, 0.02), (axle - 0.6, axle + 0.6, 0.025)])
+  shell(v, zs, capStart: p, capEnd: p, { z in
+    var t = top(z)
+    if let (z0, h) = roofStep, z > z0 { t += h * min(1, (z - z0) / 0.25) }
+    return boxHalf(hw(z), bot(z), t, rb: 0.08, rt: 0.12, lean: 0.03, bow: 0.008, sides: 8, arc: 5)
+  }, skin: { f in f.n.y < -0.75 ? trimPlastic : p })
+}
+
+// Medium-duty box truck, Isuzu N/Hino class: cab-over with a 2.0 m cab,
+// 6.1 m (20 ft) fibreglass box with aluminium rails and corner posts,
+// roll-up rear door, 4.4 m wheelbase, dual rear wheels.
+func boxTruck(body: UInt32) -> SCNNode {
+  let L: Float = 8.75, wr: Float = 0.41
+  let axles: [Float] = [1.15, 5.6]
+  let p = paint(body)
+  return roadVehicle(length: L) { v in
+    cabForward(v, length: 2.05, hw: 1.0, bottom: 0.92, top: 2.42, axle: axles[0], wheel: wr, p)
+    // Box: 6.1 x 2.45 x 2.55 on a floor at 1.08.
+    let bz0: Float = 2.2
+    shell(v, samples(bz0, L, step: 0.25, dense: [(bz0, bz0 + 0.1, 0.02), (L - 0.1, L, 0.02)]), capStart: frpWhite, capEnd: frpWhite, { _ in
+      boxHalf(1.225, 1.08, 3.63, rb: 0.03, rt: 0.05, sides: 4, arc: 3)
+    }, skin: { f in f.n.y < -0.75 ? alu : frpWhite })
+    // Chassis rails, cab back, fuel tank, battery box.
+    for x in [-0.45, 0.45] as [Float] { box(v, 0.1, 0.24, 7.1, black, x, 0.8, 4.9) }
+    let front = Drape(v, axis: 2), sides = Drape(v, axis: 0)
+    // Cab front: big windscreen, grille band, headlights, plate.
+    decalPatches(v, front, [rounded([SIMD2(-0.9, 1.5), SIMD2(0.9, 1.5), SIMD2(0.86, 2.24), SIMD2(-0.86, 2.24)], r: 0.08)], glass,
+                 below: true, lift: 0.01, k: 8)
+    decalLines(v, front, [[SIMD2(0.04, 1.54), SIMD2(0.7, 1.58)], [SIMD2(-0.8, 1.54), SIMD2(-0.14, 1.58)]], width: 0.025, black,
+               below: true, mirror: false, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(-0.62, 1.08), SIMD2(0.62, 1.08), SIMD2(0.62, 1.36), SIMD2(-0.62, 1.36)], r: 0.04)], black,
+                 below: true, lift: 0.012)
+    decalLines(v, front, [[SIMD2(-0.58, 1.17), SIMD2(0.58, 1.17)], [SIMD2(-0.58, 1.27), SIMD2(0.58, 1.27)]], width: 0.02, chrome,
+               below: true, mirror: false, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(0.66, 1.06), SIMD2(0.92, 1.06), SIMD2(0.9, 1.3), SIMD2(0.66, 1.3)], r: 0.03)], lens,
+                 below: true, mirror: true, lift: 0.014)
+    decalPatches(v, front, [ring2(0.79, 1.18, 0.07, 12)], headlight, below: true, mirror: true, lift: 0.02)
+    decalPatches(v, front, [rounded([SIMD2(0.86, 1.36), SIMD2(0.94, 1.36), SIMD2(0.94, 1.42), SIMD2(0.86, 1.42)], r: 0.01)], amber,
+                 below: true, mirror: true, lift: 0.02)
+    // Cab sides: door window with vent, door seam, step well.
+    sidePatches(v, sides, [rounded([SIMD2(0.32, 1.56), SIMD2(1.5, 1.56), SIMD2(1.5, 2.24), SIMD2(0.42, 2.24)], r: 0.06)], glass, lift: 0.01, k: 5)
+    sideLines(v, sides, [[SIMD2(0.62, 1.56), SIMD2(0.62, 2.24)]], width: 0.03, black)
+    sideLines(v, sides, [closed(rounded([SIMD2(0.26, 0.96), SIMD2(1.62, 0.96), SIMD2(1.62, 2.32), SIMD2(0.26, 2.32)], r: 0.05))], width: 0.012, black)
+    sidePatches(v, sides, [rounded([SIMD2(1.45, 1.36), SIMD2(1.56, 1.36), SIMD2(1.56, 1.4), SIMD2(1.45, 1.4)], r: 0.01)], trimPlastic, lift: 0.02)
+    sidePatches(v, sides, [rounded([SIMD2(0.1, 1.5), SIMD2(0.2, 1.5), SIMD2(0.2, 1.56), SIMD2(0.1, 1.56)], r: 0.01)], amber, lift: 0.02)
+    // Box: aluminium top and bottom rails, corner posts, rub rail, logistics post seams.
+    sideLines(v, sides, [[SIMD2(bz0 + 0.02, 3.56), SIMD2(L - 0.02, 3.56)]], width: 0.12, alu, lift: 0.01)
+    sideLines(v, sides, [[SIMD2(bz0 + 0.02, 1.16), SIMD2(L - 0.02, 1.16)]], width: 0.16, alu, lift: 0.01)
+    sideLines(v, sides, [[SIMD2(bz0 + 0.04, 1.08), SIMD2(bz0 + 0.04, 3.62)], [SIMD2(L - 0.04, 1.08), SIMD2(L - 0.04, 3.62)]], width: 0.08, alu, lift: 0.012)
+    var seams: [[SIMD2<Float>]] = []
+    var z = bz0 + 1.22
+    while z < L - 0.5 { seams.append([SIMD2(z, 1.24), SIMD2(z, 3.5)]); z += 1.22 }
+    sideLines(v, sides, seams, width: 0.012, slat, lift: 0.011)
+    sidePatches(v, sides, [rounded([SIMD2(bz0 + 0.15, 3.42), SIMD2(bz0 + 0.25, 3.42), SIMD2(bz0 + 0.25, 3.48), SIMD2(bz0 + 0.15, 3.48)], r: 0.01),
+                           rounded([SIMD2(L - 0.25, 3.42), SIMD2(L - 0.15, 3.42), SIMD2(L - 0.15, 3.48), SIMD2(L - 0.25, 3.48)], r: 0.01)],
+                amber, lift: 0.016)
+    dotTape(v, sides, from: SIMD2(bz0 + 0.3, 1.27), to: SIMD2(L - 0.3, 1.27), below: false)
+    dotTape(v, sides, from: SIMD2(bz0 + 0.3, 1.27), to: SIMD2(L - 0.3, 1.27), below: true)
+    // Box front cap above the cab: marker lights.
+    // Rear: roll-up door in a frame, slats, handle, lights, plate.
+    decalPatches(v, front, [rounded([SIMD2(-1.08, 1.2), SIMD2(1.08, 1.2), SIMD2(1.08, 3.44), SIMD2(-1.08, 3.44)], r: 0.02)], doorGrey,
+                 below: false, lift: 0.01, k: 3)
+    decalLines(v, front, (1...10).map { i in let y = 1.2 + Float(i) * 0.2; return [SIMD2(-1.07, y), SIMD2(1.07, y)] }, width: 0.014, slat,
+               below: false, mirror: false, lift: 0.014)
+    decalLines(v, front, [closed([SIMD2(-1.16, 1.12), SIMD2(1.16, 1.12), SIMD2(1.16, 3.56), SIMD2(-1.16, 3.56)])], width: 0.1, alu,
+               below: false, mirror: false, lift: 0.012)
+    decalPatches(v, front, [rounded([SIMD2(-0.14, 1.28), SIMD2(0.14, 1.28), SIMD2(0.14, 1.36), SIMD2(-0.14, 1.36)], r: 0.01)], black,
+                 below: false, lift: 0.018)
+    decalPatches(v, front, [rounded([SIMD2(0.3, 3.5), SIMD2(0.42, 3.5), SIMD2(0.42, 3.54), SIMD2(0.3, 3.54)], r: 0.01),
+                            rounded([SIMD2(-0.06, 3.5), SIMD2(0.06, 3.5), SIMD2(0.06, 3.54), SIMD2(-0.06, 3.54)], r: 0.01)],
+                 taillight, below: false, mirror: true, lift: 0.018)
+    dotTape(v, front, from: SIMD2(-1.1, 3.6), to: SIMD2(1.1, 3.6), segment: 0.18, width: 0.04, below: false)
+    // Rear bumper/under-ride guard with lights and plate.
+    box(v, 2.3, 0.14, 0.12, black, 0, 0.62, L - 0.25)
+    for x in [-0.95, 0.95] as [Float] {
+      box(v, 0.1, 0.5, 0.1, black, x * 0.55, 0.85, L - 0.25)
+      box(v, 0.22, 0.12, 0.04, taillight, x, 0.98, L + 0.005)
+      box(v, 0.1, 0.12, 0.04, amber, x * 0.82, 0.98, L + 0.005)
+    }
+    box(v, 0.32, 0.16, 0.02, plate, 0, 0.85, L - 0.18)
+    // Front bumper, steps, mirrors, fuel tank, mud flaps, wheels.
+    let bumper = holder(v, V3(0, 0, -0.06))
+    shell(bumper, samples(0, 0.24, step: 0.04), { z in boxHalf(1.03 - 0.1 * pow(1 - z / 0.24, 3), 0.62, 0.92, rb: 0.03, rt: 0.04, sides: 3, arc: 3) },
+          skin: { _ in trimPlastic })
+    for side in [-1, 1] as [Float] {
+      box(v, 0.12, 0.05, 0.42, alu, side * 0.98, 0.64, 1.95)
+      sideMirror(v, at: V3(side * 1.0, 2.0, 0.35), side: side, reach: 0.2, w: 0.2, h: 0.42, black)
+      put(v, CylinderMesh(radius: 0.06, height: 0.08, sides: 10), lens, side * 1.06, 1.62, 0.42, rz: .pi / 2)
+      box(v, 0.5, 0.48, 0.02, rubber, side * 0.85, 0.48, axles[1] + 0.62)
+    }
+    put(v, CylinderMesh(radius: 0.26, height: 1.1, sides: 20), alu, -0.82, 0.74, 3.2, rx: .pi / 2)
+    box(v, 0.5, 0.42, 0.6, black, 0.8, 0.72, 3.3)
+    for side in [-1, 1] as [Float] {
+      roadWheel(v, x: side * 0.86, y: wr, z: axles[0], radius: wr, width: 0.245, outward: side, rimRatio: 0.58, rimMaterial: rim, holes: 6, lugs: 8)
+      roadWheel(v, x: side * 0.92, y: wr, z: axles[1], radius: wr, width: 0.245, outward: side, rimRatio: 0.58, rimMaterial: rim, holes: 6,
+                lugs: 8, dual: true)
+    }
+  }
+}
+
+// Class 8 conventional tractor (long-hood, Peterbilt 389 class) with a
+// 72-inch sleeper, pulling a 53 ft (16.15 m) dry van: tall chrome grille,
+// separate swept fenders, external air cleaners, twin stacks, chrome tanks,
+// tandem drive axles; the trailer has aluminium rails, side skirts, landing
+// gear, a sliding tandem, swing doors with lock rods and DOT tape.
 func semiTruck(cab: UInt32) -> SCNNode {
-  let root = SCNNode()
+  let tL: Float = 22.4, wr: Float = 0.52
   let p = paint(cab)
-  // Conventional-nose tractor with a sleeper.
-  boxBody(root, length: 6.6, width: 2.5, height: 3.6, bottom: 0.7, noseLength: 0.55, hoodLength: 1.9, hoodHeight: 1.95, p)
-  root.childNodes.last?.simdPosition = V3(0, 0, -6.2)
-  put(root, BoxMesh(width: 2.2, height: 0.95, length: 0.04), glass, 0, 2.65, -7.05, rx: -0.3)
-  box(root, 1.2, 1.1, 0.06, chrome, 0, 1.4, -9.52) // grille
-  for side in [-1, 1] as [Float] {
-    box(root, 0.03, 0.75, 0.9, glass, side * 1.255, 2.6, -6.4)
-    tube(root, V3(side * 1.3, 1.2, -5.6), V3(side * 1.3, 4.3, -5.6), 0.08, chrome)       // stacks
-    put(root, CylinderMesh(radius: 0.32, height: 1.3), chrome, side * 1.15, 0.85, -4.6, rx: .pi / 2) // fuel tanks
-    box(root, 0.4, 0.18, 0.04, headlight, side * 0.95, 1.35, -9.5)
+  let front: [Float] = [1.3], drive: [Float] = [6.55, 7.9], trailerAxles: [Float] = [19.4, 20.65]
+  return roadVehicle(length: tL) { v in
+    // Hood: narrow, rising gently to the cowl.
+    let hoodTop = curve([(0.3, 1.86), (0.5, 1.95), (1.6, 2.0), (2.7, 2.08)])
+    let hoodHw = curve([(0.3, 0.6), (0.5, 0.64), (1.5, 0.7), (2.7, 0.78)])
+    shell(v, samples(0.3, 2.7, step: 0.08, dense: [(0.3, 0.6, 0.02)]), capStart: chrome, { z in
+      boxHalf(hoodHw(z), 1.05, hoodTop(z), rb: 0.04, rt: 0.12, lean: 0.06, sides: 6, arc: 5)
+    }, skin: { _ in p })
+    // Fenders sweeping over the front wheels down to the steps.
+    for side in [-1, 1] as [Float] {
+      let fx = side * 0.98
+      let fTop = curve([(0.4, 1.32), (0.8, 1.42), (1.3, 1.44), (1.9, 1.36), (2.5, 1.1), (2.75, 0.95)])
+      shell(v, samples(0.4, 2.75, step: 0.05), x: fx, capStart: p, capEnd: p, { z in
+        let u = (z - front[0]) / (wr + 0.12)
+        let arch = abs(u) < 1 ? wr + (wr + 0.12) * (1 - u * u).squareRoot() : 0.75
+        return boxHalf(0.3, max(0.75, min(arch, fTop(z) - 0.08)), fTop(z), rb: 0.02, rt: 0.12, sides: 4, arc: 4)
+      }, skin: { f in f.n.y < -0.6 ? black : p })
+    }
+    // Cab and sleeper.
+    let cabTop = curve([(2.55, 2.12), (2.7, 2.2), (3.05, 2.86), (3.35, 2.98), (4.05, 3.0), (4.4, 3.55), (4.8, 3.86), (6.0, 3.88)])
+    let zs = samples(2.55, 6.0, step: 0.06, dense: [(2.55, 3.4, 0.025)])
+    shell(v, zs, capStart: p, capEnd: p, { z in
+      let hw: Float = z < 4.05 ? 1.03 : 1.2
+      let blend = z < 3.95 ? 0 : min(1, (z - 3.95) / 0.3)
+      return boxHalf(1.03 + (1.2 - 1.03) * blend * blend * (3 - 2 * blend) + 0 * hw, 1.0, cabTop(z), rb: 0.05, rt: 0.14, lean: 0.07,
+                     bow: 0.01, sides: 8, arc: 5)
+    }, skin: { f in f.n.y < -0.75 ? black : p })
+    // Frame rails, fifth wheel, deck plate.
+    for x in [-0.45, 0.45] as [Float] { box(v, 0.1, 0.28, 8.3, black, x, 0.95, 4.2) }
+    box(v, 1.6, 0.12, 1.2, black, 0, 1.22, 7.1)
+    box(v, 1.9, 0.04, 0.5, alu, 0, 1.12, 6.2)
+    // Trailer.
+    let tz0: Float = 6.25, tz1: Float = tL, tb: Float = 1.3, tt: Float = 4.11
+    shell(v, samples(tz0, tz1, step: 0.4, dense: [(tz0, tz0 + 0.1, 0.02), (tz1 - 0.1, tz1, 0.02)]), capStart: frpWhite, capEnd: frpWhite, { _ in
+      boxHalf(1.3, tb, tt, rb: 0.03, rt: 0.06, sides: 4, arc: 3)
+    }, skin: { f in f.n.y < -0.75 ? alu : frpWhite })
+    let fd = Drape(v, axis: 2), sd = Drape(v, axis: 0)
+    // Grille, headlights, windscreen, cab windows, sleeper windows.
+    decalPatches(v, fd, [rounded([SIMD2(-0.5, 1.0), SIMD2(0.5, 1.0), SIMD2(0.5, 1.82), SIMD2(-0.5, 1.82)], r: 0.04)], black, below: true, lift: 0.012)
+    decalLines(v, fd, (0..<9).map { i in let y = 1.05 + Float(i) * 0.09; return [SIMD2(-0.48, y), SIMD2(0.48, y)] }, width: 0.03, chrome,
+               below: true, mirror: false, lift: 0.02)
+    decalLines(v, fd, [closed([SIMD2(-0.54, 0.98), SIMD2(0.54, 0.98), SIMD2(0.54, 1.86), SIMD2(-0.54, 1.86)])], width: 0.06, chrome,
+               below: true, mirror: false, lift: 0.022)
+    decalPatches(v, fd, [rounded([SIMD2(-0.92, 2.28), SIMD2(-0.03, 2.28), SIMD2(-0.03, 2.84), SIMD2(-0.86, 2.84)], r: 0.06),
+                         rounded([SIMD2(0.03, 2.28), SIMD2(0.92, 2.28), SIMD2(0.86, 2.84), SIMD2(0.03, 2.84)], r: 0.06)], glass,
+                 below: true, lift: 0.01, k: 6)
+    decalPatches(v, fd, (0..<5).map { i in ring2(-0.6 + Float(i) * 0.3, 2.94, 0.035, 8) }, amber, below: true, lift: 0.016)
+    sidePatches(v, sd, [rounded([SIMD2(2.98, 2.2), SIMD2(3.9, 2.2), SIMD2(3.9, 2.82), SIMD2(3.2, 2.9)], r: 0.07)], glass, lift: 0.01, k: 5)
+    sidePatches(v, sd, [rounded([SIMD2(4.9, 2.4), SIMD2(5.5, 2.4), SIMD2(5.5, 2.75), SIMD2(4.9, 2.75)], r: 0.06)], glass, lift: 0.01)
+    sideLines(v, sd, [closed(rounded([SIMD2(2.8, 1.05), SIMD2(4.0, 1.05), SIMD2(4.0, 2.96), SIMD2(2.8, 2.96)], r: 0.06))], width: 0.012, black)
+    sideLines(v, sd, [closed(rounded([SIMD2(4.6, 1.1), SIMD2(5.3, 1.1), SIMD2(5.3, 1.8), SIMD2(4.6, 1.8)], r: 0.04))], width: 0.012, black)
+    // Trailer: rails, posts, skirts, tape, rear doors.
+    sideLines(v, sd, [[SIMD2(tz0 + 0.02, tt - 0.07), SIMD2(tz1 - 0.02, tt - 0.07)], [SIMD2(tz0 + 0.02, tb + 0.1), SIMD2(tz1 - 0.02, tb + 0.1)]],
+              width: 0.13, alu, lift: 0.01)
+    var posts: [[SIMD2<Float>]] = []
+    var z = tz0 + 0.6
+    while z < tz1 - 0.3 { posts.append([SIMD2(z, tb + 0.18), SIMD2(z, tt - 0.14)]); z += 0.61 }
+    sideLines(v, sd, posts, width: 0.035, slat, lift: 0.011)
+    dotTape(v, sd, from: SIMD2(tz0 + 0.3, tb + 0.24), to: SIMD2(tz1 - 0.3, tb + 0.24), below: false)
+    dotTape(v, sd, from: SIMD2(tz0 + 0.3, tb + 0.24), to: SIMD2(tz1 - 0.3, tb + 0.24), below: true)
+    decalLines(v, fd, [[SIMD2(0, tb + 0.08), SIMD2(0, tt - 0.12)]], width: 0.03, black, below: false, mirror: false, lift: 0.012)
+    decalLines(v, fd, [closed([SIMD2(-1.26, tb + 0.06), SIMD2(1.26, tb + 0.06), SIMD2(1.26, tt - 0.06), SIMD2(-1.26, tt - 0.06)])], width: 0.08, alu,
+               below: false, mirror: false, lift: 0.012)
+    decalLines(v, fd, [-0.85, -0.25, 0.25, 0.85].map { x in [SIMD2(Float(x), tb + 0.15), SIMD2(Float(x), tt - 0.15)] }, width: 0.035, chrome,
+               below: false, mirror: false, lift: 0.02)
+    decalLines(v, fd, [-1.2, -0.65, 0.65, 1.2].flatMap { x in [Float(0.5), 1.4, 2.3].map { y in [SIMD2(Float(x) - 0.07, tb + y), SIMD2(Float(x) + 0.07, tb + y)] } },
+               width: 0.08, alu, below: false, mirror: false, lift: 0.02)
+    dotTape(v, fd, from: SIMD2(-1.25, tb + 0.02), to: SIMD2(1.25, tb + 0.02), segment: 0.2, width: 0.05, below: false)
+    decalPatches(v, fd, [-0.2, 0, 0.2].map { x in ring2(Float(x), tt - 0.03, 0.025, 8) }, taillight, below: false, lift: 0.016)
+    // Trailer gear: skirts, landing legs, slider, under-ride guard, lights.
+    for side in [-1, 1] as [Float] {
+      box(v, 0.02, 0.85, 8.6, plastic, side * 1.25, 0.82, 13.85)
+      box(v, 0.12, 0.95, 0.12, alu, side * 0.75, 0.82, 9.6)
+      box(v, 0.26, 0.04, 0.3, black, side * 0.75, 0.33, 9.6)
+      for z in trailerAxles { box(v, 0.12, 0.08, 0.6, black, side * 0.55, 0.9, z) }
+      box(v, 0.24, 0.14, 0.04, taillight, side * 1.05, 0.95, tL + 0.005)
+      box(v, 0.55, 0.55, 0.02, rubber, side * 0.9, 0.5, trailerAxles[1] + 0.75)
+      box(v, 0.55, 0.55, 0.02, rubber, side * 0.9, 0.5, drive[1] + 0.75)
+    }
+    box(v, 1.4, 0.24, 2.2, black, 0, 1.15, 20.0)
+    box(v, 2.4, 0.12, 0.1, alu, 0, 0.55, tL - 0.22)
+    for x in [-0.8, 0.8] as [Float] { box(v, 0.08, 0.7, 0.08, alu, x, 0.85, tL - 0.25) }
+    // Bumper, headlights, air cleaners, stacks, tanks, steps, mirrors.
+    let bumper = holder(v, V3(0, 0, 0))
+    shell(bumper, samples(0, 0.32, step: 0.04), { z in boxHalf(1.24 - 0.12 * pow(1 - z / 0.32, 2), 0.52, 0.92, rb: 0.06, rt: 0.06, sides: 3, arc: 3) },
+          skin: { _ in chrome })
+    for side in [-1, 1] as [Float] {
+      box(v, 0.24, 0.17, 0.12, chrome, side * 1.0, 1.24, 0.62)
+      box(v, 0.2, 0.13, 0.03, headlight, side * 1.0, 1.24, 0.555)
+      put(v, LatheMesh([SIMD2(0, 0.2), SIMD2(0.7, 0.2), SIMD2(0.82, 0.12), SIMD2(0.84, 0.001)], sides: 20), chrome, side * 1.08, 1.4, 2.35)
+      tube(v, V3(side * 1.16, 1.1, 4.12), V3(side * 1.16, 4.35, 4.12), 0.09, chrome, sides: 14)
+      put(v, CylinderMesh(radius: 0.33, height: 1.3, sides: 22), chrome, side * 0.92, 0.82, 4.95, rx: .pi / 2)
+      for z in [4.4, 5.5] as [Float] { box(v, 0.7, 0.04, 0.06, black, side * 0.92, 1.15, z) }
+      box(v, 0.32, 0.04, 0.55, alu, side * 1.05, 0.62, 3.45)
+      box(v, 0.32, 0.04, 0.55, alu, side * 1.05, 0.95, 3.45)
+      tube(v, V3(side * 1.03, 1.9, 2.95), V3(side * 1.35, 2.0, 3.0), 0.02, chrome)
+      tube(v, V3(side * 1.03, 2.7, 2.95), V3(side * 1.35, 2.6, 3.0), 0.02, chrome)
+      box(v, 0.05, 0.62, 0.22, chrome, side * 1.38, 2.3, 3.0)
+      box(v, 0.01, 0.56, 0.18, glass, side * 1.38, 2.3, 3.115)
+    }
+    for side in [-1, 1] as [Float] {
+      roadWheel(v, x: side * 0.98, y: wr, z: front[0], radius: wr, width: 0.28, outward: side, rimRatio: 0.55, rimMaterial: chrome, holes: 10, lugs: 10)
+      for z in drive {
+        roadWheel(v, x: side * 0.95, y: wr, z: z, radius: wr, width: 0.28, outward: side, rimRatio: 0.55, rimMaterial: chrome, holes: 10, lugs: 10, dual: true)
+      }
+      for z in trailerAxles {
+        roadWheel(v, x: side * 0.95, y: wr, z: z, radius: wr, width: 0.28, outward: side, rimRatio: 0.55, rimMaterial: alu, holes: 10, lugs: 10, dual: true)
+      }
+    }
   }
-  wheelsAt(root, axles: [-8.3], track: 2.15, radius: 0.52)
-  wheelsAt(root, axles: [-4.2, -2.9], track: 2.15, radius: 0.52, dual: true)
-  // 53-foot trailer.
-  box(root, 2.6, 2.9, 14.6, white, 0, 2.75, 5.3)
-  box(root, 2.62, 0.25, 14.6, paint(cab), 0, 1.25, 5.3)
-  wheelsAt(root, axles: [10.4, 11.7], track: 2.15, radius: 0.52, dual: true)
-  for x in [-0.9, 0.9] as [Float] { tube(root, V3(x, 1.2, 0.5), V3(x, 0.1, 0.5), 0.05, chrome) }
-  for side in [-1, 1] as [Float] { box(root, 0.18, 0.12, 0.04, taillight, side * 1.15, 1.25, 12.61) }
-  return root
 }
 
+// Low-floor 40 ft city bus (New Flyer Xcelsior class): 12.5 m long,
+// 2.59 m wide, 3.3 m to the roof fairing, 7.2 m wheelbase. Flush wraparound
+// windscreen under an LED destination sign, glazed bi-fold doors on the
+// right, a continuous flush window band with slim dark pillars, roof
+// fairing over the CNG/battery pack and HVAC, rear engine louvres.
+// Livery (paint) runs along the skirt and the roof fairing.
 func cityBus(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let L: Float = 12.2, W: Float = 2.55, H: Float = 3.15
-  boxBody(root, length: L, width: W, height: H, bottom: 0.32, noseLength: 0.35, white)
-  put(root, BoxMesh(width: CGFloat(W * 0.92), height: 1.5, length: 0.04), glass, 0, 1.95, -L / 2 + 0.04, rx: -0.06)
-  box(root, 1.6, 0.25, 0.04, material("sign", 0xFFB800, emit: true), 0, 2.95, -L / 2 + 0.02)
-  windowBand(root, width: W, y: 2.05, height: 1.0, from: -L / 2 + 1.2, to: L / 2 - 0.6, panes: 8)
+  let L: Float = 12.5, hwMax: Float = 1.295, H: Float = 3.08, wr: Float = 0.5
+  let axles: [Float] = [2.55, 9.75]
   let p = paint(livery)
-  for side in [-1, 1] as [Float] {
-    box(root, 0.03, 0.55, L - 0.4, p, side * (W / 2 + 0.006), 0.95, 0)
-    box(root, 0.035, 2.1, 1.1, glass, W / 2 * 1.003, 1.4, -L / 2 + 1.5) // front door
-    box(root, 0.035, 2.1, 1.1, glass, W / 2 * 1.003, 1.4, 0.6)          // rear door
-    box(root, 0.3, 0.14, 0.04, headlight, side * 0.95, 0.75, -L / 2 + 0.02)
-    box(root, 0.16, 0.4, 0.04, taillight, side * 1.1, 1.0, L / 2 + 0.01)
+  let busWhite = material("white", 0xF4F5F7, metal: 0.2, rough: 0.35)
+  return roadVehicle(length: L) { v in
+    let hw = curve([(0, hwMax - 0.12), (0.06, hwMax - 0.05), (0.2, hwMax - 0.01), (0.5, hwMax), (L - 0.3, hwMax), (L, hwMax - 0.08)])
+    let top = curve([(0, H - 0.22), (0.12, H - 0.08), (0.35, H), (L - 0.2, H), (L, H - 0.1)])
+    let bot = archBottom(0.36, axles: axles, wheel: wr, gap: 0.09)
+    let zs = samples(0, L, step: 0.08, dense: [(0, 0.3, 0.02), (axles[0] - 0.7, axles[0] + 0.7, 0.03), (axles[1] - 0.7, axles[1] + 0.7, 0.03),
+                                               (L - 0.3, L, 0.02)])
+    shell(v, zs, capStart: busWhite, capEnd: busWhite, { z in
+      boxHalf(hw(z), bot(z), top(z), rb: 0.08, rt: 0.2, lean: 0.06, bow: 0.006, sides: 8, arc: 5)
+    }, skin: { f in f.n.y < -0.75 ? trimPlastic : busWhite })
+    // Roof fairing.
+    shell(v, samples(2.3, 11.6, step: 0.12, dense: [(2.3, 2.9, 0.03), (11.0, 11.6, 0.03)]), capStart: p, capEnd: p, { z in
+      let f = min(1, (z - 2.3) / 0.6, (11.6 - z) / 0.6)
+      let s = f * f * (3 - 2 * f)
+      return boxHalf(1.05, H - 0.05, H + 0.02 + 0.3 * s, rb: 0.02, rt: 0.18, lean: 0.05, sides: 3, arc: 4)
+    }, skin: { _ in p })
+    let fd = Drape(v, axis: 2), sd = Drape(v, axis: 0), up = Drape(v, axis: 1)
+    // Livery: a skirt between the wheel arches, a stripe under the windows
+    // and a sweep up the front corners.
+    let R = wr + 0.09
+    sidePatches(v, sd, [rounded([SIMD2(0.02, 0.37), SIMD2(axles[0] - R - 0.03, 0.37), SIMD2(axles[0] - R - 0.03, 0.95), SIMD2(0.02, 0.95)], r: 0.04),
+                        rounded([SIMD2(axles[0] + R + 0.03, 0.37), SIMD2(axles[1] - R - 0.03, 0.37), SIMD2(axles[1] - R - 0.03, 0.95),
+                                 SIMD2(axles[0] + R + 0.03, 0.95)], r: 0.04),
+                        rounded([SIMD2(axles[1] + R + 0.03, 0.37), SIMD2(L - 0.02, 0.37), SIMD2(L - 0.02, 0.95), SIMD2(axles[1] + R + 0.03, 0.95)], r: 0.04),
+                        rounded([SIMD2(0.02, 1.13), SIMD2(L - 0.02, 1.13), SIMD2(L - 0.02, 1.3), SIMD2(0.02, 1.3)], r: 0.03)], p, lift: 0.008, k: 6)
+    decalPatches(v, fd, [rounded([SIMD2(-1.22, 0.56), SIMD2(1.22, 0.56), SIMD2(1.22, 0.95), SIMD2(-1.22, 0.95)], r: 0.04)], p, below: true, lift: 0.008)
+    // Front: windscreen, sign, lamps, bumper, plate, bike rack.
+    decalPatches(v, fd, [rounded([SIMD2(-1.18, 1.0), SIMD2(1.18, 1.0), SIMD2(1.14, 2.62), SIMD2(-1.14, 2.62)], r: 0.12)], glass,
+                 below: true, lift: 0.01, k: 10)
+    decalPatches(v, fd, [rounded([SIMD2(-0.95, 2.68), SIMD2(0.95, 2.68), SIMD2(0.95, 2.92), SIMD2(-0.95, 2.92)], r: 0.03)], black,
+                 below: true, lift: 0.012)
+    decalLines(v, fd, [[SIMD2(-0.8, 2.8), SIMD2(0.6, 2.8)]], width: 0.08, amber, below: true, mirror: false, lift: 0.02)
+    decalPatches(v, fd, [rounded([SIMD2(0.82, 0.58), SIMD2(1.16, 0.58), SIMD2(1.16, 0.84), SIMD2(0.82, 0.84)], r: 0.06)], lens,
+                 below: true, mirror: true, lift: 0.014)
+    decalPatches(v, fd, [ring2(0.92, 0.71, 0.06, 12), ring2(1.07, 0.71, 0.05, 12)], headlight, below: true, mirror: true, lift: 0.02)
+    decalPatches(v, fd, [rounded([SIMD2(-1.2, 0.36), SIMD2(1.2, 0.36), SIMD2(1.2, 0.55), SIMD2(-1.2, 0.55)], r: 0.05)], trimPlastic,
+                 below: true, lift: 0.012)
+    decalPatches(v, fd, [rounded([SIMD2(-0.26, 0.6), SIMD2(0.26, 0.6), SIMD2(0.26, 0.72), SIMD2(-0.26, 0.72)], r: 0.015)], plate,
+                 below: true, lift: 0.016)
+    // Right side: front and rear doors (glazed bi-folds); both sides: window band.
+    for (z0, z1) in [(0.45, 1.65), (5.6, 6.85)] as [(Float, Float)] {
+      let mid = (z0 + z1) / 2
+      decalPatches(v, sd, [rounded([SIMD2(z0, 0.42), SIMD2(z1, 0.42), SIMD2(z1, 2.78), SIMD2(z0, 2.78)], r: 0.06)], black, lift: 0.01)
+      decalPatches(v, sd, [rounded([SIMD2(z0 + 0.06, 0.55), SIMD2(mid - 0.03, 0.55), SIMD2(mid - 0.03, 2.7), SIMD2(z0 + 0.06, 2.7)], r: 0.04),
+                           rounded([SIMD2(mid + 0.03, 0.55), SIMD2(z1 - 0.06, 0.55), SIMD2(z1 - 0.06, 2.7), SIMD2(mid + 0.03, 2.7)], r: 0.04)],
+                   glass, lift: 0.016)
+    }
+    let band: (Float, Float) = (1.38, 2.62)
+    func windows(_ z0: Float, _ z1: Float, panes: Int, right: Bool, left: Bool) {
+      sidePatches(v, sd, [rounded([SIMD2(z0, band.0), SIMD2(z1, band.0), SIMD2(z1, band.1), SIMD2(z0, band.1)], r: 0.1)], glass,
+                  right: right, left: left, lift: 0.01)
+      let pane = (z1 - z0) / Float(panes)
+      sideLines(v, sd, (1..<panes).map { i in let z = z0 + pane * Float(i); return [SIMD2(z, band.0), SIMD2(z, band.1)] }, width: 0.07, black,
+                right: right, left: left, lift: 0.015)
+    }
+    windows(1.8, 5.45, panes: 3, right: true, left: false)
+    windows(7.0, 11.4, panes: 4, right: true, left: false)
+    windows(0.25, 11.4, panes: 9, right: false, left: true)
+    sidePatches(v, sd, [rounded([SIMD2(0.25, 1.1), SIMD2(1.55, 1.1), SIMD2(1.55, 1.36), SIMD2(0.25, 1.36)], r: 0.04)], glass, right: false, lift: 0.01)
+    // Engine louvres and access doors at the back of the left side; side markers.
+    sideLines(v, sd, (0..<8).map { i in let y = 1.0 + Float(i) * 0.05; return [SIMD2(10.55, y), SIMD2(11.6, y)] }, width: 0.022, black,
+              right: false, lift: 0.014)
+    sidePatches(v, sd, [3.6, 8.2, 12.2].map { z in rounded([SIMD2(Float(z), 0.6), SIMD2(Float(z) + 0.1, 0.6), SIMD2(Float(z) + 0.1, 0.65),
+                                                               SIMD2(Float(z), 0.65)], r: 0.01) }, amber, lift: 0.02)
+    // Rear: window, engine grille, lamps, bumper.
+    decalPatches(v, fd, [rounded([SIMD2(-0.95, 2.2), SIMD2(0.95, 2.2), SIMD2(0.95, 2.82), SIMD2(-0.95, 2.82)], r: 0.08)], glass, below: false, lift: 0.01)
+    decalPatches(v, fd, [rounded([SIMD2(-0.9, 0.95), SIMD2(0.9, 0.95), SIMD2(0.9, 1.75), SIMD2(-0.9, 1.75)], r: 0.05)], trimPlastic,
+                 below: false, lift: 0.012)
+    decalLines(v, fd, (0..<7).map { i in let y = 1.03 + Float(i) * 0.1; return [SIMD2(-0.85, y), SIMD2(0.85, y)] }, width: 0.03, slat,
+               below: false, mirror: false, lift: 0.016)
+    decalPatches(v, fd, [ring2(1.08, 1.5, 0.08, 14), ring2(1.08, 1.25, 0.08, 14)], taillight, below: false, mirror: true, lift: 0.016)
+    decalPatches(v, fd, [ring2(1.08, 1.0, 0.07, 14)], amber, below: false, mirror: true, lift: 0.016)
+    decalPatches(v, fd, [rounded([SIMD2(-1.2, 0.36), SIMD2(1.2, 0.36), SIMD2(1.2, 0.6), SIMD2(-1.2, 0.6)], r: 0.04)], trimPlastic, below: false, lift: 0.012)
+    // Roof: HVAC grilles and hatches.
+    decalPatches(v, up, [rounded([SIMD2(-0.7, 9.4), SIMD2(0.7, 9.4), SIMD2(0.7, 10.9), SIMD2(-0.7, 10.9)], r: 0.1)], trimPlastic, lift: 0.01)
+    decalPatches(v, up, [ring2(0.45, 9.8, 0.22, 16), ring2(-0.45, 9.8, 0.22, 16), ring2(0.45, 10.5, 0.22, 16), ring2(-0.45, 10.5, 0.22, 16)], black, lift: 0.02)
+    // Mirrors on stalks, bike rack, wheels.
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 1.22, 2.55, 0.25), V3(side * 1.42, 2.6, -0.2), 0.025, black, sides: 8)
+      box(v, 0.08, 0.36, 0.22, black, side * 1.44, 2.38, -0.22)
+    }
+    for x in [-0.55, 0.55] as [Float] {
+      tube(v, V3(x, 0.55, 0.0), V3(x, 0.62, -0.42), 0.025, alu, sides: 8)
+      tube(v, V3(x, 0.62, -0.42), V3(x, 0.98, -0.45), 0.025, alu, sides: 8)
+    }
+    tube(v, V3(-0.62, 0.62, -0.42), V3(0.62, 0.62, -0.42), 0.025, alu, sides: 8)
+    for side in [-1, 1] as [Float] {
+      roadWheel(v, x: side * 1.08, y: wr, z: axles[0], radius: wr, width: 0.3, outward: side, rimRatio: 0.56, rimMaterial: alu, holes: 10, lugs: 10)
+      roadWheel(v, x: side * 0.98, y: wr, z: axles[1], radius: wr, width: 0.3, outward: side, rimRatio: 0.56, rimMaterial: alu, holes: 10, lugs: 10, dual: true)
+    }
   }
-  box(root, W * 0.98, 0.08, L * 0.94, p, 0, H + 0.02, 0) // roof pods
-  wheelsAt(root, axles: [-L / 2 + 2.6, L / 2 - 3.0], track: W - 0.35, radius: 0.5)
-  return root
 }
 
+// Conventional school bus (Thomas C2 / IC CE class): 11.2 m, 2.44 m wide,
+// short sloping hood, two-piece windscreen, drop-sash windows with split
+// sashes, three black rub rails, red and amber warning lamps front and
+// rear, stop arm, crossing arm, crossover mirrors, rear emergency door.
 func schoolBus() -> SCNNode {
-  let root = SCNNode()
-  let L: Float = 11.5, W: Float = 2.45, H: Float = 3.0
+  let L: Float = 11.2, hwMax: Float = 1.22, H: Float = 3.12, wr: Float = 0.5
+  let axles: [Float] = [1.05, 7.95]
   let yellow = paint(0xFFB300)
-  boxBody(root, length: L, width: W, height: H, bottom: 0.45, noseLength: 0.4, hoodLength: 1.6, hoodHeight: 1.5, yellow)
-  put(root, BoxMesh(width: CGFloat(W * 0.9), height: 0.85, length: 0.04), glass, 0, 2.1, -L / 2 + 1.85, rx: -0.12)
-  windowBand(root, width: W, y: 2.2, height: 0.72, from: -L / 2 + 2.3, to: L / 2 - 0.5, panes: 9)
-  for side in [-1, 1] as [Float] {
-    for y in [1.2, 1.55] as [Float] { box(root, 0.025, 0.06, L - 1.8, black, side * (W / 2 + 0.006), y, 0.7) }
-    box(root, 0.3, 0.16, 0.04, headlight, side * 0.75, 1.0, -L / 2 + 0.02)
-    box(root, 0.14, 0.14, 0.04, taillight, side * 1.0, 1.1, L / 2 + 0.01)
-    box(root, 0.16, 0.16, 0.04, amber, side * 0.9, 2.85, -L / 2 + 1.58)
+  return roadVehicle(length: L) { v in
+    let top = curve([(0, 1.18), (0.1, 1.36), (0.4, 1.44), (1.25, 1.56), (1.45, 1.62), (1.75, 2.62), (1.95, H - 0.06), (2.3, H), (L - 0.2, H),
+                     (L, H - 0.12)])
+    let hw = curve([(0, 0.82), (0.1, 0.9), (0.6, 0.94), (1.3, 1.0), (1.55, hwMax - 0.02), (2.2, hwMax), (L - 0.15, hwMax), (L, hwMax - 0.06)])
+    let rt = curve([(0, 0.14), (1.3, 0.2), (1.8, 0.4), (2.4, 0.42), (L, 0.42)])
+    let bot = archBottom(0.5, axles: axles, wheel: wr, gap: 0.08)
+    let zs = samples(0, L, step: 0.08, dense: [(0, 0.3, 0.02), (1.2, 2.4, 0.025), (axles[0] - 0.7, axles[0] + 0.7, 0.03),
+                                               (axles[1] - 0.7, axles[1] + 0.7, 0.03), (L - 0.3, L, 0.02)])
+    shell(v, zs, capStart: yellow, capEnd: yellow, { z in
+      boxHalf(hw(z), bot(z), top(z), rb: 0.06, rt: rt(z), lean: z < 1.4 ? 0.12 : 0.05, bow: 0.005, sides: 8, arc: 6)
+    }, skin: { f in f.n.y < -0.75 ? black : yellow })
+    let fd = Drape(v, axis: 2), sd = Drape(v, axis: 0), up = Drape(v, axis: 1)
+    // Front: grille, headlamps, windscreen, sign board, warning lamps.
+    decalPatches(v, fd, [rounded([SIMD2(-0.5, 0.62), SIMD2(0.5, 0.62), SIMD2(0.5, 1.12), SIMD2(-0.5, 1.12)], r: 0.06)], black, below: true, lift: 0.012)
+    decalLines(v, fd, (0..<5).map { i in let y = 0.7 + Float(i) * 0.09; return [SIMD2(-0.46, y), SIMD2(0.46, y)] }, width: 0.025, slat,
+               below: true, mirror: false, lift: 0.02)
+    decalPatches(v, fd, [ring2(0.66, 0.92, 0.1, 14)], chrome, below: true, mirror: true, lift: 0.014)
+    decalPatches(v, fd, [ring2(0.66, 0.92, 0.075, 14)], headlight, below: true, mirror: true, lift: 0.02)
+    decalPatches(v, fd, [rounded([SIMD2(-1.08, 1.68), SIMD2(-0.03, 1.68), SIMD2(-0.03, 2.55), SIMD2(-1.04, 2.55)], r: 0.06),
+                         rounded([SIMD2(0.03, 1.68), SIMD2(1.08, 1.68), SIMD2(1.04, 2.55), SIMD2(0.03, 2.55)], r: 0.06)], glass,
+                 below: true, lift: 0.01, k: 7)
+    decalPatches(v, fd, [rounded([SIMD2(-0.55, 2.7), SIMD2(0.55, 2.7), SIMD2(0.55, 2.94), SIMD2(-0.55, 2.94)], r: 0.02)], black, below: true, lift: 0.012)
+    decalPatches(v, fd, [rounded([SIMD2(-0.52, 2.73), SIMD2(0.52, 2.73), SIMD2(0.52, 2.91), SIMD2(-0.52, 2.91)], r: 0.02)], yellow, below: true, lift: 0.016)
+    decalLines(v, fd, [[SIMD2(-0.45, 2.82), SIMD2(0.45, 2.82)]], width: 0.06, black, below: true, mirror: false, lift: 0.02)
+    decalPatches(v, fd, [ring2(0.95, 2.82, 0.09, 14)], lightRed, below: true, mirror: true, lift: 0.016)
+    decalPatches(v, fd, [ring2(0.73, 2.82, 0.09, 14)], amber, below: true, mirror: true, lift: 0.016)
+    // Sides: rub rails, windows with split sashes, entry door, emergency exit.
+    sideLines(v, sd, [0.95, 1.3, 1.62].map { y in [SIMD2(1.5, Float(y)), SIMD2(L - 0.05, Float(y))] }, width: 0.06, black, lift: 0.012)
+    let w0: Float = 2.45, pane: Float = 0.82
+    for side in [true, false] {
+      for i in 0..<10 {
+        let z0 = w0 + Float(i) * pane
+        if !side && i == 9 { continue }
+        decalPatches(v, sd, [rounded([SIMD2(z0 + 0.04, 1.78), SIMD2(z0 + pane - 0.04, 1.78), SIMD2(z0 + pane - 0.04, 2.55),
+                                      SIMD2(z0 + 0.04, 2.55)], r: 0.05)], glass, below: !side, lift: 0.01)
+        decalLines(v, sd, [[SIMD2(z0 + 0.04, 2.2), SIMD2(z0 + pane - 0.04, 2.2)]], width: 0.035, alu, below: !side, mirror: false, lift: 0.016)
+      }
+      decalPatches(v, sd, [rounded([SIMD2(1.55, 1.75), SIMD2(2.3, 1.75), SIMD2(2.3, 2.55), SIMD2(1.85, 2.55)], r: 0.05)], glass, below: !side, lift: 0.01)
+    }
+    decalPatches(v, sd, [rounded([SIMD2(1.62, 0.62), SIMD2(1.96, 0.62), SIMD2(1.96, 2.62), SIMD2(1.62, 2.62)], r: 0.03),
+                         rounded([SIMD2(2.0, 0.62), SIMD2(2.34, 0.62), SIMD2(2.34, 2.62), SIMD2(2.0, 2.62)], r: 0.03)], glass, below: false, lift: 0.014)
+    decalLines(v, sd, [closed(rounded([SIMD2(9.95, 0.6), SIMD2(10.6, 0.6), SIMD2(10.6, 2.62), SIMD2(9.95, 2.62)], r: 0.04))], width: 0.02, black,
+               below: true, mirror: false, lift: 0.014)
+    // Stop arm folded on the left side.
+    decalPatches(v, sd, [ring2(2.55, 2.0, 0.24, 8, phase: .pi / 8)], material("stop", 0xD0021B, rough: 0.4), below: true, lift: 0.08)
+    // Rear: emergency door with windows, lamps, bumper.
+    decalPatches(v, fd, [rounded([SIMD2(-0.5, 1.78), SIMD2(0.5, 1.78), SIMD2(0.5, 2.55), SIMD2(-0.5, 2.55)], r: 0.05),
+                         rounded([SIMD2(0.62, 1.78), SIMD2(1.1, 1.78), SIMD2(1.1, 2.55), SIMD2(0.62, 2.55)], r: 0.05),
+                         rounded([SIMD2(-1.1, 1.78), SIMD2(-0.62, 1.78), SIMD2(-0.62, 2.55), SIMD2(-1.1, 2.55)], r: 0.05),
+                         rounded([SIMD2(-0.5, 0.95), SIMD2(0.5, 0.95), SIMD2(0.5, 1.6), SIMD2(-0.5, 1.6)], r: 0.05)], glass, below: false, lift: 0.01)
+    decalLines(v, fd, [closed(rounded([SIMD2(-0.56, 0.62), SIMD2(0.56, 0.62), SIMD2(0.56, 2.62), SIMD2(-0.56, 2.62)], r: 0.04))], width: 0.02, black,
+               below: false, mirror: false, lift: 0.014)
+    decalPatches(v, fd, [ring2(0.95, 2.82, 0.09, 14)], lightRed, below: false, mirror: true, lift: 0.016)
+    decalPatches(v, fd, [ring2(0.73, 2.82, 0.09, 14)], amber, below: false, mirror: true, lift: 0.016)
+    decalPatches(v, fd, [ring2(0.95, 1.2, 0.09, 14)], taillight, below: false, mirror: true, lift: 0.016)
+    decalPatches(v, fd, [ring2(0.95, 0.95, 0.08, 14)], amber, below: false, mirror: true, lift: 0.016)
+    // Roof hatches.
+    decalPatches(v, up, [rounded([SIMD2(-0.4, 4.0), SIMD2(0.4, 4.0), SIMD2(0.4, 4.7), SIMD2(-0.4, 4.7)], r: 0.06),
+                         rounded([SIMD2(-0.4, 8.0), SIMD2(0.4, 8.0), SIMD2(0.4, 8.7), SIMD2(-0.4, 8.7)], r: 0.06)], alu, lift: 0.02)
+    // Bumpers, crossing arm, crossover mirrors, side mirrors, wheels.
+    box(v, 2.3, 0.26, 0.14, black, 0, 0.62, -0.06)
+    box(v, 2.4, 0.26, 0.14, black, 0, 0.62, L + 0.06)
+    tube(v, V3(0.85, 0.62, -0.14), V3(0.85, 0.62, -0.75), 0.03, material("stop", 0xD0021B, rough: 0.4), sides: 8)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.85, 1.25, 0.2), V3(side * 1.05, 1.75, -0.12), 0.015, black, sides: 6)
+      put(v, LatheMesh([SIMD2(-0.03, 0.001), SIMD2(-0.03, 0.12), SIMD2(0.03, 0.12), SIMD2(0.05, 0.001)], sides: 14), black, side * 1.05, 1.82, -0.12,
+          rx: .pi / 2)
+      tube(v, V3(side * 1.2, 2.3, 1.55), V3(side * 1.45, 2.4, 1.3), 0.02, black, sides: 6)
+      box(v, 0.08, 0.42, 0.24, black, side * 1.47, 2.2, 1.28)
+      roadWheel(v, x: side * 1.0, y: wr, z: axles[0], radius: wr, width: 0.28, outward: side, rimRatio: 0.56, rimMaterial: rim, holes: 6, lugs: 10)
+      roadWheel(v, x: side * 0.92, y: wr, z: axles[1], radius: wr, width: 0.28, outward: side, rimRatio: 0.56, rimMaterial: rim, holes: 6, lugs: 10, dual: true)
+    }
   }
-  box(root, 0.03, 0.4, 0.4, material("stop", 0xD0021B, rough: 0.4), -W / 2 - 0.25, 1.6, -L / 2 + 2.4) // stop arm
-  box(root, W * 0.5, 0.35, 0.05, black, 0, 1.0, -L / 2 + 0.02)
-  wheelsAt(root, axles: [-L / 2 + 1.3, L / 2 - 2.6], track: W - 0.3, radius: 0.5)
-  return root
 }
 
+// Custom-cab pumper (Pierce Enforcer class): 10.4 m, 2.5 m wide; tilt
+// cab with a raised-roof crew section, white roof cap, chrome bumper
+// extension with siren, light bars, pump panel, roll-up compartment
+// doors, ladders on the right, hose bed, rear chevrons.
 func fireTruck() -> SCNNode {
-  let root = SCNNode()
+  let L: Float = 10.4, wr: Float = 0.55
+  let axles: [Float] = [1.4, 7.0]
   let red = paint(0xC8102E)
-  boxBody(root, length: 3.0, width: 2.5, height: 3.0, bottom: 0.6, noseLength: 0.5, red)
-  root.childNodes.last?.simdPosition = V3(0, 0, -3.6)
-  put(root, BoxMesh(width: 2.2, height: 1.1, length: 0.04), glass, 0, 2.3, -5.08, rx: -0.12)
-  for side in [-1, 1] as [Float] { box(root, 0.03, 0.8, 1.2, glass, side * 1.255, 2.3, -4.0) }
-  box(root, 2.5, 2.4, 6.0, red, 0, 1.85, 1.2)
-  for side in [-1, 1] as [Float] {
-    for i in 0..<4 { box(root, 0.03, 1.6, 1.3, material("locker", 0xD5D9DE, metal: 0.3, rough: 0.35), side * 1.256, 1.75, -1.2 + Float(i) * 1.5) } // roller-door lockers
-    box(root, 0.4, 0.16, 0.04, headlight, side * 0.8, 1.2, -5.12)
-    tube(root, V3(side * 0.45, 3.2, -1.5), V3(side * 0.45, 3.3, 4.3), 0.06, chrome) // ladder rails
+  let capWhite = material("white", 0xF4F5F7, metal: 0.2, rough: 0.35)
+  let yellowChevron = material("chevron", 0xF5D20B, rough: 0.4)
+  return roadVehicle(length: L) { v in
+    cabForward(v, length: 3.55, hw: 1.25, bottom: 0.95, top: 2.95, axle: axles[0], wheel: wr, red, roofStep: (1.9, 0.18))
+    // Body: pump house and compartments.
+    shell(v, samples(3.6, L, step: 0.25, dense: [(3.6, 3.7, 0.02), (L - 0.1, L, 0.02), (axles[1] - 0.8, axles[1] + 0.8, 0.04)]),
+          capStart: red, capEnd: red, { z in
+      let b = archBottom(0.62, axles: [axles[1]], wheel: wr, gap: 0.1)(z)
+      return boxHalf(1.25, b, z < 4.6 ? 2.9 : 2.55, rb: 0.03, rt: 0.05, sides: 6, arc: 3)
+    }, skin: { f in f.n.y < -0.75 ? black : red })
+    let fd = Drape(v, axis: 2), sd = Drape(v, axis: 0), up = Drape(v, axis: 1)
+    // Cab: white roof cap, windscreen, grille, lamps.
+    decalPatches(v, up, [rounded([SIMD2(-1.18, 0.12), SIMD2(1.18, 0.12), SIMD2(1.18, 1.86), SIMD2(-1.18, 1.86)], r: 0.1),
+                         rounded([SIMD2(-1.18, 2.2), SIMD2(1.18, 2.2), SIMD2(1.18, 3.5), SIMD2(-1.18, 3.5)], r: 0.1)], capWhite, lift: 0.006, k: 10)
+    decalPatches(v, fd, [rounded([SIMD2(-1.08, 1.85), SIMD2(-0.03, 1.85), SIMD2(-0.03, 2.65), SIMD2(-1.04, 2.65)], r: 0.08),
+                         rounded([SIMD2(0.03, 1.85), SIMD2(1.08, 1.85), SIMD2(1.04, 2.65), SIMD2(0.03, 2.65)], r: 0.08)], glass,
+                 below: true, lift: 0.01, k: 7)
+    decalPatches(v, fd, [rounded([SIMD2(-0.6, 1.08), SIMD2(0.6, 1.08), SIMD2(0.6, 1.62), SIMD2(-0.6, 1.62)], r: 0.04)], chrome, below: true, lift: 0.012)
+    decalLines(v, fd, (0..<6).map { i in let y = 1.14 + Float(i) * 0.085; return [SIMD2(-0.56, y), SIMD2(0.56, y)] }, width: 0.035, black,
+               below: true, mirror: false, lift: 0.018)
+    decalPatches(v, fd, [rounded([SIMD2(0.72, 1.12), SIMD2(1.1, 1.12), SIMD2(1.1, 1.36), SIMD2(0.72, 1.36)], r: 0.04)], lens, below: true, mirror: true, lift: 0.014)
+    decalPatches(v, fd, [ring2(0.82, 1.24, 0.07, 12), ring2(1.0, 1.24, 0.07, 12)], headlight, below: true, mirror: true, lift: 0.02)
+    decalPatches(v, fd, [rounded([SIMD2(0.72, 1.45), SIMD2(1.1, 1.45), SIMD2(1.1, 1.58), SIMD2(0.72, 1.58)], r: 0.03)], lightRed, below: true, mirror: true, lift: 0.016)
+    // Cab doors: front and crew, windows.
+    for (z0, z1, top) in [(0.35, 1.45, Float(2.62)), (2.05, 3.2, Float(2.82))] as [(Float, Float, Float)] {
+      sidePatches(v, sd, [rounded([SIMD2(z0 + 0.1, 1.95), SIMD2(z1 - 0.1, 1.95), SIMD2(z1 - 0.1, top), SIMD2(z0 + 0.1, top)], r: 0.06)], glass, lift: 0.01)
+      sideLines(v, sd, [closed(rounded([SIMD2(z0, 1.0), SIMD2(z1, 1.0), SIMD2(z1, top + 0.08), SIMD2(z0, top + 0.08)], r: 0.05))], width: 0.014, black)
+    }
+    sidePatches(v, sd, [rounded([SIMD2(1.55, 1.95), SIMD2(1.95, 1.95), SIMD2(1.95, 2.62), SIMD2(1.55, 2.62)], r: 0.05)], glass, lift: 0.01)
+    // Pump panel and compartments with roll-up doors.
+    sidePatches(v, sd, [rounded([SIMD2(3.7, 1.0), SIMD2(4.5, 1.0), SIMD2(4.5, 2.6), SIMD2(3.7, 2.6)], r: 0.03)], alu, lift: 0.01)
+    sidePatches(v, sd, [ring2(3.9, 2.3, 0.07, 12), ring2(4.1, 2.3, 0.07, 12), ring2(4.3, 2.3, 0.07, 12), ring2(4.1, 2.05, 0.09, 12)], black, lift: 0.016)
+    sidePatches(v, sd, [ring2(3.95, 1.4, 0.1, 12), ring2(4.3, 1.4, 0.1, 12)], chrome, lift: 0.03)
+    let doors: [(Float, Float)] = [(4.65, 5.85), (5.95, 6.25), (7.75, 9.0), (9.1, 10.25)]
+    for (z0, z1) in doors {
+      let yb: Float = (z0 > 5.9 && z1 < 7.8) ? 1.85 : 0.95
+      sidePatches(v, sd, [rounded([SIMD2(z0, yb), SIMD2(z1, yb), SIMD2(z1, 2.42), SIMD2(z0, 2.42)], r: 0.02)], doorGrey, lift: 0.01)
+      sideLines(v, sd, stride(from: yb + 0.08, to: 2.4, by: 0.08).map { y in [SIMD2(z0 + 0.02, Float(y)), SIMD2(z1 - 0.02, Float(y))] },
+                width: 0.012, slat, lift: 0.014)
+    }
+    sidePatches(v, sd, [rounded([SIMD2(5.95, 1.88), SIMD2(8.1, 1.88), SIMD2(8.1, 2.42), SIMD2(5.95, 2.42)], r: 0.02)], doorGrey, lift: 0.01)
+    sideLines(v, sd, stride(from: Float(1.96), to: 2.4, by: 0.08).map { y in [SIMD2(5.97, Float(y)), SIMD2(8.08, Float(y))] }, width: 0.012, slat, lift: 0.014)
+    sideLines(v, sd, [[SIMD2(0.1, 0.98), SIMD2(L - 0.1, 0.98)]], width: 0.06, material("stripe-gold", 0xD8B04A, metal: 0.7, rough: 0.3), lift: 0.016)
+    // Rear: chevrons, lamps, tailboard.
+    var chev: [[SIMD2<Float>]] = [], chevY: [[SIMD2<Float>]] = []
+    for i in -8...8 {
+      let x0 = Float(i) * 0.3
+      let poly = [SIMD2(x0, 0.7), SIMD2(x0 + 0.15, 0.7), SIMD2(x0 + 0.85, 1.4), SIMD2(x0 + 0.7, 1.4)]
+      let clipped = poly.map { SIMD2(max(-1.2, min(1.2, $0.x)), $0.y) }
+      if i % 2 == 0 { chev.append(clipped) } else { chevY.append(clipped) }
+    }
+    decalPatches(v, fd, chev, lightRed.copy() as! SCNMaterial, below: false, lift: 0.012)
+    decalPatches(v, fd, chevY, yellowChevron, below: false, lift: 0.012)
+    decalPatches(v, fd, [rounded([SIMD2(-1.1, 1.55), SIMD2(1.1, 1.55), SIMD2(1.1, 2.45), SIMD2(-1.1, 2.45)], r: 0.02)], doorGrey, below: false, lift: 0.01)
+    decalPatches(v, fd, [ring2(1.05, 0.55, 0.07, 12), ring2(0.85, 0.55, 0.07, 12)], taillight, below: false, mirror: true, lift: 0.016)
+    box(v, 2.4, 0.08, 0.5, alu, 0, 0.62, L + 0.22)
+    // Hose bed: hose loads on top of the rear body.
+    let hoseColours = [material("hose-yellow", 0xE8C31B, rough: 0.8), material("hose-red", 0xB01325, rough: 0.8), material("hose-white", 0xEDEDE8, rough: 0.8)]
+    for i in 0..<9 {
+      let x = -0.9 + Float(i) * 0.225
+      box(v, 0.2, 0.18, 4.6, hoseColours[i / 3], x, 2.5, 7.6)
+    }
+    // Ladders on the right, rails, lights, bumper with siren, mirrors, wheels.
+    for y in [2.72, 2.92] as [Float] {
+      tube(v, V3(1.32, y, 4.6), V3(1.32, y, 10.0), 0.025, alu, sides: 8)
+      tube(v, V3(1.32, y + 0.42, 4.6), V3(1.32, y + 0.42, 10.0), 0.025, alu, sides: 8)
+    }
+    for k in 0..<18 {
+      let z = 4.75 + Float(k) * 0.3
+      tube(v, V3(1.32, 2.72, z), V3(1.32, 3.14, z), 0.015, alu, sides: 6)
+    }
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 1.28, 1.2, 3.62), V3(side * 1.28, 2.6, 3.62), 0.025, chrome, sides: 8)
+    }
+    let bar = holder(v, V3(0, 2.95, 0.7))
+    shell(bar, samples(-0.16, 0.16, step: 0.04), { z in
+      let f = 1 - pow(abs(z) / 0.16, 4)
+      return boxHalf(1.1 * (0.92 + 0.08 * f), 0, 0.14 * (0.7 + 0.3 * f), rb: 0.02, rt: 0.05, sides: 2, arc: 3)
+    }, skin: { f in f.n.y < -0.5 ? black : (Int(((f.p.x + 1.1) / 0.275).rounded(.down)) % 2 == 0 ? lightRed : lightWhite) })
+    for x in [-1.2, 1.2] as [Float] {
+      box(v, 0.16, 0.14, 0.12, lightRed, x, 2.42, L + 0.02)
+      box(v, 0.05, 0.14, 0.3, lightRed, x * 1.03, 2.46, 9.9)
+      box(v, 0.05, 0.12, 0.3, lightWhite, x * 1.03, 2.62, 5.5)
+    }
+    let bumper = holder(v, V3(0, 0, -0.55))
+    shell(bumper, samples(0, 0.58, step: 0.05), capStart: alu, { z in
+      boxHalf(1.24 - 0.12 * pow(1 - z / 0.58, 3), 0.62, 0.95, rb: 0.03, rt: 0.04, sides: 3, arc: 3)
+    }, skin: { _ in alu })
+    put(v, LatheMesh([SIMD2(0, 0.14), SIMD2(0.2, 0.15), SIMD2(0.24, 0.001)], sides: 18), chrome, 0.55, 1.12, -0.42, rx: -.pi / 2)
+    for side in [-1, 1] as [Float] {
+      sideMirror(v, at: V3(side * 1.24, 2.25, 0.3), side: side, reach: 0.22, w: 0.2, h: 0.44, chrome)
+      roadWheel(v, x: side * 1.05, y: wr, z: axles[0], radius: wr, width: 0.3, outward: side, rimRatio: 0.56, rimMaterial: chrome, holes: 10, lugs: 10)
+      roadWheel(v, x: side * 0.97, y: wr, z: axles[1], radius: wr, width: 0.3, outward: side, rimRatio: 0.56, rimMaterial: chrome, holes: 10, lugs: 10, dual: true)
+    }
   }
-  for i in 0..<12 { tube(root, V3(-0.45, 3.25, -1.4 + Float(i) * 0.5), V3(0.45, 3.25, -1.4 + Float(i) * 0.5), 0.03, chrome) }
-  box(root, 1.6, 0.14, 0.3, material("light-red", 0xFF2D2D, emit: true), 0, 3.08, -4.0)
-  wheelsAt(root, axles: [-3.9], track: 2.15, radius: 0.55)
-  wheelsAt(root, axles: [2.6], track: 2.15, radius: 0.55, dual: true)
-  return root
 }
 
 // MARK: Motorcycles
+// Built nose-first along +Z from the front tyre (z = 0), like the cars:
+// tubular or twin-spar frames, a swingarm, forks through triple clamps,
+// round-profile tyres on cast or laced wheels with discs and calipers,
+// engines built from their real masses (crankcase, cylinders, heads, fins)
+// and bodywork skinned through sections so the paint wraps.
 
+let frameBlack = material("frame", 0x1E1F22, metal: 0.4, rough: 0.35)
+let alloy = material("alloy", 0xA7ADB4, metal: 0.9, rough: 0.28)
+let forkGold = material("fork-gold", 0xC9A13B, metal: 0.95, rough: 0.2)
+let engineSilver = material("engine", 0x8E949B, metal: 0.8, rough: 0.35)
+let engineDark = material("engine-dark", 0x2F3236, metal: 0.6, rough: 0.4)
+let discSteel = material("disc", 0xB9BDC2, metal: 1, rough: 0.35)
+let caliperRed = material("caliper", 0xB81D24, metal: 0.4, rough: 0.35)
+let spring = material("spring", 0xE2B714, metal: 0.4, rough: 0.35)
+
+/// A motorcycle wheel at (0, r, z): round-profile tyre, rim, hub and either
+/// cast spokes (`cast` > 0, split in pairs) or laced wire spokes.
+func motoWheel(_ p: SCNNode, z: Float, r: Float, w: Float, rimRatio: Float = 0.72, cast: Int = 0, wires: Int = 0,
+               knobs: Bool = false, rimMat: SCNMaterial = alloy, discs: [Float] = [], discR: Float = 0.15) {
+  let wh = holder(p, V3(0, r, z))
+  let rr = r * rimRatio
+  let tr = (r - rr) * 0.62
+  let c = r - (r - rr) * 0.55
+  var prof: [SIMD2<Float>] = [SIMD2(-w * 0.32, rr * 1.01)]
+  for i in 0...12 {
+    let a = -Float.pi * 0.62 + Float.pi * 1.24 * Float(i) / 12
+    prof.append(SIMD2(sin(a) * w / 2, c + cos(a) * tr * 0.98 + (r - c - tr * 0.98) * cos(a) * cos(a)))
+  }
+  prof.append(SIMD2(w * 0.32, rr * 1.01))
+  put(wh, LatheMesh(prof, sides: 40, caps: false), tyre, 0, 0, 0, rz: -.pi / 2)
+  if knobs {
+    for i in 0..<36 {
+      let a = Float(i) / 36 * 2 * .pi
+      for side in [-1, 1] as [Float] {
+        let x = side * w * (i % 2 == 0 ? 0.22 : 0.36)
+        let n = holder(wh, V3(x, cos(a) * (r - 0.004), sin(a) * (r - 0.004)), rx: -a)
+        put(n, BoxMesh(width: CGFloat(w * 0.26), height: 0.018, length: 0.032), tyre, 0, 0, 0)
+      }
+    }
+  }
+  // Rim band.
+  put(wh, LatheMesh([SIMD2(-w * 0.36, rr * 0.93), SIMD2(-w * 0.36, rr * 1.01), SIMD2(w * 0.36, rr * 1.01), SIMD2(w * 0.36, rr * 0.93)],
+                    sides: 36, caps: false, twoSided: true), rimMat, 0, 0, 0, rz: -.pi / 2)
+  put(wh, CylinderMesh(radius: CGFloat(r * 0.13), height: CGFloat(w * 0.9), sides: 16), rimMat, 0, 0, 0, rz: .pi / 2)
+  for i in 0..<cast {
+    let a = Float(i) / Float(cast) * 2 * .pi
+    for da in [-0.09, 0.09] as [Float] {
+      let hub = V3(0, cos(a) * r * 0.12, sin(a) * r * 0.12)
+      let out = V3(0, cos(a + da) * rr * 0.94, sin(a + da) * rr * 0.94)
+      strut(wh, hub, out, 0.022, 0.03, rimMat, up: V3(1, 0, 0))
+    }
+  }
+  for i in 0..<wires {
+    let a = Float(i) / Float(wires) * 2 * .pi
+    let side: Float = i % 2 == 0 ? 1 : -1
+    let a0 = a + side * 0.35
+    rod(wh, V3(side * w * 0.3, cos(a0) * r * 0.1, sin(a0) * r * 0.1), V3(side * w * 0.05, cos(a) * rr * 0.93, sin(a) * rr * 0.93), 0.003, chrome, sides: 3)
+  }
+  for x in discs {
+    put(wh, TubeMesh(innerRadius: CGFloat(discR * 0.62), outerRadius: CGFloat(discR), height: 0.006, sides: 28), discSteel, x, 0, 0, rz: .pi / 2)
+    put(wh, TubeMesh(innerRadius: CGFloat(r * 0.13), outerRadius: CGFloat(discR * 0.64), height: 0.004, sides: 20), engineDark, x, 0, 0, rz: .pi / 2)
+  }
+}
+
+/// A smooth body or tank through (z, half width, bottom, top) keys with
+/// rounded-box sections of roundness `n` (higher = boxier).
+func motoBody(_ p: SCNNode, _ keys: [(Float, Float, Float, Float)], x: Float = 0, step: Float = 0.02, rb: Float = 0.5, rt: Float = 0.5,
+              lean: Float = 0, cap: SCNMaterial? = nil, skin: (Facet) -> SCNMaterial) {
+  let hw = curve(keys.map { ($0.0, $0.1) }), b = curve(keys.map { ($0.0, $0.2) }), t = curve(keys.map { ($0.0, $0.3) })
+  shell(p, samples(keys[0].0, keys[keys.count - 1].0, step: step), x: x, capStart: cap, capEnd: cap, { z in
+    let h = max(0.004, t(z) - b(z)), w = max(0.003, hw(z))
+    return boxHalf(w, b(z), b(z) + h, rb: min(w, h) * rb, rt: min(w, h) * rt, lean: w * lean, sides: 4, arc: 5)
+  }, skin: skin)
+}
+
+func coilSpring(_ p: SCNNode, _ a: V3, _ b: V3, r: Float, turns: Int, _ m: SCNMaterial) {
+  let (h, L) = axisHolder(p, a, b)
+  let n = turns * 10
+  for i in 0..<n {
+    let t0 = Float(i) / Float(n), t1 = Float(i + 1) / Float(n)
+    let a0 = t0 * Float(turns) * 2 * .pi, a1 = t1 * Float(turns) * 2 * .pi
+    rod(h, V3(cos(a0) * r, t0 * L, sin(a0) * r), V3(cos(a1) * r, t1 * L, sin(a1) * r), r * 0.14, m, sides: 4)
+  }
+}
+
+/// A finned cylinder from `a` to `b` (air-cooled engines).
+func finnedBarrel(_ p: SCNNode, _ a: V3, _ b: V3, r: Float, fins: Int, finR: Float, _ m: SCNMaterial) {
+  let (h, L) = axisHolder(p, a, b)
+  put(h, LatheMesh([SIMD2(0, r), SIMD2(L, r)], sides: 18, caps: true), m, 0, 0, 0)
+  for i in 0..<fins {
+    let y = L * (Float(i) + 0.5) / Float(fins)
+    put(h, LatheMesh([SIMD2(y - 0.004, finR), SIMD2(y + 0.004, finR)], sides: 18, caps: true), m, 0, 0, 0)
+  }
+}
+
+// Sport bike (litre superbike class): 2.07 m, 1.405 m wheelbase, 24-degree
+// rake. Aluminium twin-spar frame and banana swingarm, gold upside-down
+// fork, full fairing with twin LED eyes and a smoked screen, tank, seat
+// and a pointed tail, inline-four with radiator, underslung silencer,
+// split five-spoke wheels, twin front discs with radial calipers.
+// Cruiser (Softail class): 2.37 m, 1.665 m wheelbase, 30-degree rake,
+// black tubular frame, chrome fork shrouds and nacelle with a round
+// headlamp, pulled-back bars, teardrop tank with a console, stepped seat,
+// deep valanced fenders, 45-degree V-twin with finned barrels, round air
+// cleaner, staggered shotgun pipes, laced wheels and floorboards.
+// Dirt bike (MX class): 2.18 m, 1.48 m wheelbase, long-travel fork, 21/19
+// inch laced wheels with knobbly tyres, high fenders, radiator shrouds, a
+// long flat seat, number plates, single-cylinder engine and a high pipe.
 func motorcycle(kind: String, body: UInt32) -> SCNNode {
-  let root = SCNNode()
   let p = paint(body)
-  let sport = kind == "sport", cruiser = kind == "cruiser", dirt = kind == "dirt"
-  let wb: Float = cruiser ? 1.7 : (dirt ? 1.48 : 1.42)
-  let rF: Float = dirt ? 0.4 : 0.31, rR: Float = dirt ? 0.37 : 0.31
-  for (z, r, w) in [(-wb / 2, rF, Float(dirt ? 0.09 : 0.12)), (wb / 2, rR, Float(cruiser ? 0.2 : (dirt ? 0.11 : 0.19)))] {
-    put(root, TubeMesh(innerRadius: CGFloat(r * 0.62), outerRadius: CGFloat(r), height: CGFloat(w)), tyre, 0, r, z, rz: .pi / 2)
-    put(root, CylinderMesh(radius: CGFloat(r * 0.62), height: CGFloat(w * 0.5)), rim, 0, r, z, rz: .pi / 2)
-    put(root, CylinderMesh(radius: CGFloat(r * 0.4), height: CGFloat(w * 0.7)), chrome, 0, r, z, rz: .pi / 2) // disc
+  switch kind {
+  case "sport": return sportBike(p)
+  case "cruiser": return cruiser(p)
+  default: return dirtBike(p)
   }
-  // Engine block and exhaust.
-  box(root, 0.36, 0.4, 0.5, plastic, 0, 0.5, 0.05)
-  if cruiser {
-    for a in [-0.45, 0.45] as [Float] { tube(root, V3(0, 0.45, 0.05), V3(0, 0.45 + 0.4 * cos(a), 0.05 + 0.4 * sin(a)), 0.1, chrome) }
+}
+
+func sportBike(_ p: SCNMaterial) -> SCNNode {
+  let L: Float = 2.07
+  let fz: Float = 0.3, rz: Float = 1.705, fr: Float = 0.3, rr: Float = 0.31
+  let rake: Float = 24 * .pi / 180
+  let head = V3(0, fr + cos(rake) * 0.6, fz + sin(rake) * 0.6)
+  let pivot = V3(0, 0.47, 1.14)
+  return roadVehicle(length: L) { v in
+    motoWheel(v, z: fz, r: fr, w: 0.12, cast: 5, rimMat: engineDark, discs: [-0.075, 0.075], discR: 0.16)
+    motoWheel(v, z: rz, r: rr, w: 0.19, cast: 5, rimMat: engineDark, discs: [-0.07], discR: 0.11)
+    // Fork: gold upper tubes, black lower legs, radial calipers, triple clamps.
+    for x in [-0.085, 0.085] as [Float] {
+      let low = V3(x, fr, fz), up = V3(x, head.y + 0.06, head.z + 0.03)
+      let mid = low + (up - low) * 0.42
+      tube(v, low, mid, 0.03, engineDark, sides: 12)
+      tube(v, mid, up, 0.025, forkGold, sides: 12)
+      box(v, 0.03, 0.1, 0.05, forkGold, x * 1.05, fr + 0.1, fz + 0.08, rx: rake)
+    }
+    for y in [head.y - 0.04, head.y + 0.05] {
+      box(v, 0.24, 0.025, 0.07, alloy, 0, y, head.z - 0.01, rx: rake)
+    }
+    // Clip-on bars, levers, mirrors (on the fairing later).
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.1, head.y + 0.03, head.z + 0.02), V3(side * 0.33, head.y - 0.0, head.z + 0.1), 0.012, frameBlack, sides: 8)
+      tube(v, V3(side * 0.24, head.y - 0.04, head.z + 0.04), V3(side * 0.34, head.y - 0.03, head.z + 0.0), 0.006, alloy, sides: 4)
+    }
+    // Twin-spar frame and swingarm.
+    for side in [-1, 1] as [Float] {
+      strut(v, V3(side * 0.12, head.y - 0.02, head.z + 0.04), V3(side * 0.17, 0.66, 0.98), 0.1, 0.04, alloy, up: V3(1, 0, 0))
+      strut(v, V3(side * 0.17, 0.66, 0.98), V3(side * 0.15, pivot.y, pivot.z), 0.1, 0.04, alloy, up: V3(1, 0, 0))
+      strut(v, V3(side * 0.13, pivot.y, pivot.z), V3(side * 0.13, rr + 0.04, rz), 0.07, 0.035, alloy, up: V3(1, 0, 0))
+      put(v, CylinderMesh(radius: 0.03, height: 0.02, sides: 12), alloy, side * 0.15, rr, rz, rz: .pi / 2)
+    }
+    // Inline-four: crankcase, tilted block and head, radiator, sprocket, chain.
+    motoBody(v, [(0.72, 0.15, 0.24, 0.5), (0.85, 0.2, 0.2, 0.52), (1.1, 0.19, 0.22, 0.5), (1.2, 0.12, 0.3, 0.46)], rb: 0.3, rt: 0.3, cap: engineDark) { _ in engineDark }
+    strut(v, V3(0, 0.48, 0.86), V3(0, 0.72, 0.78), 0.12, 0.36, engineSilver, up: V3(1, 0, 0))
+    strut(v, V3(0, 0.72, 0.78), V3(0, 0.8, 0.75), 0.13, 0.34, engineDark, up: V3(1, 0, 0))
+    box(v, 0.42, 0.34, 0.04, frameBlack, 0, 0.62, 0.66, rx: -0.15)
+    put(v, CylinderMesh(radius: 0.05, height: 0.012, sides: 14), engineDark, 0.1, 0.4, 1.12, rz: .pi / 2)
+    tube(v, V3(0.1, 0.45, 1.12), V3(0.1, rr + 0.09, rz), 0.008, frameBlack, sides: 4)
+    tube(v, V3(0.1, 0.35, 1.12), V3(0.1, rr - 0.07, rz), 0.008, frameBlack, sides: 4)
+    put(v, CylinderMesh(radius: 0.09, height: 0.01, sides: 18), engineDark, 0.1, rr, rz, rz: .pi / 2)
+    // Rear shock with spring, under the seat.
+    tube(v, V3(0, 0.42, 1.25), V3(0, 0.72, 1.18), 0.022, alloy, sides: 8)
+    coilSpring(v, V3(0, 0.46, 1.24), V3(0, 0.66, 1.2), r: 0.04, turns: 6, spring)
+    // Exhaust: headers under the engine to a short silencer under the right.
+    for x in [-0.09, -0.03, 0.03, 0.09] as [Float] {
+      tube(v, V3(x, 0.66, 0.66), V3(x * 0.8, 0.3, 0.72), 0.016, alloy, sides: 6)
+      tube(v, V3(x * 0.8, 0.3, 0.72), V3(x * 0.5, 0.21, 0.95), 0.016, alloy, sides: 6)
+    }
+    motoBody(v, [(0.95, 0.07, 0.17, 0.27), (1.2, 0.12, 0.16, 0.36), (1.45, 0.1, 0.22, 0.38)], x: 0.1, rb: 0.6, rt: 0.6, cap: frameBlack) { _ in engineDark }
+    // Fairing, tank, seat and tail: one skin.
+    let seat0: Float = 1.2, seat1: Float = 1.58
+    motoBody(v, [(0.32, 0.03, 0.75, 0.8), (0.38, 0.1, 0.66, 0.88), (0.48, 0.15, 0.56, 0.95), (0.6, 0.17, 0.46, 1.0), (0.76, 0.17, 0.42, 0.98),
+                 (0.95, 0.165, 0.42, 0.99), (1.1, 0.15, 0.46, 0.96), (1.22, 0.12, 0.66, 0.88), (1.5, 0.11, 0.73, 0.89), (1.62, 0.1, 0.77, 0.95),
+                 (1.85, 0.065, 0.84, 1.0), (2.02, 0.02, 0.92, 0.99)], rb: 0.3, rt: 0.5, lean: 0.3, cap: p) { f in
+      let z = f.p.z + L / 2
+      if f.n.y > 0.55 && z > seat0 && z < seat1 { return leather }
+      if f.n.y > 0.2 && z > 0.47 && z < 0.66 && abs(f.p.x) < 0.17 { return glass }
+      return p
+    }
+    motoBody(v, [(0.66, 0.06, 0.24, 0.3), (0.8, 0.15, 0.2, 0.42), (1.05, 0.14, 0.2, 0.42), (1.12, 0.05, 0.26, 0.38)], rb: 0.4, rt: 0.2, cap: p) { _ in p }
+    let fd = Drape(v, axis: 2), sd = Drape(v, axis: 0)
+    decalPatches(v, fd, [rounded([SIMD2(0.03, 0.78), SIMD2(0.12, 0.8), SIMD2(0.14, 0.83), SIMD2(0.04, 0.82)], r: 0.008)], headlight,
+                 below: true, mirror: true, lift: 0.006)
+    decalPatches(v, fd, [rounded([SIMD2(-0.045, 0.69), SIMD2(0.045, 0.69), SIMD2(0.035, 0.77), SIMD2(-0.035, 0.77)], r: 0.01)], black,
+                 below: true, lift: 0.006)
+    decalPatches(v, fd, [rounded([SIMD2(-0.06, 0.95), SIMD2(0.06, 0.95), SIMD2(0.05, 0.98), SIMD2(-0.05, 0.98)], r: 0.008)], taillight,
+                 below: false, lift: 0.006)
+    sidePatches(v, sd, [rounded([SIMD2(0.62, 0.45), SIMD2(0.78, 0.4), SIMD2(0.78, 0.48), SIMD2(0.64, 0.52)], r: 0.01),
+                        rounded([SIMD2(0.84, 0.36), SIMD2(1.0, 0.33), SIMD2(1.0, 0.4), SIMD2(0.86, 0.43)], r: 0.01)], black, lift: 0.006)
+    sideLines(v, sd, [[SIMD2(0.5, 0.82), SIMD2(0.9, 0.72), SIMD2(1.15, 0.6)], [SIMD2(1.62, 0.84), SIMD2(1.95, 0.93)]], width: 0.022, white, lift: 0.006)
+    // Front fender, mirrors, rear hugger, plate hanger, pegs.
+    let fender = holder(v, V3(0, fr, fz))
+    put(fender, LatheMesh([SIMD2(-0.065, fr + 0.03), SIMD2(0.065, fr + 0.03)], sides: 24, caps: false, twoSided: true, from: 0.72 * .pi, to: 1.3 * .pi),
+        p, 0, 0, 0, rz: -.pi / 2)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.2, 0.92, 0.55), V3(side * 0.3, 0.98, 0.53), 0.008, frameBlack, sides: 4)
+      box(v, 0.1, 0.05, 0.04, frameBlack, side * 0.32, 0.99, 0.53)
+      tube(v, V3(side * 0.12, 0.5, 1.2), V3(side * 0.22, 0.52, 1.24), 0.012, alloy, sides: 6)
+    }
+    strut(v, V3(0, 0.88, 1.9), V3(0, 0.62, 2.0), 0.08, 0.012, frameBlack, up: V3(1, 0, 0))
+    box(v, 0.17, 0.11, 0.01, plate, 0, 0.6, 2.01)
   }
-  tube(root, V3(0.18, 0.35, 0.1), V3(0.2, cruiser ? 0.32 : 0.55, wb / 2 + 0.25), 0.05, chrome)
-  // Forks.
-  let rake: Float = cruiser ? 0.5 : 0.42
-  let headY: Float = dirt ? 1.15 : (cruiser ? 0.95 : 0.9)
-  let headZ = -wb / 2 + sin(rake) * (headY - rF) * 0.9
-  for x in [-0.09, 0.09] as [Float] { tube(root, V3(x, rF, -wb / 2), V3(x, headY, headZ), 0.025, chrome) }
-  if sport {
-    // Fairing, tank, tail, windscreen.
-    root.addChildNode(loft([
-      Station(z: headZ - 0.32, width: 0.18, bottom: 0.62, top: 0.85, n: 2.2),
-      Station(z: headZ - 0.05, width: 0.46, bottom: 0.38, top: 1.0, n: 2.4),
-      Station(z: headZ + 0.45, width: 0.44, bottom: 0.32, top: 0.95, n: 2.4),
-      Station(z: 0.25, width: 0.38, bottom: 0.55, top: 0.93, n: 2.5),
-      Station(z: 0.55, width: 0.28, bottom: 0.72, top: 0.86, n: 2.5),
-      Station(z: wb / 2 + 0.15, width: 0.14, bottom: 0.82, top: 0.95, n: 2.2),
-    ], segments: 24, p))
-    put(root, BoxMesh(width: 0.28, height: 0.22, length: 0.02), glass, 0, 1.06, headZ - 0.02, rx: -0.6)
-    box(root, 0.24, 0.05, 0.42, leather, 0, 0.9, 0.45)
-    box(root, 0.16, 0.06, 0.03, headlight, 0, 0.82, headZ - 0.34)
-  } else if cruiser {
-    root.addChildNode(loft([
-      Station(z: headZ + 0.05, width: 0.2, bottom: 0.8, top: 0.92, n: 2.2),
-      Station(z: headZ + 0.35, width: 0.38, bottom: 0.72, top: 0.98, n: 2.2),
-      Station(z: 0.15, width: 0.3, bottom: 0.74, top: 0.92, n: 2.2),
-    ], segments: 22, p))
-    root.addChildNode(loft([
-      Station(z: 0.15, width: 0.34, bottom: 0.62, top: 0.72, n: 3),
-      Station(z: 0.6, width: 0.38, bottom: 0.64, top: 0.78, n: 3),
-    ], segments: 18, leather))
-    let fender = TubeMesh(innerRadius: CGFloat(rR + 0.04), outerRadius: CGFloat(rR + 0.07), height: 0.24)
-    put(root, fender, p, 0, rR, wb / 2, rz: .pi / 2)
-    tube(root, V3(-0.42, headY + 0.12, headZ + 0.18), V3(0.42, headY + 0.12, headZ + 0.18), 0.02, chrome)
-    put(root, CylinderMesh(radius: 0.1, height: 0.08), headlight, 0, headY - 0.08, headZ - 0.12, rx: .pi / 2)
-  } else {
-    // Dirt bike: high fenders, slim tank, flat seat, number plate.
-    root.addChildNode(loft([
-      Station(z: headZ + 0.05, width: 0.3, bottom: 0.82, top: 1.02, n: 2.4),
-      Station(z: 0.1, width: 0.26, bottom: 0.84, top: 0.98, n: 2.4),
-      Station(z: wb / 2 + 0.3, width: 0.14, bottom: 0.92, top: 1.0, n: 2.4),
-    ], segments: 20, p))
-    box(root, 0.22, 0.05, 0.7, leather, 0, 1.0, 0.25)
-    box(root, 0.16, 0.02, 0.45, p, 0, rF * 2 + 0.06, -wb / 2 + 0.02)
-    box(root, 0.24, 0.22, 0.03, white, 0, headY - 0.05, headZ - 0.06)
+}
+
+func cruiser(_ p: SCNMaterial) -> SCNNode {
+  let L: Float = 2.37
+  let fz: Float = 0.33, rz: Float = 1.995, r: Float = 0.33
+  let rake: Float = 30 * .pi / 180
+  let head = V3(0, r + cos(rake) * 0.72, fz + sin(rake) * 0.72)
+  return roadVehicle(length: L) { v in
+    motoWheel(v, z: fz, r: r, w: 0.16, rimRatio: 0.7, wires: 40, rimMat: chrome, discs: [0.07], discR: 0.15)
+    motoWheel(v, z: rz, r: r, w: 0.24, rimRatio: 0.7, wires: 40, rimMat: chrome, discs: [-0.09], discR: 0.14)
+    // Fork with chrome shrouds, nacelle, headlamp, wide bars.
+    for x in [-0.11, 0.11] as [Float] {
+      let low = V3(x, r, fz), up = V3(x, head.y + 0.05, head.z + 0.03)
+      tube(v, low, low + (up - low) * 0.5, 0.032, chrome, sides: 14)
+      tube(v, low + (up - low) * 0.5, up, 0.04, chrome, sides: 14)
+    }
+    motoBody(v, [(head.z - 0.2, 0.06, head.y - 0.12, head.y + 0.0), (head.z - 0.1, 0.15, head.y - 0.14, head.y + 0.04),
+                 (head.z + 0.06, 0.14, head.y - 0.12, head.y + 0.05)], rb: 0.5, rt: 0.5, cap: chrome) { _ in chrome }
+    let lamp = holder(v, V3(0, head.y - 0.06, head.z - 0.2))
+    put(lamp, LatheMesh([SIMD2(-0.1, 0.11), SIMD2(0.02, 0.115), SIMD2(0.035, 0.001)], sides: 24), chrome, 0, 0, 0, rx: -.pi / 2)
+    put(lamp, CylinderMesh(radius: 0.1, height: 0.01, sides: 24), headlight, 0, 0, -0.037, rx: .pi / 2)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.08, head.y + 0.08, head.z + 0.02), V3(side * 0.3, head.y + 0.14, head.z - 0.02), 0.014, chrome, sides: 8)
+      tube(v, V3(side * 0.3, head.y + 0.14, head.z - 0.02), V3(side * 0.4, head.y + 0.12, head.z + 0.18), 0.014, chrome, sides: 8)
+      put(v, CylinderMesh(radius: 0.022, height: 0.1, sides: 10), black, side * 0.4, head.y + 0.12, head.z + 0.2, rx: .pi / 2)
+      put(v, LatheMesh([SIMD2(0, 0.03), SIMD2(0.04, 0.03), SIMD2(0.06, 0.001)], sides: 12), chrome, side * 0.2, head.y - 0.1, head.z - 0.16, rx: -.pi / 2)
+    }
+    // Frame: backbone, down tubes, cradle, rear stays.
+    let seatNode = V3(0, 0.68, 1.35)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.03, head.y - 0.05, head.z + 0.03), V3(side * 0.09, 0.3, head.z + 0.18), 0.022, frameBlack, sides: 10)
+      tube(v, V3(side * 0.09, 0.3, head.z + 0.18), V3(side * 0.1, 0.17, 0.9), 0.022, frameBlack, sides: 10)
+      tube(v, V3(side * 0.1, 0.17, 0.9), V3(side * 0.12, 0.2, 1.35), 0.022, frameBlack, sides: 10)
+      tube(v, V3(side * 0.12, 0.2, 1.35), V3(side * 0.12, seatNode.y, seatNode.z), 0.022, frameBlack, sides: 10)
+      tube(v, V3(side * 0.13, 0.3, 1.38), V3(side * 0.15, r, rz), 0.024, frameBlack, sides: 10)
+      tube(v, V3(side * 0.13, seatNode.y, seatNode.z), V3(side * 0.15, r + 0.05, rz - 0.05), 0.02, frameBlack, sides: 10)
+    }
+    tube(v, V3(0, head.y - 0.04, head.z + 0.03), V3(0, seatNode.y + 0.02, seatNode.z), 0.028, frameBlack, sides: 10)
+    // V-twin: crankcase, two finned barrels at 45 degrees, heads, rocker
+    // boxes, pushrod tubes, air cleaner, primary cover, transmission.
+    motoBody(v, [(0.9, 0.1, 0.18, 0.42), (1.05, 0.15, 0.16, 0.44), (1.25, 0.15, 0.18, 0.42), (1.38, 0.1, 0.22, 0.38)], rb: 0.4, rt: 0.4, cap: engineSilver) { _ in engineSilver }
+    let crank = V3(0, 0.36, 1.12)
+    for (k, a) in [(-1, -22.5), (1, 22.5)] as [(Float, Float)] {
+      let d = V3(0, cos(Float(a) * .pi / 180), sin(Float(a) * .pi / 180))
+      let base = crank + d * 0.08, top = crank + d * 0.33
+      finnedBarrel(v, base, top, r: 0.06, fins: 9, finR: 0.085, engineSilver)
+      finnedBarrel(v, top, top + d * 0.08, r: 0.06, fins: 3, finR: 0.08, engineSilver)
+      motoBody(v, [(top.z - 0.07, 0.07, top.y + 0.06, top.y + 0.11), (top.z + 0.07, 0.07, top.y + 0.06, top.y + 0.11)], rb: 0.6, rt: 0.6, cap: chrome) { _ in chrome }
+      tube(v, crank + V3(0.05, -0.05, k * 0.02), top + V3(0.05, 0.0, k * 0.0), 0.012, chrome, sides: 6)
+    }
+    put(v, LatheMesh([SIMD2(0, 0.13), SIMD2(0.05, 0.13), SIMD2(0.07, 0.09), SIMD2(0.075, 0.001)], sides: 28), chrome, 0.14, 0.62, 1.12, rz: -.pi / 2)
+    motoBody(v, [(0.88, 0.04, 0.17, 0.34), (1.05, 0.05, 0.14, 0.38), (1.5, 0.05, 0.18, 0.36), (1.6, 0.04, 0.22, 0.32)], x: -0.17, rb: 0.6, rt: 0.6,
+             cap: chrome) { _ in chrome }
+    // Teardrop tank with console, stepped seat, fenders.
+    motoBody(v, [(head.z + 0.0, 0.05, head.y - 0.08, head.y + 0.0), (head.z + 0.1, 0.17, head.y - 0.18, head.y + 0.06),
+                 (head.z + 0.35, 0.2, 0.66, head.y + 0.06), (1.32, 0.12, 0.68, 0.84)], rb: 0.6, rt: 0.6, cap: p) { _ in p }
+    motoBody(v, [(head.z + 0.12, 0.035, head.y + 0.06, head.y + 0.08), (head.z + 0.34, 0.035, head.y + 0.03, head.y + 0.07)], rb: 0.5, rt: 0.5,
+             cap: chrome) { _ in chrome }
+    motoBody(v, [(1.28, 0.15, 0.6, 0.72), (1.4, 0.2, 0.58, 0.7), (1.62, 0.17, 0.62, 0.76), (1.78, 0.12, 0.72, 0.85), (1.86, 0.1, 0.8, 0.87)],
+             rb: 0.5, rt: 0.6, cap: leather) { _ in leather }
+    for (cz, cr, w, a0, a1) in [(fz, r, Float(0.2), Float(0.62), Float(1.42)), (rz, r, Float(0.27), Float(0.3), Float(1.08))] {
+      let fender = holder(v, V3(0, cr, cz))
+      let prof: [SIMD2<Float>] = (0...6).map { i in
+        let t = -Float.pi / 2 + Float.pi * Float(i) / 6
+        return SIMD2(sin(t) * w / 2, cr + 0.04 + cos(t) * 0.05)
+      }
+      put(fender, LatheMesh(prof, sides: 28, caps: false, twoSided: true, from: a0 * .pi, to: a1 * .pi), p, 0, 0, 0, rz: -.pi / 2)
+    }
+    // Shotgun pipes on the right, floorboards, tail lamp, signals.
+    tube(v, V3(0.08, 0.56, 1.0), V3(0.2, 0.33, 1.0), 0.03, chrome, sides: 10)
+    tube(v, V3(0.08, 0.6, 1.25), V3(0.2, 0.4, 1.2), 0.03, chrome, sides: 10)
+    tube(v, V3(0.2, 0.33, 1.0), V3(0.21, 0.3, 2.25), 0.042, chrome, sides: 14)
+    tube(v, V3(0.2, 0.4, 1.2), V3(0.21, 0.42, 2.25), 0.042, chrome, sides: 14)
+    for side in [-1, 1] as [Float] {
+      box(v, 0.11, 0.015, 0.28, rubber, side * 0.3, 0.3, 0.86)
+      tube(v, V3(side * 0.11, 0.3, 0.86), V3(side * 0.25, 0.3, 0.86), 0.012, chrome, sides: 6)
+      tube(v, V3(side * 0.1, 0.62, 2.18), V3(side * 0.17, 0.62, 2.2), 0.008, chrome, sides: 4)
+      put(v, LatheMesh([SIMD2(0, 0.022), SIMD2(0.04, 0.022), SIMD2(0.055, 0.001)], sides: 10), amber, side * 0.18, 0.62, 2.2, rx: .pi / 2)
+    }
+    put(v, LatheMesh([SIMD2(0, 0.035), SIMD2(0.025, 0.035), SIMD2(0.035, 0.001)], sides: 14), taillight, 0, 0.66, 2.26, rx: .pi / 2)
   }
-  // Bars and mirrors.
-  if !cruiser { tube(root, V3(-0.36, headY + 0.06, headZ + 0.08), V3(0.36, headY + 0.06, headZ + 0.08), 0.016, black) }
-  box(root, 0.1, 0.05, 0.03, taillight, 0, 0.88, wb / 2 + 0.2)
-  return root
+}
+
+func dirtBike(_ p: SCNMaterial) -> SCNNode {
+  let L: Float = 2.18
+  let fz: Float = 0.36, rz: Float = 1.84, fr: Float = 0.355, rr: Float = 0.34
+  let rake: Float = 27 * .pi / 180
+  let head = V3(0, fr + cos(rake) * 0.85, fz + sin(rake) * 0.85)
+  return roadVehicle(length: L) { v in
+    motoWheel(v, z: fz, r: fr, w: 0.085, rimRatio: 0.76, wires: 36, knobs: true, rimMat: engineDark, discs: [0.06], discR: 0.13)
+    motoWheel(v, z: rz, r: rr, w: 0.115, rimRatio: 0.72, wires: 36, knobs: true, rimMat: engineDark, discs: [-0.07], discR: 0.11)
+    for x in [-0.09, 0.09] as [Float] {
+      let low = V3(x, fr, fz), up = V3(x, head.y + 0.06, head.z + 0.03)
+      tube(v, low, low + (up - low) * 0.55, 0.03, engineDark, sides: 12)
+      tube(v, low + (up - low) * 0.55, up, 0.027, forkGold, sides: 12)
+    }
+    for y in [head.y - 0.06, head.y + 0.05] { box(v, 0.24, 0.03, 0.08, alloy, 0, y, head.z, rx: rake) }
+    tube(v, V3(-0.4, head.y + 0.13, head.z + 0.07), V3(0.4, head.y + 0.13, head.z + 0.07), 0.013, alloy, sides: 8)
+    tube(v, V3(-0.16, head.y + 0.19, head.z + 0.06), V3(0.16, head.y + 0.19, head.z + 0.06), 0.012, alloy, sides: 8)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.04, head.y + 0.06, head.z + 0.05), V3(side * 0.16, head.y + 0.19, head.z + 0.06), 0.012, alloy, sides: 8)
+      put(v, CylinderMesh(radius: 0.02, height: 0.11, sides: 10), black, side * 0.42, head.y + 0.13, head.z + 0.07, rz: .pi / 2)
+    }
+    // Perimeter frame (painted tubes), swingarm, shock.
+    let frame = material("frame", 0x2A2C30, metal: 0.4, rough: 0.35)
+    for side in [-1, 1] as [Float] {
+      tube(v, V3(side * 0.04, head.y - 0.03, head.z + 0.03), V3(side * 0.13, 0.82, 0.98), 0.02, frame, sides: 10)
+      tube(v, V3(side * 0.13, 0.82, 0.98), V3(side * 0.12, 0.42, 1.15), 0.02, frame, sides: 10)
+      tube(v, V3(side * 0.12, 0.42, 1.15), V3(side * 0.07, 0.3, 0.95), 0.018, frame, sides: 10)
+      tube(v, V3(side * 0.13, 0.82, 0.98), V3(side * 0.1, 0.93, 1.75), 0.014, alloy, sides: 8)
+      strut(v, V3(side * 0.11, 0.45, 1.16), V3(side * 0.1, rr, rz), 0.06, 0.03, alloy, up: V3(1, 0, 0))
+    }
+    tube(v, V3(0, head.y - 0.06, head.z + 0.05), V3(0, 0.3, 0.95), 0.022, frame, sides: 10)
+    tube(v, V3(0, 0.82, 1.1), V3(0, 0.5, 1.32), 0.022, alloy, sides: 8)
+    coilSpring(v, V3(0, 0.78, 1.12), V3(0, 0.55, 1.29), r: 0.045, turns: 7, spring)
+    // Single: crankcase, upright finned... (liquid cooled) block, head, radiator.
+    motoBody(v, [(0.85, 0.08, 0.27, 0.52), (1.0, 0.12, 0.25, 0.56), (1.15, 0.1, 0.3, 0.52)], rb: 0.4, rt: 0.4, cap: engineDark) { _ in engineDark }
+    strut(v, V3(0, 0.52, 0.95), V3(0, 0.74, 0.9), 0.14, 0.15, engineSilver, up: V3(1, 0, 0))
+    strut(v, V3(0, 0.74, 0.9), V3(0, 0.8, 0.88), 0.16, 0.17, engineDark, up: V3(1, 0, 0))
+    for side in [-1, 1] as [Float] { box(v, 0.03, 0.28, 0.2, frameBlack, side * 0.13, 0.7, 0.85, rx: -0.2) }
+    // Header and high silencer on the right.
+    tube(v, V3(0.02, 0.7, 0.83), V3(0.12, 0.42, 0.8), 0.022, alloy, sides: 8)
+    tube(v, V3(0.12, 0.42, 0.8), V3(0.16, 0.48, 1.25), 0.022, alloy, sides: 8)
+    tube(v, V3(0.16, 0.48, 1.25), V3(0.16, 0.74, 1.55), 0.024, alloy, sides: 8)
+    motoBody(v, [(1.5, 0.042, 0.69, 0.78), (1.95, 0.045, 0.8, 0.89)], x: 0.16, rb: 0.6, rt: 0.6, cap: engineDark) { _ in alloy }
+    // Tank and shrouds, long seat, side plates, fenders, number plate.
+    motoBody(v, [(head.z + 0.02, 0.06, head.y - 0.1, head.y - 0.02), (head.z + 0.1, 0.14, 0.72, head.y + 0.0), (1.0, 0.13, 0.78, 0.98),
+                 (1.12, 0.06, 0.88, 0.97)], rb: 0.5, rt: 0.5, cap: p) { _ in p }
+    for side in [-1, 1] as [Float] {
+      motoBody(v, [(head.z + 0.0, 0.01, 0.74, head.y - 0.04), (head.z + 0.18, 0.025, 0.66, 0.98), (0.98, 0.012, 0.72, 0.9)], x: side * 0.16,
+               rb: 0.5, rt: 0.5, cap: p) { _ in p }
+    }
+    motoBody(v, [(0.92, 0.06, 0.92, 0.99), (1.1, 0.12, 0.92, 1.0), (1.6, 0.1, 0.92, 0.99), (1.78, 0.05, 0.93, 0.98)], rb: 0.4, rt: 0.6, cap: black) { _ in black }
+    for side in [-1, 1] as [Float] {
+      motoBody(v, [(1.3, 0.008, 0.66, 0.9), (1.65, 0.008, 0.78, 0.93)], x: side * 0.13, rb: 0.5, rt: 0.5, cap: white) { _ in white }
+    }
+    motoBody(v, [(1.55, 0.09, 0.95, 0.97), (1.95, 0.12, 0.97, 0.99), (2.17, 0.06, 1.0, 1.02)], rb: 0.4, rt: 0.6, cap: p) { _ in p }
+    motoBody(v, [(fz - 0.36, 0.03, fr * 2 + 0.12, fr * 2 + 0.14), (fz - 0.1, 0.08, fr * 2 + 0.06, fr * 2 + 0.1), (fz + 0.2, 0.08, fr * 2 + 0.06, fr * 2 + 0.1),
+                 (fz + 0.36, 0.05, fr * 2 + 0.0, fr * 2 + 0.03)], rb: 0.5, rt: 0.5, cap: p) { _ in p }
+    let numberPlate = holder(v, V3(0, head.y - 0.02, head.z - 0.1), rx: -rake)
+    motoBody(numberPlate, [(-0.02, 0.12, -0.14, 0.12), (0.02, 0.12, -0.14, 0.12)], rb: 0.3, rt: 0.3, cap: white) { _ in white }
+    for side in [-1, 1] as [Float] { tube(v, V3(side * 0.12, 0.5, 1.15), V3(side * 0.22, 0.5, 1.18), 0.012, alloy, sides: 6) }
+  }
 }
 
 // MARK: Rail
 
-func tram(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let p = paint(livery)
-  for (offset, cab) in [(Float(-7.6), true), (Float(7.6), false)] {
-    let L: Float = 14.8, W: Float = 2.65, H: Float = 3.4
-    let s = SCNNode()
-    s.simdPosition = V3(0, 0, offset)
-    s.addChildNode(loft([
-      Station(z: -L / 2, width: W * (cab ? 0.85 : 0.98), bottom: 0.35, top: H * (cab ? 0.85 : 0.98), n: cab ? 3 : 6),
-      Station(z: -L / 2 + (cab ? 0.9 : 0.05), width: W, bottom: 0.3, top: H, n: 6),
-      Station(z: L / 2 - (cab ? 0.05 : 0.9), width: W, bottom: 0.3, top: H, n: 6),
-      Station(z: L / 2, width: W * (cab ? 0.98 : 0.85), bottom: 0.35, top: H * (cab ? 0.98 : 0.85), n: cab ? 6 : 3),
-    ], segments: 32, white))
-    windowBand(s, width: W, y: 2.15, height: 1.3, from: -L / 2 + 1.2, to: L / 2 - 1.2, panes: 6)
-    for side in [-1, 1] as [Float] { box(s, 0.03, 0.45, L - 0.6, p, side * (W / 2 + 0.006), 0.9, 0) }
-    for z in [-L / 2 + 2.5, L / 2 - 2.5] {
-      box(s, 2.2, 0.5, 2.0, black, 0, 0.35, z) // bogie
+let bellows = material("bellows", 0x2A2B2D, rough: 0.9)
+let roofGrey = material("roof", 0xA9AEB4, metal: 0.4, rough: 0.45)
+
+/// A bogie: frame, two wheelsets with visible wheels, springs.
+func bogie(_ p: SCNNode, z: Float, gauge: Float = 1.435, wheel r: Float = 0.42, base: Float = 2.4) {
+  box(p, gauge + 0.3, 0.32, base + 0.6, engineDark, 0, r + 0.08, z)
+  for dz in [-base / 2, base / 2] {
+    for side in [-1, 1] as [Float] {
+      put(p, CylinderMesh(radius: CGFloat(r), height: 0.12, sides: 20), alu, side * gauge / 2, r, z + dz, rz: .pi / 2)
+      put(p, CylinderMesh(radius: CGFloat(r * 0.5), height: 0.14, sides: 14), engineDark, side * gauge / 2 + side * 0.01, r, z + dz, rz: .pi / 2)
     }
-    root.addChildNode(s)
+    tube(p, V3(-gauge / 2, r, z + dz), V3(gauge / 2, r, z + dz), 0.07, engineDark, sides: 8)
   }
-  put(root, BoxMesh(width: 2.3, height: 1.7, length: 0.04), glass, 0, 2.2, -15.1, rx: -0.15)
-  // Pantograph.
-  tube(root, V3(0, 3.45, -9), V3(0, 4.4, -8.2), 0.03, chrome)
-  tube(root, V3(0, 4.4, -8.2), V3(0, 4.6, -9.3), 0.03, chrome)
-  box(root, 1.6, 0.04, 0.1, chrome, 0, 4.62, -9.3)
-  box(root, 0.3, 0.14, 0.04, headlight, -0.7, 0.9, -15.0); box(root, 0.3, 0.14, 0.04, headlight, 0.7, 0.9, -15.0)
-  return root
+  for side in [-1, 1] as [Float] { coilSpring(p, V3(side * (gauge / 2 + 0.05), r + 0.25, z), V3(side * (gauge / 2 + 0.05), r + 0.55, z), r: 0.1, turns: 4, engineDark) }
 }
 
-func highSpeedTrain(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let p = paint(livery)
-  let W: Float = 2.95, H: Float = 3.7
-  // Long aerodynamic power car nose.
-  root.addChildNode(loft([
-    Station(z: -12.5, width: 0.4, bottom: 0.7, top: 1.0, n: 2),
-    Station(z: -11.0, width: 1.9, bottom: 0.45, top: 1.9, n: 2.3),
-    Station(z: -9.0, width: 2.7, bottom: 0.4, top: 3.0, n: 3),
-    Station(z: -7.0, width: W, bottom: 0.4, top: H, n: 4),
-    Station(z: 12.5, width: W, bottom: 0.4, top: H, n: 4),
-  ], segments: 32, white))
-  root.addChildNode(loft([
-    Station(z: -10.6, width: 1.7, bottom: 1.75, top: 2.0, n: 2.3),
-    Station(z: -8.8, width: 2.6, bottom: 2.2, top: 2.95, n: 2.6),
-    Station(z: -8.2, width: 2.75, bottom: 2.3, top: 3.2, n: 3),
-  ], segments: 24, glass))
-  for side in [-1, 1] as [Float] {
-    box(root, 0.03, 0.35, 21.5, p, side * (W / 2 + 0.006), 1.3, 1.6)
-    box(root, 0.025, 0.08, 23, p, side * (W / 2 + 0.006), 0.85, 0.8)
+/// A pantograph folded half-up on the roof at z.
+func pantograph(_ p: SCNNode, y: Float, z: Float) {
+  box(p, 0.9, 0.1, 1.2, roofGrey, 0, y + 0.05, z)
+  for x in [-0.25, 0.25] as [Float] {
+    tube(p, V3(x, y + 0.12, z - 0.4), V3(x * 0.4, y + 0.8, z + 0.6), 0.03, alu, sides: 6)
+    tube(p, V3(x * 0.4, y + 0.8, z + 0.6), V3(x, y + 1.25, z - 0.5), 0.025, alu, sides: 6)
   }
-  windowBand(root, width: W, y: 2.35, height: 0.75, from: -5.5, to: 12, panes: 10)
-  // Second car.
-  box(root, W, H - 0.4, 25, white, 0, (H + 0.4) / 2 + 0.0, 25.4)
-  windowBand(root, width: W, y: 2.35, height: 0.75, from: 13.5, to: 37, panes: 14)
-  for side in [-1, 1] as [Float] { box(root, 0.03, 0.35, 25, p, side * (W / 2 + 0.006), 1.3, 25.4) }
-  for z in [-5.0, 9.5, 16.0, 34.0] as [Float] { box(root, 2.4, 0.55, 2.6, black, 0, 0.32, z) }
-  box(root, 0.5, 0.12, 0.05, headlight, 0, 1.0, -12.45)
-  return root
+  box(p, 1.7, 0.05, 0.1, alu, 0, y + 1.27, z - 0.5)
 }
+
+// Low-floor articulated tram (Citadis/Avenio class), two 15 m sections:
+// raked cab with a wraparound windscreen and a sign, flush glazing with
+// slim pillars, glazed double sliding doors on both sides, livery skirt,
+// roof equipment pods, a pantograph, bellows at the joint, bogie skirts.
+func tram(livery: UInt32) -> SCNNode {
+  let L: Float = 30.6, W: Float = 2.65, H: Float = 3.45
+  let p = paint(livery)
+  let body = material("white", 0xF4F5F7, metal: 0.2, rough: 0.35)
+  return roadVehicle(length: L) { v in
+    let secL: Float = 15.0
+    for (k, z0) in [Float(0), secL + 0.6].enumerated() {
+      let cabFront = k == 0, cabBack = k == 1
+      let top = curve([(0, cabFront ? H - 0.45 : H), (0.6, cabFront ? H - 0.12 : H), (1.4, H), (secL - 1.4, H), (secL - 0.6, cabBack ? H - 0.12 : H),
+                       (secL, cabBack ? H - 0.45 : H)])
+      let hw = curve([(0, cabFront ? W / 2 - 0.3 : W / 2 - 0.02), (0.5, cabFront ? W / 2 - 0.08 : W / 2), (1.2, W / 2), (secL - 1.2, W / 2),
+                      (secL - 0.5, cabBack ? W / 2 - 0.08 : W / 2), (secL, cabBack ? W / 2 - 0.3 : W / 2 - 0.02)])
+      let bot = curve([(0, cabFront ? 0.45 : 0.32), (0.4, 0.32), (secL - 0.4, 0.32), (secL, cabBack ? 0.45 : 0.32)])
+      let sec = holder(v, V3(0, 0, z0))
+      shell(sec, samples(0, secL, step: 0.15, dense: [(0, 1.6, 0.04), (secL - 1.6, secL, 0.04)]), capStart: body, capEnd: body, { z in
+        boxHalf(hw(z), bot(z), top(z), rb: 0.1, rt: 0.28, lean: 0.06, bow: 0.01, sides: 8, arc: 5)
+      }, skin: { f in f.n.y < -0.75 ? bellows : body })
+      // Roof pods.
+      shell(sec, samples(3.0, 11.5, step: 0.25, dense: [(3.0, 3.6, 0.05), (10.9, 11.5, 0.05)]), capStart: roofGrey, capEnd: roofGrey, { z in
+        let f = min(1, (z - 3.0) / 0.6, (11.5 - z) / 0.6)
+        return boxHalf(0.95, H - 0.05, H + 0.32 * f * f * (3 - 2 * f) + 0.01, rb: 0.02, rt: 0.12, lean: 0.06, sides: 3, arc: 3)
+      }, skin: { _ in roofGrey })
+    }
+    // Bellows between sections.
+    shell(v, samples(secL - 0.05, secL + 0.65, step: 0.1), { z in
+      let ripple = 0.04 * sin((z - secL) * 40)
+      return boxHalf(W / 2 - 0.12 + ripple, 0.4, H - 0.15, rb: 0.1, rt: 0.2, sides: 6, arc: 4)
+    }, skin: { _ in bellows })
+    pantograph(v, y: H + 0.32, z: secL + 0.6 + 6.0)
+    let sd = Drape(v, axis: 0), fd = Drape(v, axis: 2)
+    // Livery skirt and band, doors, windows.
+    for (z0, z1) in [(Float(0.05), secL - 0.05), (secL + 0.65, L - 0.05)] {
+      sidePatches(v, sd, [rounded([SIMD2(z0, 0.34), SIMD2(z1, 0.34), SIMD2(z1, 0.95), SIMD2(z0, 0.95)], r: 0.1)], p, lift: 0.008, k: 6)
+      sideLines(v, sd, [[SIMD2(z0 + 0.1, H - 0.4), SIMD2(z1 - 0.1, H - 0.4)]], width: 0.12, p, lift: 0.01)
+    }
+    let doors: [Float] = [2.6, 8.4, 13.0, 18.0, 23.6, 28.0]
+    for z in doors {
+      sidePatches(v, sd, [rounded([SIMD2(z - 0.68, 0.36), SIMD2(z + 0.68, 0.36), SIMD2(z + 0.68, 2.6), SIMD2(z - 0.68, 2.6)], r: 0.06)], black, lift: 0.012)
+      sidePatches(v, sd, [rounded([SIMD2(z - 0.62, 0.45), SIMD2(z - 0.03, 0.45), SIMD2(z - 0.03, 2.52), SIMD2(z - 0.62, 2.52)], r: 0.05),
+                          rounded([SIMD2(z + 0.03, 0.45), SIMD2(z + 0.62, 0.45), SIMD2(z + 0.62, 2.52), SIMD2(z + 0.03, 2.52)], r: 0.05)], glass, lift: 0.018)
+    }
+    var spans: [(Float, Float)] = []
+    var last: Float = 1.6
+    for z in doors + [L - 1.6] {
+      let a = last, b = z - (z == L - 1.6 ? 0 : 0.8)
+      if b - a > 0.6 && !(a < secL + 0.7 && b > secL - 0.1) { spans.append((a, b)) }
+      else if b - a > 0.6 { spans.append((a, secL - 0.25)); spans.append((secL + 0.85, b)) }
+      last = z + 0.8
+    }
+    for (a, b) in spans where b - a > 0.5 {
+      sidePatches(v, sd, [rounded([SIMD2(a, 1.15), SIMD2(b, 1.15), SIMD2(b, 2.65), SIMD2(a, 2.65)], r: 0.12)], glass, lift: 0.01)
+      let n = max(1, Int((b - a) / 1.6))
+      sideLines(v, sd, (1..<max(2, n)).compactMap { i in n > 1 ? [SIMD2(a + (b - a) * Float(i) / Float(n), 1.15), SIMD2(a + (b - a) * Float(i) / Float(n), 2.65)] : nil },
+                width: 0.06, body, lift: 0.016)
+    }
+    // Cab ends: windscreens, signs, lamps.
+    for (below, sign) in [(true, Float(1)), (false, Float(-1))] {
+      decalPatches(v, fd, [rounded([SIMD2(-1.12, 1.25), SIMD2(1.12, 1.25), SIMD2(1.0, 2.75), SIMD2(-1.0, 2.75)], r: 0.2)], glass, below: below, lift: 0.01, k: 10)
+      decalPatches(v, fd, [rounded([SIMD2(-0.7, 2.82), SIMD2(0.7, 2.82), SIMD2(0.7, 3.08), SIMD2(-0.7, 3.08)], r: 0.04)], black, below: below, lift: 0.012)
+      decalLines(v, fd, [[SIMD2(-0.6, 2.95), SIMD2(0.4, 2.95)]], width: 0.08, amber, below: below, mirror: false, lift: 0.018)
+      decalPatches(v, fd, [rounded([SIMD2(0.72, 0.72), SIMD2(1.05, 0.72), SIMD2(1.05, 0.9), SIMD2(0.72, 0.9)], r: 0.05)], below ? headlight : taillight,
+                   below: below, mirror: true, lift: 0.014)
+      decalPatches(v, fd, [rounded([SIMD2(-1.2, 0.4), SIMD2(1.2, 0.4), SIMD2(1.2, 0.68), SIMD2(-1.2, 0.68)], r: 0.06)], p, below: below, lift: 0.01)
+      _ = sign
+    }
+    for z in [3.2, 12.0, secL + 3.6, L - 3.2] as [Float] { bogie(v, z: z, wheel: 0.33, base: 1.8) }
+  }
+}
+
+// High-speed train (TGV/ICE class): 22 m power car with a long sculpted
+// nose and wraparound cab glass, followed by a 26 m trailer car; livery
+// stripes, flush window band, plug doors, roof fairings, pantograph,
+// skirted bogies and a gangway bellows.
+func highSpeedTrain(livery: UInt32) -> SCNNode {
+  let L: Float = 49.0, W: Float = 2.9, H: Float = 3.85
+  let p = paint(livery)
+  let body = material("white", 0xF4F5F7, metal: 0.2, rough: 0.3)
+  return roadVehicle(length: L) { v in
+    // Power car: nose keys (top, half width, bottom) along z.
+    let nTop = curve([(0, 0.95), (0.6, 1.25), (2.0, 1.75), (4.5, 2.6), (6.6, 3.45), (8.0, H), (22.0, H)])
+    let nHw = curve([(0, 0.22), (0.5, 0.6), (1.5, 0.95), (3.5, 1.3), (6.0, W / 2 - 0.02), (7.5, W / 2), (22.0, W / 2)])
+    let nBot = curve([(0, 0.62), (0.8, 0.45), (2.0, 0.38), (22, 0.38)])
+    shell(v, samples(0, 22.0, step: 0.15, dense: [(0, 9, 0.05)]), capStart: body, capEnd: body, { z in
+      let w = nHw(z), t = nTop(z), b = nBot(z)
+      return boxHalf(w, b, t, rb: min(0.35, w * 0.5), rt: min(0.6, w * 0.6, (t - b) * 0.45), lean: 0.12 * min(1, z / 6), bow: 0.02, sides: 8, arc: 6)
+    }, skin: { f in
+      let z = f.p.z + L / 2
+      if z > 3.6 && z < 6.4 && f.p.y > 2.15 && f.n.y > 0.25 { return glass }
+      return f.n.y < -0.75 ? bellows : body
+    })
+    // Trailer car.
+    let t0: Float = 22.9
+    shell(v, samples(t0, L, step: 0.25, dense: [(t0, t0 + 0.6, 0.05), (L - 0.6, L, 0.05)]), capStart: body, capEnd: body, { z in
+      let f = min(1, (z - t0) / 0.5, (L - z) / 0.5)
+      return boxHalf(W / 2 - 0.05 * (1 - f), 0.38, H - 0.05 * (1 - f), rb: 0.3, rt: 0.55, lean: 0.12, bow: 0.02, sides: 8, arc: 6)
+    }, skin: { f in f.n.y < -0.75 ? bellows : body })
+    shell(v, samples(21.95, t0 + 0.05, step: 0.1), { z in
+      boxHalf(W / 2 - 0.2 + 0.03 * sin((z - 22) * 30), 0.6, H - 0.2, rb: 0.2, rt: 0.4, sides: 6, arc: 4)
+    }, skin: { _ in bellows })
+    // Roof fairings and pantograph.
+    shell(v, samples(9.0, 20.0, step: 0.3, dense: [(9, 10, 0.08)]), capStart: roofGrey, capEnd: roofGrey, { z in
+      let f = min(1, (z - 9.0) / 1.0, (20 - z) / 0.6)
+      return boxHalf(1.0, H - 0.05, H + 0.25 * f * f * (3 - 2 * f) + 0.01, rb: 0.02, rt: 0.12, lean: 0.05, sides: 3, arc: 3)
+    }, skin: { _ in roofGrey })
+    pantograph(v, y: H + 0.25, z: 17.5)
+    let sd = Drape(v, axis: 0), up = Drape(v, axis: 1), fd = Drape(v, axis: 2)
+    // Livery: a stripe sweeping up the nose and along both cars, and a skirt.
+    sidePatches(v, sd, [[SIMD2(0.6, 0.85), SIMD2(5.0, 1.05), SIMD2(21.9, 1.05), SIMD2(21.9, 1.45), SIMD2(6.0, 1.45), SIMD2(1.5, 1.2)],
+                        [SIMD2(t0 + 0.05, 1.05), SIMD2(L - 0.05, 1.05), SIMD2(L - 0.05, 1.45), SIMD2(t0 + 0.05, 1.45)]], p, lift: 0.01, k: 6)
+    sidePatches(v, sd, [[SIMD2(2.0, 0.42), SIMD2(21.9, 0.42), SIMD2(21.9, 0.72), SIMD2(3.0, 0.72)], [SIMD2(t0, 0.42), SIMD2(L, 0.42), SIMD2(L, 0.72), SIMD2(t0, 0.72)]],
+                material("skirt", 0x3A3D42, rough: 0.6), lift: 0.008, k: 4)
+    decalPatches(v, up, [[SIMD2(-0.2, 0.3), SIMD2(0.2, 0.3), SIMD2(0.5, 3.6), SIMD2(-0.5, 3.6)]], p, lift: 0.01, k: 6)
+    // Cab side windows, doors, passenger windows.
+    sidePatches(v, sd, [rounded([SIMD2(6.4, 2.35), SIMD2(7.5, 2.4), SIMD2(7.5, 3.0), SIMD2(6.6, 2.95)], r: 0.12)], glass, lift: 0.01)
+    sideLines(v, sd, [closed(rounded([SIMD2(8.2, 0.75), SIMD2(9.0, 0.75), SIMD2(9.0, 2.95), SIMD2(8.2, 2.95)], r: 0.06))], width: 0.02, black)
+    for (a, b) in [(t0 + 2.6, L - 2.6)] as [(Float, Float)] {
+      sidePatches(v, sd, [rounded([SIMD2(a, 2.0), SIMD2(b, 2.0), SIMD2(b, 2.85), SIMD2(a, 2.85)], r: 0.2)], glass, lift: 0.01)
+      let n = 11
+      sideLines(v, sd, (1..<n).map { i in let z = a + (b - a) * Float(i) / Float(n); return [SIMD2(z, 2.0), SIMD2(z, 2.85)] }, width: 0.12, body, lift: 0.016)
+      for z in [t0 + 1.2, L - 1.2] {
+        sidePatches(v, sd, [rounded([SIMD2(z - 0.45, 0.8), SIMD2(z + 0.45, 0.8), SIMD2(z + 0.45, 2.95), SIMD2(z - 0.45, 2.95)], r: 0.08)], black, lift: 0.012)
+        sidePatches(v, sd, [rounded([SIMD2(z - 0.2, 2.1), SIMD2(z + 0.2, 2.1), SIMD2(z + 0.2, 2.75), SIMD2(z - 0.2, 2.75)], r: 0.06)], glass, lift: 0.018)
+      }
+    }
+    // Nose lamps.
+    decalPatches(v, fd, [rounded([SIMD2(0.32, 1.05), SIMD2(0.7, 1.15), SIMD2(0.68, 1.3), SIMD2(0.32, 1.22)], r: 0.04)], headlight, below: true, mirror: true, lift: 0.01)
+    decalPatches(v, fd, [rounded([SIMD2(-0.9, 2.2), SIMD2(0.9, 2.2), SIMD2(0.9, 2.95), SIMD2(-0.9, 2.95)], r: 0.08)], glass, below: false, lift: 0.01)
+    for z in [5.0, 18.5, t0 + 3.0, L - 3.0] as [Float] { bogie(v, z: z, wheel: 0.46, base: 2.8) }
+  }
+}
+
 
 // MARK: More boats
 
-func yacht(hull: UInt32) -> SCNNode {
-  let root = SCNNode()
-  root.addChildNode(loft([
-    Station(z: -9.0, width: 0.2, bottom: 1.6, top: 2.6, n: 2),
-    Station(z: -7.0, width: 3.6, bottom: 0.4, top: 2.7, n: 2.2, bulge: 0.15),
-    Station(z: -2.0, width: 5.4, bottom: 0.0, top: 2.6, n: 2.8, bulge: 0.12),
-    Station(z: 7.6, width: 5.2, bottom: 0.2, top: 2.4, n: 3.4),
-    Station(z: 8.4, width: 4.8, bottom: 0.6, top: 2.35, n: 3.4),
-  ], segments: 32, paint(hull)))
-  root.addChildNode(loft([
-    Station(z: -8.2, width: 2.0, bottom: 2.55, top: 2.75, n: 2.2),
-    Station(z: 8.3, width: 4.7, bottom: 2.3, top: 2.5, n: 3.4),
-  ], segments: 28, wood))
-  for (z0, z1, w, y0, h) in [(Float(-4.5), Float(5.5), Float(4.2), Float(2.6), Float(1.6)), (-2.5, 3.5, 3.4, 4.2, 1.3), (-1.0, 2.0, 2.4, 5.5, 0.9)] {
-    root.addChildNode(loft([
-      Station(z: z0, width: w * 0.8, bottom: y0, top: y0 + h * 0.8, n: 3),
-      Station(z: z0 + 1.2, width: w, bottom: y0, top: y0 + h, n: 4),
-      Station(z: z1, width: w, bottom: y0, top: y0 + h, n: 4),
-    ], segments: 28, white))
-    for side in [-1, 1] as [Float] { box(root, 0.04, h * 0.45, (z1 - z0) * 0.8, glass, side * (w / 2 + 0.01), y0 + h * 0.55, (z0 + z1) / 2 + 0.3) }
-  }
-  tube(root, V3(0, 6.4, 0.5), V3(0, 8.4, 0.8), 0.06, chrome)
-  box(root, 1.2, 0.08, 0.08, chrome, 0, 8.0, 0.75)
-  return root
+let hullWhite = material("white", 0xF4F5F7, metal: 0.15, rough: 0.3)
+let deckMat = material("deck-mat", 0x2A2C2E, rough: 0.85)
+let seatGrey = material("seat", 0x3B3E42, rough: 0.7)
+let teak = material("teak", 0xB58556, rough: 0.6)
+let antifoul = material("antifouling", 0x2B3138, rough: 0.7)
+let tint = material("glass", 0x16202B, metal: 0.7, rough: 0.06)
+
+/// Smoothstep from 0 at a to 1 at b.
+func ramp(_ x: Float, _ a: Float, _ b: Float) -> Float {
+  let t = max(0, min(1, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
 }
 
+// Personal watercraft (three-seat runabout class): 3.35 m, 1.24 m beam.
+// 22-degree deep-V hull with chines and a rub rail, a bow hood rising to
+// the steering pod, footwells either side of a stepped seat, a boarding
+// platform, the jet pump nozzle and sponsons at the stern. White hull,
+// painted deck.
 func jetSki(body: UInt32) -> SCNNode {
-  let root = SCNNode()
-  root.addChildNode(loft([
-    Station(z: -1.6, width: 0.2, bottom: 0.25, top: 0.55, n: 2),
-    Station(z: -1.0, width: 1.0, bottom: 0.05, top: 0.7, n: 2.4, bulge: 0.15),
-    Station(z: 0.6, width: 1.15, bottom: 0.0, top: 0.62, n: 3),
-    Station(z: 1.5, width: 1.05, bottom: 0.05, top: 0.5, n: 3.4),
-  ], segments: 24, paint(body)))
-  root.addChildNode(loft([
-    Station(z: -0.4, width: 0.42, bottom: 0.62, top: 0.85, n: 3),
-    Station(z: 0.9, width: 0.45, bottom: 0.58, top: 0.82, n: 3),
-  ], segments: 18, leather))
-  tube(root, V3(0, 0.75, -0.75), V3(0, 1.0, -0.55), 0.04, black)
-  tube(root, V3(-0.35, 1.02, -0.55), V3(0.35, 1.02, -0.55), 0.02, black)
-  put(root, BoxMesh(width: 0.5, height: 0.2, length: 0.02), glass, 0, 0.88, -0.95, rx: -0.9)
-  return root
+  let L: Float = 3.35
+  let p = paint(body)
+  return roadVehicle(length: L) { v in
+    let keel = curve([(0, 0.44), (0.3, 0.2), (0.8, 0.06), (1.4, 0.0), (L, 0.0)])
+    let hw = curve([(0, 0.03), (0.15, 0.24), (0.5, 0.47), (1.1, 0.6), (2.4, 0.62), (3.0, 0.6), (L, 0.56)])
+    let gy = curve([(0, 0.63), (0.4, 0.62), (1.0, 0.58), (L, 0.55)])
+    let hood = curve([(0, 0.66), (0.3, 0.84), (0.8, 0.98), (1.15, 1.03), (1.3, 0.95), (1.45, 0.8)])
+    func deck(_ z: Float) -> [SIMD2<Float>] {
+      let w = hw(z), g = gy(z), t = hood(min(z, 1.45))
+      let a: [SIMD2<Float>] = [SIMD2(w * 0.93, g + 0.07), SIMD2(w * 0.85, t - 0.14), SIMD2(w * 0.65, t - 0.05), SIMD2(w * 0.35, t - 0.01), SIMD2(0, t)]
+      let b: [SIMD2<Float>] = [SIMD2(w * 0.93, g + 0.07), SIMD2(w * 0.84, g - 0.05), SIMD2(0.31, g - 0.05), SIMD2(0.27, 0.74), SIMD2(0, 0.75)]
+      let c: [SIMD2<Float>] = [SIMD2(w * 0.93, g + 0.05), SIMD2(w * 0.85, g - 0.02), SIMD2(0.4, g - 0.03), SIMD2(0.2, g - 0.03), SIMD2(0, g - 0.03)]
+      let f1 = ramp(z, 1.2, 1.45), f2 = ramp(z, 2.7, 2.9)
+      return (0..<5).map { i in a[i] + (b[i] - a[i]) * f1 + (c[i] - b[i]) * f2 }
+    }
+    let zs = samples(0, L, step: 0.03)
+    shell(v, zs, sharp: [4, 8, 9, 10], capStart: hullWhite, capEnd: hullWhite, { z in
+      let w = hw(z), k = keel(z), g = gy(z)
+      let chine = SIMD2<Float>(w * 0.8, k + w * 0.8 * 0.42)
+      var half = resample([SIMD2(0, k), chine], 5)
+      half += resample([chine, SIMD2(w, g)], 5).dropFirst()
+      return half + deck(z)
+    }, skin: { f in
+      let z = f.p.z + L / 2
+      if f.p.y < 0.55 && f.n.y < 0.5 { return hullWhite }
+      if f.n.y > 0.8 && f.p.y < 0.6 && (z > 2.85 || abs(f.p.x) > 0.3) { return deckMat }
+      return p
+    })
+    // Seat, pod, bars, visor, mirrors.
+    motoBody(v, [(1.32, 0.15, 0.73, 0.9), (1.5, 0.22, 0.73, 0.96), (2.05, 0.22, 0.73, 0.95), (2.25, 0.22, 0.73, 1.0), (2.68, 0.2, 0.73, 0.98),
+                 (2.78, 0.1, 0.73, 0.92)], rb: 0.3, rt: 0.5, cap: seatGrey) { f in f.n.y > 0.7 ? black : seatGrey }
+    motoBody(v, [(1.05, 0.12, 0.96, 1.05), (1.2, 0.15, 0.98, 1.13), (1.32, 0.1, 0.96, 1.08)], rb: 0.4, rt: 0.5, cap: p) { _ in p }
+    put(v, BoxMesh(width: 0.22, height: 0.12, length: 0.01), tint, 0, 1.16, 1.08, rx: -0.6)
+    tube(v, V3(-0.38, 1.12, 1.24), V3(0.38, 1.12, 1.24), 0.016, black, sides: 8)
+    for side in [-1, 1] as [Float] {
+      put(v, CylinderMesh(radius: 0.022, height: 0.12, sides: 10), rubber, side * 0.36, 1.12, 1.24, rz: .pi / 2)
+      tube(v, V3(side * 0.28, 0.98, 0.95), V3(side * 0.34, 1.06, 0.95), 0.01, black, sides: 4)
+      box(v, 0.1, 0.05, 0.02, black, side * 0.36, 1.08, 0.95)
+    }
+    let side = Drape(v, axis: 0), up = Drape(v, axis: 1)
+    // Graphics, rub rail, intake grate, platform grip.
+    sideLines(v, side, [[SIMD2(0.12, 0.6), SIMD2(L - 0.02, 0.53)]], width: 0.05, black, lift: 0.012)
+    sidePatches(v, side, [[SIMD2(0.35, 0.38), SIMD2(1.3, 0.5), SIMD2(2.2, 0.5), SIMD2(1.2, 0.42)], [SIMD2(0.7, 0.28), SIMD2(1.6, 0.42), SIMD2(1.8, 0.42), SIMD2(1.0, 0.3)]],
+                p, lift: 0.01, k: 5)
+    decalPatches(v, up, [rounded([SIMD2(-0.35, 2.1), SIMD2(0.35, 2.1), SIMD2(0.35, 2.5), SIMD2(-0.35, 2.5)], r: 0.08)], deckMat, below: true, lift: 0.01)
+    // Jet nozzle, ride plate, sponsons, tow eye.
+    put(v, LatheMesh([SIMD2(0, 0.12), SIMD2(0.22, 0.1), SIMD2(0.26, 0.001)], sides: 18), engineDark, 0, 0.2, L - 0.05, rx: .pi / 2)
+    box(v, 0.5, 0.02, 0.4, alu, 0, 0.02, L - 0.2)
+    for s in [-1, 1] as [Float] {
+      box(v, 0.02, 0.1, 0.35, black, s * 0.57, 0.18, L - 0.4, rz: s * 0.5)
+    }
+    put(v, TorusMesh(ringRadius: 0.04, pipeRadius: 0.01), chrome, 0, 0.58, L - 0.02, rx: .pi / 2)
+  }
+}
+
+// Motor superyacht (35 m class): 35 m, 7.6 m beam. Sharp raked bow,
+// rising sheer, dark hull over a white boot stripe and antifouling, three
+// white decks with swept dark window bands and overhangs, wraparound
+// bridge glass, sun deck with a hardtop and radar arch, mast with radomes,
+// teak decks, stainless rails, a tender, hull portholes, swim platform.
+func yacht(hull: UInt32) -> SCNNode {
+  let L: Float = 35
+  let p = paint(hull)
+  let superWhite = material("white", 0xF6F6F4, metal: 0.15, rough: 0.3)
+  return roadVehicle(length: L) { v in
+    let keel = curve([(0, 1.9), (1.5, 0.9), (4, 0.25), (8, 0.0), (L, 0.15)])
+    let hw = curve([(0, 0.05), (1.0, 1.1), (3.5, 2.6), (8, 3.55), (14, 3.8), (L - 2, 3.75), (L, 3.6)])
+    let sheer = curve([(0, 4.6), (4, 4.25), (10, 3.95), (20, 3.7), (L, 3.6)])
+    let zs = samples(0, L, step: 0.3, dense: [(0, 4, 0.1), (L - 0.6, L, 0.05)])
+    shell(v, zs, sharp: [5, 10], capStart: p, capEnd: p, { z in
+      let w = hw(z), k = keel(z), s = sheer(z)
+      let chine = SIMD2<Float>(w * 0.72, k + w * 0.72 * 0.3 + 0.3)
+      var half = resample([SIMD2(0, k), chine], 6)
+      half += resample([chine, SIMD2(w * 0.98, (chine.y + s) / 2), SIMD2(w, s)], 6).dropFirst()
+      half += [SIMD2(w * 0.97, s + 0.02), SIMD2(w * 0.6, s + 0.05), SIMD2(0, s + 0.06)]
+      return half
+    }, skin: { f in
+      if f.n.y > 0.7 { return teak }
+      if f.p.y < 0.7 { return antifoul }
+      return p
+    })
+    // Decks: main deckhouse, upper deck, bridge, sun deck.
+    struct Deck { var z0: Float; var z1: Float; var y0: Float; var h: Float; var hw: Float; var rake: Float }
+    let decks = [Deck(z0: 9.5, z1: 30.0, y0: 3.75, h: 2.4, hw: 3.35, rake: 3.0), Deck(z0: 12.5, z1: 28.5, y0: 6.15, h: 2.3, hw: 3.1, rake: 2.6),
+                 Deck(z0: 15.0, z1: 24.5, y0: 8.45, h: 1.9, hw: 2.6, rake: 2.2)]
+    for (i, d) in decks.enumerated() {
+      let front = curve([(d.z0, d.y0 + 0.4), (d.z0 + d.rake * 0.5, d.y0 + d.h * 0.7), (d.z0 + d.rake, d.y0 + d.h), (d.z1, d.y0 + d.h)])
+      let width = curve([(d.z0, d.hw * 0.35), (d.z0 + d.rake, d.hw * 0.86), (d.z0 + d.rake * 2.2, d.hw), (d.z1, d.hw)])
+      shell(v, samples(d.z0, d.z1, step: 0.2, dense: [(d.z0, d.z0 + d.rake + 0.5, 0.06)]), capStart: superWhite, capEnd: superWhite, { z in
+        boxHalf(width(z), d.y0, max(d.y0 + 0.3, front(z)), rb: 0.05, rt: 0.25, lean: 0.25, bow: 0.02, sides: 6, arc: 4)
+      }, skin: { f in f.n.y > 0.9 && i < 2 && f.p.z + L / 2 > d.z1 - 4 ? teak : superWhite })
+      // Overhanging deck edge above each level.
+      shell(v, samples(d.z0 + d.rake * 0.6, d.z1 + 1.2, step: 0.3), capStart: superWhite, capEnd: superWhite, { z in
+        boxHalf(width(min(z, d.z1)) + 0.25, d.y0 + d.h - 0.12, d.y0 + d.h + 0.05, rb: 0.03, rt: 0.06, sides: 2, arc: 2)
+      }, skin: { _ in superWhite })
+    }
+    // Hardtop on posts over the sun deck, radar arch and mast with domes.
+    shell(v, samples(17.5, 24.0, step: 0.3), capStart: superWhite, capEnd: superWhite, { z in
+      let f = ramp(z, 17.5, 18.8)
+      return boxHalf(2.4 * (0.6 + 0.4 * f), 12.6, 12.75 + 0.08 * f, rb: 0.03, rt: 0.06, sides: 2, arc: 3)
+    }, skin: { _ in superWhite })
+    for x in [-2.0, 2.0] as [Float] { for z in [19.0, 23.4] as [Float] { tube(v, V3(x, 10.35, z), V3(x * 0.95, 12.62, z), 0.08, superWhite, sides: 10) } }
+    tube(v, V3(0, 12.75, 21.0), V3(0, 14.6, 21.6), 0.1, superWhite, sides: 10)
+    for (x, r) in [(-0.8, 0.45), (0.8, 0.35)] as [(Float, Float)] {
+      put(v, LatheMesh((0...8).map { i in let a = Float(i) / 8 * .pi; return SIMD2(-cos(a) * r, sin(a) * r + 0.001) }, sides: 18), superWhite, x, 14.0, 21.4)
+    }
+    box(v, 2.2, 0.08, 0.12, superWhite, 0, 13.9, 21.4)
+    rod(v, V3(0, 14.6, 21.6), V3(0, 16.5, 21.9), 0.025, chrome)
+    let sd = Drape(v, axis: 0), up = Drape(v, axis: 1), fd = Drape(v, axis: 2)
+    // Hull: boot stripe, portholes, anchor pocket, sheer line.
+    sideLines(v, sd, [[SIMD2(1.6, 0.85), SIMD2(L - 0.1, 0.85)]], width: 0.18, superWhite, lift: 0.02)
+    sidePatches(v, sd, (0..<7).map { i in ring2(13 + Float(i) * 1.8, 2.2, 0.2, 14) } + (0..<3).map { i in ring2(5.5 + Float(i) * 1.6, 2.6, 0.18, 14) },
+                tint, lift: 0.02)
+    sidePatches(v, sd, [rounded([SIMD2(1.9, 3.3), SIMD2(2.9, 3.3), SIMD2(2.9, 3.9), SIMD2(1.9, 3.9)], r: 0.2)], black, lift: 0.02)
+    sideLines(v, sd, [[SIMD2(0.6, 4.4), SIMD2(10, 3.92), SIMD2(L - 0.1, 3.56)]], width: 0.12, chrome, lift: 0.02)
+    // Window bands, swept at the front.
+    for (i, d) in decks.enumerated() {
+      let y0 = d.y0 + d.h * 0.28, y1 = d.y0 + d.h * 0.82
+      let zA = d.z0 + d.rake * 0.7
+      let band = [SIMD2(zA, y0 + 0.2), SIMD2(d.z1 - 1.0, y0), SIMD2(d.z1 - 0.4, y1 - 0.15), SIMD2(zA + d.rake * 0.6, y1)]
+      sidePatches(v, sd, [rounded(band, r: 0.4)], tint, lift: 0.02, k: 8)
+      if i == 0 { sidePatches(v, sd, [rounded([SIMD2(d.z1 - 7, y0 - 0.2), SIMD2(d.z1 - 4.5, y0 - 0.2), SIMD2(d.z1 - 4.5, y1 + 0.1), SIMD2(d.z1 - 7, y1 + 0.1)], r: 0.2)],
+                              black, lift: 0.03) }
+      decalPatches(v, fd, [rounded([SIMD2(-d.hw * 0.8, d.y0 + d.h * 0.42), SIMD2(d.hw * 0.8, d.y0 + d.h * 0.42), SIMD2(d.hw * 0.7, d.y0 + d.h * 0.9),
+                                    SIMD2(-d.hw * 0.7, d.y0 + d.h * 0.9)], r: 0.3)], tint, below: true, lift: 0.02, k: 8)
+    }
+    // Aft deck teak and sun deck pads.
+    decalPatches(v, up, [rounded([SIMD2(-2.5, 20.2), SIMD2(2.5, 20.2), SIMD2(2.5, 23.8), SIMD2(-2.5, 23.8)], r: 0.4)], material("cushion", 0xE9E4DA, rough: 0.8),
+                 lift: 0.12)
+    decalPatches(v, up, [rounded([SIMD2(-2.2, 3.5), SIMD2(2.2, 3.5), SIMD2(2.8, 8.5), SIMD2(-2.8, 8.5)], r: 0.6)], material("cushion", 0xE9E4DA, rough: 0.8),
+                 lift: 0.1)
+    // Rails: stanchions and top rail along the main deck edge and the upper deck.
+    for side in [-1, 1] as [Float] {
+      var pts: [V3] = []
+      var z: Float = 2.0
+      while z < L - 0.4 {
+        let x = side * (hw(z) - 0.15), y = sheer(z) + 0.05
+        pts.append(V3(x, y, z)); z += 1.5
+      }
+      for q in pts { rod(v, q, q + V3(0, 0.95, 0), 0.025, chrome) }
+      for k in 0..<(pts.count - 1) { rod(v, pts[k] + V3(0, 0.95, 0), pts[k + 1] + V3(0, 0.95, 0), 0.03, chrome) }
+    }
+    // Tender on the foredeck of the upper level, swim platform, ladder.
+    let tender = holder(v, V3(0, 6.2, 10.4))
+    motoBody(tender, [(-2.0, 0.15, 0.2, 0.55), (-1.4, 0.72, 0.0, 0.62), (1.2, 0.82, 0.0, 0.6), (2.0, 0.7, 0.05, 0.58)], rb: 0.5, rt: 0.6,
+             cap: material("tube-grey", 0x5C6167, rough: 0.6)) { f in f.n.y > 0.6 ? superWhite : material("tube-grey", 0x5C6167, rough: 0.6) }
+    box(v, 6.6, 0.25, 2.0, teak, 0, 1.2, L + 0.9)
+    for x in [-0.4, 0.4] as [Float] { rod(v, V3(x, 1.3, L + 0.1), V3(x, 3.5, L - 0.2), 0.03, chrome) }
+  }
 }
 
 // MARK: More aircraft
 
-func widebody(livery: UInt32) -> SCNNode {
-  let holder = SCNNode()
-  let plane = airliner(livery: livery)
-  plane.simdScale = V3(1.55, 1.55, 1.65) // ~63 m long, ~60 m span
-  holder.addChildNode(plane)
-  return holder
+
+let navWhite = material("nav-white", 0xFFFFFF, rough: 0.3, emit: true)
+let bladeBlack = material("blade", 0x26282B, rough: 0.5)
+let bladeTip = material("blade-tip", 0xF2C318, rough: 0.5)
+let wingGrey = material("white", 0xE3E6EA, metal: 0.25, rough: 0.4)
+
+// Light single-engine helicopter (Bell 407 class): 10.6 m fuselage,
+// 10.7 m four-blade rotor. Rounded cabin with a big bubble windscreen and
+// chin windows, doors with windows, engine cowling with exhaust stacks,
+// tapering tail boom, horizontal stabiliser with endplates, swept fin,
+// two-blade tail rotor on the left, skids on curved cross tubes.
+func helicopter(livery: UInt32) -> SCNNode {
+  let L: Float = 10.6
+  let p = paint(livery)
+  return fighter(length: L) { h in
+    let c = 11
+    func skin(_ f: Facet) -> SCNMaterial {
+      let z = f.p.z + L / 2
+      if z < 1.5 && f.p.y > 1.22 - z * 0.1 && abs(f.p.x) > 0.035 { return glass }
+      if z < 0.95 && f.p.y > 0.72 && f.p.y < 1.08 && abs(f.p.x) > 0.12 && f.n.z < -0.2 { return glass }
+      if f.n.y < -0.7 { return hullWhite }
+      return p
+    }
+    jetBody(h, [
+      Ring(z: 0, half: noseTip(1.25, c)),
+      Ring(z: 0.25, half: ovalHalf(0.46, 0.76, 1.66, n: 2.2, count: c, widest: 0.45)),
+      Ring(z: 0.8, half: ovalHalf(0.72, 0.56, 2.04, n: 2.4, count: c, widest: 0.42)),
+      Ring(z: 1.6, half: ovalHalf(0.8, 0.5, 2.25, n: 2.7, count: c, widest: 0.42)),
+      Ring(z: 2.6, half: ovalHalf(0.81, 0.5, 2.3, n: 2.9, count: c, widest: 0.42)),
+      Ring(z: 3.5, half: ovalHalf(0.74, 0.62, 2.42, n: 2.7, count: c, widest: 0.45)),
+      Ring(z: 4.4, half: ovalHalf(0.5, 0.98, 2.4, n: 2.4, count: c, widest: 0.5)),
+      Ring(z: 5.3, half: ovalHalf(0.3, 1.5, 2.2, count: c)),
+      Ring(z: 9.6, half: ovalHalf(0.13, 1.88, 2.15, count: c)),
+      Ring(z: 9.95, half: ovalHalf(0.08, 1.92, 2.1, count: c)),
+    ], step: 0.1, capEnd: p, skin: skin)
+    // Engine cowling and exhaust.
+    motoBody(h, [(2.0, 0.2, 2.2, 2.4), (2.4, 0.45, 2.22, 2.62), (3.6, 0.48, 2.25, 2.7), (4.5, 0.32, 2.2, 2.5), (5.0, 0.1, 2.15, 2.3)],
+             step: 0.05, rb: 0.3, rt: 0.6, cap: p) { _ in p }
+    for side in [-1, 1] as [Float] {
+      tube(h, V3(side * 0.18, 2.6, 4.2), V3(side * 0.24, 2.85, 4.55), 0.09, engineDark, sides: 12)
+    }
+    // Rotor: mast, hub, four blades with tip caps.
+    tube(h, V3(0, 2.65, 2.25), V3(0, 3.15, 2.25), 0.09, engineDark, sides: 12)
+    put(h, CylinderMesh(radius: 0.3, height: 0.14, sides: 16), engineDark, 0, 3.18, 2.25)
+    for k in 0..<4 {
+      let blade = holder(h, V3(0, 3.2, 2.25), ry: Float(k) * .pi / 2 + 0.4)
+      wingSkin(blade, [WS(s: 0.25, le: -0.12, te: 0.12, t: 0.05, y: 0), WS(s: 0.6, le: -0.14, te: 0.14, t: 0.04, y: 0),
+                       WS(s: 5.33, le: -0.1, te: 0.12, t: 0.03, y: -0.08)], side: 1, chord: 5, sub: 1) { f in
+        f.p.y > -10 && simd_length(SIMD2(f.p.x, f.p.z - (2.25 - L / 2))) > 4.95 ? bladeTip : bladeBlack
+      }
+    }
+    // Horizontal stabiliser with endplates, swept fin, tail rotor.
+    for side in [-1, 1] as [Float] {
+      wingSkin(h, [WS(s: 0.1, le: 7.6, te: 8.25, t: 0.1, y: 1.98), WS(s: 1.35, le: 7.75, te: 8.25, t: 0.07, y: 1.98)], side: side, chord: 6, sub: 1) { _ in p }
+      let ep = finFrame(h, x: 1.35, y: 1.98, cant: 0, side: 1)
+      wingSkin(ep, [WS(s: -0.3, le: 7.72, te: 8.25, t: 0.05, y: side * 0.0), WS(s: 0.35, le: 7.85, te: 8.25, t: 0.05, y: 0)], side: side, chord: 4, sub: 1) { _ in p }
+    }
+    let fin = finFrame(h, x: 0, y: 2.08, cant: 0, side: 1)
+    wingSkin(fin, [WS(s: 0, le: 8.85, te: 9.95, t: 0.12, y: 0), WS(s: 1.05, le: 9.6, te: 10.1, t: 0.07, y: 0)], side: 1, chord: 6, sub: 1) { _ in p }
+    wingSkin(fin, [WS(s: 0, le: 9.2, te: 9.95, t: 0.1, y: 0), WS(s: 0.5, le: 9.6, te: 9.95, t: 0.06, y: 0)], side: -1, chord: 5, sub: 1) { _ in p }
+    tube(h, V3(0, 1.55, 9.75), V3(0, 1.4, 10.25), 0.02, chrome, sides: 6)
+    let tr = holder(h, V3(-0.22, 2.55, 9.75), rz: .pi / 2 + 0.3)
+    put(tr, CylinderMesh(radius: 0.08, height: 0.12, sides: 12), engineDark, 0, 0, 0, rz: .pi / 2)
+    for side in [-1, 1] as [Float] {
+      wingSkin(tr, [WS(s: 0.06, le: -0.07, te: 0.07, t: 0.025, y: -0.05), WS(s: 0.85, le: -0.06, te: 0.06, t: 0.015, y: -0.05)], side: side, chord: 4, sub: 1) { _ in bladeBlack }
+    }
+    // Skids on curved cross tubes, with steps.
+    for side in [-1, 1] as [Float] {
+      let x = side * 1.12
+      tube(h, V3(x, 0.08, 0.6), V3(x, 0.08, 3.9), 0.05, alu, sides: 10)
+      tube(h, V3(x, 0.08, 0.6), V3(x, 0.2, 0.3), 0.05, alu, sides: 10)
+      tube(h, V3(x, 0.2, 0.3), V3(x, 0.38, 0.22), 0.05, alu, sides: 10)
+      for z in [1.25, 3.2] as [Float] {
+        tube(h, V3(side * 0.45, 0.55, z), V3(side * 0.85, 0.45, z), 0.05, alu, sides: 10)
+        tube(h, V3(side * 0.85, 0.45, z), V3(x, 0.1, z), 0.05, alu, sides: 10)
+      }
+      box(h, 0.3, 0.03, 0.2, alu, side * 0.85, 0.42, 1.9)
+    }
+    let sd = Drape(h, axis: 0, skip: ["glass"])
+    sidePatches(h, sd, [rounded([SIMD2(1.62, 1.3), SIMD2(2.45, 1.3), SIMD2(2.45, 2.05), SIMD2(1.62, 2.12)], r: 0.12),
+                        rounded([SIMD2(2.55, 1.3), SIMD2(3.35, 1.3), SIMD2(3.3, 2.02), SIMD2(2.55, 2.05)], r: 0.12)], glass, lift: 0.01, k: 6)
+    sideLines(h, sd, [closed(rounded([SIMD2(1.55, 0.72), SIMD2(2.5, 0.72), SIMD2(2.5, 2.18), SIMD2(1.55, 2.2)], r: 0.1)),
+                      closed(rounded([SIMD2(2.5, 0.72), SIMD2(3.42, 0.72), SIMD2(3.38, 2.12), SIMD2(2.5, 2.18)], r: 0.1))], width: 0.015, black)
+    sideLines(h, sd, [[SIMD2(0.4, 0.95), SIMD2(4.5, 1.05), SIMD2(9.6, 1.95)]], width: 0.08, hullWhite, lift: 0.016)
+    navLights(h, x: 1.4, y: 1.98, z: 8.0)
+    box(h, 0.1, 0.06, 0.1, navRed, 0, 2.08, 4.0)
+  }
 }
 
-/// A flat surface (fin or tail) from a polygon in its own plane, given
-/// thickness, placed and rotated.
-func plate(_ root: SCNNode, _ outline: [SIMD2<Float>], thickness: Float, _ m: SCNMaterial,
-           at p: V3, ry: Float = 0, rz: Float = 0, rx: Float = 0) {
-  let g = PanelMesh(outline)
-  let node = put(root, g, m, p.x, p.y, p.z, rx: rx, ry: ry, rz: rz)
-  node.geometry?.firstMaterial?.isDoubleSided = true
-  _ = thickness
+// Cessna 172 class four-seat high-wing single: 8.28 m long, 11.0 m span,
+// 2.72 m tall. Cowled flat-four with spinner and two-blade prop, raked
+// windscreen, door and rear side windows, rear "omni-vision" window,
+// strut-braced wing (constant-chord inboard, tapered outboard, 1.7 degrees
+// dihedral) with flaps and ailerons, swept fin with a dorsal fillet,
+// stabiliser with elevators, spring-steel mains and a nose oleo with
+// wheel fairings, nav and beacon lights.
+func propPlane(livery: UInt32) -> SCNNode {
+  let L: Float = 8.28
+  let p = paint(livery)
+  return fighter(length: L) { a in
+    let c = 13
+    func skin(_ f: Facet) -> SCNMaterial {
+      let z = f.p.z + L / 2
+      if z > 1.55 && z < 2.25 && f.n.z < -0.25 && f.n.y > 0.15 && f.p.y > 1.9 { return glass }
+      if z > 3.65 && z < 4.45 && f.n.y > 0.55 && abs(f.p.x) < 0.32 { return glass }
+      return hullWhite
+    }
+    jetBody(a, [
+      Ring(z: 0.2, half: ovalHalf(0.32, 1.2, 1.72, n: 2.4, count: c)),
+      Ring(z: 0.5, half: ovalHalf(0.47, 1.0, 1.85, n: 2.6, count: c)),
+      Ring(z: 1.4, half: ovalHalf(0.53, 0.92, 1.93, n: 3, count: c, widest: 0.45)),
+      Ring(z: 1.6, half: ovalHalf(0.55, 0.9, 2.02, n: 3, count: c, widest: 0.42)),
+      Ring(z: 2.25, half: ovalHalf(0.56, 0.88, 2.5, n: 3.2, count: c, widest: 0.4)),
+      Ring(z: 3.5, half: ovalHalf(0.55, 0.92, 2.5, n: 3.2, count: c, widest: 0.4)),
+      Ring(z: 4.3, half: ovalHalf(0.42, 1.08, 2.28, n: 2.8, count: c, widest: 0.42)),
+      Ring(z: 5.5, half: ovalHalf(0.27, 1.3, 2.04, n: 2.4, count: c)),
+      Ring(z: 7.0, half: ovalHalf(0.13, 1.52, 1.95, n: 2.2, count: c)),
+      Ring(z: 8.0, half: ovalHalf(0.05, 1.64, 1.9, count: c)),
+    ], step: 0.1, capStart: engineDark, capEnd: hullWhite, skin: skin)
+    // Spinner and two-blade prop.
+    put(a, LatheMesh((0...8).map { i in let t = Float(i) / 8; return SIMD2(t * 0.32, 0.17 * (1 - pow(1 - t, 0.5) * 0) * sqrt(max(0.0001, t))) }, sides: 20),
+        white, 0, 1.46, 0.2, rx: -.pi / 2)
+    let prop = holder(a, V3(0, 1.46, 0.08), rz: .pi / 2 + 0.5)
+    for side in [-1, 1] as [Float] {
+      wingSkin(prop, [WS(s: 0.1, le: -0.08, te: 0.06, t: 0.04, y: 0), WS(s: 0.5, le: -0.09, te: 0.08, t: 0.025, y: 0),
+                      WS(s: 0.95, le: -0.05, te: 0.04, t: 0.012, y: 0)], side: side, chord: 4, sub: 2) { f in
+        simd_length(SIMD2(f.p.x, f.p.y - 1.46)) > 0.85 ? bladeTip : bladeBlack
+      }
+    }
+    // Wing, struts, tail.
+    var wings: [WingSurface] = []
+    for side in [-1, 1] as [Float] {
+      wings.append(wingSkin(a, [WS(s: 0, le: 1.62, te: 3.28, t: 0.2, y: 2.48), WS(s: 2.6, le: 1.62, te: 3.28, t: 0.19, y: 2.56),
+                                WS(s: 5.3, le: 1.98, te: 3.1, t: 0.12, y: 2.64), WS(s: 5.5, le: 2.06, te: 3.04, t: 0.08, y: 2.64)],
+                            side: side, chord: 9, sub: 3) { f in
+        abs(f.p.x) > 5.0 ? p : wingGrey
+      })
+      strut(a, V3(side * 0.52, 1.0, 2.35), V3(side * 2.65, 2.42, 2.4), 0.11, 0.03, hullWhite, up: V3(0, 0, 1))
+      wingSkin(a, [WS(s: 0.12, le: 6.95, te: 8.0, t: 0.1, y: 1.78), WS(s: 1.72, le: 7.3, te: 7.98, t: 0.06, y: 1.78)], side: side, chord: 6, sub: 2) { f in
+        abs(f.p.x) > 1.45 ? p : wingGrey
+      }
+    }
+    let fin = finFrame(a, x: 0, y: 1.9, cant: 0, side: 1)
+    let finS = wingSkin(fin, [WS(s: 0, le: 5.5, te: 8.15, t: 0.14, y: 0), WS(s: 0.28, le: 6.7, te: 8.2, t: 0.12, y: 0),
+                              WS(s: 1.5, le: 7.65, te: 8.3, t: 0.08, y: 0)], side: 1, chord: 7, sub: 2) { f in f.p.y > 2.9 ? p : hullWhite }
+    // Control surface lines.
+    for w in wings {
+      wingLines(w, [[SIMD2(0.6, w.z(0.6, 0.74)), SIMD2(2.9, w.z(2.9, 0.74)), SIMD2(2.9, w.z(2.9, 1))],
+                    [SIMD2(3.0, w.z(3.0, 1)), SIMD2(3.0, w.z(3.0, 0.72)), SIMD2(5.2, w.z(5.2, 0.7)), SIMD2(5.2, w.z(5.2, 1))]], width: 0.02, slat, lower: true)
+    }
+    wingLines(finS, [[SIMD2(0.1, 7.75), SIMD2(1.45, 7.95)]], width: 0.02, slat, upper: true, lower: true)
+    // Gear: spring-steel mains with fairings, nose oleo.
+    for side in [-1, 1] as [Float] {
+      strut(a, V3(side * 0.42, 0.98, 2.65), V3(side * 1.25, 0.32, 2.75), 0.1, 0.025, hullWhite, up: V3(0, 0, 1))
+      put(a, TubeMesh(innerRadius: 0.12, outerRadius: 0.22, height: 0.13, sides: 20), tyre, side * 1.25, 0.22, 2.75, rz: .pi / 2)
+      motoBody(a, [(2.3, 0.04, 0.16, 0.3), (2.55, 0.12, 0.06, 0.48), (2.95, 0.12, 0.06, 0.48), (3.35, 0.02, 0.26, 0.36)], x: side * 1.25,
+               step: 0.03, rb: 0.6, rt: 0.6, cap: p) { _ in p }
+    }
+    tube(a, V3(0, 1.0, 0.75), V3(0, 0.22, 0.6), 0.04, chrome, sides: 10)
+    put(a, TubeMesh(innerRadius: 0.1, outerRadius: 0.19, height: 0.11, sides: 18), tyre, 0, 0.19, 0.6, rz: .pi / 2)
+    motoBody(a, [(0.3, 0.03, 0.14, 0.26), (0.5, 0.1, 0.05, 0.42), (0.78, 0.1, 0.05, 0.42), (0.98, 0.02, 0.22, 0.32)], step: 0.03, rb: 0.6, rt: 0.6,
+             cap: p) { _ in p }
+    tube(a, V3(0.2, 0.95, 1.3), V3(0.22, 0.82, 1.7), 0.035, engineDark, sides: 8)
+    // Windows, livery stripes, cowl intakes, lights.
+    let sd = Drape(a, axis: 0), fd = Drape(a, axis: 2)
+    sidePatches(a, sd, [rounded([SIMD2(1.75, 1.72), SIMD2(2.78, 1.72), SIMD2(2.78, 2.4), SIMD2(2.0, 2.4)], r: 0.08),
+                        rounded([SIMD2(2.88, 1.75), SIMD2(3.75, 1.78), SIMD2(3.62, 2.3), SIMD2(2.88, 2.38)], r: 0.08)], glass, lift: 0.01, k: 6)
+    sideLines(a, sd, [closed(rounded([SIMD2(1.68, 0.98), SIMD2(2.84, 0.98), SIMD2(2.84, 2.46), SIMD2(1.9, 2.46)], r: 0.06))], width: 0.012, slat)
+    sidePatches(a, sd, [[SIMD2(0.5, 1.42), SIMD2(5.0, 1.42), SIMD2(7.6, 1.66), SIMD2(7.6, 1.74), SIMD2(5.0, 1.56), SIMD2(0.5, 1.56)],
+                        [SIMD2(1.4, 1.3), SIMD2(5.2, 1.36), SIMD2(7.6, 1.6), SIMD2(5.2, 1.4), SIMD2(1.4, 1.36)]], p, lift: 0.01, k: 6)
+    decalPatches(a, fd, [ring2(0.2, 1.62, 0.07, 12)], black, below: true, mirror: true, lift: 0.01)
+    let wl = wings.first { $0.side < 0 }!, wr = wings.first { $0.side > 0 }!
+    box(a, 0.06, 0.05, 0.12, navRed, -5.52, wl.at(5.5).y, 2.2)
+    box(a, 0.06, 0.05, 0.12, navGreen, 5.52, wr.at(5.5).y, 2.2)
+    box(a, 0.06, 0.08, 0.06, navRed, 0, 3.42, 7.95)
+    box(a, 0.05, 0.05, 0.08, navWhite, 0, 1.78, 8.3)
+  }
 }
 
 // MARK: Fighter jets
@@ -1556,22 +3058,30 @@ func emitTri(_ m: Mesh, _ a: V3, _ b: V3, _ c: V3, _ na: V3, _ nb: V3, _ nc: V3)
   m.indices += simd_dot(simd_cross(b - a, c - a), na + nb + nc) >= 0 ? [base, base + 1, base + 2] : [base, base + 2, base + 1]
 }
 
-/// Builds a ribbon `width` wide through surface points with their normals.
+/// Adds a triangle over existing vertices, wound to face their normals.
+func indexedTri(_ m: Mesh, _ a: UInt32, _ b: UInt32, _ c: UInt32) {
+  let pa = m.positions[Int(a)], pb = m.positions[Int(b)], pc = m.positions[Int(c)]
+  let n = m.normals[Int(a)] + m.normals[Int(b)] + m.normals[Int(c)]
+  m.indices += simd_dot(simd_cross(pb - pa, pc - pa), n) >= 0 ? [a, b, c] : [a, c, b]
+}
+
+/// Builds a ribbon `width` wide through surface points with their normals
+/// (two shared vertices per point).
 func ribbon(_ m: Mesh, _ pts: [(V3, V3)], width: Float) {
   guard pts.count >= 2 else { return }
-  var left: [V3] = [], right: [V3] = []
+  let base = UInt32(m.positions.count)
   for i in 0..<pts.count {
     let (p, n) = pts[i]
     let d = pts[min(pts.count - 1, i + 1)].0 - pts[max(0, i - 1)].0
     var side = simd_cross(n, d)
     if simd_length(side) < 1e-6 { side = V3(1, 0, 0) }
     side = simd_normalize(side) * (width / 2)
-    left.append(p - side); right.append(p + side)
+    m.positions += [p - side, p + side]; m.normals += [n, n]
   }
-  for i in 0..<(pts.count - 1) {
-    let n0 = pts[i].1, n1 = pts[i + 1].1
-    emitTri(m, left[i], right[i], right[i + 1], n0, n0, n1)
-    emitTri(m, left[i], right[i + 1], left[i + 1], n0, n1, n1)
+  for i in 0..<UInt32(pts.count - 1) {
+    let l0 = base + 2 * i, r0 = l0 + 1, l1 = l0 + 2, r1 = l0 + 3
+    indexedTri(m, l0, r0, r1)
+    indexedTri(m, l0, r1, l1)
   }
 }
 
@@ -1657,12 +3167,21 @@ final class Drape {
   var bins: [Int: [Int32]] = [:]
   let cell: Float = 0.5
   func key(_ i: Int, _ j: Int) -> Int { (i + 2000) * 8192 + (j + 2000) }
-  init(_ root: SCNNode, skip: Set<String> = ["canopy"]) {
+  /// Which axis the rays travel along: 1 (Y, the default) casts down onto
+  /// the top or up onto the belly with (x, z) positions; 0 (X) casts onto
+  /// the sides with (z, y) positions; 2 (Z) casts onto the front or back
+  /// with (x, y) positions. `below` picks the lowest hit along the axis.
+  let axis: Int
+  var order: (Int, Int, Int) { axis == 0 ? (2, 0, 1) : axis == 2 ? (0, 2, 1) : (0, 1, 2) }
+  func swizzle(_ p: V3) -> V3 { let o = order; return V3(p[o.0], p[o.1], p[o.2]) }
+  func unswizzle(_ s: V3) -> V3 { let o = order; var p = V3(0, 0, 0); p[o.0] = s.x; p[o.1] = s.y; p[o.2] = s.z; return p }
+  init(_ root: SCNNode, axis: Int = 1, skip: Set<String> = ["canopy"]) {
+    self.axis = axis
     root.enumerateHierarchy { node, _ in
       guard let g = node.geometry, let vs = g.sources(for: .vertex).first else { return }
       if let name = g.firstMaterial?.name, skip.contains(name) { return }
       let t = node.simdConvertTransform(matrix_identity_float4x4, to: root)
-      let pts = vectors(vs).map { v -> V3 in let w = t * SIMD4<Float>(v.x, v.y, v.z, 1); return V3(w.x, w.y, w.z) }
+      let pts = vectors(vs).map { v -> V3 in let w = t * SIMD4<Float>(v.x, v.y, v.z, 1); return swizzle(V3(w.x, w.y, w.z)) }
       for e in 0..<g.elementCount {
         let idx = triangleIndices(g.element(at: e))
         for k in stride(from: 0, to: idx.count - 2, by: 3) {
@@ -1693,21 +3212,21 @@ final class Drape {
       if (n.y < 0) != below { n = -n }
       best = (V3(x, y, z), n)
     }
-    return best
+    return best.map { (unswizzle($0.0), unswizzle($0.1)) }
   }
 }
 
 /// Panel lines draped over the top (or the belly) along (x, z) polylines,
 /// optionally mirrored to the left side.
 func decalLines(_ p: SCNNode, _ d: Drape, _ lines: [[SIMD2<Float>]], width: Float = 0.03, _ m: SCNMaterial,
-                below: Bool = false, mirror: Bool = true, lift: Float = 0.012) {
+                below: Bool = false, mirror: Bool = true, lift: Float = 0.012, maxSteps: Int = 1000) {
   let mesh = Mesh()
   for flip in mirror ? [Float(1), -1] : [1] {
     for line in lines {
       var run: [(V3, V3)] = []
       for k in 0..<(line.count - 1) {
         let a = line[k] * SIMD2(flip, 1), b = line[k + 1] * SIMD2(flip, 1)
-        let steps = max(1, Int(simd_length(b - a) / 0.08))
+        let steps = max(1, min(maxSteps, Int(simd_length(b - a) / 0.08)))
         for j in 0...steps where !(j == 0 && k > 0) {
           let q = a + (b - a) * (Float(j) / Float(steps))
           if let (pt, n) = d.hit(q.x, q.y, below: below) { run.append((pt + n * lift, n)) }
@@ -1723,26 +3242,33 @@ func decalLines(_ p: SCNNode, _ d: Drape, _ lines: [[SIMD2<Float>]], width: Floa
 /// Filled markings draped over the top (or belly): star-shaped (x, z)
 /// polygons, optionally mirrored.
 func decalPatches(_ p: SCNNode, _ d: Drape, _ polys: [[SIMD2<Float>]], _ m: SCNMaterial, below: Bool = false,
-                  mirror: Bool = false, lift: Float = 0.014) {
+                  mirror: Bool = false, lift: Float = 0.014, k: Int = 4) {
   let mesh = Mesh()
-  let k = 4
   for flip in mirror ? [Float(1), -1] : [1] {
     for poly0 in polys {
       let poly = poly0.map { $0 * SIMD2(flip, 1) }
       let c = poly.reduce(SIMD2<Float>(0, 0), +) / Float(poly.count)
+      // Vertices shared between the fan's triangles, keyed by position.
+      var ids: [SIMD2<Int32>: UInt32] = [:]
+      func vertex(_ s: SIMD2<Float>) -> UInt32? {
+        let key = SIMD2<Int32>(Int32((s.x * 10000).rounded()), Int32((s.y * 10000).rounded()))
+        if let v = ids[key] { return v == UInt32.max ? nil : v }
+        guard let (pt, n) = d.hit(s.x, s.y, below: below) else { ids[key] = UInt32.max; return nil }
+        let v = UInt32(mesh.positions.count)
+        mesh.positions.append(pt + n * lift); mesh.normals.append(n); ids[key] = v
+        return v
+      }
       for e in 0..<poly.count {
         let a = poly[e], b = poly[(e + 1) % poly.count]
-        func q(_ i: Int, _ j: Int) -> (V3, V3)? {
-          let s = c + (a - c) * (Float(i) / Float(k)) + (b - c) * (Float(j) / Float(k))
-          guard let (pt, n) = d.hit(s.x, s.y, below: below) else { return nil }
-          return (pt + n * lift, n)
+        // Subdivide only as finely as the triangle's size needs.
+        let kk = max(1, min(k, Int((max(simd_length(a - c), simd_length(b - c)) / 0.12).rounded(.up))))
+        func q(_ i: Int, _ j: Int) -> UInt32? {
+          vertex(c + (a - c) * (Float(i) / Float(kk)) + (b - c) * (Float(j) / Float(kk)))
         }
-        for i in 0..<k {
-          for j in 0..<(k - i) {
-            if let x = q(i, j), let y = q(i + 1, j), let z = q(i, j + 1) { emitTri(mesh, x.0, y.0, z.0, x.1, y.1, z.1) }
-            if i + j < k - 1, let x = q(i + 1, j), let y = q(i + 1, j + 1), let z = q(i, j + 1) {
-              emitTri(mesh, x.0, y.0, z.0, x.1, y.1, z.1)
-            }
+        for i in 0..<kk {
+          for j in 0..<(kk - i) {
+            if let x = q(i, j), let y = q(i + 1, j), let z = q(i, j + 1) { indexedTri(mesh, x, y, z) }
+            if i + j < kk - 1, let x = q(i + 1, j), let y = q(i + 1, j + 1), let z = q(i, j + 1) { indexedTri(mesh, x, y, z) }
           }
         }
       }
@@ -2351,43 +3877,6 @@ func f16() -> SCNNode {
   }
 }
 
-func helicopter(livery: UInt32) -> SCNNode {
-  let root = SCNNode()
-  let p = paint(livery), cy: Float = 1.6
-  root.addChildNode(loft([
-    Station(z: -2.6, width: 0.6, bottom: cy - 0.35, top: cy + 0.35, n: 2),
-    Station(z: -1.8, width: 1.6, bottom: cy - 0.85, top: cy + 0.8, n: 2.4),
-    Station(z: 0.4, width: 1.7, bottom: cy - 0.8, top: cy + 0.9, n: 2.6),
-    Station(z: 1.6, width: 1.0, bottom: cy - 0.2, top: cy + 0.75, n: 2.4),
-  ], segments: 28, p))
-  root.addChildNode(loft([
-    Station(z: -2.62, width: 0.5, bottom: cy - 0.25, top: cy + 0.3, n: 2),
-    Station(z: -1.6, width: 1.62, bottom: cy - 0.5, top: cy + 0.82, n: 2.4),
-    Station(z: -0.9, width: 1.66, bottom: cy - 0.2, top: cy + 0.86, n: 2.5),
-  ], segments: 24, glass))
-  root.addChildNode(loft([
-    Station(z: 1.5, width: 0.5, bottom: cy + 0.25, top: cy + 0.7, n: 2.2),
-    Station(z: 6.4, width: 0.18, bottom: cy + 0.4, top: cy + 0.62, n: 2.2),
-  ], segments: 16, p))
-  plate(root, [SIMD2(0, 0), SIMD2(0.9, 0), SIMD2(0.9, 1.2), SIMD2(0.4, 1.2)], thickness: 0, p, at: V3(0, cy + 0.5, 6.0), ry: -.pi / 2)
-  box(root, 1.4, 0.06, 0.4, p, 0, cy + 0.5, 5.4)
-  // Rotor mast, four main blades, tail rotor.
-  tube(root, V3(0, cy + 0.9, -0.2), V3(0, cy + 1.35, -0.2), 0.1, black)
-  put(root, CylinderMesh(radius: 0.22, height: 0.15), black, 0, cy + 1.38, -0.2)
-  for i in 0..<4 {
-    let a = Float(i) * .pi / 2 + 0.3
-    box(root, 0.32, 0.05, 5.4, black, sin(a) * 2.8, cy + 1.4, -0.2 + cos(a) * 2.8, ry: a)
-  }
-  for i in 0..<2 { box(root, 0.04, 1.3, 0.16, black, 0.18, cy + 0.9, 6.3, rx: Float(i) * .pi / 2) }
-  // Skids.
-  for x in [-0.8, 0.8] as [Float] {
-    tube(root, V3(x, 0.08, -1.6), V3(x, 0.08, 1.4), 0.05, chrome)
-    tube(root, V3(x * 0.6, cy - 0.7, -0.8), V3(x, 0.08, -0.9), 0.04, chrome)
-    tube(root, V3(x * 0.6, cy - 0.7, 0.8), V3(x, 0.08, 0.7), 0.04, chrome)
-  }
-  return root
-}
-
 func hotAirBalloon(envelope: UInt32) -> SCNNode {
   let root = SCNNode()
   // Envelope: a vertical loft (built along Z, turned upright).
@@ -2425,31 +3914,6 @@ func standUp(_ node: SCNNode) -> SCNNode {
   return holder
 }
 
-/// A round section from z0 to z1 with radius r0 at the bottom and r1 at the top.
-func stage(_ parent: SCNNode, _ z0: Float, _ z1: Float, _ r0: Float, _ r1: Float, _ m: SCNMaterial, segments: Int = 32) {
-  parent.addChildNode(loft([
-    Station(z: z0, width: r0 * 2, bottom: -r0, top: r0, n: 2),
-    Station(z: z1, width: r1 * 2, bottom: -r1, top: r1, n: 2),
-  ], segments: segments, m))
-}
-
-/// An ogive nose from z0 (radius r) to a point at z1.
-func nose(_ parent: SCNNode, _ z0: Float, _ z1: Float, _ r: Float, _ m: SCNMaterial, tip: Float = 0.04) {
-  var st: [Station] = []
-  for i in 0...8 {
-    let t = Float(i) / 8
-    let rr = max(tip, r * sqrt(max(0, 1 - t * t)))
-    st.append(Station(z: z0 + (z1 - z0) * t, width: rr * 2, bottom: -rr, top: rr, n: 2))
-  }
-  parent.addChildNode(loft(st, segments: 32, m))
-}
-
-/// A part on the side of a lying rocket: x across, y "up" before standing
-/// (becomes -z, front/back), z height.
-func side(_ parent: SCNNode, _ w: Float, _ h: Float, _ l: Float, _ m: SCNMaterial, x: Float, y: Float, z: Float, rz: Float = 0) {
-  box(parent, w, h, l, m, x, y, z, rz: rz)
-}
-
 let steel = material("steel", 0xDCDFE2, metal: 0.65, rough: 0.32)
 let tile = material("heat-shield", 0x17181A, rough: 0.8)
 let rocketWhite = material("white", 0xF4F4F2, metal: 0.1, rough: 0.5)
@@ -2458,87 +3922,256 @@ let engineBell = material("engine", 0x3B3D40, metal: 0.8, rough: 0.35)
 
 // starshipStack() is built with the Starbase pad models further down.
 
+let carbon = material("interstage", 0x1D1E20, metal: 0.2, rough: 0.6)
+let gridTi = material("grid-fin", 0x6E7175, metal: 0.8, rough: 0.4)
+let f9Soot = material("f9-soot", 0x3A3836, rough: 0.9)
+let merlin = material("engine", 0x2E2C2A, metal: 0.7, rough: 0.45)
+
+/// A band of a lying rocket body from z0 to z1 at radius r, optionally only
+/// part of the way round (a0...a1 radians) — paint patterns and seams.
+func bodyBand(_ p: SCNNode, _ z0: Float, _ z1: Float, r: Float, _ m: SCNMaterial, from a0: Float = 0, to a1: Float = 2 * .pi, sides: Int = 40) {
+  put(p, LatheMesh([SIMD2(z0, r), SIMD2(z1, r)], sides: sides, caps: false, from: a0, to: a1), m, 0, 0, 0, rx: .pi / 2)
+}
+
+/// A rocket engine bell pointing down (-Z) from z, throat radius rt, exit
+/// radius re, length l.
+func bell(_ p: SCNNode, x: Float, y: Float, z: Float, rt: Float, re: Float, l: Float, _ m: SCNMaterial) {
+  let prof: [SIMD2<Float>] = (0...8).map { i in
+    let t = Float(i) / 8
+    return SIMD2(-l * t, rt + (re - rt) * pow(t, 0.7))
+  }
+  put(p, LatheMesh(prof.reversed(), sides: 20, caps: false, twoSided: true), m, x, y, z, rx: .pi / 2)
+}
+
+// Falcon 9 Block 5 (70 m, 3.66 m): first stage with the octaweb and nine
+// Merlins, four folded carbon landing legs, soot staining, the raceway;
+// black carbon interstage with four titanium grid fins; second stage;
+// 5.2 m fairing with its seam.
 func falcon9() -> SCNNode {
   let r = SCNNode()
   let R: Float = 1.83
-  stage(r, 0, 41, R, R, rocketWhite)          // first stage
-  stage(r, 41, 47, R, R, tile)                // interstage
-  stage(r, 47, 59, R, R, rocketWhite)         // second stage
-  stage(r, 59, 61, R, 2.6, rocketWhite)       // fairing base
-  stage(r, 61, 67, 2.6, 2.6, rocketWhite)
-  nose(r, 67, 70, 2.6, rocketWhite, tip: 0.2)
-  side(r, 0.12, 0.6, 37, tile, x: 0, y: R, z: 21) // flag stripe area
-  for a in [Float(0), .pi / 2, .pi, 3 * .pi / 2] {
-    let c = SCNNode(); c.simdOrientation = simd_quatf(angle: a, axis: V3(0, 0, 1)); r.addChildNode(c)
-    side(c, 0.2, 1.0, 9.5, tile, x: R + 0.1, y: 0, z: 4.8)       // folded landing leg
-    side(c, 1.6, 0.15, 1.5, tile, x: R + 0.8, y: 0, z: 46)       // grid fin
-  }
+  bodyBand(r, 0, 41.2, r: R, rocketWhite)
+  bodyBand(r, 0, 6.0, r: R + 0.005, f9Soot, from: 0.3, to: 2.6)
+  bodyBand(r, 41.2, 47.7, r: R + 0.01, carbon)
+  bodyBand(r, 47.7, 60.6, r: R, rocketWhite)
+  put(r, LatheMesh([SIMD2(60.1, R), SIMD2(61.2, 2.6), SIMD2(66.6, 2.6), SIMD2(68.5, 2.4), SIMD2(70.5, 1.7), SIMD2(72.0, 0.85), SIMD2(72.6, 0.3), SIMD2(72.7, 0.001)],
+                   sides: 40), rocketWhite, 0, 0, 0, rx: .pi / 2)
+  rod(r, V3(0, 2.61, 61.2), V3(0, 2.61, 72.0), 0.03, slat, sides: 4)
+  rod(r, V3(0, -2.61, 61.2), V3(0, -2.61, 72.0), 0.03, slat, sides: 4)
+  box(r, 0.25, 0.18, 39.5, rocketWhite, R + 0.07, 0, 21.0)
+  // Octaweb base and nine Merlins.
+  put(r, CylinderMesh(radius: CGFloat(R), height: 0.2, sides: 32), merlin, 0, 0, 0.0, rx: .pi / 2)
   for i in 0..<9 {
     let a = Float(i) / 8 * 2 * .pi
-    let rr: Float = i == 8 ? 0 : 1.2
-    put(r, CylinderMesh(radius: 0.32, height: 0.9, sides: 12), engineBell, cos(a) * rr, sin(a) * rr, -0.3, rx: .pi / 2)
+    let rr: Float = i == 8 ? 0 : 1.25
+    bell(r, x: cos(a) * rr, y: sin(a) * rr, z: 0, rt: 0.18, re: 0.46, l: 1.1, merlin)
   }
-  return standUp(r)
+  // Landing legs (folded) and grid fins.
+  for k in 0..<4 {
+    let a = Float(k) * .pi / 2 + .pi / 4
+    let c = holder(r, V3(0, 0, 0), rz: a)
+    motoBody(c, [(0.4, 0.3, R - 0.02, R + 0.22), (1.5, 0.4, R - 0.02, R + 0.3), (9.0, 0.32, R - 0.02, R + 0.18), (10.0, 0.18, R - 0.02, R + 0.08)],
+             step: 0.3, rb: 0.3, rt: 0.5, cap: carbon) { _ in carbon }
+    let g = holder(r, V3(0, 0, 0), rz: a - .pi / 4)
+    box(g, 0.25, 0.3, 0.6, carbon, R + 0.12, 0, 45.8)
+    for i in 0..<6 { box(g, 0.04, 1.6, 0.14, gridTi, R + 0.35 + Float(i) * 0.24, 0, 46.2, rz: .pi / 2) }
+    box(g, 1.4, 0.06, 0.12, gridTi, R + 0.95, 0, 45.6)
+    box(g, 1.4, 0.06, 0.12, gridTi, R + 0.95, 0, 46.8)
+  }
+  return spacecraft { root in root.addChildNode(standUp(r)) }
 }
 
+// Saturn V (110.6 m, 10.1 m): S-IC with its black-and-white roll pattern,
+// four fins and engine fairings over five F-1s; S-II with the interstage;
+// S-IVB with the black aft skirt and the "ullage" stripes; instrument
+// unit, spacecraft adapter, service module, command module and the launch
+// escape tower.
 func saturnV() -> SCNNode {
   let r = SCNNode()
   let R: Float = 5.05
-  stage(r, 0, 42, R, R, rocketWhite)                 // S-IC
-  for k in 0..<4 {                                   // roll pattern bands
-    let a = Float(k) * .pi / 2
-    let c = SCNNode(); c.simdOrientation = simd_quatf(angle: a, axis: V3(0, 0, 1)); r.addChildNode(c)
-    side(c, R * 0.75, 0.2, 8, tile, x: R * 0.35, y: R * 0.93, z: 34)
-    side(c, R * 0.75, 0.2, 7, tile, x: R * 0.35, y: R * 0.93, z: 4)
-    side(c, 0.5, 4.5, 7, rocketWhite, x: R + 0.3, y: 0, z: 3.5)       // fin
+  bodyBand(r, 0, 42, r: R, rocketWhite)
+  // Roll pattern: black quarters at the base, alternating with the top.
+  for k in 0..<4 {
+    let a0 = Float(k) * .pi / 2
+    if k % 2 == 0 { bodyBand(r, 0, 8, r: R + 0.01, tile, from: a0, to: a0 + .pi / 2) }
+    if k % 2 == 1 { bodyBand(r, 33, 42, r: R + 0.01, tile, from: a0, to: a0 + .pi / 2) }
+    bodyBand(r, 18.5, 19.5, r: R + 0.01, tile, from: a0 + .pi / 8, to: a0 + .pi / 8 + 0.3)
   }
-  stage(r, 42, 47, R, R, tile)                       // S-II interstage
-  stage(r, 47, 66, R, R, rocketWhite)                // S-II
-  stage(r, 66, 72, R, 3.3, rocketWhite)              // taper
-  stage(r, 72, 90, 3.3, 3.3, rocketWhite)            // S-IVB
-  stage(r, 90, 97, 3.3, 1.95, rocketWhite)           // instrument unit, SLA
-  nose(r, 97, 103, 1.95, rocketWhite, tip: 0.4)      // command module
-  tube(r, V3(0, 0, 103), V3(0, 0, 110.6), 0.15, tile) // launch escape tower
-  for i in 0..<5 {
-    let a = Float(i) / 4 * 2 * .pi
-    let rr: Float = i == 4 ? 0 : 2.8
-    put(r, TubeMesh(innerRadius: 1.2, outerRadius: 1.75, height: 5.8, sides: 20), engineBell, cos(a) * rr, sin(a) * rr, -2.9, rx: .pi / 2)
+  // Fins and engine fairings.
+  for k in 0..<4 {
+    let a = Float(k) * .pi / 2 + .pi / 4
+    let c = holder(r, V3(0, 0, 0), rz: a)
+    motoBody(c, [(-3.0, 1.0, R - 1.0, R + 0.6), (0.5, 1.1, R - 0.8, R + 0.9), (5.0, 0.7, R - 0.5, R + 0.4), (7.5, 0.1, R - 0.1, R + 0.02)],
+             step: 0.3, rb: 0.6, rt: 0.6, cap: rocketWhite) { _ in rocketWhite }
+    strut(c, V3(R + 0.6, 0, -2.5), V3(R + 3.6, 0, -1.8), 0.25, 0.25, rocketWhite, up: V3(0, 1, 0))
+    wingSkin(c, [WS(s: R + 0.8, le: -2.6, te: 3.0, t: 0.3, y: 0), WS(s: R + 3.6, le: -2.4, te: -0.6, t: 0.15, y: 0)], side: 1, chord: 5, sub: 1) { _ in rocketWhite }
+    bell(r, x: cos(a) * 3.3, y: sin(a) * 3.3, z: 0, rt: 0.6, re: 1.85, l: 5.6, engineBell)
   }
-  return standUp(r)
+  bell(r, x: 0, y: 0, z: 0, rt: 0.6, re: 1.85, l: 5.6, engineBell)
+  // S-II and interstage, S-IVB, IU, SLA, CSM, LES.
+  bodyBand(r, 42, 47.5, r: R + 0.02, rocketWhite)
+  bodyBand(r, 44.6, 45.2, r: R + 0.04, tile)
+  bodyBand(r, 47.5, 66.7, r: R, rocketWhite)
+  put(r, LatheMesh([SIMD2(66.7, R), SIMD2(72.2, 3.3)], sides: 40, caps: false), rocketWhite, 0, 0, 0, rx: .pi / 2)
+  bodyBand(r, 72.2, 74.8, r: 3.31, tile)
+  bodyBand(r, 74.8, 90.0, r: 3.3, rocketWhite)
+  for k in 0..<4 { let a0 = Float(k) * .pi / 2; bodyBand(r, 82.0, 88.0, r: 3.31, tile, from: a0 + 0.2, to: a0 + 0.45) }
+  bodyBand(r, 90.0, 91.0, r: 3.31, slat)
+  put(r, LatheMesh([SIMD2(91.0, 3.3), SIMD2(99.4, 1.96)], sides: 40, caps: false), rocketWhite, 0, 0, 0, rx: .pi / 2)
+  bodyBand(r, 99.4, 103.3, r: 1.96, foilSilver)
+  put(r, LatheMesh([SIMD2(103.3, 1.96), SIMD2(106.5, 0.45), SIMD2(106.9, 0.001)], sides: 32), rocketWhite, 0, 0, 0, rx: .pi / 2)
+  for k in 0..<4 {
+    let a = Float(k) * .pi / 2 + .pi / 4
+    rod(r, V3(cos(a) * 0.5, sin(a) * 0.5, 106.4), V3(cos(a) * 0.25, sin(a) * 0.25, 108.6), 0.04, lightRed, sides: 4)
+  }
+  put(r, LatheMesh([SIMD2(108.6, 0.32), SIMD2(110.0, 0.3), SIMD2(110.6, 0.001)], sides: 16), lightRed, 0, 0, 0, rx: .pi / 2)
+  return spacecraft { root in root.addChildNode(standUp(r)) }
 }
 
+let rcc = material("rcc", 0x4A4C4F, rough: 0.6)
+let tileWhite = material("white", 0xF1F1EE, metal: 0.05, rough: 0.6)
+let intertankFoam = material("intertank", 0xB65E25, rough: 0.9)
+let srbJoint = material("srb-joint", 0x9EA2A6, metal: 0.3, rough: 0.5)
+
+/// The Space Shuttle orbiter, built in its own frame: nose at z = 0 running
+/// aft along +Z to the engine bells at 35.5 m, belly on y = 0, 23.8 m
+/// span. Lofted fuselage with the crew cabin hump, payload bay doors, OMS
+/// pods, double-delta wing (81-degree strakes, 45-degree main panels) and
+/// the swept fin with its split rudder; black tiles below, grey RCC on the
+/// nose cap and leading edges, three main engines and the body flap.
+func orbiter() -> SCNNode {
+  let o = SCNNode()
+  let c = 15
+  jetBody(o, [
+    Ring(z: 0, half: noseTip(1.55, c)),
+    Ring(z: 0.6, half: ovalHalf(0.78, 0.55, 2.45, n: 2.2, count: c, widest: 0.3)),
+    Ring(z: 2.0, half: ovalHalf(1.6, 0.15, 3.75, n: 2.4, count: c, widest: 0.28)),
+    Ring(z: 4.0, half: ovalHalf(2.2, 0.03, 4.95, n: 2.6, count: c, widest: 0.28)),
+    Ring(z: 6.0, half: ovalHalf(2.5, 0.0, 5.8, n: 2.8, count: c, widest: 0.28)),
+    Ring(z: 7.6, half: ovalHalf(2.6, 0.0, 5.55, n: 3.2, count: c, widest: 0.3)),
+    Ring(z: 9.0, half: ovalHalf(2.62, 0.0, 5.3, n: 3.5, count: c, widest: 0.3)),
+    Ring(z: 25.0, half: ovalHalf(2.62, 0.0, 5.3, n: 3.5, count: c, widest: 0.3)),
+    Ring(z: 28.5, half: ovalHalf(2.58, 0.05, 5.2, n: 3.5, count: c, widest: 0.3)),
+    Ring(z: 32.3, half: ovalHalf(2.42, 0.18, 4.95, n: 3.5, count: c, widest: 0.3)),
+  ], step: 0.3, capEnd: engineDark) { f in
+    if f.p.z < 1.05 { return rcc }
+    if f.n.y < -0.3 { return tile }
+    if f.p.y < 0.6 && f.n.y < 0.25 { return tile }
+    if f.p.z < 6.2 && f.p.y > 3.6 && f.p.y < 5.2 && f.n.z < -0.15 && f.n.y > 0.1 { return tile }
+    return tileWhite
+  }
+  // Wings: strake, main panel, cropped tip.
+  var wings: [WingSurface] = []
+  for side in [-1, 1] as [Float] {
+    wings.append(wingSkin(o, [WS(s: 2.2, le: 12.0, te: 32.3, t: 1.5, y: 0.78), WS(s: 4.6, le: 21.5, te: 32.3, t: 1.2, y: 0.72),
+                              WS(s: 11.6, le: 28.6, te: 32.0, t: 0.45, y: 0.66), WS(s: 11.9, le: 29.4, te: 31.9, t: 0.3, y: 0.66)],
+                          side: side, chord: 10, sub: 4) { f in
+      if f.u >= 0 && f.u < 0.05 { return rcc }
+      return f.n.y < 0 ? tile : tileWhite
+    })
+  }
+  for w in wings {
+    wingLines(w, [[SIMD2(3.0, w.z(3.0, 0.86)), SIMD2(7.3, w.z(7.3, 0.86)), SIMD2(7.3, w.z(7.3, 1))],
+                  [SIMD2(7.45, w.z(7.45, 1)), SIMD2(7.45, w.z(7.45, 0.85)), SIMD2(11.4, w.z(11.4, 0.8)), SIMD2(11.4, w.z(11.4, 1))]],
+              width: 0.06, tile)
+  }
+  // Fin with the rudder/speed brake.
+  let finF = finFrame(o, x: 0, y: 5.15, cant: 0, side: 1)
+  let fin = wingSkin(finF, [WS(s: -0.2, le: 25.0, te: 33.8, t: 0.65, y: 0), WS(s: 7.9, le: 32.7, te: 36.9, t: 0.25, y: 0)], side: 1, chord: 9, sub: 3) { f in
+    f.u >= 0 && f.u < 0.04 ? rcc : tileWhite
+  }
+  wingLines(fin, [[SIMD2(0.6, 33.0), SIMD2(7.6, 34.9)]], width: 0.06, tile, upper: true, lower: true)
+  // OMS pods with their engines.
+  for side in [-1, 1] as [Float] {
+    motoBody(o, [(25.0, 0.05, 4.5, 4.7), (26.6, 0.78, 3.95, 5.75), (31.0, 0.88, 3.85, 5.95), (32.9, 0.72, 3.95, 5.6)], x: side * 1.72,
+             step: 0.2, rb: 0.6, rt: 0.6, cap: engineDark) { f in f.p.z < 26.8 && f.n.z < -0.3 ? tile : tileWhite }
+    put(o, LatheMesh([SIMD2(0, 0.28), SIMD2(0.25, 0.22), SIMD2(1.1, 0.5)], sides: 18, caps: false, twoSided: true), engineBell,
+        side * 1.72, 4.85, 32.85, rx: .pi / 2)
+  }
+  // Main engines and body flap.
+  for (x, y) in [(Float(0), Float(3.8)), (-1.35, 1.95), (1.35, 1.95)] {
+    put(o, LatheMesh([SIMD2(0, 0.62), SIMD2(0.35, 0.36), SIMD2(1.0, 0.72), SIMD2(2.0, 1.02), SIMD2(3.1, 1.18)], sides: 24, caps: false, twoSided: true),
+        engineBell, x, y, 32.3, rx: .pi / 2)
+    put(o, CylinderMesh(radius: 0.5, height: 0.6, sides: 16), engineDark, x, y, 32.4, rx: .pi / 2)
+  }
+  motoBody(o, [(32.2, 2.1, 0.12, 0.62), (34.2, 2.1, 0.2, 0.42)], step: 0.2, rb: 0.1, rt: 0.1, cap: tile) { f in f.n.y < 0 ? tile : tileWhite }
+  // Windows, payload bay door seams, RCS ports.
+  let up = Drape(o, axis: 1)
+  var panes: [[SIMD2<Float>]] = []
+  for side in [-1, 1] as [Float] {
+    for (x0, x1) in [(0.18, 0.75), (0.85, 1.4), (1.5, 1.95)] as [(Float, Float)] {
+      let z0: Float = 3.95 + x0 * 0.12, z1: Float = 4.75 + x1 * 0.02
+      panes.append(side > 0 ? [SIMD2(x0, z0), SIMD2(x1, z0 + 0.1), SIMD2(x1, z1), SIMD2(x0, z1)] : [SIMD2(-x1, z0 + 0.1), SIMD2(-x0, z0), SIMD2(-x0, z1), SIMD2(-x1, z1)])
+    }
+    panes.append(side > 0 ? [SIMD2(0.25, 5.35), SIMD2(0.75, 5.35), SIMD2(0.75, 5.75), SIMD2(0.25, 5.75)] :
+                   [SIMD2(-0.75, 5.35), SIMD2(-0.25, 5.35), SIMD2(-0.25, 5.75), SIMD2(-0.75, 5.75)])
+  }
+  decalPatches(o, up, panes.map { rounded($0, r: 0.06) }, glass, lift: 0.02, k: 4)
+  decalLines(o, up, [[SIMD2(0, 7.6), SIMD2(0, 25.2)]] + (0..<5).map { i in let z = 7.6 + Float(i + 1) * 3.5; return [SIMD2(-2.2, z), SIMD2(2.2, z)] },
+             width: 0.04, slat, mirror: false, lift: 0.015)
+  decalLines(o, up, [[SIMD2(2.2, 7.6), SIMD2(2.2, 25.2)]], width: 0.05, slat, mirror: true, lift: 0.015)
+  decalPatches(o, up, [rounded([SIMD2(0.3, 8.0), SIMD2(2.0, 8.0), SIMD2(2.0, 16.0), SIMD2(0.3, 16.0)], r: 0.1)], material("radiator", 0xDDE3E8, metal: 0.4, rough: 0.3),
+               mirror: true, lift: 0.01)
+  return o
+}
+
+// Space Shuttle stack at launch: orbiter (above), 46.9 m external tank
+// (LH2 tank, ribbed intertank, ogive LO2 tank with its spike, LO2 feedline
+// and cable tray, bipod and aft attach struts) and two 45.5 m solid
+// rocket boosters (nose caps, frustums, forward skirts, segment joints,
+// ET attach rings, flared aft skirts, nozzles).
 func shuttleStack() -> SCNNode {
   let r = SCNNode()
-  // External tank, 47 m, 8.4 m wide, with ogive nose.
-  stage(r, 0, 38, 4.2, 4.2, foam)
-  nose(r, 38, 47, 4.2, foam, tip: 0.3)
-  // Two solid rocket boosters either side.
+  let R: Float = 4.2
+  // External tank: aft dome, LH2 tank, intertank, LO2 tank ogive and spike.
+  put(r, LatheMesh((0...6).map { i in let a = Float(i) / 6 * .pi / 2; return SIMD2(-1.6 * cos(a), R * sin(a) + 0.001) }, sides: 40), foam, 0, 0, 0, rx: .pi / 2)
+  put(r, LatheMesh([SIMD2(0, R), SIMD2(29.0, R)], sides: 40, caps: false), foam, 0, 0, 0, rx: .pi / 2)
+  put(r, LatheMesh([SIMD2(29.0, R + 0.02), SIMD2(35.6, R + 0.02)], sides: 40, caps: false), intertankFoam, 0, 0, 0, rx: .pi / 2)
+  for i in 0..<36 {
+    let a = Float(i) / 36 * 2 * .pi
+    box(r, 0.12, 0.08, 6.6, intertankFoam, cos(a) * (R + 0.04), sin(a) * (R + 0.04), 32.3, rz: a)
+  }
+  let ogive: [SIMD2<Float>] = (0...14).map { i in
+    let t = Float(i) / 14
+    return SIMD2(35.6 + t * 11.0, max(0.25, R * pow(1 - t, 0.62) * (1 - 0.08 * t)))
+  }
+  put(r, LatheMesh(ogive, sides: 40), foam, 0, 0, 0, rx: .pi / 2)
+  tube(r, V3(0, 0, 46.5), V3(0, 0, 48.2), 0.12, rcc, sides: 10)
+  // LO2 feedline and cable tray down the side facing +x.
+  tube(r, V3(R * 0.72, -R * 0.69, 2.0), V3(R * 0.72, -R * 0.69, 35.6), 0.22, foam, sides: 12)
+  tube(r, V3(-R * 0.98, -R * 0.2, 1.0), V3(-R * 0.98, -R * 0.2, 44.0), 0.12, foam, sides: 8)
+  // Boosters.
   for s in [-1, 1] as [Float] {
-    let b = SCNNode(); b.simdPosition = V3(s * 6.1, 0, 0); r.addChildNode(b)
-    stage(b, 0, 40, 1.85, 1.85, rocketWhite)
-    nose(b, 40, 45.5, 1.85, rocketWhite, tip: 0.15)
-    stage(b, -3, 0, 2.4, 1.85, rocketWhite)              // aft skirt
+    let b = SCNNode(); b.simdPosition = V3(s * 6.08, 0, 0); r.addChildNode(b)
+    let br: Float = 1.855
+    put(b, LatheMesh([SIMD2(-3.4, 2.6), SIMD2(-2.2, 2.3), SIMD2(-0.2, br), SIMD2(39.7, br)], sides: 32, caps: false), rocketWhite, 0, 0, 0, rx: .pi / 2)
+    put(b, LatheMesh([SIMD2(39.7, br), SIMD2(41.6, br * 0.62), SIMD2(43.6, br * 0.55), SIMD2(44.8, 0.6), SIMD2(45.5, 0.001)], sides: 32), rocketWhite, 0, 0, 0,
+        rx: .pi / 2)
+    for z in [5.0, 13.5, 21.5, 29.5, 37.0] as [Float] {
+      put(b, LatheMesh([SIMD2(z - 0.18, br + 0.04), SIMD2(z + 0.18, br + 0.04)], sides: 32, caps: true), srbJoint, 0, 0, 0, rx: .pi / 2)
+    }
+    put(b, LatheMesh([SIMD2(1.6, br + 0.06), SIMD2(2.3, br + 0.06)], sides: 32, caps: true), srbJoint, 0, 0, 0, rx: .pi / 2)
+    put(b, LatheMesh([SIMD2(0, 1.1), SIMD2(-1.2, 1.25), SIMD2(-3.9, 1.9)], sides: 24, caps: false, twoSided: true), engineBell, 0, 0, 0, rx: .pi / 2)
+    for k in 0..<4 {
+      let a = Float(k) / 4 * 2 * .pi + .pi / 4
+      box(b, 0.5, 0.5, 0.9, srbJoint, cos(a) * 2.45, sin(a) * 2.45, -3.0)
+    }
+    // Attach struts to the tank.
+    for z in [3.0, 3.6, 39.0] as [Float] { rod(r, V3(s * (6.08 - br), 0, z), V3(s * R, 0, z + (z > 30 ? 0 : 0.3)), 0.14, srbJoint, sides: 6) }
   }
-  // Orbiter, belly (black tiles) against the tank: fuselage, delta wing,
-  // fin on the far side, three main engines at the tail.
-  let o = SCNNode(); o.simdPosition = V3(0, -6.3, 0); r.addChildNode(o)
-  o.addChildNode(loft([
-    Station(z: -1, width: 4.6, bottom: -2.0, top: 2.4, n: 3),
-    Station(z: 26, width: 5.2, bottom: -2.3, top: 2.5, n: 3),
-    Station(z: 32, width: 4.2, bottom: -1.9, top: 2.2, n: 2.6),
-    Station(z: 36.5, width: 0.8, bottom: -0.3, top: 0.6, n: 2),
-  ], segments: 28, rocketWhite))
-  let wingOutline = [SIMD2<Float>(-12, 0), SIMD2(12, 0), SIMD2(2.3, 20), SIMD2(-2.3, 20)]
-  plate(o, wingOutline, thickness: 0.3, rocketWhite, at: V3(0, 1.9, 1), rx: .pi / 2)
-  plate(o, wingOutline, thickness: 0.3, tile, at: V3(0, 1.98, 1), rx: .pi / 2)
-  plate(o, [SIMD2(0, 0), SIMD2(7.5, 0), SIMD2(3.5, 8), SIMD2(0.8, 8)], thickness: 0.3, rocketWhite, at: V3(0, -2.0, -1))
-  o.childNodes.last?.simdOrientation = simd_quatf(angle: .pi, axis: V3(0, 0, 1)) * simd_quatf(angle: -.pi / 2, axis: V3(0, 1, 0))
-  side(o, 4.0, 0.3, 30, tile, x: 0, y: 2.45, z: 16)
-  for i in 0..<3 {
-    let a = Float(i) / 3 * 2 * .pi
-    put(o, CylinderMesh(radius: 0.65, height: 1.6, sides: 14), engineBell, cos(a) * 1.0, -0.6 + sin(a) * 0.9, -1.6, rx: .pi / 2)
+  // Orbiter belly-to-tank, nose up.
+  let o = orbiter()
+  let yOff = R + 0.95, zNose: Float = 35.6
+  // Belly towards the tank, facing the front of the model (-Z once stood up).
+  o.simdOrientation = simd_quatf(angle: .pi, axis: V3(0, 1, 0))
+  o.simdPosition = V3(0, yOff, zNose)
+  r.addChildNode(o)
+  // Forward bipod and aft attach structure between belly and tank.
+  for s in [-1, 1] as [Float] {
+    rod(r, V3(0, yOff, zNose - 6.5), V3(s * 0.9, R, zNose - 4.5), 0.12, srbJoint, sides: 6)
+    rod(r, V3(s * 1.4, yOff, zNose - 30.5), V3(s * 1.6, R * 0.96, zNose - 30.5), 0.3, srbJoint, sides: 8)
   }
-  return standUp(r)
+  return spacecraft { root in root.addChildNode(standUp(r)) }
 }
 
 // MARK: Spacecraft
@@ -4011,7 +5644,7 @@ save(motorcycle(kind: "cruiser", body: 0x111111), "motorcycle-cruiser")
 save(motorcycle(kind: "dirt", body: 0xFF6A00), "motorcycle-dirt")
 save(tram(livery: 0xD7263D), "rail-tram")
 save(highSpeedTrain(livery: 0x0A4DA2), "rail-highspeed")
-save(yacht(hull: 0xF8F8F8), "boat-yacht")
+save(yacht(hull: 0x1C2836), "boat-yacht")
 save(jetSki(body: 0xFFD60A), "boat-jetski")
 save(widebody(livery: 0x6E1E8F), "plane-widebody")
 save(f16(), "jet-f16")

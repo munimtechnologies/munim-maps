@@ -13,6 +13,18 @@ All notable changes to this project are documented in this file. The format is b
 - `MapModelLayer` is tested over expo-maps' `AppleMaps.View` (SwiftUI `Map`) on device: it finds the `MKMapView` inside, and the self-test measures it within 1.6 points at three zoom levels.
 - Example: Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), and terrain and expo-maps checks in the self-test.
 
+### Changed
+
+- The vehicle catalogue is rebuilt to the jets' level of detail. Bodies are skinned through measured cross-sections, wings and tails are airfoil sections, and windows, seams, lights, stripes and markings are laid onto the skin, so they follow its curves instead of sitting on it as flat boxes:
+  - Cars: beltline creases, flush glass split by the pillars, door seams and handles, lamps, grilles and bumpers on the body, arch-cut wheel openings and dished alloy wheels; the convertible has an open cabin.
+  - Vans, trucks and buses: fitted windscreens and windows, sliding and swing doors, arch flares, DOT tape and roll-up doors; a long-hood semi tractor with a chrome grille and air cleaners, a crew-cab pumper, a 40 ft city bus and a conventional school bus.
+  - Motorcycles: twin-spar, cradle and perimeter frames, swingarms, forks through triple clamps, round-profile tyres on cast or laced wheels with discs, an inline-four, a finned V-twin and a single, exhausts and lofted bodywork; a step-through scooter.
+  - Boats: deep-V hulls with chines; a bowrider with an outboard, a 33 ft sloop, a 35 m superyacht and a personal watercraft.
+  - Aircraft: airliners with winglets, nacelles, window rows and gear (`plane-widebody` is now its own twin-aisle, not a scaled narrow-body), a business jet with a T-tail, a Cessna 172-style high wing and a Bell 407-style helicopter.
+  - Rail: a two-section tram and a high-speed train with a sculpted nose, bogies and pantographs.
+  - Rockets: the Space Shuttle orbiter (double delta, tiles, OMS pods, main engines) now faces the front of the stack; Falcon 9 and Saturn V gain engines, legs, grid fins, fins and paint patterns.
+- Vehicle models share vertices across their markings and drop body sections that add no shape, so the jets are about 40% lighter; the whole catalogue is 15 MB.
+
 ## [0.3.0] - 2026-10-06
 
 ### Added

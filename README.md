@@ -324,7 +324,7 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 | Name | Vehicle | Modelled on |
 | --- | --- | --- |
-| `car-sedan` | Four-door sedan | Mid-size sedan proportions |
+| `car-sedan` | Four-door sedan: beltline crease, glass, door seams and lamps on the body | Mid-size sedan proportions |
 | `car-ev` | Electric fastback, closed nose with light bar | Model 3-style EV |
 | `car-hatchback` | Five-door hatchback | Compact hatchback |
 | `car-wagon` | Estate / station wagon | Mid-size wagon |
@@ -332,7 +332,7 @@ import { VEHICLES } from 'munim-maps/vehicles'
 | `car-offroader` | Boxy off-roader with spare wheel and roof rack | Wrangler-style 4x4 |
 | `car-sports` | Sports coupe with spoiler and twin exhausts | Front-engine coupe |
 | `car-supercar` | Low wide supercar with wing | Mid-engine supercar |
-| `car-convertible` | Roadster with seats and roll hoops | Two-seat convertible |
+| `car-convertible` | Roadster with an open cabin, shaped seats and a framed windscreen | Two-seat convertible |
 | `car-pickup` | Full-size pickup with open bed | F-150-style pickup |
 | `car-minivan` | Minivan | Three-row minivan |
 | `car-taxi` | Taxi with roof sign and stripe | Yellow cab |
@@ -344,13 +344,13 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 | Name | Vehicle |
 | --- | --- |
-| `van-delivery` | High-roof delivery van |
-| `van-ambulance` | Ambulance with stripes, cross and light bar |
-| `truck-box` | Box truck with dual rear wheels |
-| `truck-semi` | Conventional semi tractor with sleeper, stacks and a 53 ft trailer |
-| `truck-fire` | Fire engine with lockers, ladder and lights |
-| `bus-city` | Low-floor city bus with doors and destination sign |
-| `bus-school` | Conventional school bus with stop arm |
+| `van-delivery` | High-roof delivery van: raked windscreen, sliding door, twin rear doors, wrap-round bumpers and arch flares |
+| `van-ambulance` | Type II ambulance: roof light bar, corner flashers, red stripe and stars of life |
+| `truck-box` | Cab-over box truck: 20 ft box with aluminium rails, roll-up door, DOT tape and dual rear wheels |
+| `truck-semi` | Long-hood tractor (chrome grille, swept fenders, air cleaners, stacks, sleeper) with a 53 ft dry van, side skirts and swing doors |
+| `truck-fire` | Custom-cab pumper: crew cab, white roof cap, roll-up compartments, pump panel, ladders, hose bed and chevrons |
+| `bus-city` | 40 ft low-floor bus: wraparound windscreen, LED sign, glazed doors, flush window band and roof fairing |
+| `bus-school` | Conventional school bus: split-sash windows, rub rails, warning lamps, stop and crossing arms, crossover mirrors |
 
 ### Bikes, scooters and motorcycles
 
@@ -362,10 +362,10 @@ import { VEHICLES } from 'munim-maps/vehicles'
 | `bike-mountain` | Mountain bike with suspension fork and wide tyres |
 | `bike-city` | City bike with basket, rack and fenders |
 | `scooter-kick` | Electric kick scooter |
-| `scooter-moped` | Vespa-style moped |
-| `motorcycle-sport` | Sport bike with fairing |
-| `motorcycle-cruiser` | Cruiser with V-twin and wide bars |
-| `motorcycle-dirt` | Dirt bike with high fenders |
+| `scooter-moped` | Step-through scooter: leg shield, bulbous side cowls, round headlamp, two-tone seat and rack |
+| `motorcycle-sport` | Superbike: twin-spar frame, gold fork, inline-four, full fairing and screen, split five-spoke wheels, twin discs |
+| `motorcycle-cruiser` | Cruiser: finned 45-degree V-twin, chrome nacelle and headlamp, teardrop tank, deep fenders, shotgun pipes, laced wheels |
+| `motorcycle-dirt` | MX bike: long-travel fork, knobbly tyres on laced wheels, shrouds, flat seat, number plates and a high pipe |
 
 ### Rail and water
 
@@ -373,12 +373,12 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 | Name | Vehicle |
 | --- | --- |
-| `rail-tram` | Articulated tram with pantograph |
-| `rail-highspeed` | High-speed train, power car and coach |
-| `boat-speed` | Speedboat with outboard |
-| `boat-sail` | Sailboat with main and jib |
-| `boat-yacht` | Three-deck motor yacht |
-| `boat-jetski` | Jet ski |
+| `rail-tram` | Two-section low-floor tram: raked cabs, flush glazing, glazed double doors, bellows, pantograph and bogies |
+| `rail-highspeed` | High-speed train: sculpted power-car nose, trailer car, livery sweep, window band, pantograph and bogies |
+| `boat-speed` | Bowrider: deep-V hull, open bow seating, walk-through windscreen, consoles, bow rails and an outboard |
+| `boat-sail` | 33 ft sloop: coachroof with ports, teak decks, mainsail and jib, shrouds, lifelines and wheel |
+| `boat-yacht` | 35 m superyacht: dark hull, three decks with swept window bands, hardtop, radar mast, rails and a tender |
+| `boat-jetski` | Personal watercraft: deep-V hull with chines, footwells, stepped seat, steering pod and jet nozzle |
 
 ### Aircraft
 
@@ -386,15 +386,15 @@ import { VEHICLES } from 'munim-maps/vehicles'
 
 | Name | Aircraft | Modelled on |
 | --- | --- | --- |
-| `plane-airliner` | Narrow-body twinjet | 737-style |
-| `plane-widebody` | Wide-body twinjet | 777-style |
-| `plane-jet` | Business jet with rear engines and T-tail | Light business jet |
-| `plane-prop` | High-wing single prop | Cessna-style |
+| `plane-airliner` | Narrow-body twinjet with winglets, window rows and landing gear | A320/737-class |
+| `plane-widebody` | Wide-body twinjet with six-wheel bogies | 777/787-class |
+| `plane-jet` | Business jet with big oval windows, rear engines and a T-tail | Long-range business jet |
+| `plane-prop` | High-wing single: strut-braced wing, wheel fairings, windows and control surfaces | Cessna 172-style |
 | `jet-f16` | Single-engine fighter with chin intake | F-16 |
 | `jet-f22` | Stealth fighter, diamond wing, twin canted tails | F-22 |
 | `jet-f35` | Stealth fighter, single engine | F-35 |
 | `jet-yf23` | Stealth prototype, diamond wing, V-tails | YF-23 |
-| `heli-light` | Light helicopter with skids | Light utility helicopter |
+| `heli-light` | Light helicopter: bubble windscreen, four-blade rotor, endplate stabiliser, tail rotor and skids | Bell 407-style |
 | `balloon` | Hot air balloon with basket | |
 
 ### Rockets
@@ -404,10 +404,9 @@ import { VEHICLES } from 'munim-maps/vehicles'
 | Name | Rocket |
 | --- | --- |
 | `rocket-starship` | Starship on Super Heavy: stainless steel rings and welds, four grid fins, chines, the vented hot-staging ring, 33 Raptors, the ship's black hexagonal heat shield and flaps (123 m) |
-| `rocket-falcon9` | Falcon 9 with black interstage, folded landing legs, grid fins and fairing (70 m) |
-| `rocket-saturnv` | Saturn V with roll-pattern bands, fins, five F-1 engines and escape tower (111 m) |
-| `rocket-shuttle` | Space Shuttle stack: orbiter, orange external tank and two boosters |
-
+| `rocket-falcon9` | Falcon 9: octaweb and nine Merlins, folded legs, black interstage with grid fins, fairing with its seam (70 m) |
+| `rocket-saturnv` | Saturn V: roll pattern, fins and engine fairings, five F-1s, S-IVB stripes, service module and escape tower (111 m) |
+| `rocket-shuttle` | Space Shuttle stack: double-delta orbiter with black tiles, OMS pods and three main engines; ribbed intertank, feedline and the two boosters (56 m) |
 | `starbase-tower` | Starbase's launch tower: steel lattice, the "chopsticks" catch arms and the ship quick-disconnect arm (146 m) |
 | `starbase-mount` | Starbase's orbital launch mount: six legs, the ring with hold-down clamps, the booster quick-disconnect and the deluge plate on a concrete pad |
 
@@ -429,7 +428,7 @@ Rockets stand upright; animate a launch by raising `altitude` and add `effect: '
 
 Spacecraft lie flat, facing their direction of travel. `screenSize` sets a model's *height* on screen, so for flat craft use a small value: Starlink is about 1 m tall and 31 m wide, so `screenSize: 1.3` draws it about 40 points wide. Put them in orbit with `altitude` (the ISS flies at about 420 km) and a `globe` map; see [Satellites in orbit](#satellites-in-orbit).
 
-The models are generated from code (`scripts/vehicles/make-vehicles.swift`, lofted cross-sections with real proportions) and have no logos or brand names.
+The models are generated from code (`scripts/vehicles/make-vehicles.swift`) and have no logos or brand names. Bodies are skinned through measured cross-sections, wings and tails are airfoil sections, and windows, seams, lights and stripes are laid onto the skin so they follow its curves.
 
 ## Platform Support Matrix
 
