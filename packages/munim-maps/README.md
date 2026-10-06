@@ -76,6 +76,8 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 **Hidden behind buildings**: with `occlusion="buildings"`, a car driving behind a tower disappears behind it, the way it would in real life.
 
+**Terrain height**: give a friend's GPS altitude with `altitudeReference: 'sea'` and munim-maps takes off the ground height there, and `followTerrain` keeps models on MapKit's 3D satellite terrain. See [Terrain](#terrain).
+
 **The globe on the standard map**: zoomed far out, the normal map becomes a globe like it does in Apple Maps, and models, satellites and 3D paths follow it.
 
 **Not using React Native?** The same map and 3D layer are a Swift package for UIKit and SwiftUI apps; see [Swift Package Manager](#swift-package-manager).
@@ -143,7 +145,7 @@ layer.models = models
 layer.onModelPress = { id in print(id) }
 ```
 
-`MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…).
+`MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…). Ground heights are `try await MunimTerrain.shared.groundElevations(for: coordinates)`.
 
 ## Table of contents
 
@@ -182,6 +184,7 @@ layer.onModelPress = { id in print(id) }
 - 🔷 **Built-in shapes**: box, sphere, cylinder, cone, capsule, pyramid and gem, with colour and glow
 - 🎨 **Runtime paint**: `tint` recolours a model's paint, so one file comes in any colour
 - 🧭 **Heading, altitude and scale**, plus `spinDegreesPerSecond` and looping USDZ animations
+- ⛰️ **Terrain height**: altitudes above the ground or above sea level (`altitudeReference: 'sea'`, such as a phone's GPS altitude), models that stay on MapKit's 3D terrain (`followTerrain`), and `groundElevation()` for the height of the ground anywhere, which MapKit does not expose ([details](#terrain))
 - 📏 **Screen-size models**: `screenSize` keeps a model the same height on screen at any zoom, like a marker
 - 🌑 **Ground shadows** and **day/night lighting** that follows the map's appearance
 
@@ -210,7 +213,7 @@ layer.onModelPress = { id in print(id) }
 - ✏️ **Shapes**: polylines (dashed, geodesic), polygons with holes, circles, and tile overlays (your own tiles, over or instead of Apple's map)
 - 🍎 **New MapKit**: `standard`, `muted`, `hybrid` and `imagery` styles, realistic elevation, point-of-interest filters, traffic, tappable map features (`onMapFeaturePress`), Look Around, camera distance limits and boundaries
 - 🧭 **Camera and conversions**: `setCamera`, `setRegion`, `fitToCoordinates`, `fitToMarkers`, `pointForCoordinate`, `coordinateForPoint`, snapshots and reverse geocoding
-- 🧩 **`MapModelLayer`**: or keep your map and draw the 3D over it, including `react-native-maps` on iOS
+- 🧩 **`MapModelLayer`**: or keep your map and draw the 3D over it, including `react-native-maps` and `expo-maps` on iOS
 
 ### Accuracy
 
@@ -226,7 +229,8 @@ munim-maps does not need its own map. Pick whichever fits your app; models, vehi
 | --- | --- | --- |
 | **Apple MapKit, built in** | `<MunimMapView>` | ✅ Tested on device |
 | **[react-native-maps](https://github.com/react-native-maps/react-native-maps)** (iOS, Apple Maps provider) | `<MapView testID="map">` then `<MapModelLayer mapTestID="map">` | ✅ Tested on device (self-test) |
-| **Any other React Native map built on MapKit** (`MKMapView`) | `<MapModelLayer>` after it; give the map a `testID` or let the layer find the nearest MapKit map | Supported; not yet tested with specific libraries |
+| **[expo-maps](https://docs.expo.dev/versions/latest/sdk/maps/)** `AppleMaps.View` (iOS 17+) | Wrap it in `<View testID="map" collapsable={false}>`, then `<MapModelLayer mapTestID="map">` | ✅ Tested on device (self-test); see [Over expo-maps](#over-expo-maps) |
+| **Any other React Native map built on MapKit** (`MKMapView`, including SwiftUI's `Map`) | `<MapModelLayer>` after it; give the map (or a view around it) a `testID`, or let the layer find the nearest MapKit map | Supported: the layer looks for the `MKMapView` inside the tagged view, so it works with any library that uses one |
 | **UIKit or SwiftUI, no React Native** | `MunimMapKitView`, `MunimMap` or `MunimModelLayer` from the Swift package | ✅ Builds with Swift Package Manager |
 | **Google Maps, Mapbox, MapLibre** | Not supported: they are not MapKit. On Android, Mapbox's `ModelLayer` draws glTF models natively. | ❌ |
 
@@ -240,6 +244,21 @@ munim-maps does not need its own map. Pick whichever fits your app; models, vehi
 ```
 
 The layer sits on top of the map, never takes touches (the map keeps every gesture, and `onModelPress` still fires for taps on models), and draws with MapKit's own camera, so you keep all of react-native-maps' markers, polylines and callouts alongside the 3D.
+
+### Over expo-maps
+
+```tsx
+import { AppleMaps } from 'expo-maps'
+
+<View style={{ flex: 1 }}>
+  <View testID="map" collapsable={false} style={StyleSheet.absoluteFill}>
+    <AppleMaps.View style={StyleSheet.absoluteFill} cameraPosition={{ coordinates, zoom: 16 }} />
+  </View>
+  <MapModelLayer mapTestID="map" models={models} />
+</View>
+```
+
+`AppleMaps.View` is SwiftUI's `Map`, which draws with an `MKMapView` inside, so the layer finds it and reads its camera the same way. Its props have no `testID`, so put the `testID` on a `View` around it (`collapsable={false}` keeps React Native from flattening that view away), or leave out `mapTestID` and the layer takes the nearest map. On an iPad Air, models stayed within 1.6 points of MapKit at zoom 15, 16 and 17. expo-maps' own camera API only sets a centre and a zoom level, so pitched and rotated views (with gestures) were checked by eye, not measured.
 
 ### On its own
 
@@ -418,6 +437,7 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`, loft
 | --- | --- | --- | --- |
 | `MunimMapView` | ✅ | ❌ | MapKit. Android renders nothing for now. |
 | `MapModelLayer` over `react-native-maps` | ✅ | ❌ | iOS `react-native-maps` uses MapKit. On Android, Mapbox's own `ModelLayer` draws glTF models natively. |
+| `MapModelLayer` over `expo-maps` | ✅ | ❌ | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
 | USDZ / USD / SCN models | ✅ | ❌ | OBJ through Model I/O. |
 | Avatars, labels, stems, zones | ✅ | ❌ | |
 | Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (57 models). |
@@ -425,7 +445,7 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`, loft
 | Models and paths on the globe | ✅ | ❌ | Also on `hybrid` / `imagery` with realistic elevation, which are globes by default. |
 | Hidden behind buildings | ✅ | ❌ | `occlusion="buildings"`: OpenStreetMap footprints and heights. MapKit's own 3D landmarks are not shared, so heights can differ slightly from what you see. |
 | glTF / GLB, OBJ, PLY, STL models | ✅ | ❌ | See [Bring Your Own Model](#-bring-your-own-model). |
-| Terrain height | ❌ | ❌ | MapKit does not expose it; pass heights above the ground. |
+| Terrain height | ✅ | ❌ | MapKit does not expose it, so heights come from public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
 
 ## ⚡ Quick Start
 
@@ -502,6 +522,7 @@ import { MunimMapView } from 'munim-maps'
 | `globe` | `boolean` | `false` | The standard map as a globe when zoomed out. [Private MapKit switch](#the-globe-uses-a-private-mapkit-switch). |
 | `occlusion` | `'none' \| 'buildings'` | `none` | Hide models behind buildings. See [Hidden behind buildings](#hidden-behind-buildings). |
 | `buildingTilesUrl` | `string` | OpenFreeMap | `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. |
+| `followTerrain` | `boolean` | `false` | Keep models, paths and zones on MapKit's 3D terrain (satellite imagery with realistic elevation). See [Terrain](#terrain). |
 | `onModelPress` | `(id: string) => void` | | |
 | `onAttachChange` | `(attached: boolean) => void` | | Fires when the map is found or lost. |
 | `onError` | `(message: string) => void` | | Load failures and other problems. |
@@ -518,7 +539,7 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `zones` | `MapZone[]` | `[]` |
 | `paths` | `MapPath[]` | `[]` |
 | `globe` | `boolean` | `false` |
-| `occlusion` / `buildingTilesUrl` | | as above |
+| `occlusion` / `buildingTilesUrl` / `followTerrain` | | as above |
 | `mapStyle` | `'standard' \| 'muted' \| 'hybrid' \| 'imagery'` | `standard` |
 | `elevation` | `'flat' \| 'realistic'` | `realistic` |
 | `colorScheme` | `'system' \| 'light' \| 'dark'` | `system` |
@@ -594,7 +615,8 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | --- | --- | --- |
 | `id` | required | Unique per layer. |
 | `coordinate` | required | `{ latitude, longitude }` of the model's base. |
-| `altitude` | `0` | Metres above the ground. |
+| `altitude` | `0` | Metres above the ground, or above sea level with `altitudeReference: 'sea'`. |
+| `altitudeReference` | `'ground'` | `'sea'`: `altitude` (and `motion` altitudes) are metres above sea level, such as a phone's GPS altitude; the ground height there is looked up and taken off, and the model shows once it has loaded. See [Terrain](#terrain). |
 | `heading` | `0` | Degrees clockwise from north. |
 | `scale` | `1` | Multiplier. Files are read in metres. |
 | `source` | | `require()`d asset, `file://` path or `http(s)://` URL of a USDZ, USD, glTF / GLB, SCN, OBJ, PLY, STL or Alembic file. Remote files are cached. |
@@ -636,7 +658,8 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | Field | Default | |
 | --- | --- | --- |
 | `id` | required | |
-| `coordinates` | required | `{ latitude, longitude, altitude? }[]`, altitude in metres above the ground. |
+| `coordinates` | required | `{ latitude, longitude, altitude? }[]`, altitude in metres above the ground (or sea level). |
+| `altitudeReference` | `'ground'` | `'sea'`: the altitudes are above sea level, as on `MapModel`. |
 | `color` | `#FFFFFF` | `#RRGGBB` or `#RRGGBBAA`. |
 | `width` | `2` | Points on screen, at any zoom. |
 | `closed` | `false` | Join the last point back to the first (an orbit). |
@@ -647,6 +670,7 @@ Unlike `MapPolyline` (a MapKit overlay, flat on the ground), a path is drawn by 
 ### Helpers
 
 - `isSupported`: `true` on iOS.
+- `groundElevation(coordinates)`: `Promise<number[]>`, the height of the ground above sea level in metres at each coordinate, from the same terrain tiles munim-maps uses for `altitudeReference: 'sea'`. Negative under the sea (the sea floor) and in places below sea level. Rejects if a tile cannot be downloaded.
 - `circleToPolygon(center, radiusMeters, segments?)`: the outline of a circle on the ground.
 - `toNativeModel(model)`, `toNativeZone(zone)`, `toNativePath(path)`: the native shapes, for testing.
 - `munim-maps/vehicles`: `VEHICLES` (name → asset), `VEHICLE_NAMES`, `VehicleName`.
@@ -655,19 +679,44 @@ Unlike `MapPolyline` (a MapKit overlay, flat on the ground), a path is drawn by 
 
 ### People in buildings
 
-munim-maps places models relative to the ground. Phones report altitude above sea level (iOS) or above the GPS ellipsoid (Android, tens of metres different), so convert to sea level, subtract the ground height there (terrain tiles work well), and pass what is left:
+Phones report altitude above sea level, so pass it as it is with `altitudeReference: 'sea'` and munim-maps takes off the height of the ground there:
 
 ```tsx
 {
   id: friend.id,
   coordinate: friend.coordinate,
-  altitude: friend.altitude - groundElevation, // metres above the ground
+  altitude: friend.altitude, // metres above sea level, from the phone
+  altitudeReference: 'sea',
   image: { uri: friend.avatarUrl },
   imageBorder: { color: '#0A84FF', width: 3 },
   badge: `${floor}F`,
   stem: '#0A84FF',
 }
 ```
+
+iOS's `CLLocation.altitude` is already above sea level. Android's `Location.getAltitude()` is above the GPS ellipsoid, tens of metres different; use `getMslAltitudeMeters()` (Android 14+) on the sending phone. For a floor badge, `groundElevation([coordinate])` gives the ground height to measure from.
+
+### Terrain
+
+MapKit does not expose terrain height, so munim-maps reads it from the free, public [Terrarium elevation tiles](https://registry.opendata.aws/terrain-tiles/) on AWS (zoom 14, about 7-10 m per sample, interpolated), cached in memory and in the app's Caches folder.
+
+```tsx
+// A hiker on Half Dome, 2,694 m above sea level, and a balloon over the valley
+{ id: 'hiker', coordinate: halfDome, altitude: 2696, altitudeReference: 'sea', image: avatar, stem: true }
+{ id: 'balloon', coordinate: valley, altitude: 1800, altitudeReference: 'sea', source: VEHICLES.balloon }
+
+// On satellite imagery in 3D, keep models given above the ground on the mountain too
+<MunimMapView mapStyle="hybrid" elevation="realistic" followTerrain models={models} />
+
+// Or just the numbers
+const [halfDome] = await groundElevation([{ latitude: 37.74602, longitude: -119.53313 }]) // 2693
+```
+
+- **Above sea level** (`altitudeReference: 'sea'`): the ground height under the model is taken off its altitude. The model is hidden until its tile has loaded (usually a fraction of a second, then cached), and moving models load the tiles along their `motion` ahead of time.
+- **On 3D terrain** (`followTerrain`): MapKit draws real 3D terrain for satellite imagery (`hybrid`, `imagery`) with realistic elevation, around a camera centred on the ground at the middle of the map. Models then need lifting by the difference between the ground under them and the ground at the centre, or a car on a mountainside floats or sinks. `followTerrain` does this for models, paths and zones given above the ground; models above sea level always do it. The `standard` and `muted` styles stay flat (realistic elevation only shades them), so nothing changes there.
+- **Accuracy**: within a few metres of surveyed heights in most places (Denver's State Capitol 1608.7 m vs 1609 m, Half Dome 2692.5 m vs 2694 m), but sharp peaks are smoothed (Everest reads about 8,730 m) and MapKit's own terrain mesh can differ a little.
+- **Water**: the tiles carry the sea floor under bays and oceans, so for placing models, ground below sea level counts as sea level (the map draws water there). This puts models in the few places on land below sea level (the Dead Sea, Death Valley, Dutch polders) a little high. `groundElevation()` returns the raw values.
+- **Privacy**: the tiles for the area of each model, path point and (with 3D terrain) the map's centre are requested from AWS. Nothing is requested unless a model or path uses `'sea'`, `followTerrain` is on, or `groundElevation()` is called. Swift apps can point `MunimTerrain.shared.tileURLTemplate` at their own Terrarium-format tiles.
 
 ### A friend riding a vehicle
 
@@ -770,7 +819,8 @@ MapKit has no public API for custom 3D content, so munim-maps draws the models i
 2. **Positions.** Models are placed in metres around the centre of the map using Web Mercator map points, the projection MapKit draws in at street and city zoom. When MapKit draws a globe, they are placed on a sphere instead, still in metres around the centre, with the camera `distance` metres back along the ray through the centre point, and an invisible Earth hides whatever is on the far side.
 3. **Timing.** Rendering happens in a run-loop observer at the end of each pass, after the map has moved. SceneKit's transaction is flushed first (otherwise SceneKit draws the previous frame's positions), and the drawable is presented straight from the GPU, the way MapKit presents the map.
 4. **Buildings.** With `occlusion="buildings"`, building footprints and heights are loaded from vector tiles around the camera and their walls are drawn into the depth buffer only: nothing shows, but models behind them are hidden. Avatars, labels and stems are drawn on top, so a person inside a building still shows.
-5. **Touches.** The layer never takes touches. Taps are watched by a recognizer on the map that runs alongside the map's own, and hit-tested against each model.
+5. **Terrain.** Heights come from Terrarium elevation tiles (see [Terrain](#terrain)). When MapKit draws 3D terrain, the camera's ground plane is at the height of the ground at the centre of the map, so models are lifted by the difference between the ground under them and that height.
+6. **Touches.** The layer never takes touches. Taps are watched by a recognizer on the map that runs alongside the map's own, and hit-tested against each model.
 
 The example app checks all of this on device: a self-test compares every model's ground point with `MKMapView.convert` at five camera angles on both `MunimMapView` and `react-native-maps` (under a point on iPhone 17 Pro), the same close in with the globe switched on, and a lag test (`munimmapsexample://lagtest`) puts a MapKit `MKCircle` and a model on the same spot and screenshots MapKit's own camera animation (within 0.2 px mid-animation).
 
@@ -782,7 +832,7 @@ The example app checks all of this on device: a self-test compares every model's
 2. **`require('./x.usdz')` fails to bundle**: add the extension (`usdz`, `glb`…) to Metro's `assetExts`.
 3. **A model is huge or tiny**: files are read in metres; use `scale`, or `screenSize` for marker-style models.
 4. **Models disappear when zoomed out**: raise `maxCameraDistance` (default 50 km).
-5. **Models float on hills with `elevation: 'realistic'`**: MapKit does not expose terrain height; correct with `altitude`.
+5. **Models float or sink on mountains with satellite imagery in 3D**: turn on `followTerrain` (see [Terrain](#terrain)). A model with `altitudeReference: 'sea'` that never appears is waiting for its terrain tile; check `onError`.
 6. **Over-the-air update crashes on an old build**: munim-maps is native; ship it in a new build.
 
 ### Hidden behind buildings
@@ -810,7 +860,7 @@ Apps built with Xcode 27 must adopt the scene lifecycle or they crash at launch 
 
 ### Example
 
-`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), the self-test and the lag test.
+`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), the self-test and the lag test.
 
 ```bash
 npm install

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Terrain height. MapKit does not expose it, so munim-maps reads the free public Terrarium elevation tiles on AWS (zoom 14, bilinear, cached in memory and on disk, one request per tile at a time):
+  - `altitudeReference: 'sea'` on models and paths: `altitude` is metres above sea level, such as a phone's GPS altitude, and the ground height there is taken off natively. The model shows once its tile has loaded; moving models load the tiles along their keyframes ahead of time.
+  - `followTerrain` on `MapModelLayer` and `MunimMapView` (`followsTerrain` in Swift): on satellite imagery with realistic elevation, where MapKit draws real 3D terrain, models, paths and zones stay on the mountains instead of at the height of the ground at the map's centre. Models above sea level always follow the terrain.
+  - `groundElevation(coordinates)`: the height of the ground above sea level, from JavaScript, and `MunimTerrain.shared.groundElevations(for:)` in Swift.
+- `MapModelLayer` is tested over expo-maps' `AppleMaps.View` (SwiftUI `Map`) on device: it finds the `MKMapView` inside, and the self-test measures it within 1.6 points at three zoom levels.
+- Example: Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), and terrain and expo-maps checks in the self-test.
+
 ## [0.3.0] - 2026-10-06
 
 ### Added
