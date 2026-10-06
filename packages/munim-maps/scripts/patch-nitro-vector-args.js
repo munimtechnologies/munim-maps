@@ -7,9 +7,10 @@
  * which is why device builds never showed it (same issue as munim-xr's
  * patch-nitro-double-vectors.js).
  *
- * This rewrites those conversions in hybrid method bodies to explicit
- * `size()` / subscript loops, which need no conformance. Struct fields and
- * prop setters are left alone (they compile on both toolchains).
+ * This rewrites those conversions, in hybrid method arguments and struct
+ * array getters (including `[[T]]`), to explicit `size()` / subscript loops,
+ * which need no conformance. Prop setters are left alone (they compile on
+ * both toolchains).
  *
  * Run after `nitrogen` (see the `codegen` script). Idempotent. Fails if a
  * vector argument still uses `.map`, so a Nitro upgrade that changes the
@@ -38,14 +39,30 @@ fileprivate func ${helperName(element)}(_ vector: ${NAMESPACE}.bridge.swift.std_
 }
 `
 
+const nestedHelper = (element) => `
+@inline(__always)
+fileprivate func ${helperName(element)}_nested(_ vector: ${NAMESPACE}.bridge.swift.std__vector_std__vector_${element}__) -> [[${element}]] {
+  let count = Int(vector.size())
+  var result: [[${element}]] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(${helperName(element)}(vector[index]))
+    index += 1
+  }
+  return result
+}
+`
+
 let patched = 0
 const leftovers = []
 for (const file of fs
   .readdirSync(swiftDir)
-  .filter((name) => name.endsWith('_cxx.swift'))) {
+  .filter((name) => name.endsWith('.swift'))) {
   const filePath = path.join(swiftDir, file)
   const original = fs.readFileSync(filePath, 'utf8')
   const needed = new Set()
+  const neededNested = new Set()
   // Each hybrid method: its signature, then its body up to the next member.
   let source = original.replace(
     /public final func (\w+)\(([^)]*)\)([^{]*)\{([\s\S]*?)(?=\n {2}@inline|\n {2}public|\n\})/g,
@@ -67,6 +84,21 @@ for (const file of fs
       return `public final func ${name}(${params})${rest}{${newBody}`
     }
   )
+  // Struct getters: `var name: [T] { return self.__name.map(...) }`, and
+  // `[[T]]` (polygon holes) with the same conversion nested.
+  source = source.replace(
+    /(var \w+: \[(\[?)(\w+)\]?\] \{\n\s+return )self\.__(\w+)\.map\(\{ __item in __item(?:\.map\(\{ __item in __item \}\))? \}\)/g,
+    (whole, head, nested, element, field) => {
+      needed.add(element)
+      if (nested) neededNested.add(element)
+      patched++
+      return `${head}${helperName(element)}${nested ? '_nested' : ''}(self.__${field})`
+    }
+  )
+  for (const element of neededNested) {
+    if (!source.includes(`func ${helperName(element)}_nested(`))
+      source += nestedHelper(element)
+  }
   for (const element of needed) {
     if (!source.includes(`func ${helperName(element)}(`))
       source += helper(element)
@@ -82,6 +114,16 @@ for (const file of fs
       if (match[2].includes(`${param[1]}.map(`))
         leftovers.push(`${file}: ${param[1]}`)
     }
+  }
+}
+for (const file of fs
+  .readdirSync(swiftDir)
+  .filter((name) => name.endsWith('.swift'))) {
+  const text = fs.readFileSync(path.join(swiftDir, file), 'utf8')
+  for (const match of text.matchAll(
+    /var \w+: \[\[?\w+\]?\] \{\n\s+return self\.__(\w+)\.map\(/g
+  )) {
+    leftovers.push(`${file}: getter ${match[1]}`)
   }
 }
 if (leftovers.length > 0) {

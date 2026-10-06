@@ -52,9 +52,9 @@
   <tr>
     <td align="center"><img alt="Starship ignition and liftoff" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-launch.gif" width="180"><br><sub>Starship launch</sub></td>
     <td align="center"><img alt="Cars, buses and bikes moving through Chicago" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-traffic.gif" width="180"><br><sub>Traffic</sub></td>
-    <td align="center"><img alt="Friends floating at their floor on Chicago skyscrapers" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-friends.gif" width="180"><br><sub>Friends on their floor</sub></td>
-    <td align="center"><img alt="Satellites orbiting the globe on the standard map" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-orbit.gif" width="180"><br><sub>Satellites on the globe</sub></td>
     <td align="center"><img alt="Fighter jets, airliners with contrails, boats and bridge traffic at the Golden Gate" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-jets.gif" width="180"><br><sub>Jets over the Golden Gate</sub></td>
+    <td align="center"><img alt="Satellites orbiting the globe on the standard map" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-orbit.gif" width="180"><br><sub>Satellites on the globe</sub></td>
+    <td align="center"><img alt="Friends floating at their floor on Chicago skyscrapers" src="https://raw.githubusercontent.com/munimtechnologies/munim-maps/main/.github/resources/clip-friends.gif" width="180"><br><sub>Friends on their floor</sub></td>
   </tr>
 </table>
 

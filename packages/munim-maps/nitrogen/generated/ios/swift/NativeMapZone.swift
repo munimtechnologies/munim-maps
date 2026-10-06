@@ -35,7 +35,7 @@ public extension NativeMapZone {
   
   @inline(__always)
   var points: [MapCoordinate] {
-    return self.__points.map({ __item in __item })
+    return __nitroVectorToArray_MapCoordinate(self.__points)
   }
   
   @inline(__always)
@@ -52,4 +52,18 @@ public extension NativeMapZone {
   var visible: Bool {
     return self.__visible
   }
+}
+
+/// munim-maps: see scripts/patch-nitro-vector-args.js (Xcode 26 cannot `.map` some std::vector arguments).
+@inline(__always)
+fileprivate func __nitroVectorToArray_MapCoordinate(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_MapCoordinate_) -> [MapCoordinate] {
+  let count = Int(vector.size())
+  var result: [MapCoordinate] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(vector[index])
+    index += 1
+  }
+  return result
 }

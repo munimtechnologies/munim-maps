@@ -90,7 +90,7 @@ public extension NativeMarker {
   
   @inline(__always)
   var badges: [MarkerBadge] {
-    return self.__badges.map({ __item in __item })
+    return __nitroVectorToArray_MarkerBadge(self.__badges)
   }
   
   @inline(__always)
@@ -132,4 +132,18 @@ public extension NativeMarker {
   var visible: Bool {
     return self.__visible
   }
+}
+
+/// munim-maps: see scripts/patch-nitro-vector-args.js (Xcode 26 cannot `.map` some std::vector arguments).
+@inline(__always)
+fileprivate func __nitroVectorToArray_MarkerBadge(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_MarkerBadge_) -> [MarkerBadge] {
+  let count = Int(vector.size())
+  var result: [MarkerBadge] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(vector[index])
+    index += 1
+  }
+  return result
 }

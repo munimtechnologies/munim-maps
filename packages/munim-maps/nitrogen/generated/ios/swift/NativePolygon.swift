@@ -47,12 +47,12 @@ public extension NativePolygon {
   
   @inline(__always)
   var coordinates: [MapCoordinate] {
-    return self.__coordinates.map({ __item in __item })
+    return __nitroVectorToArray_MapCoordinate(self.__coordinates)
   }
   
   @inline(__always)
   var holes: [[MapCoordinate]] {
-    return self.__holes.map({ __item in __item.map({ __item in __item }) })
+    return __nitroVectorToArray_MapCoordinate_nested(self.__holes)
   }
   
   @inline(__always)
@@ -79,4 +79,31 @@ public extension NativePolygon {
   var zIndex: Double {
     return self.__zIndex
   }
+}
+
+@inline(__always)
+fileprivate func __nitroVectorToArray_MapCoordinate_nested(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_std__vector_MapCoordinate__) -> [[MapCoordinate]] {
+  let count = Int(vector.size())
+  var result: [[MapCoordinate]] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(__nitroVectorToArray_MapCoordinate(vector[index]))
+    index += 1
+  }
+  return result
+}
+
+/// munim-maps: see scripts/patch-nitro-vector-args.js (Xcode 26 cannot `.map` some std::vector arguments).
+@inline(__always)
+fileprivate func __nitroVectorToArray_MapCoordinate(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_MapCoordinate_) -> [MapCoordinate] {
+  let count = Int(vector.size())
+  var result: [MapCoordinate] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(vector[index])
+    index += 1
+  }
+  return result
 }

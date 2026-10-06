@@ -170,7 +170,7 @@ public extension NativeMapModel {
   
   @inline(__always)
   var motion: [MotionKeyframe] {
-    return self.__motion.map({ __item in __item })
+    return __nitroVectorToArray_MotionKeyframe(self.__motion)
   }
   
   @inline(__always)
@@ -197,4 +197,18 @@ public extension NativeMapModel {
   var visible: Bool {
     return self.__visible
   }
+}
+
+/// munim-maps: see scripts/patch-nitro-vector-args.js (Xcode 26 cannot `.map` some std::vector arguments).
+@inline(__always)
+fileprivate func __nitroVectorToArray_MotionKeyframe(_ vector: margelo.nitro.munimmaps.bridge.swift.std__vector_MotionKeyframe_) -> [MotionKeyframe] {
+  let count = Int(vector.size())
+  var result: [MotionKeyframe] = []
+  result.reserveCapacity(count)
+  var index = 0
+  while index < count {
+    result.append(vector[index])
+    index += 1
+  }
+  return result
 }
