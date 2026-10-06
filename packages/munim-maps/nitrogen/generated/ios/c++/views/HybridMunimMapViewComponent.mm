@@ -104,6 +104,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setBuildingTilesUrl(newViewProps.buildingTilesUrl.value);
     newViewProps.buildingTilesUrl.isDirty = false;
   }
+  // followTerrain: boolean
+  if (newViewProps.followTerrain.isDirty) {
+    swiftPart.setFollowTerrain(newViewProps.followTerrain.value);
+    newViewProps.followTerrain.isDirty = false;
+  }
   // initialCamera: struct
   if (newViewProps.initialCamera.isDirty) {
     swiftPart.setInitialCamera(newViewProps.initialCamera.value);

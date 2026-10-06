@@ -36,6 +36,10 @@ final class HybridMapModelLayer: HybridMapModelLayerSpec {
     didSet { layer.buildingTilesURL = buildingTilesUrl }
   }
 
+  var followTerrain: Bool = false {
+    didSet { layer.followsTerrain = followTerrain }
+  }
+
   var mapTestID: String = "" {
     didSet { layer.mapIdentifier = mapTestID }
   }

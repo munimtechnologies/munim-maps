@@ -194,6 +194,17 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var followTerrain: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.followTerrain
+    }
+    @inline(__always)
+    set {
+      self.__implementation.followTerrain = newValue
+    }
+  }
+  
   public final var initialCamera: MapCamera {
     @inline(__always)
     get {

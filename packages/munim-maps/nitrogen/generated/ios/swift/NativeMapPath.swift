@@ -18,14 +18,14 @@ public extension NativeMapPath {
   /**
    * Create a new instance of `NativeMapPath`.
    */
-  init(id: String, points: [MapPathPoint], color: String, width: Double, closed: Bool, visible: Bool) {
+  init(id: String, points: [MapPathPoint], color: String, width: Double, closed: Bool, altitudeReference: MapAltitudeReference, visible: Bool) {
     self.init(std.string(id), { () -> bridge.std__vector_MapPathPoint_ in
       var __vector = bridge.create_std__vector_MapPathPoint_(points.count)
       for __item in points {
         __vector.push_back(__item)
       }
       return __vector
-    }(), std.string(color), width, closed, visible)
+    }(), std.string(color), width, closed, altitudeReference, visible)
   }
 
   @inline(__always)
@@ -51,6 +51,11 @@ public extension NativeMapPath {
   @inline(__always)
   var closed: Bool {
     return self.__closed
+  }
+  
+  @inline(__always)
+  var altitudeReference: MapAltitudeReference {
+    return self.__altitudeReference
   }
   
   @inline(__always)

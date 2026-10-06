@@ -92,6 +92,12 @@ public final class MunimMapKitView: UIView {
     set { modelLayer.zones = newValue }
   }
 
+  /// Keeps models on 3D terrain; see `MunimModelLayer.followsTerrain`.
+  public var followsTerrain: Bool {
+    get { modelLayer.followsTerrain }
+    set { modelLayer.followsTerrain = newValue }
+  }
+
   /// Hides models behind buildings; see `MunimModelLayer.buildingOcclusion`.
   public var buildingOcclusion: Bool {
     get { modelLayer.buildingOcclusion }

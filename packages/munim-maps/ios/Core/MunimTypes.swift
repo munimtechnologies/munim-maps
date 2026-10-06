@@ -73,7 +73,7 @@ public struct MunimModel: Sendable {
   public var id: String
   public var latitude: Double
   public var longitude: Double
-  /// Metres above the ground.
+  /// Metres above the ground, or above sea level with `altitudeReference = .sea`.
   public var altitude: Double
   /// Degrees clockwise from north.
   public var heading: Double
@@ -128,6 +128,11 @@ public struct MunimModel: Sendable {
   public var motionStart: Double = 0
   /// Start again from the first keyframe after the last.
   public var motionLoop: Bool = false
+  /// What `altitude` (and the motion keyframes' altitudes) are measured
+  /// from: the ground (the default), or sea level, in which case the ground
+  /// height is looked up with `MunimTerrain` and taken off. A model above
+  /// sea level stays hidden until its terrain tile has loaded.
+  public var altitudeReference: MunimAltitudeReference = .ground
   public var visible: Bool
 
   public init(
@@ -290,16 +295,21 @@ public struct MunimPath: Sendable {
   public var width: Double
   /// Joins the last point back to the first.
   public var closed: Bool
+  /// What `altitudes` are measured from: the ground, or sea level (the
+  /// ground height under each point is looked up and taken off).
+  public var altitudeReference: MunimAltitudeReference
   public var visible: Bool
 
   public init(id: String, coordinates: [CLLocationCoordinate2D], altitudes: [Double] = [],
-              color: String = "#FFFFFF", width: Double = 2, closed: Bool = false, visible: Bool = true) {
+              color: String = "#FFFFFF", width: Double = 2, closed: Bool = false,
+              altitudeReference: MunimAltitudeReference = .ground, visible: Bool = true) {
     self.id = id
     self.coordinates = coordinates
     self.altitudes = altitudes
     self.color = color
     self.width = width
     self.closed = closed
+    self.altitudeReference = altitudeReference
     self.visible = visible
   }
 

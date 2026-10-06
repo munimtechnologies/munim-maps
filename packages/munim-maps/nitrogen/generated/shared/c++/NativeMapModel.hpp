@@ -28,6 +28,8 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
+// Forward declaration of `MapAltitudeReference` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapAltitudeReference; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 // Forward declaration of `MapModelEffect` to properly resolve imports.
@@ -36,6 +38,7 @@ namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
 
 #include <string>
+#include "MapAltitudeReference.hpp"
 #include "MapModelShape.hpp"
 #include "MapModelEffect.hpp"
 #include "MotionKeyframe.hpp"
@@ -52,6 +55,7 @@ namespace margelo::nitro::munimmaps {
     double latitude     SWIFT_PRIVATE;
     double longitude     SWIFT_PRIVATE;
     double altitude     SWIFT_PRIVATE;
+    MapAltitudeReference altitudeReference     SWIFT_PRIVATE;
     double heading     SWIFT_PRIVATE;
     double scale     SWIFT_PRIVATE;
     std::string uri     SWIFT_PRIVATE;
@@ -85,7 +89,7 @@ namespace margelo::nitro::munimmaps {
 
   public:
     NativeMapModel() = default;
-    explicit NativeMapModel(std::string id, double latitude, double longitude, double altitude, double heading, double scale, std::string uri, MapModelShape shape, double width, double height, double length, std::string color, std::string tintColor, bool emissive, double spinDegreesPerSecond, bool playAnimations, double screenSize, bool groundShadow, std::string imageUri, std::string imageBorderColor, double imageBorderWidth, std::string imageBadge, double liftPoints, std::string label, bool stem, std::string stemColor, MapModelEffect effect, double effectIntensity, std::vector<MotionKeyframe> motion, double motionStart, bool motionLoop, bool occluder, std::string effectOrigins, bool visible): id(id), latitude(latitude), longitude(longitude), altitude(altitude), heading(heading), scale(scale), uri(uri), shape(shape), width(width), height(height), length(length), color(color), tintColor(tintColor), emissive(emissive), spinDegreesPerSecond(spinDegreesPerSecond), playAnimations(playAnimations), screenSize(screenSize), groundShadow(groundShadow), imageUri(imageUri), imageBorderColor(imageBorderColor), imageBorderWidth(imageBorderWidth), imageBadge(imageBadge), liftPoints(liftPoints), label(label), stem(stem), stemColor(stemColor), effect(effect), effectIntensity(effectIntensity), motion(motion), motionStart(motionStart), motionLoop(motionLoop), occluder(occluder), effectOrigins(effectOrigins), visible(visible) {}
+    explicit NativeMapModel(std::string id, double latitude, double longitude, double altitude, MapAltitudeReference altitudeReference, double heading, double scale, std::string uri, MapModelShape shape, double width, double height, double length, std::string color, std::string tintColor, bool emissive, double spinDegreesPerSecond, bool playAnimations, double screenSize, bool groundShadow, std::string imageUri, std::string imageBorderColor, double imageBorderWidth, std::string imageBadge, double liftPoints, std::string label, bool stem, std::string stemColor, MapModelEffect effect, double effectIntensity, std::vector<MotionKeyframe> motion, double motionStart, bool motionLoop, bool occluder, std::string effectOrigins, bool visible): id(id), latitude(latitude), longitude(longitude), altitude(altitude), altitudeReference(altitudeReference), heading(heading), scale(scale), uri(uri), shape(shape), width(width), height(height), length(length), color(color), tintColor(tintColor), emissive(emissive), spinDegreesPerSecond(spinDegreesPerSecond), playAnimations(playAnimations), screenSize(screenSize), groundShadow(groundShadow), imageUri(imageUri), imageBorderColor(imageBorderColor), imageBorderWidth(imageBorderWidth), imageBadge(imageBadge), liftPoints(liftPoints), label(label), stem(stem), stemColor(stemColor), effect(effect), effectIntensity(effectIntensity), motion(motion), motionStart(motionStart), motionLoop(motionLoop), occluder(occluder), effectOrigins(effectOrigins), visible(visible) {}
 
   public:
     friend bool operator==(const NativeMapModel& lhs, const NativeMapModel& rhs) = default;
@@ -105,6 +109,7 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "latitude"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "longitude"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "altitude"))),
+        JSIConverter<margelo::nitro::munimmaps::MapAltitudeReference>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "altitudeReference"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "heading"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "scale"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "uri"))),
@@ -143,6 +148,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "latitude"), JSIConverter<double>::toJSI(runtime, arg.latitude));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "longitude"), JSIConverter<double>::toJSI(runtime, arg.longitude));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "altitude"), JSIConverter<double>::toJSI(runtime, arg.altitude));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "altitudeReference"), JSIConverter<margelo::nitro::munimmaps::MapAltitudeReference>::toJSI(runtime, arg.altitudeReference));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "heading"), JSIConverter<double>::toJSI(runtime, arg.heading));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "scale"), JSIConverter<double>::toJSI(runtime, arg.scale));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "uri"), JSIConverter<std::string>::toJSI(runtime, arg.uri));
@@ -187,6 +193,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "latitude")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "longitude")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "altitude")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::MapAltitudeReference>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "altitudeReference")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "heading")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "scale")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "uri")))) return false;

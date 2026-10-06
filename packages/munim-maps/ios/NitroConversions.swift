@@ -30,6 +30,7 @@ extension NativeMapModel {
     model.motionStart = motionStart
     model.motionLoop = motionLoop
     model.occluder = occluder
+    model.altitudeReference = altitudeReference.core
     model.effectOrigins = effectOrigins.split(separator: ";").compactMap { point in
       let v = point.split(separator: ",").compactMap { Float($0.trimmingCharacters(in: .whitespaces)) }
       return v.count == 3 ? SIMD3(v[0], v[1], v[2]) : nil
@@ -45,7 +46,8 @@ extension NativeMapModel {
 extension NativeMapPath {
   var core: MunimPath {
     MunimPath(id: id, coordinates: points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) },
-              altitudes: points.map(\.altitude), color: color, width: width, closed: closed, visible: visible)
+              altitudes: points.map(\.altitude), color: color, width: width, closed: closed,
+              altitudeReference: altitudeReference.core, visible: visible)
   }
 }
 
@@ -53,6 +55,10 @@ extension NativeMapZone {
   var core: MunimZone {
     MunimZone(id: id, points: points.map(CLLocationCoordinate2D.init), height: height, color: color, visible: visible)
   }
+}
+
+extension MapAltitudeReference {
+  var core: MunimAltitudeReference { MunimAltitudeReference(rawValue: stringValue) ?? .ground }
 }
 
 extension MapModelLighting {

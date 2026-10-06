@@ -15,6 +15,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var paths: [NativeMapPath] { get set }
   var occlusion: MapOcclusion { get set }
   var buildingTilesUrl: String { get set }
+  var followTerrain: Bool { get set }
   var initialCamera: MapCamera { get set }
   var mapStyle: MapStyle { get set }
   var elevation: MapElevation { get set }

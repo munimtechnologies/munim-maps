@@ -1,9 +1,10 @@
 import { Platform } from 'react-native'
-import type {
-  MapAlignmentReport,
-  MapCamera,
-  MapModelLayerRef,
-  MunimMapViewRef,
+import {
+  groundElevation,
+  type MapAlignmentReport,
+  type MapCamera,
+  type MapModelLayerRef,
+  type MunimMapViewRef,
 } from 'munim-maps'
 
 /**
@@ -33,7 +34,7 @@ export interface SelfTestReport {
   checks: Check[]
 }
 
-export type TestMode = 'munim' | 'rnmaps' | 'features' | 'globe'
+export type TestMode = 'munim' | 'rnmaps' | 'features' | 'globe' | 'expomaps' | 'terrain'
 
 export interface SelfTestHost {
   showMode(mode: TestMode): Promise<void>
@@ -46,7 +47,24 @@ export interface SelfTestHost {
   markerIds(): string[]
   /** The globe screen's map style. */
   setGlobeStyle(style: 'standard' | 'hybrid'): void
+  /** The layer drawn over expo-maps. */
+  expoLayer(): MapModelLayerRef | null
+  /** Moves expo-maps' camera (it takes a centre and a zoom level only). */
+  setExpoMapsZoom(center: { latitude: number; longitude: number }, zoom: number): void
+  waitForExpoLayerAttached(timeoutMs: number): Promise<boolean>
+  /** The terrain screen's map: flat or 3D, standard or satellite. */
+  setTerrainView(flat: boolean, satellite: boolean): void
 }
+
+/** Yosemite Valley from the west, with Half Dome and Glacier Point in view. */
+const TERRAIN_CHECK_CAMERA: MapCamera = { latitude: 37.738, longitude: -119.565, distance: 8000, pitch: 40, heading: 60 }
+
+/** Known ground heights above sea level, and how far off the tiles may be. */
+const KNOWN_HEIGHTS = [
+  { name: 'Denver, Colorado State Capitol', latitude: 39.73924, longitude: -104.98486, meters: 1609, tolerance: 15 },
+  { name: 'Half Dome summit', latitude: 37.74602, longitude: -119.53313, meters: 2694, tolerance: 25 },
+  { name: 'Chicago Loop', latitude: 41.8838, longitude: -87.6305, meters: 181, tolerance: 10 },
+]
 
 /** Largest allowed gap between our drawing and MapKit's, in points. */
 const MAX_ERROR_POINTS = 3
@@ -129,6 +147,67 @@ export async function runSelfTest(
       }
       record(judge(`MapModelLayer ${name}`, await layer.measureAlignment()))
     }
+  }
+
+  // MapModelLayer over expo-maps, whose AppleMaps.View is SwiftUI's Map.
+  // Its camera only takes a centre and a zoom level, so top-down only.
+  await host.showMode('expomaps')
+  const expoAttached = await host.waitForExpoLayerAttached(8000)
+  record({
+    name: 'MapModelLayer finds the expo-maps map',
+    status: expoAttached ? 'pass' : 'fail',
+  })
+  if (expoAttached) {
+    await sleep(2000)
+    for (const zoom of [15, 16, 17]) {
+      host.setExpoMapsZoom(center, zoom)
+      await sleep(1500)
+      const layer = host.expoLayer()
+      if (!layer) {
+        record({ name: `expo-maps zoom ${zoom}`, status: 'fail', detail: 'no ref' })
+        continue
+      }
+      record(judge(`expo-maps zoom ${zoom}`, await layer.measureAlignment()))
+    }
+  }
+
+  // Terrain: ground heights from the elevation tiles, and models placed
+  // above sea level showing once their tiles have loaded.
+  try {
+    const heights = await groundElevation(KNOWN_HEIGHTS)
+    KNOWN_HEIGHTS.forEach((known, index) => {
+      const height = heights[index] ?? NaN
+      record({
+        name: `groundElevation ${known.name}`,
+        status: Math.abs(height - known.meters) <= known.tolerance ? 'pass' : 'fail',
+        detail: { height, expected: known.meters },
+      })
+    })
+  } catch (error) {
+    record({ name: 'groundElevation', status: 'fail', detail: String(error) })
+  }
+  await host.showMode('terrain')
+  for (const [flat, satellite] of [
+    [true, false],
+    [false, true],
+  ] as const) {
+    host.setTerrainView(flat, satellite)
+    await sleep(3000)
+    const name = flat ? 'Terrain flat map' : 'Terrain satellite 3D'
+    const terrainMap = host.munimMap()
+    if (!terrainMap) {
+      record({ name, status: 'fail', detail: 'no ref' })
+      continue
+    }
+    terrainMap.setCamera(TERRAIN_CHECK_CAMERA, false)
+    await sleep(4000)
+    const report = await terrainMap.measureAlignment()
+    // On the flat map every model on screen is drawn once its terrain tile
+    // has arrived. On 3D terrain the models are lifted onto the ground and
+    // MapKit's conversions stay flat, so only check that they are drawn.
+    const check = judge(`${name}: models placed on the terrain`, report)
+    if (flat && report.modelsVisibleInRender < report.modelsMeasured) check.status = 'fail'
+    record(check)
   }
 
   // With the globe on (the standard style through `globe`, and satellite

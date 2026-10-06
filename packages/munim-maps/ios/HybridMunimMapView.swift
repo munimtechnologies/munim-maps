@@ -50,6 +50,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var paths: [NativeMapPath] = [] { didSet { map.paths = paths.map(\.core) } }
   var occlusion: MapOcclusion = .none { didSet { map.buildingOcclusion = occlusion == .buildings } }
   var buildingTilesUrl = "" { didSet { map.buildingTilesURL = buildingTilesUrl } }
+  var followTerrain = false { didSet { map.followsTerrain = followTerrain } }
   var lighting: MapModelLighting = .auto { didSet { map.lighting = lighting.core } }
   var maxCameraDistance: Double = 50_000 { didSet { map.maxCameraDistance = maxCameraDistance } }
 

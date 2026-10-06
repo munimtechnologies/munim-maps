@@ -30,12 +30,19 @@ export type MapOcclusion = 'none' | 'buildings'
 /** `day` and `night` fix the lighting; `auto` follows the map's appearance. */
 export type MapModelLighting = 'auto' | 'day' | 'night'
 
+/**
+ * What an altitude is measured from: the `ground` under the model, or `sea`
+ * level (the native side looks up the ground height from terrain tiles and
+ * takes it off).
+ */
+export type MapAltitudeReference = 'ground' | 'sea'
+
 /** Where a moving model is `t` seconds into its motion. */
 export interface MotionKeyframe {
   t: number
   latitude: number
   longitude: number
-  /** Metres above the ground. */
+  /** Metres above the ground, or sea level (the model's `altitudeReference`). */
   altitude: number
   /** Degrees clockwise from north; negative faces the direction of travel. */
   heading: number
@@ -50,8 +57,14 @@ export interface NativeMapModel {
   id: string
   latitude: number
   longitude: number
-  /** Metres above the ground. */
+  /** Metres above `altitudeReference`. */
   altitude: number
+  /**
+   * `ground`: `altitude` (and the motion keyframes' altitudes) are metres
+   * above the ground. `sea`: metres above sea level; the model stays hidden
+   * until the ground height there has loaded.
+   */
+  altitudeReference: MapAltitudeReference
   /** Degrees clockwise from north. */
   heading: number
   /** Multiplier applied to the model, after any `screenSize` sizing. */
@@ -139,7 +152,7 @@ export interface NativeMapZone {
 export interface MapPathPoint {
   latitude: number
   longitude: number
-  /** Metres above the ground. */
+  /** Metres above the ground, or sea level (the path's `altitudeReference`). */
   altitude: number
 }
 
@@ -156,6 +169,8 @@ export interface NativeMapPath {
   width: number
   /** Join the last point back to the first. */
   closed: boolean
+  /** What the points' altitudes are measured from. */
+  altitudeReference: MapAltitudeReference
   visible: boolean
 }
 
@@ -188,6 +203,13 @@ export interface MapModelLayerProps extends HybridViewProps {
   occlusion: MapOcclusion
   /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Empty uses OpenFreeMap. */
   buildingTilesUrl: string
+  /**
+   * Keep models, paths and zones whose altitude is above the ground on
+   * MapKit's 3D terrain (satellite imagery, `hybrid` / `imagery`, with
+   * realistic elevation), using terrain heights from public elevation tiles.
+   * Models above sea level always follow the terrain.
+   */
+  followTerrain: boolean
   /**
    * `testID` of the map to draw over. Empty means the nearest MapKit map on
    * screen, which is right when there is only one.

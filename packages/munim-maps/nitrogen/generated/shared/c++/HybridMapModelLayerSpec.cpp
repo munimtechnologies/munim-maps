@@ -24,6 +24,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("occlusion", &HybridMapModelLayerSpec::setOcclusion);
       prototype.registerHybridGetter("buildingTilesUrl", &HybridMapModelLayerSpec::getBuildingTilesUrl);
       prototype.registerHybridSetter("buildingTilesUrl", &HybridMapModelLayerSpec::setBuildingTilesUrl);
+      prototype.registerHybridGetter("followTerrain", &HybridMapModelLayerSpec::getFollowTerrain);
+      prototype.registerHybridSetter("followTerrain", &HybridMapModelLayerSpec::setFollowTerrain);
       prototype.registerHybridGetter("mapTestID", &HybridMapModelLayerSpec::getMapTestID);
       prototype.registerHybridSetter("mapTestID", &HybridMapModelLayerSpec::setMapTestID);
       prototype.registerHybridGetter("lighting", &HybridMapModelLayerSpec::getLighting);

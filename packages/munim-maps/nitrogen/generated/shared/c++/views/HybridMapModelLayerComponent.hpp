@@ -53,6 +53,7 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::vector<NativeMapPath>> paths;
     CachedProp<MapOcclusion> occlusion;
     CachedProp<std::string> buildingTilesUrl;
+    CachedProp<bool> followTerrain;
     CachedProp<std::string> mapTestID;
     CachedProp<MapModelLighting> lighting;
     CachedProp<double> maxCameraDistance;

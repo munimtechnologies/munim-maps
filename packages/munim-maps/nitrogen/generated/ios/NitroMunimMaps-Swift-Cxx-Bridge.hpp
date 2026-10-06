@@ -14,12 +14,16 @@ namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
+// Forward declaration of `HybridMunimTerrainSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMunimTerrainSpec; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
 // Forward declaration of `MapAddress` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
+// Forward declaration of `MapAltitudeReference` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapAltitudeReference; }
 // Forward declaration of `MapCamera` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
@@ -72,14 +76,18 @@ namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
+// Forward declaration of `HybridMunimTerrainSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 
 // Include C++ defined types
 #include "CameraKeyframe.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
+#include "HybridMunimTerrainSpec.hpp"
 #include "LineCap.hpp"
 #include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
+#include "MapAltitudeReference.hpp"
 #include "MapCamera.hpp"
 #include "MapCoordinate.hpp"
 #include "MapFeatureEvent.hpp"
@@ -924,6 +932,72 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<bool>>>::withError(error);
+  }
+  
+  // pragma MARK: std::vector<double>
+  /**
+   * Specialized version of `std::vector<double>`.
+   */
+  using std__vector_double_ = std::vector<double>;
+  inline std::vector<double> create_std__vector_double_(size_t size) noexcept {
+    std::vector<double> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<std::vector<double>>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<std::vector<double>>>`.
+   */
+  using std__shared_ptr_Promise_std__vector_double___ = std::shared_ptr<Promise<std::vector<double>>>;
+  inline std::shared_ptr<Promise<std::vector<double>>> create_std__shared_ptr_Promise_std__vector_double___() noexcept {
+    return Promise<std::vector<double>>::create();
+  }
+  inline PromiseHolder<std::vector<double>> wrap_std__shared_ptr_Promise_std__vector_double___(std::shared_ptr<Promise<std::vector<double>>> promise) noexcept {
+    return PromiseHolder<std::vector<double>>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<double>& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const std::vector<double>&)>`.
+   */
+  using Func_void_std__vector_double_ = std::function<void(const std::vector<double>& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::vector<double>& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__vector_double__Wrapper final {
+  public:
+    explicit Func_void_std__vector_double__Wrapper(std::function<void(const std::vector<double>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::vector<double>& /* result */)>>(std::move(func))) {}
+    inline void call(std::vector<double> result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::vector<double>& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__vector_double_ create_Func_void_std__vector_double_(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__vector_double__Wrapper wrap_Func_void_std__vector_double_(Func_void_std__vector_double_ value) noexcept {
+    return Func_void_std__vector_double__Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridMunimTerrainSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridMunimTerrainSpec>`.
+   */
+  using std__shared_ptr_HybridMunimTerrainSpec_ = std::shared_ptr<HybridMunimTerrainSpec>;
+  std::shared_ptr<HybridMunimTerrainSpec> create_std__shared_ptr_HybridMunimTerrainSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridMunimTerrainSpec_(std__shared_ptr_HybridMunimTerrainSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridMunimTerrainSpec>
+  using std__weak_ptr_HybridMunimTerrainSpec_ = std::weak_ptr<HybridMunimTerrainSpec>;
+  inline std__weak_ptr_HybridMunimTerrainSpec_ weakify_std__shared_ptr_HybridMunimTerrainSpec_(const std::shared_ptr<HybridMunimTerrainSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<std::vector<double>>>>
+  using Result_std__shared_ptr_Promise_std__vector_double____ = Result<std::shared_ptr<Promise<std::vector<double>>>>;
+  inline Result_std__shared_ptr_Promise_std__vector_double____ create_Result_std__shared_ptr_Promise_std__vector_double____(const std::shared_ptr<Promise<std::vector<double>>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<double>>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_std__vector_double____ create_Result_std__shared_ptr_Promise_std__vector_double____(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<double>>>>::withError(error);
   }
 
 } // namespace margelo::nitro::munimmaps::bridge::swift

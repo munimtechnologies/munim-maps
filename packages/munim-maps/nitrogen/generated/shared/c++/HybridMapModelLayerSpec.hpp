@@ -75,6 +75,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setOcclusion(MapOcclusion occlusion) = 0;
       virtual std::string getBuildingTilesUrl() = 0;
       virtual void setBuildingTilesUrl(const std::string& buildingTilesUrl) = 0;
+      virtual bool getFollowTerrain() = 0;
+      virtual void setFollowTerrain(bool followTerrain) = 0;
       virtual std::string getMapTestID() = 0;
       virtual void setMapTestID(const std::string& mapTestID) = 0;
       virtual MapModelLighting getLighting() = 0;

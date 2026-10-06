@@ -16,12 +16,16 @@ namespace margelo::nitro::munimmaps { struct EdgeInsets; }
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
+// Forward declaration of `HybridMunimTerrainSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMunimTerrainSpec; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
 // Forward declaration of `MapAddress` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
+// Forward declaration of `MapAltitudeReference` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapAltitudeReference; }
 // Forward declaration of `MapCameraEasing` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
 // Forward declaration of `MapCamera` to properly resolve imports.
@@ -88,9 +92,11 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "EdgeInsets.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
+#include "HybridMunimTerrainSpec.hpp"
 #include "LineCap.hpp"
 #include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
+#include "MapAltitudeReference.hpp"
 #include "MapCamera.hpp"
 #include "MapCameraEasing.hpp"
 #include "MapColorScheme.hpp"
@@ -144,6 +150,8 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
+// Forward declaration of `HybridMunimTerrainSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 
 // Include Swift defined types
 #if __has_include("NitroMunimMaps-Swift.h")

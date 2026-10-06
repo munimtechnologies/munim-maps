@@ -30,10 +30,13 @@
 
 // Forward declaration of `MapPathPoint` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPathPoint; }
+// Forward declaration of `MapAltitudeReference` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapAltitudeReference; }
 
 #include <string>
 #include "MapPathPoint.hpp"
 #include <vector>
+#include "MapAltitudeReference.hpp"
 
 namespace margelo::nitro::munimmaps {
 
@@ -47,11 +50,12 @@ namespace margelo::nitro::munimmaps {
     std::string color     SWIFT_PRIVATE;
     double width     SWIFT_PRIVATE;
     bool closed     SWIFT_PRIVATE;
+    MapAltitudeReference altitudeReference     SWIFT_PRIVATE;
     bool visible     SWIFT_PRIVATE;
 
   public:
     NativeMapPath() = default;
-    explicit NativeMapPath(std::string id, std::vector<MapPathPoint> points, std::string color, double width, bool closed, bool visible): id(id), points(points), color(color), width(width), closed(closed), visible(visible) {}
+    explicit NativeMapPath(std::string id, std::vector<MapPathPoint> points, std::string color, double width, bool closed, MapAltitudeReference altitudeReference, bool visible): id(id), points(points), color(color), width(width), closed(closed), altitudeReference(altitudeReference), visible(visible) {}
 
   public:
     friend bool operator==(const NativeMapPath& lhs, const NativeMapPath& rhs) = default;
@@ -72,6 +76,7 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "color"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "closed"))),
+        JSIConverter<margelo::nitro::munimmaps::MapAltitudeReference>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "altitudeReference"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))
       );
     }
@@ -82,6 +87,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "color"), JSIConverter<std::string>::toJSI(runtime, arg.color));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "width"), JSIConverter<double>::toJSI(runtime, arg.width));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "closed"), JSIConverter<bool>::toJSI(runtime, arg.closed));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "altitudeReference"), JSIConverter<margelo::nitro::munimmaps::MapAltitudeReference>::toJSI(runtime, arg.altitudeReference));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "visible"), JSIConverter<bool>::toJSI(runtime, arg.visible));
       return obj;
     }
@@ -98,6 +104,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "color")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "width")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "closed")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::MapAltitudeReference>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "altitudeReference")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))) return false;
       return true;
     }

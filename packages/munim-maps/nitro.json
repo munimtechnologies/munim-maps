@@ -24,6 +24,12 @@
         "language": "swift",
         "implementationClassName": "HybridMunimMapView"
       }
+    },
+    "MunimTerrain": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMunimTerrain"
+      }
     }
   },
   "ignorePaths": [

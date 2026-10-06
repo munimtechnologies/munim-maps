@@ -93,6 +93,21 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   private var depthTexture: MTLTexture?
   private var reportedRenderError = false
   private var nightLighting = false
+  /// Keeps models whose altitude is above the ground on MapKit's 3D
+  /// terrain (see `MunimModelLayer.followsTerrain`).
+  var followsTerrain = false {
+    didSet {
+      refreshTerrainUse()
+      setNeedsRender()
+    }
+  }
+  /// Whether anything needs terrain heights: a model or path above sea
+  /// level, or `followsTerrain`.
+  private var usesTerrain = false
+  /// Ground height at the camera's centre the last time it was known.
+  private var lastCenterGround: Double?
+  private var reportedTerrainError = false
+  private var terrainObservers: [NSObjectProtocol] = []
 
   private static let sampleCount = 4
 
@@ -104,6 +119,18 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     super.init()
     buildings.onChange = { [weak self] in self?.setNeedsRender() }
     buildings.onError = { [weak self] message in self?.onError?(message) }
+    let center = NotificationCenter.default
+    terrainObservers = [
+      center.addObserver(forName: MunimTerrain.didLoadTileNotification, object: nil, queue: .main) { [weak self] _ in
+        guard let self, self.usesTerrain else { return }
+        self.setNeedsRender()
+      },
+      center.addObserver(forName: MunimTerrain.didFailNotification, object: nil, queue: .main) { [weak self] note in
+        guard let self, self.usesTerrain, !self.reportedTerrainError else { return }
+        self.reportedTerrainError = true
+        self.onError?(note.userInfo?["message"] as? String ?? "Could not load terrain")
+      },
+    ]
 
     metalLayer.device = device
     metalLayer.pixelFormat = .bgra8Unorm_srgb
@@ -163,6 +190,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   deinit {
     stopFrameLoop()
+    for observer in terrainObservers { NotificationCenter.default.removeObserver(observer) }
   }
 
   // MARK: Attaching
@@ -277,6 +305,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       entries[id] = nil
     }
     refreshAnimationState()
+    refreshTerrainUse()
     setNeedsRender()
   }
 
@@ -315,11 +344,55 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       entry.node.removeFromParentNode()
       pathEntries[id] = nil
     }
+    refreshTerrainUse()
     setNeedsRender()
   }
 
   fileprivate func refreshAnimationState() {
     animationsActive = entries.values.contains { $0.isAnimating }
+  }
+
+  private func refreshTerrainUse() {
+    usesTerrain = followsTerrain
+      || entries.values.contains { $0.model.altitudeReference == .sea }
+      || pathEntries.values.contains { $0.path.altitudeReference == .sea }
+  }
+
+  /// Whether MapKit is drawing real 3D terrain. Satellite imagery (`hybrid`,
+  /// `imagery`) with realistic elevation raises the ground to its height;
+  /// the standard style stays flat with shading, even when realistic.
+  static func drawsTerrain(_ mapView: MKMapView) -> Bool {
+    if #available(iOS 16.0, *) {
+      switch mapView.preferredConfiguration {
+      case let hybrid as MKHybridMapConfiguration: return hybrid.elevationStyle == .realistic
+      case let imagery as MKImageryMapConfiguration: return imagery.elevationStyle == .realistic
+      default: break
+      }
+    }
+    return mapView.mapType == .hybridFlyover || mapView.mapType == .satelliteFlyover
+  }
+
+  /// How the ground is drawn this frame.
+  private func terrainFrame(for snapshot: MapCameraSnapshot) -> TerrainFrame {
+    guard usesTerrain, let mapView, Self.drawsTerrain(mapView) else {
+      return TerrainFrame(drawn: false, centerGround: nil, follow: followsTerrain)
+    }
+    // MapKit draws 3D terrain around a camera centred on the ground at the
+    // centre coordinate, so the scene's ground plane is at that height.
+    if let ground = Self.groundHeight(latitude: snapshot.latitude, longitude: snapshot.longitude) {
+      lastCenterGround = ground
+    }
+    return TerrainFrame(drawn: true, centerGround: lastCenterGround, follow: followsTerrain)
+  }
+
+  /// Height of the ground above sea level, for models placed above sea
+  /// level, or nil until its terrain tile has loaded. Below sea level
+  /// counts as sea level: the tiles carry the sea floor, and the map draws
+  /// water at sea level.
+  fileprivate static func groundHeight(latitude: Double, longitude: Double) -> Double? {
+    MunimTerrain.shared
+      .cachedGroundElevation(at: CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
+      .map { max(0, $0) }
   }
 
   fileprivate func reportError(_ message: String) {
@@ -462,14 +535,15 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     pathsRoot.isHidden = tooFar
     if tooFar { return }
 
+    let terrain = terrainFrame(for: snapshot)
     for entry in entries.values {
-      entry.place(in: snapshot)
+      entry.place(in: snapshot, terrain: terrain)
     }
     for zone in zoneEntries.values {
-      zone.place(in: snapshot)
+      zone.place(in: snapshot, terrain: terrain)
     }
     for path in pathEntries.values {
-      path.place(in: snapshot)
+      path.place(in: snapshot, terrain: terrain)
     }
   }
 
@@ -593,6 +667,27 @@ private final class DisplayLinkTarget: NSObject {
 
 // MARK: - Entry
 
+/// How the ground is drawn this frame, for placing things on terrain.
+fileprivate struct TerrainFrame {
+  /// MapKit is drawing 3D terrain, with the scene's ground plane at the
+  /// height of the ground at the camera's centre.
+  var drawn: Bool
+  /// That height, once its terrain tile has loaded.
+  var centerGround: Double?
+  /// Things above the ground follow the terrain too.
+  var follow: Bool
+
+  /// Whether something at `reference` is lifted onto the drawn terrain.
+  func lifts(_ reference: MunimAltitudeReference) -> Bool {
+    drawn && (reference == .sea || follow)
+  }
+
+  /// Whether the ground height under something at `reference` is needed.
+  func needsGround(_ reference: MunimAltitudeReference) -> Bool {
+    reference == .sea || lifts(reference)
+  }
+}
+
 private final class Entry {
   let id: String
   /// Positioned on the map and turned to the model's heading.
@@ -618,7 +713,13 @@ private final class Entry {
   private var effectKey = ""
   private var hasEmbeddedAnimations = false
   private var currentScale: Float = 1
+  /// Metres above the ground this frame.
   private var currentAltitude: Double = 0
+  /// For models above sea level: the last ground height found, kept while
+  /// a moving model waits for the next terrain tile.
+  private var lastGround: Double?
+  /// Hidden until the ground height under a model above sea level is known.
+  private var waitingForGround = false
 
   init(model: MunimModel) {
     id = model.id
@@ -679,7 +780,13 @@ private final class Entry {
   func update(_ model: MunimModel, renderer: MapModelRenderer, force: Bool = false) {
     let previous = self.model
     self.model = model
-    root.isHidden = !model.visible
+    root.isHidden = !model.visible || waitingForGround
+    if model.altitudeReference == .sea,
+       force || previous.altitudeReference != .sea || previous.motion.count != model.motion.count
+        || previous.motionStart != model.motionStart
+    {
+      prefetchTerrain()
+    }
 
     let key = [
       model.uri, model.shape.stringValue, "\(model.width)", "\(model.height)",
@@ -716,7 +823,7 @@ private final class Entry {
       if let labelNode { Self.drawOnTop(labelNode) }
       if let labelNode { labelHolder.addChildNode(labelNode) }
     }
-    labelHolder.isHidden = !model.visible
+    labelHolder.isHidden = !model.visible || waitingForGround
     if force || previous.stemColor != model.stemColor {
       let color = UIColor(mapModelHex: model.stemColor) ?? .white
       stem.geometry?.firstMaterial?.diffuse.contents = color
@@ -819,14 +926,60 @@ private final class Entry {
     renderer.setNeedsRender()
   }
 
-  func place(in snapshot: MapCameraSnapshot) {
+  /// Loads the terrain under the model's path ahead of time, so a moving
+  /// model above sea level does not wait for tiles on the way.
+  private func prefetchTerrain() {
+    var points = [model.coordinate]
+    for (a, b) in zip(model.motion, model.motion.dropFirst()) {
+      let dy = (b.latitude - a.latitude) * 111_320
+      let dx = (b.longitude - a.longitude) * 111_320 * cos(a.latitude * .pi / 180)
+      // A sample every kilometre catches every tile on the way.
+      let steps = max(1, min(200, Int(hypot(dx, dy) / 1000)))
+      for i in 0...steps {
+        let f = Double(i) / Double(steps)
+        points.append(CLLocationCoordinate2D(
+          latitude: a.latitude + (b.latitude - a.latitude) * f,
+          longitude: a.longitude + (b.longitude - a.longitude) * f))
+      }
+    }
+    MunimTerrain.shared.prefetch(points)
+  }
+
+  private func setWaitingForGround(_ waiting: Bool) {
+    guard waiting != waitingForGround else { return }
+    waitingForGround = waiting
+    root.isHidden = !model.visible || waiting
+    labelHolder.isHidden = !model.visible || waiting
+    if waiting {
+      stem.isHidden = true
+      stemDot.isHidden = true
+    }
+  }
+
+  func place(in snapshot: MapCameraSnapshot, terrain: TerrainFrame) {
     let pose = model.pose(at: Date().timeIntervalSince1970)
-    currentAltitude = pose.altitude
-    let ground = snapshot.scenePosition(latitude: pose.latitude, longitude: pose.longitude, altitude: 0)
+    // Metres above the ground, and where the ground is in the scene.
+    var altitude = pose.altitude
+    var groundLevel = 0.0
+    let reference = model.altitudeReference
+    if terrain.needsGround(reference) {
+      if let ground = MapModelRenderer.groundHeight(latitude: pose.latitude, longitude: pose.longitude) {
+        lastGround = ground
+      }
+      guard let ground = lastGround, !terrain.lifts(reference) || terrain.centerGround != nil else {
+        setWaitingForGround(true)
+        return
+      }
+      if reference == .sea { altitude -= ground }
+      if terrain.lifts(reference), let center = terrain.centerGround { groundLevel = ground - center }
+    }
+    setWaitingForGround(false)
+    currentAltitude = altitude
+    let ground = snapshot.scenePosition(latitude: pose.latitude, longitude: pose.longitude, altitude: groundLevel)
     let local = snapshot.localOrientation(latitude: pose.latitude, longitude: pose.longitude)
     let up = local.act(SIMD3<Float>(0, 1, 0))
     var position = snapshot.scenePosition(
-      latitude: pose.latitude, longitude: pose.longitude, altitude: pose.altitude)
+      latitude: pose.latitude, longitude: pose.longitude, altitude: groundLevel + altitude)
     let focal = Float(snapshot.focalLength)
     if model.liftPoints != 0, let depth = snapshot.project(position)?.depth, depth > 0 {
       position += up * (Float(model.liftPoints) * depth / focal)
@@ -845,7 +998,7 @@ private final class Entry {
       root.simdScale = SIMD3(repeating: scale)
     }
     if let effectNode, scale > 0 {
-      MapModelNodes.setEffectGroundDistance(Float(pose.altitude) / scale, in: effectNode)
+      MapModelNodes.setEffectGroundDistance(Float(altitude) / scale, in: effectNode)
       if model.effect == .contrail {
         // Ground speed from the motion, in model units.
         let now = Date().timeIntervalSince1970
@@ -920,7 +1073,7 @@ private final class Entry {
 
   /// Depth of the model if `point` falls on it.
   func hitTest(_ point: CGPoint, in snapshot: MapCameraSnapshot) -> Float? {
-    guard model.visible, content != nil else { return nil }
+    guard model.visible, !waitingForGround, content != nil else { return nil }
     let base = root.simdPosition
     let center = base + root.simdOrientation.act(SIMD3(0, contentHeight * currentScale / 2, 0))
     guard let projected = snapshot.project(center), projected.depth > 0 else { return nil }
@@ -958,9 +1111,35 @@ private extension UIImage {
 private final class PathEntry {
   let node = SCNNode()
   var path: MunimPath {
-    didSet { if oldValue.color != path.color { material.diffuse.contents = color } }
+    didSet {
+      if oldValue.color != path.color { material.diffuse.contents = color }
+      if oldValue.altitudeReference != path.altitudeReference
+        || oldValue.coordinates.count != path.coordinates.count
+        || !zip(oldValue.coordinates, path.coordinates).allSatisfy({
+          $0.latitude == $1.latitude && $0.longitude == $1.longitude
+        })
+      {
+        grounds = []
+      }
+    }
   }
   private let material = SCNMaterial()
+  /// For paths above sea level: the ground height under each point, filled
+  /// in as terrain tiles load.
+  private var grounds: [Double?] = []
+
+  /// Ground heights under every point, or nil while some are still loading.
+  private func groundHeights() -> [Double]? {
+    if grounds.count != path.coordinates.count {
+      grounds = Array(repeating: nil, count: path.coordinates.count)
+    }
+    var complete = true
+    for (index, c) in path.coordinates.enumerated() where grounds[index] == nil {
+      grounds[index] = MapModelRenderer.groundHeight(latitude: c.latitude, longitude: c.longitude)
+      if grounds[index] == nil { complete = false }
+    }
+    return complete ? grounds.map { $0 ?? 0 } : nil
+  }
 
   init(path: MunimPath) {
     self.path = path
@@ -975,14 +1154,34 @@ private final class PathEntry {
 
   private var color: UIColor { UIColor(mapModelHex: path.color) ?? .white }
 
-  func place(in snapshot: MapCameraSnapshot) {
+  func place(in snapshot: MapCameraSnapshot, terrain: TerrainFrame) {
     let count = path.coordinates.count
     guard path.visible, count >= 2 else {
       node.geometry = nil
       return
     }
+    // Scene height of each point: above sea level, less the ground there
+    // (flat map) or less the ground at the camera's centre (3D terrain);
+    // above the ground, plus the rise of the drawn terrain when following it.
+    let reference = path.altitudeReference
+    var ground: [Double] = []
+    var center = 0.0
+    if terrain.needsGround(reference) {
+      guard let heights = groundHeights(), !terrain.lifts(reference) || terrain.centerGround != nil else {
+        node.geometry = nil
+        return
+      }
+      ground = heights
+      center = terrain.centerGround ?? 0
+    }
+    let lifted = terrain.lifts(reference)
     let points = path.coordinates.enumerated().map { index, c in
-      snapshot.scenePosition(latitude: c.latitude, longitude: c.longitude, altitude: path.altitude(at: index))
+      var altitude = path.altitude(at: index)
+      if !ground.isEmpty {
+        if reference == .sea { altitude -= ground[index] }
+        if lifted { altitude += ground[index] - center }
+      }
+      return snapshot.scenePosition(latitude: c.latitude, longitude: c.longitude, altitude: altitude)
     }
     let eye = snapshot.position
     let focal = Float(snapshot.focalLength)
@@ -1021,6 +1220,8 @@ private final class ZoneEntry {
   private var zone: MunimZone
   private var key = ""
   private var anchor = CLLocationCoordinate2D()
+  /// Ground height at the anchor, for following the terrain.
+  private var anchorGround: Double?
 
   init(zone: MunimZone) {
     self.zone = zone
@@ -1035,12 +1236,22 @@ private final class ZoneEntry {
     guard force || newKey != key else { return }
     key = newKey
     node.geometry = buildGeometry()
+    anchorGround = nil
   }
 
-  func place(in snapshot: MapCameraSnapshot) {
+  /// With `followsTerrain` on 3D terrain the wall stands on the ground at
+  /// its first point.
+  func place(in snapshot: MapCameraSnapshot, terrain: TerrainFrame) {
     guard zone.visible, node.geometry != nil else { return }
+    var level = 0.0
+    if terrain.lifts(.ground) {
+      if anchorGround == nil {
+        anchorGround = MapModelRenderer.groundHeight(latitude: anchor.latitude, longitude: anchor.longitude)
+      }
+      if let anchorGround, let center = terrain.centerGround { level = anchorGround - center }
+    }
     node.simdPosition = snapshot.scenePosition(
-      latitude: anchor.latitude, longitude: anchor.longitude, altitude: 0)
+      latitude: anchor.latitude, longitude: anchor.longitude, altitude: level)
     node.simdOrientation = snapshot.localOrientation(latitude: anchor.latitude, longitude: anchor.longitude)
   }
 

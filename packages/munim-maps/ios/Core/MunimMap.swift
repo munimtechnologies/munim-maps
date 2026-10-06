@@ -32,6 +32,8 @@ public struct MunimMap: UIViewRepresentable {
   public var globe: Bool
   /// Hide models behind buildings; see `MunimModelLayer.buildingOcclusion`.
   public var buildingOcclusion: Bool
+  /// Keep models on 3D terrain; see `MunimModelLayer.followsTerrain`.
+  public var followsTerrain: Bool
   public var showsUserLocation: Bool
   public var onModelPress: ((String) -> Void)?
   public var onMarkerPress: ((String) -> Void)?
@@ -54,6 +56,7 @@ public struct MunimMap: UIViewRepresentable {
     elevation: MunimElevation = .realistic,
     globe: Bool = false,
     buildingOcclusion: Bool = false,
+    followsTerrain: Bool = false,
     showsUserLocation: Bool = false,
     onModelPress: ((String) -> Void)? = nil,
     onMarkerPress: ((String) -> Void)? = nil,
@@ -74,6 +77,7 @@ public struct MunimMap: UIViewRepresentable {
     self.elevation = elevation
     self.globe = globe
     self.buildingOcclusion = buildingOcclusion
+    self.followsTerrain = followsTerrain
     self.showsUserLocation = showsUserLocation
     self.onModelPress = onModelPress
     self.onMarkerPress = onMarkerPress
@@ -102,6 +106,7 @@ public struct MunimMap: UIViewRepresentable {
     view.elevation = elevation
     view.globe = globe
     view.buildingOcclusion = buildingOcclusion
+    view.followsTerrain = followsTerrain
     view.showsUserLocation = showsUserLocation
     view.onModelPress = onModelPress
     view.onMarkerPress = onMarkerPress

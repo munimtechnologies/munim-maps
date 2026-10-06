@@ -48,6 +48,17 @@ public final class MunimModelLayer: NSObject {
     set { renderer.buildings.tileURLTemplate = newValue }
   }
 
+  /// Keeps models, paths and zones whose altitude is above the ground on
+  /// MapKit's 3D terrain, which it draws for satellite imagery (`hybrid`,
+  /// `imagery`) with realistic elevation. MapKit does not share terrain
+  /// heights, so they are looked up with `MunimTerrain` (public elevation
+  /// tiles, so the area is requested from AWS). Models above sea level
+  /// (`altitudeReference = .sea`) always follow the terrain. Off by default.
+  public var followsTerrain: Bool {
+    get { renderer.followsTerrain }
+    set { renderer.followsTerrain = newValue }
+  }
+
   /// Lines drawn in 3D: above the ground and on the globe.
   public var paths: [MunimPath] = [] {
     didSet { renderer.setPaths(paths) }

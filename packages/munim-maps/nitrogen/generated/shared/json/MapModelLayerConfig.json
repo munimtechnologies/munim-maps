@@ -9,6 +9,7 @@
     "paths": true,
     "occlusion": true,
     "buildingTilesUrl": true,
+    "followTerrain": true,
     "mapTestID": true,
     "lighting": true,
     "maxCameraDistance": true,

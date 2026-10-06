@@ -14,6 +14,8 @@ namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
+// Forward declaration of `MapAltitudeReference` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapAltitudeReference; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelShape; }
 // Forward declaration of `MapModelEffect` to properly resolve imports.
@@ -38,6 +40,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "NativeMapModel.hpp"
 #include <vector>
 #include <string>
+#include "MapAltitudeReference.hpp"
 #include "MapModelShape.hpp"
 #include "MapModelEffect.hpp"
 #include "MotionKeyframe.hpp"
@@ -132,6 +135,12 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setBuildingTilesUrl(const std::string& buildingTilesUrl) noexcept override {
       _swiftPart.setBuildingTilesUrl(buildingTilesUrl);
+    }
+    inline bool getFollowTerrain() noexcept override {
+      return _swiftPart.getFollowTerrain();
+    }
+    inline void setFollowTerrain(bool followTerrain) noexcept override {
+      _swiftPart.setFollowTerrain(std::forward<decltype(followTerrain)>(followTerrain));
     }
     inline std::string getMapTestID() noexcept override {
       auto __result = _swiftPart.getMapTestID();

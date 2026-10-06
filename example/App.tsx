@@ -4,9 +4,12 @@ import { StatusBar } from 'expo-status-bar'
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context'
 import MapView, { Circle } from 'react-native-maps'
+import { AppleMaps } from 'expo-maps'
 import {
   MapModelLayer,
   MunimMapView,
+  groundElevation,
+  type MapPath,
   type MapCamera,
   type MapModel,
   type MapModelLayerRef,
@@ -54,6 +57,63 @@ const vehicles = {
 }
 
 type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space'
+
+// Terrain: Half Dome and Yosemite Valley, with heights above sea level
+// (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
+// looks up the ground under each model and takes it off.
+const HALF_DOME = { latitude: 37.74602, longitude: -119.53313 }
+const GLACIER_POINT = { latitude: 37.73065, longitude: -119.57357 }
+const VALLEY = { latitude: 37.7395, longitude: -119.5735 }
+const TERRAIN_CAMERA: MapCamera = { latitude: 37.738, longitude: -119.565, distance: 8000, pitch: 40, heading: 60 }
+const TERRAIN_MODELS: MapModel[] = [
+  {
+    id: 'summit',
+    coordinate: HALF_DOME,
+    altitude: 2694 + 2, // a hiker on the summit, 2,694 m above sea level
+    altitudeReference: 'sea',
+    image: avatars[0],
+    imageBorder: { color: '#FF9F0A', width: 3 },
+    badge: '2694 m',
+    screenSize: 44,
+    stem: '#FF9F0A',
+  },
+  {
+    // Above the ground (the default), kept on the 3D terrain by followTerrain.
+    id: 'glacier-point',
+    coordinate: GLACIER_POINT,
+    shape: 'gem',
+    color: '#30D158',
+    emissive: true,
+    screenSize: 26,
+    spinDegreesPerSecond: 90,
+    label: 'Glacier Point',
+  },
+  {
+    id: 'balloon',
+    coordinate: VALLEY,
+    altitude: 1800, // about 600 m above the valley floor
+    altitudeReference: 'sea',
+    source: VEHICLES.balloon,
+    screenSize: 40,
+    stem: '#FFFFFF',
+    label: '1800 m above sea level',
+  },
+]
+const TERRAIN_PATHS: MapPath[] = [
+  {
+    id: 'zipline',
+    coordinates: [
+      { ...GLACIER_POINT, altitude: 2199 + 40 },
+      { ...HALF_DOME, altitude: 2694 + 40 },
+    ],
+    altitudeReference: 'sea',
+    color: '#FF9F0AFF',
+    width: 3,
+  },
+]
+
+// expo-maps (SwiftUI's Map) with munim-maps drawn over it.
+const EXPO_MAPS_ZOOM = 16
 
 // Map features on MunimMapView: every marker style, shapes, a tile overlay.
 const LOOP = { latitude: 41.8826, longitude: -87.6233 }
@@ -399,6 +459,14 @@ function Example() {
   const [status, setStatus] = useState('Running self-test…')
   const [pressed, setPressed] = useState<string | null>(null)
   const [attached, setAttached] = useState(false)
+  const [terrainFlat, setTerrainFlat] = useState(false)
+  const [terrainHybrid, setTerrainHybrid] = useState(true)
+  const [panel, setPanel] = useState(true)
+  const [terrainHeights, setTerrainHeights] = useState('')
+  const [expoAttached, setExpoAttached] = useState(false)
+  const expoAttachedRef = useRef(false)
+  const expoLayerRef = useRef<MapModelLayerRef | null>(null)
+  const expoMapRef = useRef<AppleMaps.MapView | null>(null)
   const seconds = useLaunchClock(launching)
   const models = useMemo(() => buildModels(seconds, launching), [seconds, launching])
   const satellites = useMemo(() => (mode === 'space' ? satelliteModels(seconds) : []), [mode, seconds])
@@ -429,12 +497,27 @@ function Example() {
     attachedRef.current = value
     setAttached(value)
   }, [])
+  const onExpoAttachChange = useCallback((value: boolean) => {
+    expoAttachedRef.current = value
+    setExpoAttached(value)
+  }, [])
+
+  // The same ground heights munim-maps uses for the terrain screen.
+  useEffect(() => {
+    if (mode !== 'terrain') return
+    groundElevation([HALF_DOME, VALLEY])
+      .then(([dome, valley]) =>
+        setTerrainHeights(`Ground: Half Dome ${dome!.toFixed(0)} m, valley ${valley!.toFixed(0)} m`)
+      )
+      .catch((error) => setTerrainHeights(`groundElevation failed: ${String(error)}`))
+  }, [mode])
 
   const ran = useRef(false)
   useEffect(() => {
     if (ran.current) return
     ran.current = true
     void Linking.getInitialURL().then((url) => {
+      if (url?.includes('nopanel')) setPanel(false)
       const shot = /demo\/(\w+)/.exec(url ?? '')?.[1] as Shot | undefined
       if (shot && SHOTS.includes(shot)) {
         setLaunching(false)
@@ -477,6 +560,21 @@ function Example() {
             { duration: 1 }
           )
         }, 3000)
+      } else if (url?.includes('terrain')) {
+        setLaunching(false)
+        setStatus('Terrain: heights above sea level')
+        if (url.includes('flat')) setTerrainFlat(true)
+        if (url.includes('standard')) setTerrainHybrid(false)
+        setMode('terrain')
+        // munimmapsexample://terrain/cam/lat,lon,distance,pitch,heading
+        const cam = /cam\/([-\d.,]+)/.exec(url)?.[1]?.split(',').map(Number)
+        if (cam?.length === 5) {
+          const [latitude, longitude, distance, pitch, heading] = cam as [number, number, number, number, number]
+          setTimeout(() => munimRef.current?.setCamera({ latitude, longitude, distance, pitch, heading }, false), 2500)
+        }
+      } else if (url?.includes('expomaps')) {
+        setStatus('expo-maps')
+        setMode('expomaps')
       } else if (url?.includes('features')) {
         setLaunching(false)
         setStatus('Features')
@@ -523,6 +621,21 @@ function Example() {
           }
           return attachedRef.current
         },
+        expoLayer: () => expoLayerRef.current,
+        setExpoMapsZoom: (center, zoom) =>
+          expoMapRef.current?.setCameraPosition({ coordinates: center, zoom }),
+        setTerrainView: (flat, satellite) => {
+          setTerrainFlat(flat)
+          setTerrainHybrid(satellite)
+        },
+        waitForExpoLayerAttached: async (timeoutMs) => {
+          const end = Date.now() + timeoutMs
+          while (Date.now() < end) {
+            if (expoAttachedRef.current) return true
+            await new Promise((resolve) => setTimeout(resolve, 100))
+          }
+          return expoAttachedRef.current
+        },
       },
       STARBASE
     )
@@ -560,7 +673,7 @@ function Example() {
   }, [orbiting, mode])
 
   useEffect(() => {
-    if (!orbiting || mode === 'rnmaps' || mode === 'lag') return
+    if (!orbiting || mode === 'rnmaps' || mode === 'lag' || mode === 'expomaps' || mode === 'terrain') return
     const timer = setInterval(async () => {
       const map = munimRef.current
       if (!map) return
@@ -647,6 +760,40 @@ function Example() {
           onModelPress={setPressed}
           onError={(message) => console.warn('MUNIM_MAPS', message)}
         />
+      ) : mode === 'terrain' ? (
+        <MunimMapView
+          key={`terrain-${terrainFlat}-${terrainHybrid}`}
+          ref={munimRef}
+          style={StyleSheet.absoluteFill}
+          initialCamera={TERRAIN_CAMERA}
+          elevation={terrainFlat ? 'flat' : 'realistic'}
+          mapStyle={terrainHybrid ? 'hybrid' : 'standard'}
+          followTerrain
+          models={TERRAIN_MODELS}
+          paths={TERRAIN_PATHS}
+          lighting={lighting}
+          onModelPress={setPressed}
+          onError={(message) => setStatus(`Error: ${message}`)}
+        />
+      ) : mode === 'expomaps' ? (
+        <View style={StyleSheet.absoluteFill}>
+          <View testID="expo-map" collapsable={false} style={StyleSheet.absoluteFill}>
+            <AppleMaps.View
+              ref={expoMapRef}
+              style={StyleSheet.absoluteFill}
+              cameraPosition={{ coordinates: STARBASE, zoom: EXPO_MAPS_ZOOM }}
+            />
+          </View>
+          <MapModelLayer
+            ref={expoLayerRef}
+            mapTestID="expo-map"
+            models={models}
+            lighting={lighting}
+            onAttachChange={onExpoAttachChange}
+            onModelPress={setPressed}
+            onError={(message) => console.warn('MUNIM_MAPS', message)}
+          />
+        </View>
       ) : mode === 'lag' ? (
         <View style={StyleSheet.absoluteFill}>
           <MapView
@@ -711,7 +858,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, !panel && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />
@@ -720,6 +867,14 @@ function Example() {
         <View style={styles.row}>
           <Toggle label="Features" on={mode === 'features'} onPress={() => setMode('features')} />
           {mode === 'features' ? <Toggle label="Tiles" on={tiles} onPress={() => setTiles((v) => !v)} /> : null}
+          <Toggle label="Terrain" on={mode === 'terrain'} onPress={() => setMode('terrain')} />
+          {mode === 'terrain' ? (
+            <>
+              <Toggle label={terrainHybrid ? 'Satellite' : 'Standard'} on={terrainHybrid} onPress={() => setTerrainHybrid((v) => !v)} />
+              <Toggle label={terrainFlat ? 'Flat' : '3D'} on={!terrainFlat} onPress={() => setTerrainFlat((v) => !v)} />
+            </>
+          ) : null}
+          <Toggle label="expo-maps" on={mode === 'expomaps'} onPress={() => setMode('expomaps')} />
         </View>
         <View style={styles.row}>
           <Toggle label={launching ? 'Launching' : 'Launch'} on={launching} onPress={() => setLaunching((v) => !v)} />
@@ -736,6 +891,10 @@ function Example() {
         {mode === 'rnmaps' ? (
           <Text style={styles.status}>{attached ? 'Layer attached to the map' : 'Looking for the map…'}</Text>
         ) : null}
+        {mode === 'expomaps' ? (
+          <Text style={styles.status}>{expoAttached ? 'Layer attached to the expo-maps map' : 'Looking for the map…'}</Text>
+        ) : null}
+        {mode === 'terrain' && terrainHeights ? <Text style={styles.status}>{terrainHeights}</Text> : null}
         {pressed ? <Text style={styles.status}>Tapped: {pressed}</Text> : null}
         {mode === 'features' && lastEvent ? <Text style={styles.status}>Last event: {lastEvent}</Text> : null}
       </View>
@@ -782,4 +941,5 @@ const styles = StyleSheet.create({
   toggleText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   toggleTextOn: { color: '#111111' },
   status: { color: '#FFFFFF', fontSize: 12 },
+  hidden: { display: 'none' },
 })

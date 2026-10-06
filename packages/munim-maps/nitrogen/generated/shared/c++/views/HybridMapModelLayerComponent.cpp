@@ -76,6 +76,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MapModelLayer.buildingTilesUrl: ") + exc.what());
       }
     }()),
+    followTerrain([&]() -> CachedProp<bool> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("followTerrain", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.followTerrain;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.followTerrain);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MapModelLayer.followTerrain: ") + exc.what());
+      }
+    }()),
     mapTestID([&]() -> CachedProp<std::string> {
       try {
         const react::RawValue* rawValue = rawProps.at("mapTestID", nullptr, nullptr);
@@ -174,6 +184,7 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("paths"): return true;
       case hashString("occlusion"): return true;
       case hashString("buildingTilesUrl"): return true;
+      case hashString("followTerrain"): return true;
       case hashString("mapTestID"): return true;
       case hashString("lighting"): return true;
       case hashString("maxCameraDistance"): return true;

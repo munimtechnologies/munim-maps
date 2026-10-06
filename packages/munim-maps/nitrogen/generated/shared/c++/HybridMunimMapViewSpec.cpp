@@ -24,6 +24,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("occlusion", &HybridMunimMapViewSpec::setOcclusion);
       prototype.registerHybridGetter("buildingTilesUrl", &HybridMunimMapViewSpec::getBuildingTilesUrl);
       prototype.registerHybridSetter("buildingTilesUrl", &HybridMunimMapViewSpec::setBuildingTilesUrl);
+      prototype.registerHybridGetter("followTerrain", &HybridMunimMapViewSpec::getFollowTerrain);
+      prototype.registerHybridSetter("followTerrain", &HybridMunimMapViewSpec::setFollowTerrain);
       prototype.registerHybridGetter("initialCamera", &HybridMunimMapViewSpec::getInitialCamera);
       prototype.registerHybridSetter("initialCamera", &HybridMunimMapViewSpec::setInitialCamera);
       prototype.registerHybridGetter("mapStyle", &HybridMunimMapViewSpec::getMapStyle);

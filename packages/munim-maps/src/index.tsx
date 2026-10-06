@@ -9,12 +9,14 @@ import {
 import {
   callback,
   getHostComponent,
+  NitroModules,
   type HybridRef,
 } from 'react-native-nitro-modules'
 import MapModelLayerConfig from '../nitrogen/generated/shared/json/MapModelLayerConfig.json'
 import MunimMapViewConfig from '../nitrogen/generated/shared/json/MunimMapViewConfig.json'
 import type {
   MapAlignmentReport,
+  MapAltitudeReference,
   MapCoordinate,
   MapPathPoint,
   MapModelLayerMethods,
@@ -28,6 +30,7 @@ import type {
   NativeMapPath,
   NativeMapZone,
 } from './specs/MapModelLayer.nitro'
+import type { MunimTerrain } from './specs/MunimTerrain.nitro'
 import type {
   EdgeInsets,
   MapCamera,
@@ -69,8 +72,16 @@ import {
 export interface MapModel {
   id: string
   coordinate: { latitude: number; longitude: number }
-  /** Metres above the ground. Default 0. */
+  /** Metres above the ground, or above sea level with `altitudeReference: 'sea'`. Default 0. */
   altitude?: number
+  /**
+   * What `altitude` (and `motion` keyframe altitudes) are measured from.
+   * `'ground'` (default): metres above the ground under the model. `'sea'`:
+   * metres above sea level, such as a phone's GPS altitude; munim-maps looks
+   * up the ground height there from terrain tiles (see `groundElevation`),
+   * takes it off, and shows the model once the tile has loaded.
+   */
+  altitudeReference?: MapAltitudeReference
   /** Degrees clockwise from north. Default 0. */
   heading?: number
   /** Default 1. */
@@ -226,6 +237,7 @@ export function toNativeModel(model: MapModel): NativeMapModel {
     latitude: model.coordinate.latitude,
     longitude: model.coordinate.longitude,
     altitude: model.altitude ?? 0,
+    altitudeReference: model.altitudeReference ?? 'ground',
     heading: model.heading ?? 0,
     scale: model.scale ?? 1,
     uri,
@@ -336,6 +348,11 @@ export interface MapPath {
   width?: number
   /** Join the last point back to the first. Default false. */
   closed?: boolean
+  /**
+   * What the points' `altitude` is measured from: `'ground'` (default) or
+   * `'sea'` level, as on `MapModel`.
+   */
+  altitudeReference?: MapAltitudeReference
   /** Default true. */
   visible?: boolean
 }
@@ -351,8 +368,30 @@ export function toNativePath(path: MapPath): NativeMapPath {
     color: path.color ?? '#FFFFFF',
     width: path.width ?? 2,
     closed: path.closed ?? false,
+    altitudeReference: path.altitudeReference ?? 'ground',
     visible: path.visible ?? true,
   }
+}
+
+let terrain: MunimTerrain | undefined
+
+/**
+ * Ground height above sea level, in metres, at each coordinate: the same
+ * terrain munim-maps uses for `altitudeReference: 'sea'`. From the free
+ * public Terrarium elevation tiles on AWS (about 7-10 m per sample, cached
+ * on the device). Negative under the sea (the sea floor) and in places below
+ * sea level. Rejects if a tile cannot be downloaded, and on Android.
+ */
+export function groundElevation(
+  coordinates: { latitude: number; longitude: number }[]
+): Promise<number[]> {
+  if (!isSupported) {
+    return Promise.reject(new Error('munim-maps: groundElevation is iOS only'))
+  }
+  terrain ??= NitroModules.createHybridObject<MunimTerrain>('MunimTerrain')
+  return terrain.groundElevation(
+    coordinates.map((c) => ({ latitude: c.latitude, longitude: c.longitude }))
+  )
 }
 
 function useNativePaths(paths: MapPath[] | undefined): NativeMapPath[] {
@@ -384,6 +423,16 @@ export interface MapModelLayerProperties {
   occlusion?: MapOcclusion
   /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Default OpenFreeMap. */
   buildingTilesUrl?: string
+  /**
+   * Keep models, paths and zones whose `altitude` is above the ground on
+   * MapKit's 3D terrain, which it draws for satellite imagery (`hybrid`,
+   * `imagery`) with realistic elevation; otherwise they sit at the height of
+   * the ground at the camera's centre. MapKit does not share terrain
+   * heights, so they come from public elevation tiles (the area is requested
+   * from AWS). Models with `altitudeReference: 'sea'` always follow the
+   * terrain. Default false.
+   */
+  followTerrain?: boolean
   /** `testID` of the map to draw over. Default: the nearest map on screen. */
   mapTestID?: string
   lighting?: MapModelLighting
@@ -442,6 +491,7 @@ export const MapModelLayer = forwardRef<
         paths={paths}
         occlusion={props.occlusion ?? 'none'}
         buildingTilesUrl={props.buildingTilesUrl ?? ''}
+        followTerrain={props.followTerrain ?? false}
         mapTestID={props.mapTestID ?? ''}
         lighting={props.lighting ?? 'auto'}
         maxCameraDistance={props.maxCameraDistance ?? 50_000}
@@ -473,6 +523,16 @@ export interface MunimMapViewProperties {
   occlusion?: MapOcclusion
   /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Default OpenFreeMap. */
   buildingTilesUrl?: string
+  /**
+   * Keep models, paths and zones whose `altitude` is above the ground on
+   * MapKit's 3D terrain, which it draws for satellite imagery (`hybrid`,
+   * `imagery`) with realistic elevation; otherwise they sit at the height of
+   * the ground at the camera's centre. MapKit does not share terrain
+   * heights, so they come from public elevation tiles (the area is requested
+   * from AWS). Models with `altitudeReference: 'sea'` always follow the
+   * terrain. Default false.
+   */
+  followTerrain?: boolean
   lighting?: MapModelLighting
   maxCameraDistance?: number
   // Map features
@@ -599,6 +659,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         paths={paths}
         occlusion={props.occlusion ?? 'none'}
         buildingTilesUrl={props.buildingTilesUrl ?? ''}
+        followTerrain={props.followTerrain ?? false}
         initialCamera={props.initialCamera}
         mapStyle={props.mapStyle ?? 'standard'}
         elevation={props.elevation ?? 'realistic'}
@@ -673,6 +734,7 @@ export type {
   UserLocationEvent,
   UserTrackingMode,
   MapAlignmentReport,
+  MapAltitudeReference,
   MapCoordinate,
   MapPathPoint,
   MapCamera,

@@ -194,6 +194,17 @@ open class HybridMapModelLayerSpec_cxx {
     }
   }
   
+  public final var followTerrain: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.followTerrain
+    }
+    @inline(__always)
+    set {
+      self.__implementation.followTerrain = newValue
+    }
+  }
+  
   public final var mapTestID: std.string {
     @inline(__always)
     get {

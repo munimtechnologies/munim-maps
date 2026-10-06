@@ -15,6 +15,7 @@ public protocol HybridMapModelLayerSpec_protocol: HybridObject, HybridView {
   var paths: [NativeMapPath] { get set }
   var occlusion: MapOcclusion { get set }
   var buildingTilesUrl: String { get set }
+  var followTerrain: Bool { get set }
   var mapTestID: String { get set }
   var lighting: MapModelLighting { get set }
   var maxCameraDistance: Double { get set }

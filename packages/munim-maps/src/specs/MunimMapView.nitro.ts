@@ -70,6 +70,13 @@ export interface MunimMapViewProps extends HybridViewProps {
   occlusion: MapOcclusion
   /** `{z}/{x}/{y}` vector tiles with an OpenMapTiles `building` layer. Empty uses OpenFreeMap. */
   buildingTilesUrl: string
+  /**
+   * Keep models, paths and zones whose altitude is above the ground on
+   * MapKit's 3D terrain (satellite imagery, `hybrid` / `imagery`, with
+   * realistic elevation), using terrain heights from public elevation tiles.
+   * Models above sea level always follow the terrain.
+   */
+  followTerrain: boolean
   /** Applied once, when the map first appears. */
   initialCamera: MapCamera
   mapStyle: MapStyle

@@ -18,8 +18,8 @@ public extension NativeMapModel {
   /**
    * Create a new instance of `NativeMapModel`.
    */
-  init(id: String, latitude: Double, longitude: Double, altitude: Double, heading: Double, scale: Double, uri: String, shape: MapModelShape, width: Double, height: Double, length: Double, color: String, tintColor: String, emissive: Bool, spinDegreesPerSecond: Double, playAnimations: Bool, screenSize: Double, groundShadow: Bool, imageUri: String, imageBorderColor: String, imageBorderWidth: Double, imageBadge: String, liftPoints: Double, label: String, stem: Bool, stemColor: String, effect: MapModelEffect, effectIntensity: Double, motion: [MotionKeyframe], motionStart: Double, motionLoop: Bool, occluder: Bool, effectOrigins: String, visible: Bool) {
-    self.init(std.string(id), latitude, longitude, altitude, heading, scale, std.string(uri), shape, width, height, length, std.string(color), std.string(tintColor), emissive, spinDegreesPerSecond, playAnimations, screenSize, groundShadow, std.string(imageUri), std.string(imageBorderColor), imageBorderWidth, std.string(imageBadge), liftPoints, std.string(label), stem, std.string(stemColor), effect, effectIntensity, { () -> bridge.std__vector_MotionKeyframe_ in
+  init(id: String, latitude: Double, longitude: Double, altitude: Double, altitudeReference: MapAltitudeReference, heading: Double, scale: Double, uri: String, shape: MapModelShape, width: Double, height: Double, length: Double, color: String, tintColor: String, emissive: Bool, spinDegreesPerSecond: Double, playAnimations: Bool, screenSize: Double, groundShadow: Bool, imageUri: String, imageBorderColor: String, imageBorderWidth: Double, imageBadge: String, liftPoints: Double, label: String, stem: Bool, stemColor: String, effect: MapModelEffect, effectIntensity: Double, motion: [MotionKeyframe], motionStart: Double, motionLoop: Bool, occluder: Bool, effectOrigins: String, visible: Bool) {
+    self.init(std.string(id), latitude, longitude, altitude, altitudeReference, heading, scale, std.string(uri), shape, width, height, length, std.string(color), std.string(tintColor), emissive, spinDegreesPerSecond, playAnimations, screenSize, groundShadow, std.string(imageUri), std.string(imageBorderColor), imageBorderWidth, std.string(imageBadge), liftPoints, std.string(label), stem, std.string(stemColor), effect, effectIntensity, { () -> bridge.std__vector_MotionKeyframe_ in
       var __vector = bridge.create_std__vector_MotionKeyframe_(motion.count)
       for __item in motion {
         __vector.push_back(__item)
@@ -46,6 +46,11 @@ public extension NativeMapModel {
   @inline(__always)
   var altitude: Double {
     return self.__altitude
+  }
+  
+  @inline(__always)
+  var altitudeReference: MapAltitudeReference {
+    return self.__altitudeReference
   }
   
   @inline(__always)
