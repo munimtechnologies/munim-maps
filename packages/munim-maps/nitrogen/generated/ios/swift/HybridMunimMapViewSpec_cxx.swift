@@ -389,25 +389,75 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
-  public final var showsCompass: Bool {
+  public final var clusterStyles: bridge.std__vector_NativeClusterStyle_ {
     @inline(__always)
     get {
-      return self.__implementation.showsCompass
+      return { () -> bridge.std__vector_NativeClusterStyle_ in
+        var __vector = bridge.create_std__vector_NativeClusterStyle_(self.__implementation.clusterStyles.count)
+        for __item in self.__implementation.clusterStyles {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
     }
     @inline(__always)
     set {
-      self.__implementation.showsCompass = newValue
+      self.__implementation.clusterStyles = newValue.map({ __item in __item })
     }
   }
   
-  public final var showsScale: Bool {
+  public final var compassVisibility: Int32 {
     @inline(__always)
     get {
-      return self.__implementation.showsScale
+      return self.__implementation.compassVisibility.rawValue
     }
     @inline(__always)
     set {
-      self.__implementation.showsScale = newValue
+      self.__implementation.compassVisibility = margelo.nitro.munimmaps.FeatureVisibility(rawValue: newValue)!
+    }
+  }
+  
+  public final var scaleVisibility: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.scaleVisibility.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.scaleVisibility = margelo.nitro.munimmaps.FeatureVisibility(rawValue: newValue)!
+    }
+  }
+  
+  public final var showsUserTrackingButton: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showsUserTrackingButton
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showsUserTrackingButton = newValue
+    }
+  }
+  
+  public final var pitchButtonVisibility: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.pitchButtonVisibility.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.pitchButtonVisibility = margelo.nitro.munimmaps.FeatureVisibility(rawValue: newValue)!
+    }
+  }
+  
+  public final var mapScope: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.mapScope)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.mapScope = String(newValue)
     }
   }
   
@@ -540,6 +590,17 @@ open class HybridMunimMapViewSpec_cxx {
     @inline(__always)
     set {
       self.__implementation.selectableMapFeatures = String(newValue)
+    }
+  }
+  
+  public final var selectionAccessory: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.selectionAccessory.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.selectionAccessory = margelo.nitro.munimmaps.SelectionAccessory(rawValue: newValue)!
     }
   }
   
@@ -831,6 +892,102 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var onCalloutAccessoryPress: bridge.std__optional_std__function_void_const_CalloutAccessoryEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_CalloutAccessoryEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onCalloutAccessoryPress {
+          return bridge.create_std__optional_std__function_void_const_CalloutAccessoryEvent_____event______({ () -> bridge.Func_void_CalloutAccessoryEvent in
+            let __closureWrapper = Func_void_CalloutAccessoryEvent(__unwrappedValue)
+            return bridge.create_Func_void_CalloutAccessoryEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onCalloutAccessoryPress = { () -> ((_ event: CalloutAccessoryEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_CalloutAccessoryEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_CalloutAccessoryEvent_____event______(newValue)
+          return { () -> (CalloutAccessoryEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_CalloutAccessoryEvent(__unwrapped)
+            return { (__event: CalloutAccessoryEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onClusterPress: bridge.std__optional_std__function_void_const_ClusterPressEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_ClusterPressEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onClusterPress {
+          return bridge.create_std__optional_std__function_void_const_ClusterPressEvent_____event______({ () -> bridge.Func_void_ClusterPressEvent in
+            let __closureWrapper = Func_void_ClusterPressEvent(__unwrappedValue)
+            return bridge.create_Func_void_ClusterPressEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onClusterPress = { () -> ((_ event: ClusterPressEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_ClusterPressEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_ClusterPressEvent_____event______(newValue)
+          return { () -> (ClusterPressEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_ClusterPressEvent(__unwrapped)
+            return { (__event: ClusterPressEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onOverlayPress: bridge.std__optional_std__function_void_const_OverlayPressEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_OverlayPressEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onOverlayPress {
+          return bridge.create_std__optional_std__function_void_const_OverlayPressEvent_____event______({ () -> bridge.Func_void_OverlayPressEvent in
+            let __closureWrapper = Func_void_OverlayPressEvent(__unwrappedValue)
+            return bridge.create_Func_void_OverlayPressEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onOverlayPress = { () -> ((_ event: OverlayPressEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_OverlayPressEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_OverlayPressEvent_____event______(newValue)
+          return { () -> (OverlayPressEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_OverlayPressEvent(__unwrapped)
+            return { (__event: OverlayPressEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var onMarkerDragStart: bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ {
     @inline(__always)
     get {
@@ -918,6 +1075,38 @@ open class HybridMunimMapViewSpec_cxx {
             let __wrappedFunction = bridge.wrap_Func_void_UserLocationEvent(__unwrapped)
             return { (__location: UserLocationEvent) -> Void in
               __wrappedFunction.call(__location)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onUserTrackingModeChange: bridge.std__optional_std__function_void_UserTrackingMode____mode______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_UserTrackingMode____mode______ in
+        if let __unwrappedValue = self.__implementation.onUserTrackingModeChange {
+          return bridge.create_std__optional_std__function_void_UserTrackingMode____mode______({ () -> bridge.Func_void_UserTrackingMode in
+            let __closureWrapper = Func_void_UserTrackingMode(__unwrappedValue)
+            return bridge.create_Func_void_UserTrackingMode(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onUserTrackingModeChange = { () -> ((_ mode: UserTrackingMode) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_UserTrackingMode____mode______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_UserTrackingMode____mode______(newValue)
+          return { () -> (UserTrackingMode) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_UserTrackingMode(__unwrapped)
+            return { (__mode: UserTrackingMode) -> Void in
+              __wrappedFunction.call(__mode.rawValue)
             }
           }()
         } else {
@@ -1259,6 +1448,44 @@ open class HybridMunimMapViewSpec_cxx {
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
       return bridge.create_Result_std__shared_ptr_Promise_MapAlignmentReport___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func overlayAtPoint(point: MapPoint) -> bridge.Result_std__shared_ptr_Promise_std__string___ {
+    do {
+      let __result = try self.__implementation.overlayAtPoint(point: point)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_std__string__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_std__string__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_std__string__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(std.string(__result)) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_std__string___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_std__string___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func mapItemForFeature(id: std.string) -> bridge.Result_std__shared_ptr_Promise_MapItem___ {
+    do {
+      let __result = try self.__implementation.mapItemForFeature(id: String(id))
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_MapItem__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_MapItem__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_MapItem__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_MapItem___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_MapItem___(__exceptionPtr)
     }
   }
   

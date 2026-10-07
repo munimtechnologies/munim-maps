@@ -354,7 +354,7 @@ public enum MunimBadgePosition: String, Sendable {
 }
 
 @_expose(!Cxx)
-public struct MunimMarkerBadge: Sendable {
+public struct MunimMarkerBadge: Sendable, Equatable {
   public var text: String
   public var position: MunimBadgePosition
   public var color: String
@@ -368,8 +368,61 @@ public struct MunimMarkerBadge: Sendable {
   }
 }
 
+/// A button or picture at one end of a marker's callout.
 @_expose(!Cxx)
-public struct MunimMarker: Sendable {
+public struct MunimCalloutAccessory: Sendable, Equatable {
+  @_expose(!Cxx)
+  public enum Kind: String, Sendable { case none, detail, info, button, image }
+
+  public var kind: Kind
+  public var text: String
+  /// SF Symbol name.
+  public var symbol: String
+  public var imageUri: String
+  public var color: String
+
+  public init(kind: Kind = .none, text: String = "", symbol: String = "", imageUri: String = "", color: String = "") {
+    self.kind = kind
+    self.text = text
+    self.symbol = symbol
+    self.imageUri = imageUri
+    self.color = color
+  }
+
+  public static let none = MunimCalloutAccessory()
+}
+
+/// The look of a cluster of markers that share a `clusteringId`.
+@_expose(!Cxx)
+public struct MunimClusterStyle: Sendable {
+  public var clusteringId: String
+  public var color: String
+  public var glyphColor: String
+  /// Text in the balloon; `{count}` is the number of markers. Empty shows
+  /// the count. MapKit draws no glyph images on cluster balloons.
+  public var glyph: String
+  /// `{count}` is the number of markers.
+  public var title: String
+  public var subtitle: String
+  public var displayPriority: Double
+
+  public init(clusteringId: String, color: String = "", glyphColor: String = "", glyph: String = "",
+              title: String = "", subtitle: String = "", displayPriority: Double = 1000) {
+    self.clusteringId = clusteringId
+    self.color = color
+    self.glyphColor = glyphColor
+    self.glyph = glyph
+    self.title = title
+    self.subtitle = subtitle
+    self.displayPriority = displayPriority
+  }
+}
+
+@_expose(!Cxx)
+public enum MunimCollisionMode: String, Sendable { case rectangle, circle, none }
+
+@_expose(!Cxx)
+public struct MunimMarker: Sendable, Equatable {
   public var id: String
   public var latitude: Double
   public var longitude: Double
@@ -391,6 +444,21 @@ public struct MunimMarker: Sendable {
   public var calloutEnabled: Bool
   public var opacity: Double
   public var visible: Bool
+  /// 0...1000: MapKit hides lower ones first where markers overlap.
+  public var displayPriority: Double = 1000
+  public var collisionMode: MunimCollisionMode = .rectangle
+  /// `marker` style: when the title and subtitle show under the balloon.
+  public var titleVisibility: MunimFeatureVisibility = .adaptive
+  public var subtitleVisibility: MunimFeatureVisibility = .adaptive
+  /// `marker` style: SF Symbols in the balloon, and while selected.
+  public var glyphSymbol = ""
+  public var selectedGlyphSymbol = ""
+  public var glyphColor = ""
+  public var animatesWhenAdded = false
+  public var leftCalloutAccessory = MunimCalloutAccessory.none
+  public var rightCalloutAccessory = MunimCalloutAccessory(kind: .detail)
+  /// Several lines of text in the callout, in place of the subtitle.
+  public var calloutDetail = ""
 
   public init(
     id: String,
@@ -446,6 +514,13 @@ public enum MunimLineCap: String, Sendable {
 }
 
 @_expose(!Cxx)
+public enum MunimLineJoin: String, Sendable { case round, bevel, miter }
+
+/// Where an overlay sits in MapKit's layers.
+@_expose(!Cxx)
+public enum MunimOverlayLevel: String, Sendable { case aboveRoads, aboveLabels }
+
+@_expose(!Cxx)
 public struct MunimPolyline: Sendable {
   public var id: String
   public var coordinates: [CLLocationCoordinate2D]
@@ -456,6 +531,15 @@ public struct MunimPolyline: Sendable {
   public var geodesic: Bool
   public var lineCap: MunimLineCap
   public var zIndex: Double
+  /// Colours along the line for a gradient, comma-separated.
+  public var strokeColors = ""
+  /// Where each colour sits, 0...1, comma-separated; empty spaces them evenly.
+  public var strokeColorLocations = ""
+  public var lineJoin: MunimLineJoin = .round
+  public var strokeStart: Double = 0
+  public var strokeEnd: Double = 1
+  public var level: MunimOverlayLevel = .aboveLabels
+  public var tappable = true
 
   public init(id: String, coordinates: [CLLocationCoordinate2D], strokeColor: String = "#0A84FF",
               strokeWidth: Double = 3, dashPattern: String = "", geodesic: Bool = false,
@@ -481,6 +565,9 @@ public struct MunimPolygon: Sendable {
   public var strokeWidth: Double
   public var dashPattern: String
   public var zIndex: Double
+  public var lineJoin: MunimLineJoin = .round
+  public var level: MunimOverlayLevel = .aboveLabels
+  public var tappable = true
 
   public init(id: String, coordinates: [CLLocationCoordinate2D], holes: [[CLLocationCoordinate2D]] = [],
               strokeColor: String = "#0A84FF", fillColor: String = "#0A84FF33", strokeWidth: Double = 2,
@@ -508,6 +595,8 @@ public struct MunimCircle: Sendable {
   public var strokeWidth: Double
   public var dashPattern: String
   public var zIndex: Double
+  public var level: MunimOverlayLevel = .aboveLabels
+  public var tappable = true
 
   public init(id: String, center: CLLocationCoordinate2D, radius: Double, strokeColor: String = "#0A84FF",
               fillColor: String = "#0A84FF33", strokeWidth: Double = 2, dashPattern: String = "",
@@ -534,6 +623,7 @@ public struct MunimTileOverlay: Sendable {
   public var maximumZoom: Double
   public var opacity: Double
   public var zIndex: Double
+  public var level: MunimOverlayLevel = .aboveRoads
 
   public init(id: String, urlTemplate: String, replacesMap: Bool = false, minimumZoom: Double = 0,
               maximumZoom: Double = 0, opacity: Double = 1, zIndex: Double = 0) {

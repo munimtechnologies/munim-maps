@@ -19,6 +19,61 @@ import type { MapCoordinate } from './MapModelLayer.nitro'
 export type MarkerStyle =
   'pin' | 'marker' | 'image' | 'avatar' | 'label' | 'dot'
 
+/** `adaptive`: MapKit shows it when it is useful (the compass while the map is rotated, the scale while zooming, a title when there is room). */
+export type FeatureVisibility = 'adaptive' | 'visible' | 'hidden'
+
+/** How a marker avoids its neighbours when MapKit hides overlapping ones. */
+export type MarkerCollisionMode = 'rectangle' | 'circle' | 'none'
+
+/**
+ * A button or picture at one end of a marker's callout:
+ * `detail` and `info` are UIKit's buttons, `button` a text or SF Symbol
+ * button, `image` a picture (`imageUri`) or SF Symbol that is not a button.
+ */
+export type CalloutAccessoryKind =
+  'none' | 'detail' | 'info' | 'button' | 'image'
+
+export interface NativeCalloutAccessory {
+  kind: CalloutAccessoryKind
+  text: string
+  /** SF Symbol name. */
+  symbol: string
+  imageUri: string
+  color: string
+}
+
+export type CalloutAccessorySide = 'left' | 'right'
+
+export interface CalloutAccessoryEvent {
+  id: string
+  side: CalloutAccessorySide
+}
+
+export interface ClusterPressEvent {
+  clusteringId: string
+  /** Ids of the markers in the cluster, comma-separated. */
+  markerIds: string
+  latitude: number
+  longitude: number
+}
+
+/** The look of a cluster of markers sharing `clusteringId`. */
+export interface NativeClusterStyle {
+  clusteringId: string
+  /** Balloon colour. */
+  color: string
+  glyphColor: string
+  /**
+   * Text in the balloon; `{count}` is the number of markers. Empty shows the
+   * count. (MapKit draws no glyph images on cluster balloons, so no SF Symbol.)
+   */
+  glyph: string
+  /** Title under the balloon; `{count}` is the number of markers. */
+  title: string
+  subtitle: string
+  displayPriority: number
+}
+
 export type MarkerBadgePosition =
   'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'bottom'
 
@@ -63,9 +118,32 @@ export interface NativeMarker {
   /** Fade the marker, 0...1. */
   opacity: number
   visible: boolean
+  /** 0...1000: MapKit hides lower ones first where markers overlap (1000 never hides). */
+  displayPriority: number
+  collisionMode: MarkerCollisionMode
+  /** `marker` style: when the title and subtitle show under the balloon. */
+  titleVisibility: FeatureVisibility
+  subtitleVisibility: FeatureVisibility
+  /** `marker` style: SF Symbol in the balloon, and while selected. */
+  glyphSymbol: string
+  selectedGlyphSymbol: string
+  glyphColor: string
+  /** `marker` style: MapKit's drop-in animation. */
+  animatesWhenAdded: boolean
+  leftCalloutAccessory: NativeCalloutAccessory
+  rightCalloutAccessory: NativeCalloutAccessory
+  /** Several lines of text in the callout, in place of the subtitle. */
+  calloutDetail: string
 }
 
 export type LineCap = 'round' | 'butt' | 'square'
+export type LineJoin = 'round' | 'bevel' | 'miter'
+
+/**
+ * Where an overlay sits in MapKit's layers: `aboveRoads` (under labels and
+ * buildings, the default for tile overlays) or `aboveLabels`.
+ */
+export type OverlayLevel = 'aboveRoads' | 'aboveLabels'
 
 export interface NativePolyline {
   id: string
@@ -78,6 +156,25 @@ export interface NativePolyline {
   geodesic: boolean
   lineCap: LineCap
   zIndex: number
+  /** Colours along the line, comma-separated, for a gradient (MKGradientPolylineRenderer). */
+  strokeColors: string
+  /** Where each of `strokeColors` sits, 0...1, comma-separated; empty spaces them evenly. */
+  strokeColorLocations: string
+  lineJoin: LineJoin
+  /** Draw only this part of the line, 0...1 (animate a route being drawn). */
+  strokeStart: number
+  strokeEnd: number
+  level: OverlayLevel
+  /** Taps on it fire `onOverlayPress`. */
+  tappable: boolean
+}
+
+export interface OverlayPressEvent {
+  id: string
+  /** `polyline`, `polygon` or `circle`. */
+  kind: string
+  latitude: number
+  longitude: number
 }
 
 export interface NativePolygon {
@@ -90,6 +187,9 @@ export interface NativePolygon {
   strokeWidth: number
   dashPattern: string
   zIndex: number
+  lineJoin: LineJoin
+  level: OverlayLevel
+  tappable: boolean
 }
 
 export interface NativeCircle {
@@ -103,6 +203,8 @@ export interface NativeCircle {
   strokeWidth: number
   dashPattern: string
   zIndex: number
+  level: OverlayLevel
+  tappable: boolean
 }
 
 export interface NativeTileOverlay {
@@ -115,6 +217,7 @@ export interface NativeTileOverlay {
   maximumZoom: number
   opacity: number
   zIndex: number
+  level: OverlayLevel
 }
 
 export interface MapPoint {
@@ -164,6 +267,8 @@ export interface MapFeatureEvent {
   kind: string
   /** The point-of-interest category, such as `MKPOICategoryCafe`, or empty. */
   category: string
+  /** For `mapItemForFeature`. */
+  id: string
 }
 
 export interface MapAddress {
@@ -175,4 +280,23 @@ export interface MapAddress {
   country: string
   countryCode: string
   formatted: string
+  /** iOS 26 `MKAddress.shortAddress`, or the street and city. */
+  shortAddress: string
+}
+
+/** A place from Apple Maps: a point of interest, an address or a feature. */
+export interface MapItem {
+  /** `MKMapItem.Identifier` (iOS 18+), stable between launches; empty when Apple has none. */
+  identifier: string
+  name: string
+  phoneNumber: string
+  url: string
+  /** `MKPOICategory…` raw value, or empty. */
+  category: string
+  /** IANA time zone, such as `America/Chicago`, or empty. */
+  timeZone: string
+  latitude: number
+  longitude: number
+  address: MapAddress
+  isCurrentLocation: boolean
 }

@@ -13,6 +13,10 @@
 #include "HybridMapModelLayerSpecSwift.hpp"
 #include "HybridMunimMapViewSpecSwift.hpp"
 #include "HybridMunimTerrainSpecSwift.hpp"
+#include "HybridMapControlSpecSwift.hpp"
+#include "HybridMapServicesSpecSwift.hpp"
+#include "HybridLookAroundViewSpecSwift.hpp"
+#include "HybridMarkerViewSpecSwift.hpp"
 
 @interface NitroMunimMapsAutolinking : NSObject
 @end
@@ -41,6 +45,34 @@
     "MunimTerrain",
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridMunimTerrainSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMunimTerrain();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MapControl",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMapControlSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMapControl();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MapServices",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMapServicesSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMapServices();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "LookAroundView",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridLookAroundViewSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createLookAroundView();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MarkerView",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMarkerViewSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMarkerView();
       return hybridObject;
     }
   );

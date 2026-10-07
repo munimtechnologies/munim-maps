@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo, type ReactNode } from 'react'
 import {
   Platform,
   StyleSheet,
@@ -42,9 +42,18 @@ import type {
   MunimMapViewMethods,
   MunimMapViewProps,
   UserTrackingMode,
+  FeatureVisibility,
+  SelectionAccessory,
 } from './specs/MunimMapView.nitro'
 import type {
+  CalloutAccessoryEvent,
+  ClusterPressEvent,
+  MapItem,
+  MarkerCollisionMode,
   LineCap,
+  LineJoin,
+  OverlayLevel,
+  OverlayPressEvent,
   MapAddress,
   MapFeatureEvent,
   MapPoint,
@@ -55,12 +64,17 @@ import type {
   MarkerStyle,
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
+import { pointsOfInterestFilter } from './services'
 import {
+  toNativeClusterStyle,
   toNativeCircle,
   toNativeMarker,
   toNativePolygon,
   toNativePolyline,
   toNativeTileOverlay,
+  type CalloutAccessory,
+  type MapClusterStyle,
+  type MarkerDisplayPriority,
   type MapCircle,
   type MapMarker,
   type MapPolygon,
@@ -541,6 +555,8 @@ export interface MunimMapViewProperties {
   polygons?: MapPolygon[]
   circles?: MapCircle[]
   tileOverlays?: MapTileOverlay[]
+  /** How clusters of markers (`clusteringId`) look. Default MapKit's. */
+  clusterStyles?: MapClusterStyle[]
   // Look
   mapStyle?: MapStyle
   elevation?: MapElevation
@@ -554,12 +570,47 @@ export interface MunimMapViewProperties {
   colorScheme?: MapColorScheme
   showsBuildings?: boolean
   showsUserLocation?: boolean
+  /** Shorthand for `compassVisibility` `'adaptive'` (true, default) or `'hidden'`. */
   showsCompass?: boolean
+  /** Shorthand for `scaleVisibility` `'adaptive'` (true) or `'hidden'` (default). */
   showsScale?: boolean
+  /**
+   * The compass, top right: `'adaptive'` shows it while the map is rotated
+   * (MapKit's default), `'visible'` always, `'hidden'` never.
+   */
+  compassVisibility?: FeatureVisibility
+  /** The scale legend, top left: `'adaptive'` shows it while zooming. */
+  scaleVisibility?: FeatureVisibility
+  /**
+   * MapKit's button that cycles `userTrackingMode` (none, follow, follow
+   * with heading), top right. Use `onUserTrackingModeChange` to keep your
+   * state in step. Default false.
+   */
+  showsUserTrackingButton?: boolean
+  /** MapKit's 2D/3D button, top right. iOS 17+. Default `'hidden'`. */
+  pitchButtonVisibility?: FeatureVisibility
+  /**
+   * A name for this map, so `MapCompass`, `MapScale` and
+   * `MapUserTrackingButton` placed anywhere else can drive it.
+   */
+  mapScope?: string
   showsTraffic?: boolean
-  /** `'all'`, `'none'`, or the `MKPOICategory…` values to show. Default `'all'`. */
+  /**
+   * `'all'`, `'none'`, or the categories to show: `MKPOICategory…` values or
+   * their short names (`'cafe'`, `'evCharger'`). Default `'all'`.
+   */
   pointsOfInterest?: 'all' | 'none' | string[]
-  userTrackingMode?: UserTrackingMode
+  /**
+   * MapKit's user tracking, exactly like `MKMapView.userTrackingMode`:
+   * `'follow'` keeps the map on the user, `'followWithHeading'` also turns
+   * it with the device and shows the heading beam. MapKit owns the
+   * following (nothing recentres from JavaScript, so it never fights the
+   * user) and drops back to `'none'` when the user pans or zooms away:
+   * handle `onUserTrackingModeChange` and store the mode in state, so
+   * setting it again re-enables tracking. Asks for when-in-use location
+   * access if needed (add `NSLocationWhenInUseUsageDescription`).
+   */
+  userTrackingMode?: UserTrackingMode | 'follow-with-heading'
   // Gestures and limits
   zoomEnabled?: boolean
   scrollEnabled?: boolean
@@ -575,6 +626,14 @@ export interface MunimMapViewProperties {
   selectableMapFeatures?: (
     'pointsOfInterest' | 'territories' | 'physicalFeatures'
   )[]
+  /**
+   * What tapping a place on Apple's map shows, iOS 18+: Apple's place card
+   * as a `'callout'` (`'calloutCompact'`, `'calloutFull'`), a `'sheet'`, or
+   * whichever suits (`'automatic'`), or an `'openInMaps'` button. Default
+   * `'none'` (handle `onMapFeaturePress` yourself). Needs
+   * `selectableMapFeatures`.
+   */
+  selectionAccessory?: SelectionAccessory
   // Events
   onModelPress?: (id: string) => void
   onCameraChange?: (camera: MapCamera) => void
@@ -585,12 +644,31 @@ export interface MunimMapViewProperties {
   onMarkerPress?: (id: string) => void
   onMarkerDeselect?: (id: string) => void
   onCalloutPress?: (id: string) => void
+  /** A callout's left or right accessory was tapped. */
+  onCalloutAccessoryPress?: (event: CalloutAccessoryEvent) => void
+  /**
+   * A cluster was tapped. `markerIds` lists its markers, comma-separated
+   * (`fitToMarkers(event.markerIds, …)` zooms in on them).
+   */
+  onClusterPress?: (event: ClusterPressEvent) => void
+  /**
+   * A tappable polyline, polygon or circle was tapped (the topmost). Taken
+   * instead of `onPress`. Overlays are only hit-tested while this is set.
+   */
+  onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
+  /**
+   * MapKit changed the tracking mode: the user panned or zoomed away (to
+   * `'none'`), used the tracking button, or a camera move ended following.
+   */
+  onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
   style?: StyleProp<ViewStyle>
+  /** `MarkerView`s: React Native views as markers. */
+  children?: ReactNode
 }
 
 const NO_REGION: MapRegion = {
@@ -634,14 +712,21 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const onMarkerPress = useCallbackProp(props.onMarkerPress)
     const onMarkerDeselect = useCallbackProp(props.onMarkerDeselect)
     const onCalloutPress = useCallbackProp(props.onCalloutPress)
+    const onCalloutAccessoryPress = useCallbackProp(
+      props.onCalloutAccessoryPress
+    )
+    const onClusterPress = useCallbackProp(props.onClusterPress)
+    const onOverlayPress = useCallbackProp(props.onOverlayPress)
+    const clusterStyles = useMapped(props.clusterStyles, toNativeClusterStyle)
     const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
     const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
     const onUserLocationChange = useCallbackProp(props.onUserLocationChange)
+    const onUserTrackingModeChange = useCallbackProp(
+      props.onUserTrackingModeChange
+    )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
-    const pointsOfInterest = Array.isArray(props.pointsOfInterest)
-      ? props.pointsOfInterest.join(',')
-      : (props.pointsOfInterest ?? 'all')
+    const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
         callback((instance: MunimMapViewRef) => {
@@ -674,11 +759,25 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         polygons={polygons}
         circles={circles}
         tileOverlays={tileOverlays}
-        showsCompass={props.showsCompass ?? true}
-        showsScale={props.showsScale ?? false}
+        clusterStyles={clusterStyles}
+        selectionAccessory={props.selectionAccessory ?? 'none'}
+        compassVisibility={
+          props.compassVisibility ??
+          (props.showsCompass === false ? 'hidden' : 'adaptive')
+        }
+        scaleVisibility={
+          props.scaleVisibility ?? (props.showsScale ? 'adaptive' : 'hidden')
+        }
+        showsUserTrackingButton={props.showsUserTrackingButton ?? false}
+        pitchButtonVisibility={props.pitchButtonVisibility ?? 'hidden'}
+        mapScope={props.mapScope ?? ''}
         showsTraffic={props.showsTraffic ?? false}
         pointsOfInterest={pointsOfInterest}
-        userTrackingMode={props.userTrackingMode ?? 'none'}
+        userTrackingMode={
+          props.userTrackingMode === 'follow-with-heading'
+            ? 'followWithHeading'
+            : (props.userTrackingMode ?? 'none')
+        }
         zoomEnabled={props.zoomEnabled ?? true}
         scrollEnabled={props.scrollEnabled ?? true}
         rotateEnabled={props.rotateEnabled ?? true}
@@ -697,16 +796,38 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onMarkerPress={onMarkerPress}
         onMarkerDeselect={onMarkerDeselect}
         onCalloutPress={onCalloutPress}
+        onCalloutAccessoryPress={onCalloutAccessoryPress}
+        onClusterPress={onClusterPress}
+        onOverlayPress={onOverlayPress}
         onMarkerDragStart={onMarkerDragStart}
         onMarkerDragEnd={onMarkerDragEnd}
         onUserLocationChange={onUserLocationChange}
+        onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
         onError={onError}
         hybridRef={hybridRef}
-      />
+      >
+        {props.children}
+      </NativeMunimMapView>
     )
   }
 )
+
+export * from './services'
+export { MarkerView, type MarkerViewProperties } from './MarkerView'
+export {
+  LookAroundView,
+  type LookAroundViewProperties,
+  type LookAroundBadgePosition,
+} from './LookAroundView'
+
+export {
+  MapCompass,
+  MapScale,
+  MapUserTrackingButton,
+  type MapControlProperties,
+  type MapScaleAlignment,
+} from './controls'
 
 export {
   toNativeCircle,
@@ -716,6 +837,17 @@ export {
   toNativeTileOverlay,
 }
 export type {
+  CalloutAccessory,
+  CalloutAccessoryEvent,
+  ClusterPressEvent,
+  MapClusterStyle,
+  MapItem,
+  LineJoin,
+  OverlayLevel,
+  OverlayPressEvent,
+  MarkerCollisionMode,
+  MarkerDisplayPriority,
+  SelectionAccessory,
   EdgeInsets,
   LineCap,
   MapAddress,
@@ -733,6 +865,7 @@ export type {
   MarkerStyle,
   UserLocationEvent,
   UserTrackingMode,
+  FeatureVisibility,
   MapAlignmentReport,
   MapAltitudeReference,
   MapCoordinate,

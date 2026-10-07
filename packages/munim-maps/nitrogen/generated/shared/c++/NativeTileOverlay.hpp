@@ -28,9 +28,11 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `OverlayLevel` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 
 #include <string>
+#include "OverlayLevel.hpp"
 
 namespace margelo::nitro::munimmaps {
 
@@ -46,10 +48,11 @@ namespace margelo::nitro::munimmaps {
     double maximumZoom     SWIFT_PRIVATE;
     double opacity     SWIFT_PRIVATE;
     double zIndex     SWIFT_PRIVATE;
+    OverlayLevel level     SWIFT_PRIVATE;
 
   public:
     NativeTileOverlay() = default;
-    explicit NativeTileOverlay(std::string id, std::string urlTemplate, bool replacesMap, double minimumZoom, double maximumZoom, double opacity, double zIndex): id(id), urlTemplate(urlTemplate), replacesMap(replacesMap), minimumZoom(minimumZoom), maximumZoom(maximumZoom), opacity(opacity), zIndex(zIndex) {}
+    explicit NativeTileOverlay(std::string id, std::string urlTemplate, bool replacesMap, double minimumZoom, double maximumZoom, double opacity, double zIndex, OverlayLevel level): id(id), urlTemplate(urlTemplate), replacesMap(replacesMap), minimumZoom(minimumZoom), maximumZoom(maximumZoom), opacity(opacity), zIndex(zIndex), level(level) {}
 
   public:
     friend bool operator==(const NativeTileOverlay& lhs, const NativeTileOverlay& rhs) = default;
@@ -71,7 +74,8 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minimumZoom"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maximumZoom"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "opacity"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex"))),
+        JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::NativeTileOverlay& arg) {
@@ -83,6 +87,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maximumZoom"), JSIConverter<double>::toJSI(runtime, arg.maximumZoom));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "opacity"), JSIConverter<double>::toJSI(runtime, arg.opacity));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "zIndex"), JSIConverter<double>::toJSI(runtime, arg.zIndex));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "level"), JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::toJSI(runtime, arg.level));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -100,6 +105,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maximumZoom")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "opacity")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level")))) return false;
       return true;
     }
   };

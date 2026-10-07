@@ -12,6 +12,23 @@ All notable changes to this project are documented in this file. The format is b
   - `groundElevation(coordinates)`: the height of the ground above sea level, from JavaScript, and `MunimTerrain.shared.groundElevations(for:)` in Swift.
 - `MapModelLayer` is tested over expo-maps' `AppleMaps.View` (SwiftUI `Map`) on device: it finds the `MKMapView` inside, and the self-test measures it within 1.6 points at three zoom levels.
 - Example: Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), and terrain and expo-maps checks in the self-test.
+- MapKit parity on `MunimMapView`:
+  - `userTrackingMode="followWithHeading"` is handed to MapKit, which owns the following (heading beam included, nothing recentres from JavaScript); `onUserTrackingModeChange` reports when MapKit drops it after a pan or zoom, or the tracking button changes it. Camera moves from code end tracking the same way. Location access is requested when needed. The old `'follow-with-heading'` spelling still works.
+  - Controls: `compassVisibility` and `scaleVisibility` (`adaptive`, `visible`, `hidden`), `showsUserTrackingButton`, `pitchButtonVisibility` (iOS 17+), and standalone `MapCompass`, `MapScale` and `MapUserTrackingButton` that drive the map with the same `mapScope`.
+  - `selectionAccessory`: Apple's place card for tapped places (`MKSelectionAccessory`, iOS 18+), and `mapItemForFeature(id)` for the full place behind `onMapFeaturePress`.
+  - Markers: `displayPriority`, `collisionMode`, `titleVisibility` / `subtitleVisibility`, SF Symbol glyphs (`glyphSymbol`, `selectedGlyphSymbol`), `glyphColor`, `animatesWhenAdded`, callout buttons and pictures (`calloutLeft`, `calloutRight`, `onCalloutAccessoryPress`) and `calloutDetail`.
+  - `clusterStyles` (balloon colour, `{count}` glyph and title) and `onClusterPress` with the member ids.
+  - `<MarkerView>`: React Native views as markers, drawn into a real MapKit marker (`tracksViewChanges` for live content).
+  - Overlays: gradient polylines (`strokeColors`, `strokeColorLocations`), `lineJoin`, `strokeStart` / `strokeEnd` (updated in place, to animate a route), `level` (`aboveRoads`, `aboveLabels`) on every overlay, and `onOverlayPress` with `tappable` hit-testing for polylines, polygons and circles (`overlayAtPoint(point)` on the ref).
+  - `pointsOfInterest` accepts short category names such as `'cafe'`.
+- `<LookAroundView>`: Apple's Look Around embedded in your layout (`coordinate` or `mapItemId`, `showsRoadLabels`, `pointsOfInterest`, `navigationEnabled`, `badgePosition`, `onSceneChange`, `onFullScreenChange`).
+- MapKit services, no map needed: `searchPlaces`, `createSearchCompleter` (autocomplete, resolved to places), `pointsOfInterest`, `directions` and `eta` (transport types, alternates, dates, avoiding tolls and highways, steps), `geocode` and `reverseGeocode` (iOS 26 `MKGeocodingRequest` / `MKReverseGeocodingRequest`, `CLGeocoder` before), `mapItem(id)`, `openInMaps`, `presentPlaceCard`, `mapSnapshot`, `hasLookAround`, `lookAroundSnapshot`, `formatDistance`, and `routePolyline` to draw a route.
+- Example: a MapKit screen with all of it (`munimmapsexample://parity`, `/follow`, `/callout`, `/placecard`) and 16 more self-test checks (services, overlay hit-testing, `MarkerView`, user tracking).
+
+### Fixed
+
+- The self-test's render check looked at one pixel in the middle of each model, which fell between the beams of the lattice Starbase tower at "close, pitched 70, heading 315" (on both `MunimMapView` and react-native-maps). It now looks for the model's pixels anywhere in its projected bounding box; alignment there was always within 1.7 points.
+- Updating markers no longer re-configures unchanged ones, which closed an open callout.
 
 ### Changed
 

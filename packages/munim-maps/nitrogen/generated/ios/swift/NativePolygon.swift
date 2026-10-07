@@ -18,7 +18,7 @@ public extension NativePolygon {
   /**
    * Create a new instance of `NativePolygon`.
    */
-  init(id: String, coordinates: [MapCoordinate], holes: [[MapCoordinate]], strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double) {
+  init(id: String, coordinates: [MapCoordinate], holes: [[MapCoordinate]], strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double, lineJoin: LineJoin, level: OverlayLevel, tappable: Bool) {
     self.init(std.string(id), { () -> bridge.std__vector_MapCoordinate_ in
       var __vector = bridge.create_std__vector_MapCoordinate_(coordinates.count)
       for __item in coordinates {
@@ -37,7 +37,7 @@ public extension NativePolygon {
         }())
       }
       return __vector
-    }(), std.string(strokeColor), std.string(fillColor), strokeWidth, std.string(dashPattern), zIndex)
+    }(), std.string(strokeColor), std.string(fillColor), strokeWidth, std.string(dashPattern), zIndex, lineJoin, level, tappable)
   }
 
   @inline(__always)
@@ -78,6 +78,21 @@ public extension NativePolygon {
   @inline(__always)
   var zIndex: Double {
     return self.__zIndex
+  }
+  
+  @inline(__always)
+  var lineJoin: LineJoin {
+    return self.__lineJoin
+  }
+  
+  @inline(__always)
+  var level: OverlayLevel {
+    return self.__level
+  }
+  
+  @inline(__always)
+  var tappable: Bool {
+    return self.__tappable
   }
 }
 

@@ -32,12 +32,18 @@
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
+#include "NativeClusterStyle.hpp"
+#include "FeatureVisibility.hpp"
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
+#include "SelectionAccessory.hpp"
 #include <functional>
 #include <optional>
 #include "MapPressEvent.hpp"
+#include "CalloutAccessoryEvent.hpp"
+#include "ClusterPressEvent.hpp"
+#include "OverlayPressEvent.hpp"
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
@@ -84,8 +90,12 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::vector<NativePolygon>> polygons;
     CachedProp<std::vector<NativeCircle>> circles;
     CachedProp<std::vector<NativeTileOverlay>> tileOverlays;
-    CachedProp<bool> showsCompass;
-    CachedProp<bool> showsScale;
+    CachedProp<std::vector<NativeClusterStyle>> clusterStyles;
+    CachedProp<FeatureVisibility> compassVisibility;
+    CachedProp<FeatureVisibility> scaleVisibility;
+    CachedProp<bool> showsUserTrackingButton;
+    CachedProp<FeatureVisibility> pitchButtonVisibility;
+    CachedProp<std::string> mapScope;
     CachedProp<bool> showsTraffic;
     CachedProp<std::string> pointsOfInterest;
     CachedProp<UserTrackingMode> userTrackingMode;
@@ -98,6 +108,7 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<MapRegion> cameraBoundary;
     CachedProp<EdgeInsets> mapPadding;
     CachedProp<std::string> selectableMapFeatures;
+    CachedProp<SelectionAccessory> selectionAccessory;
     CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onModelPress;
     CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraChange;
     CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraMove;
@@ -107,9 +118,13 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerPress;
     CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerDeselect;
     CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onCalloutPress;
+    CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>> onCalloutAccessoryPress;
+    CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>> onClusterPress;
+    CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> onOverlayPress;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
     CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
+    CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> onUserTrackingModeChange;
     CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;
     CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> hybridRef;

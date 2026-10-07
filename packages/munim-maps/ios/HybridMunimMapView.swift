@@ -24,6 +24,13 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     map.onMarkerPress = { [weak self] id in self?.onMarkerPress?(id) }
     map.onMarkerDeselect = { [weak self] id in self?.onMarkerDeselect?(id) }
     map.onCalloutPress = { [weak self] id in self?.onCalloutPress?(id) }
+    map.onCalloutAccessoryPress = { [weak self] id, side in
+      self?.onCalloutAccessoryPress?(CalloutAccessoryEvent(id: id, side: side == "left" ? .left : .right))
+    }
+    map.onClusterPress = { [weak self] clusteringId, ids, c in
+      self?.onClusterPress?(ClusterPressEvent(
+        clusteringId: clusteringId, markerIds: ids.joined(separator: ","), latitude: c.latitude, longitude: c.longitude))
+    }
     map.onMarkerDragStart = { [weak self] id, c in
       self?.onMarkerDragStart?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
     }
@@ -36,10 +43,11 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
         horizontalAccuracy: l.horizontalAccuracy, verticalAccuracy: l.verticalAccuracy,
         heading: l.course >= 0 ? l.course : -1, speed: l.speed >= 0 ? l.speed : -1))
     }
+    map.onUserTrackingModeChange = { [weak self] mode in self?.onUserTrackingModeChange?(UserTrackingMode(mode)) }
     map.onMapFeaturePress = { [weak self] f in
       self?.onMapFeaturePress?(MapFeatureEvent(
         title: f.title, latitude: f.coordinate.latitude, longitude: f.coordinate.longitude,
-        kind: f.kind, category: f.category))
+        kind: f.kind, category: f.category, id: f.id))
     }
   }
 
@@ -59,6 +67,10 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var polygons: [NativePolygon] = [] { didSet { map.polygons = polygons.map(\.core) } }
   var circles: [NativeCircle] = [] { didSet { map.circles = circles.map(\.core) } }
   var tileOverlays: [NativeTileOverlay] = [] { didSet { map.tileOverlays = tileOverlays.map(\.core) } }
+  var clusterStyles: [NativeClusterStyle] = [] { didSet { map.clusterStyles = clusterStyles.map(\.core) } }
+  var selectionAccessory: SelectionAccessory = .none {
+    didSet { map.selectionAccessory = MunimSelectionAccessory(rawValue: selectionAccessory.stringValue) ?? .none }
+  }
 
   var initialCamera = MapCamera(latitude: 0, longitude: 0, distance: 0, pitch: 0, heading: 0) {
     didSet { map.initialCamera = initialCamera.distance > 0 ? initialCamera.core : nil }
@@ -86,8 +98,11 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   var showsBuildings = true { didSet { map.showsBuildings = showsBuildings } }
   var showsUserLocation = false { didSet { map.showsUserLocation = showsUserLocation } }
-  var showsCompass = true { didSet { map.showsCompass = showsCompass } }
-  var showsScale = false { didSet { map.showsScale = showsScale } }
+  var compassVisibility: FeatureVisibility = .adaptive { didSet { map.compassVisibility = compassVisibility.core } }
+  var scaleVisibility: FeatureVisibility = .hidden { didSet { map.scaleVisibility = scaleVisibility.core } }
+  var showsUserTrackingButton = false { didSet { map.showsUserTrackingButton = showsUserTrackingButton } }
+  var pitchButtonVisibility: FeatureVisibility = .hidden { didSet { map.pitchButtonVisibility = pitchButtonVisibility.core } }
+  var mapScope = "" { didSet { map.mapScope = mapScope } }
   var showsTraffic = false { didSet { map.showsTraffic = showsTraffic } }
 
   var pointsOfInterest = "all" {
@@ -104,13 +119,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
 
   var userTrackingMode: UserTrackingMode = .none {
-    didSet {
-      switch userTrackingMode {
-      case .none: map.userTrackingMode = .none
-      case .follow: map.userTrackingMode = .follow
-      case .followWithHeading: map.userTrackingMode = .followWithHeading
-      }
-    }
+    didSet { map.userTrackingMode = userTrackingMode.mapKit }
   }
 
   var zoomEnabled = true { didSet { map.isZoomEnabled = zoomEnabled } }
@@ -158,9 +167,20 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var onMarkerPress: ((_ id: String) -> Void)?
   var onMarkerDeselect: ((_ id: String) -> Void)?
   var onCalloutPress: ((_ id: String) -> Void)?
+  var onCalloutAccessoryPress: ((_ event: CalloutAccessoryEvent) -> Void)?
+  var onClusterPress: ((_ event: ClusterPressEvent) -> Void)?
+  var onOverlayPress: ((_ event: OverlayPressEvent) -> Void)? {
+    didSet {
+      // Overlays are hit-tested on taps only while someone listens.
+      map.onOverlayPress = onOverlayPress == nil ? nil : { [weak self] id, kind, c in
+        self?.onOverlayPress?(OverlayPressEvent(id: id, kind: kind, latitude: c.latitude, longitude: c.longitude))
+      }
+    }
+  }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)?
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)?
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)?
+  var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?
   var onError: ((_ message: String) -> Void)?
 
@@ -256,7 +276,8 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
         case .success(let a):
           promise.resolve(withResult: MapAddress(
             name: a.name, street: a.street, city: a.city, region: a.region, postalCode: a.postalCode,
-            country: a.country, countryCode: a.countryCode, formatted: a.formatted))
+            country: a.country, countryCode: a.countryCode, formatted: a.formatted,
+            shortAddress: [a.street, a.city].filter { !$0.isEmpty }.joined(separator: ", ")))
         case .failure(let error):
           promise.reject(withError: error)
         }
@@ -283,5 +304,22 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   func measureAlignment() throws -> Promise<MapAlignmentReport> {
     mainPromise { self.map.measureAlignment().nitro }
+  }
+
+  func overlayAtPoint(point: MapPoint) throws -> Promise<String> {
+    mainPromise { self.map.overlayHit(at: CGPoint(x: point.x, y: point.y))?.id ?? "" }
+  }
+
+  func mapItemForFeature(id: String) throws -> Promise<MapItem> {
+    let promise = Promise<MapItem>()
+    DispatchQueue.main.async {
+      self.map.mapItem(forFeature: id) { result in
+        switch result {
+        case .success(let item): promise.resolve(withResult: MapItem(item))
+        case .failure(let error): promise.reject(withError: error)
+        }
+      }
+    }
+    return promise
   }
 }

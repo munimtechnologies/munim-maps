@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.munimtech.munimmapsexample",
       "appleTeamId": "6T5J6U2UVT",
       "infoPlist": {
-        "CADisableMinimumFrameDurationOnPhone": true
+        "CADisableMinimumFrameDurationOnPhone": true,
+        "NSLocationWhenInUseUsageDescription": "The example shows your location on the map and follows it with your heading."
       }
     },
     "plugins": [

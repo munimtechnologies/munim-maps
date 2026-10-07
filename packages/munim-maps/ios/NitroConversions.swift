@@ -77,7 +77,7 @@ extension MunimAlignmentReport {
 
 extension NativeMarker {
   var core: MunimMarker {
-    MunimMarker(
+    var marker = MunimMarker(
       id: id, coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
       title: title, subtitle: subtitle, style: MunimMarkerStyle(rawValue: style.stringValue) ?? .marker,
       color: color, glyph: glyph, imageUri: imageUri, imageSize: imageSize, borderColor: borderColor,
@@ -88,37 +88,162 @@ extension NativeMarker {
       },
       anchorX: anchorX, anchorY: anchorY, zIndex: zIndex, draggable: draggable, clusteringId: clusteringId,
       calloutEnabled: calloutEnabled, opacity: opacity, visible: visible)
+    marker.displayPriority = displayPriority
+    marker.collisionMode = MunimCollisionMode(rawValue: collisionMode.stringValue) ?? .rectangle
+    marker.titleVisibility = titleVisibility.core
+    marker.subtitleVisibility = subtitleVisibility.core
+    marker.glyphSymbol = glyphSymbol
+    marker.selectedGlyphSymbol = selectedGlyphSymbol
+    marker.glyphColor = glyphColor
+    marker.animatesWhenAdded = animatesWhenAdded
+    marker.leftCalloutAccessory = leftCalloutAccessory.core
+    marker.rightCalloutAccessory = rightCalloutAccessory.core
+    marker.calloutDetail = calloutDetail
+    return marker
   }
+}
+
+extension NativeCalloutAccessory {
+  var core: MunimCalloutAccessory {
+    MunimCalloutAccessory(kind: MunimCalloutAccessory.Kind(rawValue: kind.stringValue) ?? .none, text: text,
+                          symbol: symbol, imageUri: imageUri, color: color)
+  }
+}
+
+extension NativeClusterStyle {
+  var core: MunimClusterStyle {
+    MunimClusterStyle(clusteringId: clusteringId, color: color, glyphColor: glyphColor, glyph: glyph,
+                      title: title, subtitle: subtitle, displayPriority: displayPriority)
+  }
+}
+
+extension MapAddress {
+  static let empty = MapAddress(name: "", street: "", city: "", region: "", postalCode: "", country: "",
+                                countryCode: "", formatted: "", shortAddress: "")
+}
+
+extension MapItem {
+  /// A Nitro `MapItem` from MapKit's.
+  init(_ item: MKMapItem) {
+    var identifier = ""
+    if #available(iOS 18.0, *) { identifier = item.identifier?.rawValue ?? "" }
+    let coordinate = mapItemCoordinate(item)
+    self.init(
+      identifier: identifier, name: item.name ?? "", phoneNumber: item.phoneNumber ?? "",
+      url: item.url?.absoluteString ?? "", category: item.pointOfInterestCategory?.rawValue ?? "",
+      timeZone: item.timeZone?.identifier ?? "", latitude: coordinate.latitude, longitude: coordinate.longitude,
+      address: mapItemAddress(item), isCurrentLocation: item.isCurrentLocation)
+  }
+}
+
+/// Where a map item is: `location` on iOS 26, its placemark before.
+func mapItemCoordinate(_ item: MKMapItem) -> CLLocationCoordinate2D {
+  #if compiler(>=6.2)
+  if #available(iOS 26.0, *) { return item.location.coordinate }
+  #endif
+  return legacyPlacemark(item).coordinate
+}
+
+/// The placemark is deprecated on iOS 26 but still the only source of the
+/// address parts (street, postal code…), so it is read here only.
+@available(iOS, deprecated: 26.0)
+private func legacyPlacemark(_ item: MKMapItem) -> MKPlacemark { item.placemark }
+
+func mapItemAddress(_ item: MKMapItem) -> MapAddress {
+  let p = legacyPlacemark(item)
+  let street = [p.subThoroughfare, p.thoroughfare].compactMap { $0 }.joined(separator: " ")
+  var formatted = [p.name, street.isEmpty ? nil : street, p.locality, p.administrativeArea, p.postalCode, p.country]
+    .compactMap { $0 }
+    .reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+    .joined(separator: ", ")
+  var short = [street, p.locality ?? ""].filter { !$0.isEmpty }.joined(separator: ", ")
+  #if compiler(>=6.2)
+  if #available(iOS 26.0, *), let address = item.address {
+    formatted = address.fullAddress.replacingOccurrences(of: "\n", with: ", ")
+    if let value = address.shortAddress { short = value }
+  }
+  #endif
+  return MapAddress(
+    name: item.name ?? p.name ?? "", street: street, city: p.locality ?? "", region: p.administrativeArea ?? "",
+    postalCode: p.postalCode ?? "", country: p.country ?? "", countryCode: p.isoCountryCode ?? "",
+    formatted: formatted, shortAddress: short)
 }
 
 extension NativePolyline {
   var core: MunimPolyline {
-    MunimPolyline(id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init), strokeColor: strokeColor,
-                  strokeWidth: strokeWidth, dashPattern: dashPattern, geodesic: geodesic,
-                  lineCap: MunimLineCap(rawValue: lineCap.stringValue) ?? .round, zIndex: zIndex)
+    var line = MunimPolyline(
+      id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init), strokeColor: strokeColor,
+      strokeWidth: strokeWidth, dashPattern: dashPattern, geodesic: geodesic,
+      lineCap: MunimLineCap(rawValue: lineCap.stringValue) ?? .round, zIndex: zIndex)
+    line.strokeColors = strokeColors
+    line.strokeColorLocations = strokeColorLocations
+    line.lineJoin = MunimLineJoin(rawValue: lineJoin.stringValue) ?? .round
+    line.strokeStart = strokeStart
+    line.strokeEnd = strokeEnd
+    line.level = level.core
+    line.tappable = tappable
+    return line
   }
 }
 
 extension NativePolygon {
   var core: MunimPolygon {
-    MunimPolygon(id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init),
-                 holes: holes.map { $0.map(CLLocationCoordinate2D.init) }, strokeColor: strokeColor,
-                 fillColor: fillColor, strokeWidth: strokeWidth, dashPattern: dashPattern, zIndex: zIndex)
+    var polygon = MunimPolygon(
+      id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init),
+      holes: holes.map { $0.map(CLLocationCoordinate2D.init) }, strokeColor: strokeColor,
+      fillColor: fillColor, strokeWidth: strokeWidth, dashPattern: dashPattern, zIndex: zIndex)
+    polygon.lineJoin = MunimLineJoin(rawValue: lineJoin.stringValue) ?? .round
+    polygon.level = level.core
+    polygon.tappable = tappable
+    return polygon
   }
 }
 
 extension NativeCircle {
   var core: MunimCircle {
-    MunimCircle(id: id, center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), radius: radius,
-                strokeColor: strokeColor, fillColor: fillColor, strokeWidth: strokeWidth,
-                dashPattern: dashPattern, zIndex: zIndex)
+    var circle = MunimCircle(
+      id: id, center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), radius: radius,
+      strokeColor: strokeColor, fillColor: fillColor, strokeWidth: strokeWidth,
+      dashPattern: dashPattern, zIndex: zIndex)
+    circle.level = level.core
+    circle.tappable = tappable
+    return circle
   }
 }
 
 extension NativeTileOverlay {
   var core: MunimTileOverlay {
-    MunimTileOverlay(id: id, urlTemplate: urlTemplate, replacesMap: replacesMap, minimumZoom: minimumZoom,
-                     maximumZoom: maximumZoom, opacity: opacity, zIndex: zIndex)
+    var tiles = MunimTileOverlay(
+      id: id, urlTemplate: urlTemplate, replacesMap: replacesMap, minimumZoom: minimumZoom,
+      maximumZoom: maximumZoom, opacity: opacity, zIndex: zIndex)
+    tiles.level = level.core
+    return tiles
+  }
+}
+
+extension OverlayLevel {
+  var core: MunimOverlayLevel { MunimOverlayLevel(rawValue: stringValue) ?? .aboveLabels }
+}
+
+extension FeatureVisibility {
+  var core: MunimFeatureVisibility { MunimFeatureVisibility(rawValue: stringValue) ?? .adaptive }
+}
+
+extension UserTrackingMode {
+  var mapKit: MKUserTrackingMode {
+    switch self {
+    case .none: return .none
+    case .follow: return .follow
+    case .followwithheading: return .followWithHeading
+    }
+  }
+
+  init(_ mode: MKUserTrackingMode) {
+    switch mode {
+    case .follow: self = .follow
+    case .followWithHeading: self = .followwithheading
+    default: self = .none
+    }
   }
 }
 

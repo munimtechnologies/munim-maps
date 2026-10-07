@@ -18,8 +18,8 @@ public extension MapAddress {
   /**
    * Create a new instance of `MapAddress`.
    */
-  init(name: String, street: String, city: String, region: String, postalCode: String, country: String, countryCode: String, formatted: String) {
-    self.init(std.string(name), std.string(street), std.string(city), std.string(region), std.string(postalCode), std.string(country), std.string(countryCode), std.string(formatted))
+  init(name: String, street: String, city: String, region: String, postalCode: String, country: String, countryCode: String, formatted: String, shortAddress: String) {
+    self.init(std.string(name), std.string(street), std.string(city), std.string(region), std.string(postalCode), std.string(country), std.string(countryCode), std.string(formatted), std.string(shortAddress))
   }
 
   @inline(__always)
@@ -60,5 +60,10 @@ public extension MapAddress {
   @inline(__always)
   var formatted: String {
     return String(self.__formatted)
+  }
+  
+  @inline(__always)
+  var shortAddress: String {
+    return String(self.__shortAddress)
   }
 }

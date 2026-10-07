@@ -32,11 +32,20 @@
 namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
 // Forward declaration of `MarkerBadge` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerBadge; }
+// Forward declaration of `MarkerCollisionMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerCollisionMode; }
+// Forward declaration of `FeatureVisibility` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
+// Forward declaration of `NativeCalloutAccessory` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCalloutAccessory; }
 
 #include <string>
 #include "MarkerStyle.hpp"
 #include "MarkerBadge.hpp"
 #include <vector>
+#include "MarkerCollisionMode.hpp"
+#include "FeatureVisibility.hpp"
+#include "NativeCalloutAccessory.hpp"
 
 namespace margelo::nitro::munimmaps {
 
@@ -66,10 +75,21 @@ namespace margelo::nitro::munimmaps {
     bool calloutEnabled     SWIFT_PRIVATE;
     double opacity     SWIFT_PRIVATE;
     bool visible     SWIFT_PRIVATE;
+    double displayPriority     SWIFT_PRIVATE;
+    MarkerCollisionMode collisionMode     SWIFT_PRIVATE;
+    FeatureVisibility titleVisibility     SWIFT_PRIVATE;
+    FeatureVisibility subtitleVisibility     SWIFT_PRIVATE;
+    std::string glyphSymbol     SWIFT_PRIVATE;
+    std::string selectedGlyphSymbol     SWIFT_PRIVATE;
+    std::string glyphColor     SWIFT_PRIVATE;
+    bool animatesWhenAdded     SWIFT_PRIVATE;
+    NativeCalloutAccessory leftCalloutAccessory     SWIFT_PRIVATE;
+    NativeCalloutAccessory rightCalloutAccessory     SWIFT_PRIVATE;
+    std::string calloutDetail     SWIFT_PRIVATE;
 
   public:
     NativeMarker() = default;
-    explicit NativeMarker(std::string id, double latitude, double longitude, std::string title, std::string subtitle, MarkerStyle style, std::string color, std::string glyph, std::string imageUri, double imageSize, std::string borderColor, double borderWidth, std::vector<MarkerBadge> badges, double anchorX, double anchorY, double zIndex, bool draggable, std::string clusteringId, bool calloutEnabled, double opacity, bool visible): id(id), latitude(latitude), longitude(longitude), title(title), subtitle(subtitle), style(style), color(color), glyph(glyph), imageUri(imageUri), imageSize(imageSize), borderColor(borderColor), borderWidth(borderWidth), badges(badges), anchorX(anchorX), anchorY(anchorY), zIndex(zIndex), draggable(draggable), clusteringId(clusteringId), calloutEnabled(calloutEnabled), opacity(opacity), visible(visible) {}
+    explicit NativeMarker(std::string id, double latitude, double longitude, std::string title, std::string subtitle, MarkerStyle style, std::string color, std::string glyph, std::string imageUri, double imageSize, std::string borderColor, double borderWidth, std::vector<MarkerBadge> badges, double anchorX, double anchorY, double zIndex, bool draggable, std::string clusteringId, bool calloutEnabled, double opacity, bool visible, double displayPriority, MarkerCollisionMode collisionMode, FeatureVisibility titleVisibility, FeatureVisibility subtitleVisibility, std::string glyphSymbol, std::string selectedGlyphSymbol, std::string glyphColor, bool animatesWhenAdded, NativeCalloutAccessory leftCalloutAccessory, NativeCalloutAccessory rightCalloutAccessory, std::string calloutDetail): id(id), latitude(latitude), longitude(longitude), title(title), subtitle(subtitle), style(style), color(color), glyph(glyph), imageUri(imageUri), imageSize(imageSize), borderColor(borderColor), borderWidth(borderWidth), badges(badges), anchorX(anchorX), anchorY(anchorY), zIndex(zIndex), draggable(draggable), clusteringId(clusteringId), calloutEnabled(calloutEnabled), opacity(opacity), visible(visible), displayPriority(displayPriority), collisionMode(collisionMode), titleVisibility(titleVisibility), subtitleVisibility(subtitleVisibility), glyphSymbol(glyphSymbol), selectedGlyphSymbol(selectedGlyphSymbol), glyphColor(glyphColor), animatesWhenAdded(animatesWhenAdded), leftCalloutAccessory(leftCalloutAccessory), rightCalloutAccessory(rightCalloutAccessory), calloutDetail(calloutDetail) {}
 
   public:
     friend bool operator==(const NativeMarker& lhs, const NativeMarker& rhs) = default;
@@ -105,7 +125,18 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "clusteringId"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "calloutEnabled"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "opacity"))),
-        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "displayPriority"))),
+        JSIConverter<margelo::nitro::munimmaps::MarkerCollisionMode>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "collisionMode"))),
+        JSIConverter<margelo::nitro::munimmaps::FeatureVisibility>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "titleVisibility"))),
+        JSIConverter<margelo::nitro::munimmaps::FeatureVisibility>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "subtitleVisibility"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphSymbol"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "selectedGlyphSymbol"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphColor"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "animatesWhenAdded"))),
+        JSIConverter<margelo::nitro::munimmaps::NativeCalloutAccessory>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "leftCalloutAccessory"))),
+        JSIConverter<margelo::nitro::munimmaps::NativeCalloutAccessory>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rightCalloutAccessory"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "calloutDetail")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::NativeMarker& arg) {
@@ -131,6 +162,17 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "calloutEnabled"), JSIConverter<bool>::toJSI(runtime, arg.calloutEnabled));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "opacity"), JSIConverter<double>::toJSI(runtime, arg.opacity));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "visible"), JSIConverter<bool>::toJSI(runtime, arg.visible));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "displayPriority"), JSIConverter<double>::toJSI(runtime, arg.displayPriority));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "collisionMode"), JSIConverter<margelo::nitro::munimmaps::MarkerCollisionMode>::toJSI(runtime, arg.collisionMode));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "titleVisibility"), JSIConverter<margelo::nitro::munimmaps::FeatureVisibility>::toJSI(runtime, arg.titleVisibility));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "subtitleVisibility"), JSIConverter<margelo::nitro::munimmaps::FeatureVisibility>::toJSI(runtime, arg.subtitleVisibility));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "glyphSymbol"), JSIConverter<std::string>::toJSI(runtime, arg.glyphSymbol));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "selectedGlyphSymbol"), JSIConverter<std::string>::toJSI(runtime, arg.selectedGlyphSymbol));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "glyphColor"), JSIConverter<std::string>::toJSI(runtime, arg.glyphColor));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "animatesWhenAdded"), JSIConverter<bool>::toJSI(runtime, arg.animatesWhenAdded));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "leftCalloutAccessory"), JSIConverter<margelo::nitro::munimmaps::NativeCalloutAccessory>::toJSI(runtime, arg.leftCalloutAccessory));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "rightCalloutAccessory"), JSIConverter<margelo::nitro::munimmaps::NativeCalloutAccessory>::toJSI(runtime, arg.rightCalloutAccessory));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "calloutDetail"), JSIConverter<std::string>::toJSI(runtime, arg.calloutDetail));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -162,6 +204,17 @@ namespace margelo::nitro {
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "calloutEnabled")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "opacity")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "visible")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "displayPriority")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::MarkerCollisionMode>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "collisionMode")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::FeatureVisibility>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "titleVisibility")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::FeatureVisibility>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "subtitleVisibility")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphSymbol")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "selectedGlyphSymbol")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphColor")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "animatesWhenAdded")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::NativeCalloutAccessory>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "leftCalloutAccessory")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::NativeCalloutAccessory>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rightCalloutAccessory")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "calloutDetail")))) return false;
       return true;
     }
   };

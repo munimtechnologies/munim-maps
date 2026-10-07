@@ -47,10 +47,11 @@ namespace margelo::nitro::munimmaps {
     std::string country     SWIFT_PRIVATE;
     std::string countryCode     SWIFT_PRIVATE;
     std::string formatted     SWIFT_PRIVATE;
+    std::string shortAddress     SWIFT_PRIVATE;
 
   public:
     MapAddress() = default;
-    explicit MapAddress(std::string name, std::string street, std::string city, std::string region, std::string postalCode, std::string country, std::string countryCode, std::string formatted): name(name), street(street), city(city), region(region), postalCode(postalCode), country(country), countryCode(countryCode), formatted(formatted) {}
+    explicit MapAddress(std::string name, std::string street, std::string city, std::string region, std::string postalCode, std::string country, std::string countryCode, std::string formatted, std::string shortAddress): name(name), street(street), city(city), region(region), postalCode(postalCode), country(country), countryCode(countryCode), formatted(formatted), shortAddress(shortAddress) {}
 
   public:
     friend bool operator==(const MapAddress& lhs, const MapAddress& rhs) = default;
@@ -73,7 +74,8 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "postalCode"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "country"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "countryCode"))),
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "formatted")))
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "formatted"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "shortAddress")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::MapAddress& arg) {
@@ -86,6 +88,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "country"), JSIConverter<std::string>::toJSI(runtime, arg.country));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "countryCode"), JSIConverter<std::string>::toJSI(runtime, arg.countryCode));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "formatted"), JSIConverter<std::string>::toJSI(runtime, arg.formatted));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "shortAddress"), JSIConverter<std::string>::toJSI(runtime, arg.shortAddress));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -104,6 +107,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "country")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "countryCode")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "formatted")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "shortAddress")))) return false;
       return true;
     }
   };

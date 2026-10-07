@@ -12,12 +12,18 @@ import type {
   NativeMapZone,
 } from './MapModelLayer.nitro'
 import type {
+  CalloutAccessoryEvent,
+  ClusterPressEvent,
+  FeatureVisibility,
   MapAddress,
   MapFeatureEvent,
+  MapItem,
+  NativeClusterStyle,
   MapPoint,
   MapPressEvent,
   MapRegion,
   MarkerDragEvent,
+  OverlayPressEvent,
   NativeCircle,
   NativeMarker,
   NativePolygon,
@@ -37,7 +43,28 @@ export interface CameraKeyframe {
   t: number
   camera: MapCamera
 }
-export type UserTrackingMode = 'none' | 'follow' | 'follow-with-heading'
+/**
+ * MapKit's user tracking: `follow` keeps the map centred on the user,
+ * `followWithHeading` also turns it with the device (and shows the heading
+ * beam). MapKit drops back to `none` when the user pans or zooms away.
+ */
+export type UserTrackingMode = 'none' | 'follow' | 'followWithHeading'
+export type { FeatureVisibility }
+
+/**
+ * What tapping a place on Apple's map (`selectableMapFeatures`) shows, iOS
+ * 18+: Apple's place card in a `callout` (`calloutCompact`, `calloutFull`),
+ * a `sheet`, chosen by MapKit (`automatic`), or a button that opens Apple
+ * Maps (`openInMaps`). `none` leaves it to you (`onMapFeaturePress`).
+ */
+export type SelectionAccessory =
+  | 'none'
+  | 'automatic'
+  | 'callout'
+  | 'calloutCompact'
+  | 'calloutFull'
+  | 'sheet'
+  | 'openInMaps'
 
 export interface EdgeInsets {
   top: number
@@ -100,10 +127,18 @@ export interface MunimMapViewProps extends HybridViewProps {
   polygons: NativePolygon[]
   circles: NativeCircle[]
   tileOverlays: NativeTileOverlay[]
+  /** How clusters of markers (`clusteringId`) look. */
+  clusterStyles: NativeClusterStyle[]
 
   // Controls and behaviour.
-  showsCompass: boolean
-  showsScale: boolean
+  compassVisibility: FeatureVisibility
+  scaleVisibility: FeatureVisibility
+  /** MapKit's button that cycles user tracking (top right). iOS 17+ built in, earlier a `MKUserTrackingButton`. */
+  showsUserTrackingButton: boolean
+  /** MapKit's 2D/3D button. iOS 17+. */
+  pitchButtonVisibility: FeatureVisibility
+  /** Name standalone controls (`MapCompass`, `MapScale`, `MapUserTrackingButton`) use to find this map. */
+  mapScope: string
   showsTraffic: boolean
   /** `all`, `none`, or comma-separated `MKPOICategory…` values to include. */
   pointsOfInterest: string
@@ -121,6 +156,8 @@ export interface MunimMapViewProps extends HybridViewProps {
   mapPadding: EdgeInsets
   /** `pointsOfInterest`, `territories`, `physicalFeatures`, comma-separated, or empty. */
   selectableMapFeatures: string
+  /** Apple's place card for a tapped place (iOS 18+). */
+  selectionAccessory: SelectionAccessory
 
   onModelPress?: (id: string) => void
   /** Fires when the camera stops moving. */
@@ -133,9 +170,15 @@ export interface MunimMapViewProps extends HybridViewProps {
   onMarkerPress?: (id: string) => void
   onMarkerDeselect?: (id: string) => void
   onCalloutPress?: (id: string) => void
+  onCalloutAccessoryPress?: (event: CalloutAccessoryEvent) => void
+  onClusterPress?: (event: ClusterPressEvent) => void
+  /** A tappable polyline, polygon or circle was tapped (the topmost one). */
+  onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
+  /** MapKit changed the tracking mode: the user panned away, or used the tracking button. */
+  onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
 }
@@ -184,6 +227,10 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   /** Opens Apple's full-screen Look Around at the coordinate. */
   openLookAround(coordinate: MapCoordinate): Promise<boolean>
   measureAlignment(): Promise<MapAlignmentReport>
+  /** Id of the tappable overlay a tap at `point` would hit, or empty. */
+  overlayAtPoint(point: MapPoint): Promise<string>
+  /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
+  mapItemForFeature(id: string): Promise<MapItem>
 }
 
 export type MunimMapView = HybridView<

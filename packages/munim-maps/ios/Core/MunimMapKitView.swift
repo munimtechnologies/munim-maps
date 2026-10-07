@@ -54,6 +54,14 @@ public struct MunimMapFeature: Sendable {
   public var kind: String
   /// The point-of-interest category raw value, such as `MKPOICategoryCafe`.
   public var category: String
+  /// For `mapItem(forFeature:)`.
+  public var id: String = ""
+}
+
+/// What tapping a place on Apple's map shows (iOS 18+).
+@_expose(!Cxx)
+public enum MunimSelectionAccessory: String, Sendable {
+  case none, automatic, callout, calloutCompact, calloutFull, sheet, openInMaps
 }
 
 @_expose(!Cxx)
@@ -124,11 +132,59 @@ public final class MunimMapKitView: UIView {
     set { modelLayer.maxCameraDistance = newValue }
   }
 
-  public var markers: [MunimMarker] = [] { didSet { features.setMarkers(markers) } }
+  public var markers: [MunimMarker] = [] { didSet { syncMarkers() } }
+
+  /// Markers drawn from views (React Native `MarkerView`), by id.
+  private var viewMarkers: [String: MunimMarker] = [:]
+
+  /// Adds or updates a marker whose picture is `image` (a snapshot of a
+  /// view). Its `style` is treated as `.image`.
+  public func setViewMarker(_ marker: MunimMarker, image: UIImage?) {
+    var marker = marker
+    marker.style = .image
+    marker.imageUri = ""
+    viewMarkers[marker.id] = marker
+    features.setViewImage(image, for: marker.id)
+    syncMarkers()
+  }
+
+  /// Updates only the picture of a view marker.
+  public func setViewMarkerImage(_ image: UIImage?, id: String) {
+    guard viewMarkers[id] != nil else { return }
+    features.setViewImage(image, for: id)
+  }
+
+  public func removeViewMarker(_ id: String) {
+    guard viewMarkers.removeValue(forKey: id) != nil else { return }
+    features.setViewImage(nil, for: id)
+    syncMarkers()
+  }
+
+  private func syncMarkers() {
+    features.setMarkers(viewMarkers.isEmpty ? markers : markers + viewMarkers.values)
+  }
   public var polylines: [MunimPolyline] = [] { didSet { features.setPolylines(polylines) } }
   public var polygons: [MunimPolygon] = [] { didSet { features.setPolygons(polygons) } }
   public var circles: [MunimCircle] = [] { didSet { features.setCircles(circles) } }
   public var tileOverlays: [MunimTileOverlay] = [] { didSet { features.setTileOverlays(tileOverlays) } }
+  /// How clusters of markers look, by clustering id.
+  public var clusterStyles: [MunimClusterStyle] = [] {
+    didSet { features.clusterStyles = Dictionary(clusterStyles.map { ($0.clusteringId, $0) }, uniquingKeysWith: { $1 }) }
+  }
+
+  /// What tapping a place on Apple's map (`selectableFeatures`) shows: Apple's
+  /// place card in a callout or sheet, or an Open in Maps button. iOS 18+.
+  public var selectionAccessory: MunimSelectionAccessory = .none {
+    didSet {
+      // MapKit asks whether the delegate answers `selectionAccessoryFor`
+      // when it is set; set it again so it asks anew.
+      guard (oldValue == .none) != (selectionAccessory == .none) else { return }
+      mapView.delegate = nil
+      mapView.delegate = delegate
+    }
+  }
+
+  fileprivate var wantsSelectionAccessory: Bool { selectionAccessory != .none }
 
   // MARK: Look
 
@@ -164,23 +220,65 @@ public final class MunimMapKitView: UIView {
 
   public var showsUserLocation: Bool {
     get { mapView.showsUserLocation }
-    set { mapView.showsUserLocation = newValue }
+    set {
+      if newValue { locationAuthorization.requestIfNeeded() }
+      mapView.showsUserLocation = newValue
+    }
   }
 
+  /// The compass: `adaptive` (MapKit's, shown while the map is rotated),
+  /// `visible` (always) or `hidden`.
+  public var compassVisibility: MunimFeatureVisibility = .adaptive { didSet { applyControls() } }
+
+  /// The scale legend: `adaptive` (MapKit's, shown while zooming), `visible`
+  /// (always) or `hidden`.
+  public var scaleVisibility: MunimFeatureVisibility = .hidden { didSet { applyControls() } }
+
   public var showsCompass: Bool {
-    get { mapView.showsCompass }
-    set { mapView.showsCompass = newValue }
+    get { compassVisibility != .hidden }
+    set { compassVisibility = newValue ? .adaptive : .hidden }
   }
 
   public var showsScale: Bool {
-    get { mapView.showsScale }
-    set { mapView.showsScale = newValue }
+    get { scaleVisibility != .hidden }
+    set { scaleVisibility = newValue ? .adaptive : .hidden }
   }
 
+  /// MapKit's button that cycles the user tracking mode, top right. Built in
+  /// on iOS 17+, an `MKUserTrackingButton` before.
+  public var showsUserTrackingButton = false { didSet { applyControls() } }
+
+  /// MapKit's 2D/3D button. iOS 17+.
+  public var pitchButtonVisibility: MunimFeatureVisibility = .hidden { didSet { applyControls() } }
+
+  /// Name that standalone controls (`MunimMapControlView`) use to find this map.
+  public var mapScope = "" {
+    didSet { if oldValue != mapScope { MunimMapScopes.register(self, scope: mapScope, previous: oldValue) } }
+  }
+
+  /// MapKit's user tracking. MapKit owns the following: it keeps the map on
+  /// the user (and turned with the device for `.followWithHeading`, with
+  /// the heading beam) and drops back to `.none` when the user pans or
+  /// zooms away, which `onUserTrackingModeChange` reports. Setting a mode
+  /// asks for when-in-use location access if the app has not yet (the app
+  /// needs `NSLocationWhenInUseUsageDescription`).
   @nonobjc public var userTrackingMode: MKUserTrackingMode {
     get { mapView.userTrackingMode }
-    set { if mapView.userTrackingMode != newValue { mapView.setUserTrackingMode(newValue, animated: true) } }
+    set {
+      requestedTrackingMode = newValue
+      trackingDroppedByMapKit = false
+      applyTrackingMode()
+    }
   }
+
+  /// The mode last asked for, re-applied once location access is granted if
+  /// MapKit dropped it while waiting.
+  private var requestedTrackingMode: MKUserTrackingMode = .none
+  private var trackingDroppedByMapKit = false
+  private let locationAuthorization = MapLocationAuthorization()
+  private var builtInCompass: MKCompassButton?
+  private var builtInScale: MKScaleView?
+  private var builtInTrackingButton: MKUserTrackingButton?
 
   public var isZoomEnabled: Bool {
     get { mapView.isZoomEnabled }
@@ -223,6 +321,7 @@ public final class MunimMapKitView: UIView {
   public var mapPadding: UIEdgeInsets = .zero {
     didSet {
       mapView.layoutMargins = mapPadding
+      setNeedsLayout()
       modelLayer.setNeedsRender()
     }
   }
@@ -251,10 +350,20 @@ public final class MunimMapKitView: UIView {
   public var onMarkerPress: ((String) -> Void)?
   public var onMarkerDeselect: ((String) -> Void)?
   public var onCalloutPress: ((String) -> Void)?
+  /// A callout accessory was tapped: marker id and `"left"` or `"right"`.
+  public var onCalloutAccessoryPress: ((String, String) -> Void)?
+  /// A cluster was tapped: its clustering id, the member marker ids and where it is.
+  public var onClusterPress: ((String, [String], CLLocationCoordinate2D) -> Void)?
+  /// A tappable polyline, polygon or circle was tapped: id, kind
+  /// (`polyline`, `polygon`, `circle`) and where. Taken instead of `onPress`.
+  public var onOverlayPress: ((String, String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
   public var onUserLocationChange: ((CLLocation) -> Void)?
   public var onMapFeaturePress: ((MunimMapFeature) -> Void)?
+  /// MapKit changed the user tracking mode: the user panned or zoomed away,
+  /// used the tracking button, or a camera move ended the following.
+  @nonobjc public var onUserTrackingModeChange: ((MKUserTrackingMode) -> Void)?
 
   public var onModelPress: ((String) -> Void)? {
     get { modelLayer.onModelPress }
@@ -290,7 +399,9 @@ public final class MunimMapKitView: UIView {
     let longPress = UILongPressGestureRecognizer(target: delegate, action: #selector(MunimMapDelegate.handleLongPress(_:)))
     longPress.delegate = delegate
     mapView.addGestureRecognizer(longPress)
+    locationAuthorization.onAuthorized = { [weak self] in self?.locationAuthorized() }
     applyConfiguration()
+    applyControls()
   }
 
   public required init?(coder: NSCoder) {
@@ -300,7 +411,18 @@ public final class MunimMapKitView: UIView {
   public override func layoutSubviews() {
     super.layoutSubviews()
     applyInitialCameraIfReady()
+    layoutControls()
     modelLayer.setNeedsRender()
+  }
+
+  public override func didMoveToWindow() {
+    super.didMoveToWindow()
+    if window != nil { applyTrackingMode() }
+  }
+
+  public override func safeAreaInsetsDidChange() {
+    super.safeAreaInsetsDidChange()
+    setNeedsLayout()
   }
 
   // MARK: Camera and conversions
@@ -313,6 +435,7 @@ public final class MunimMapKitView: UIView {
 
   public func setCamera(_ camera: MunimCamera, animated: Bool) {
     stopFlight()
+    endTrackingForCameraMove()
     mapView.setCamera(Self.mapKitCamera(camera), animated: animated)
     modelLayer.setNeedsRender()
   }
@@ -347,6 +470,7 @@ public final class MunimMapKitView: UIView {
       if let only = keyframes.first { setCamera(only.camera, animated: false) }
       return
     }
+    endTrackingForCameraMove()
     flight = (keyframes.sorted { $0.t < $1.t }, start, loop)
     if flightLink == nil {
       let link = CADisplayLink(target: FlightTarget(self), selector: #selector(FlightTarget.tick))
@@ -404,6 +528,7 @@ public final class MunimMapKitView: UIView {
 
   /// Moves to a region over `duration` seconds (0 jumps).
   @nonobjc public func setRegion(_ region: MKCoordinateRegion, duration: TimeInterval) {
+    endTrackingForCameraMove()
     if duration <= 0 {
       mapView.setRegion(region, animated: false)
     } else {
@@ -413,12 +538,14 @@ public final class MunimMapKitView: UIView {
 
   @nonobjc public func fit(coordinates: [CLLocationCoordinate2D], padding: UIEdgeInsets = .zero, animated: Bool = true) {
     guard let rect = MapFeatureController.boundingRect(coordinates.map { MKMapPoint($0) }) else { return }
+    endTrackingForCameraMove()
     mapView.setVisibleMapRect(rect, edgePadding: padding, animated: animated)
   }
 
   /// Frames the markers with these ids (all markers when empty).
   public func fitMarkers(_ ids: Set<String> = [], padding: UIEdgeInsets = .zero, animated: Bool = true) {
     guard let rect = features.mapRect(forMarkers: ids) else { return }
+    endTrackingForCameraMove()
     mapView.setVisibleMapRect(rect, edgePadding: padding, animated: animated)
   }
 
@@ -504,6 +631,121 @@ public final class MunimMapKitView: UIView {
     modelLayer.measureAlignment()
   }
 
+  /// Tapped map features by `MunimMapFeature.id`, the most recent few.
+  private var featureAnnotations: [(id: String, annotation: MKAnnotation)] = []
+  private var featureCounter = 0
+
+  /// The full place (phone, website, address…) behind a tapped map feature.
+  @nonobjc public func mapItem(forFeature id: String, completion: @escaping (Result<MKMapItem, Error>) -> Void) {
+    guard #available(iOS 16.0, *),
+          let feature = featureAnnotations.last(where: { $0.id == id })?.annotation as? MKMapFeatureAnnotation
+    else { return completion(.failure(MapModelError.message("No map feature with id \(id)"))) }
+    MKMapItemRequest(mapFeatureAnnotation: feature).getMapItem { item, error in
+      if let item { completion(.success(item)) } else {
+        completion(.failure(error ?? MapModelError.message("No place found for the feature")))
+      }
+    }
+  }
+
+  // MARK: Controls and tracking
+
+  /// MapKit's own controls where it has them; a standalone control where
+  /// MapKit cannot do what was asked (an always-visible compass or scale,
+  /// the tracking button before iOS 17).
+  private func applyControls() {
+    mapView.showsCompass = compassVisibility == .adaptive
+    mapView.showsScale = scaleVisibility == .adaptive
+    if compassVisibility == .visible {
+      let compass = builtInCompass ?? MKCompassButton(mapView: mapView)
+      compass.compassVisibility = .visible
+      if compass.superview == nil { addSubview(compass) }
+      builtInCompass = compass
+    } else {
+      builtInCompass?.removeFromSuperview()
+      builtInCompass = nil
+    }
+    if scaleVisibility == .visible {
+      let scale = builtInScale ?? MKScaleView(mapView: mapView)
+      scale.scaleVisibility = .visible
+      if scale.superview == nil { addSubview(scale) }
+      builtInScale = scale
+    } else {
+      builtInScale?.removeFromSuperview()
+      builtInScale = nil
+    }
+    if #available(iOS 17.0, *) {
+      mapView.showsUserTrackingButton = showsUserTrackingButton
+      mapView.pitchButtonVisibility = pitchButtonVisibility.mapKit
+    } else if showsUserTrackingButton {
+      let button = builtInTrackingButton ?? MKUserTrackingButton(mapView: mapView)
+      if button.superview == nil { addSubview(button) }
+      builtInTrackingButton = button
+    } else {
+      builtInTrackingButton?.removeFromSuperview()
+      builtInTrackingButton = nil
+    }
+    setNeedsLayout()
+  }
+
+  /// Places the standalone controls where MapKit puts its own: the scale top
+  /// left, the buttons top right, inside the safe area and `mapPadding`.
+  private func layoutControls() {
+    let safe = mapView.safeAreaInsets
+    let top = safe.top + mapPadding.top + 8
+    let right = bounds.width - safe.right - mapPadding.right - 8
+    var y = top
+    if let button = builtInTrackingButton {
+      let size = button.intrinsicContentSize
+      button.frame = CGRect(x: right - size.width, y: y, width: size.width, height: size.height)
+      y += size.height + 8
+    } else if #available(iOS 17.0, *) {
+      // MapKit's own button group sits above the compass.
+      let buttons = (showsUserTrackingButton ? 1 : 0) + (pitchButtonVisibility == .visible ? 1 : 0)
+      if buttons > 0 { y += CGFloat(buttons) * 44 + 8 }
+    }
+    if let compass = builtInCompass {
+      let size = compass.intrinsicContentSize
+      compass.frame = CGRect(x: right - size.width, y: y, width: size.width, height: size.height)
+    }
+    if let scale = builtInScale {
+      let left = safe.left + mapPadding.left + 8
+      let size = scale.intrinsicContentSize
+      scale.frame = CGRect(x: left, y: top, width: max(size.width, min(200, bounds.width / 2)), height: size.height)
+    }
+  }
+
+  /// Moving the camera from code ends user tracking, as a pan does (MapKit
+  /// would otherwise keep following and pull the camera back), and reports
+  /// it through `onUserTrackingModeChange`.
+  private func endTrackingForCameraMove() {
+    guard mapView.userTrackingMode != .none else { return }
+    mapView.setUserTrackingMode(.none, animated: false)
+  }
+
+  private func applyTrackingMode() {
+    let mode = requestedTrackingMode
+    if mode != .none { locationAuthorization.requestIfNeeded() }
+    guard mapView.userTrackingMode != mode else { return }
+    mapView.setUserTrackingMode(mode, animated: window != nil)
+  }
+
+  private func locationAuthorized() {
+    // MapKit drops tracking it cannot start while access is undecided; pick
+    // it back up once the user allows it, unless they have moved on since.
+    if trackingDroppedByMapKit, requestedTrackingMode != .none, mapView.userTrackingMode == .none {
+      trackingDroppedByMapKit = false
+      applyTrackingMode()
+    }
+  }
+
+  fileprivate func trackingModeChanged(_ mode: MKUserTrackingMode) {
+    if mode == .none, requestedTrackingMode != .none {
+      let status = CLLocationManager().authorizationStatus
+      trackingDroppedByMapKit = status == .notDetermined
+    }
+    onUserTrackingModeChange?(mode)
+  }
+
   // MARK: Internals
 
   private func topViewController() -> UIViewController? {
@@ -562,7 +804,17 @@ public final class MunimMapKitView: UIView {
 
   fileprivate func handleTap(at point: CGPoint) {
     if modelLayer.modelHit(at: point) != nil { return } // models have their own event
+    if let onOverlayPress, let hit = features.overlayHit(at: point) {
+      onOverlayPress(hit.id, hit.kind, coordinate(for: point))
+      return
+    }
     onPress?(coordinate(for: point), point)
+  }
+
+  /// Ids of the tappable overlays under a point, topmost first (what a tap
+  /// there would hit), for tests and custom gestures.
+  @nonobjc public func overlayHit(at point: CGPoint) -> (id: String, kind: String)? {
+    features.overlayHit(at: point)
   }
 
   fileprivate func handleLongPress(at point: CGPoint) {
@@ -570,8 +822,35 @@ public final class MunimMapKitView: UIView {
   }
 
   fileprivate func viewFor(_ annotation: MKAnnotation) -> MKAnnotationView? {
+    if let cluster = annotation as? MKClusterAnnotation { return features.clusterView(for: cluster, in: mapView) }
     guard let annotation = annotation as? MunimAnnotation else { return nil }
     return features.view(for: annotation, in: mapView)
+  }
+
+  @available(iOS 18.0, *)
+  fileprivate func selectionAccessory(for annotation: MKAnnotation) -> MKSelectionAccessory? {
+    guard annotation is MKMapFeatureAnnotation else { return nil }
+    switch selectionAccessory {
+    case .none: return nil
+    case .automatic: return .mapItemDetail(.automatic(presentationViewController: hostViewController()))
+    case .callout: return .mapItemDetail(.callout())
+    case .calloutCompact: return .mapItemDetail(.callout(.compact))
+    case .calloutFull: return .mapItemDetail(.callout(.full))
+    case .sheet:
+      guard let controller = hostViewController() else { return .mapItemDetail(.callout()) }
+      return .mapItemDetail(.sheet(presentedFrom: controller))
+    case .openInMaps: return .mapItemDetail(.openInMaps)
+    }
+  }
+
+  /// The view controller showing this map, for sheets.
+  private func hostViewController() -> UIViewController? {
+    var responder: UIResponder? = self
+    while let current = responder {
+      if let controller = current as? UIViewController { return controller }
+      responder = current.next
+    }
+    return topViewController()
   }
 
   fileprivate func rendererFor(_ overlay: MKOverlay) -> MKOverlayRenderer {
@@ -583,6 +862,15 @@ public final class MunimMapKitView: UIView {
       onMarkerPress?(a.id)
       return
     }
+    if let cluster = annotation as? MKClusterAnnotation {
+      let ids = cluster.memberAnnotations.compactMap { ($0 as? MunimAnnotation)?.id }
+      onClusterPress?(features.clusteringId(of: cluster), ids, cluster.coordinate)
+      // Leave MapKit's enlarged cluster up only when it has a title to show.
+      if cluster.title == nil || features.clusterStyles[features.clusteringId(of: cluster)] == nil {
+        mapView.deselectAnnotation(cluster, animated: false)
+      }
+      return
+    }
     if #available(iOS 16.0, *), let feature = annotation as? MKMapFeatureAnnotation {
       let kind: String
       switch feature.featureType {
@@ -591,9 +879,13 @@ public final class MunimMapKitView: UIView {
       case .physicalFeature: kind = "physicalFeature"
       @unknown default: kind = "unknown"
       }
+      featureCounter += 1
+      let id = "feature-\(featureCounter)"
+      featureAnnotations.append((id, feature))
+      if featureAnnotations.count > 32 { featureAnnotations.removeFirst() }
       onMapFeaturePress?(MunimMapFeature(
         title: feature.title ?? "", coordinate: feature.coordinate, kind: kind,
-        category: feature.pointOfInterestCategory?.rawValue ?? ""))
+        category: feature.pointOfInterestCategory?.rawValue ?? "", id: id))
     }
   }
 
@@ -601,8 +893,11 @@ public final class MunimMapKitView: UIView {
     if let a = annotation as? MunimAnnotation { onMarkerDeselect?(a.id) }
   }
 
-  fileprivate func calloutTapped(_ annotation: MKAnnotation) {
-    if let a = annotation as? MunimAnnotation { onCalloutPress?(a.id) }
+  fileprivate func calloutTapped(_ annotation: MKAnnotation, control: UIControl) {
+    guard let a = annotation as? MunimAnnotation else { return }
+    onCalloutPress?(a.id)
+    let side = control.tag == MapFeatureController.leftAccessoryTag ? "left" : "right"
+    onCalloutAccessoryPress?(a.id, side)
   }
 
   fileprivate func dragChanged(_ annotation: MKAnnotation, to state: MKAnnotationView.DragState) {
@@ -635,6 +930,15 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
     self.owner = owner
   }
 
+  /// Only answer `selectionAccessoryFor` when a selection accessory is
+  /// wanted: while the method exists MapKit shows no classic callouts.
+  override func responds(to selector: Selector!) -> Bool {
+    if selector == NSSelectorFromString("mapView:selectionAccessoryForAnnotation:") {
+      return owner?.wantsSelectionAccessory == true && super.responds(to: selector)
+    }
+    return super.responds(to: selector)
+  }
+
   @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
     guard recognizer.state == .ended, let map = recognizer.view as? MKMapView else { return }
     let point = recognizer.location(in: map)
@@ -664,7 +968,12 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
 
   func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,
                calloutAccessoryControlTapped control: UIControl) {
-    if let annotation = view.annotation { owner?.calloutTapped(annotation) }
+    if let annotation = view.annotation { owner?.calloutTapped(annotation, control: control) }
+  }
+
+  @available(iOS 18.0, *)
+  func mapView(_ mapView: MKMapView, selectionAccessoryFor annotation: MKAnnotation) -> MKSelectionAccessory? {
+    owner?.selectionAccessory(for: annotation)
   }
 
   func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,
@@ -678,6 +987,7 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
   func mapViewDidFinishLoadingMap(_ mapView: MKMapView) { owner?.didFinishLoading() }
   func mapViewDidFinishRenderingMap(_ mapView: MKMapView, fullyRendered: Bool) { owner?.didFinishLoading() }
   func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) { owner?.userLocationChanged(userLocation.location) }
+  func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) { owner?.trackingModeChanged(mode) }
 }
 
 private extension UIView {

@@ -47,4 +47,52 @@ public final class NitroMunimMapsAutolinking {
   public static func isMunimTerrainRecyclable() -> Bool {
     return HybridMunimTerrain.self is any RecyclableView.Type
   }
+  
+  public static func createMapControl() -> bridge.std__shared_ptr_HybridMapControlSpec_ {
+    let hybridObject = HybridMapControl()
+    return { () -> bridge.std__shared_ptr_HybridMapControlSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isMapControlRecyclable() -> Bool {
+    return HybridMapControl.self is any RecyclableView.Type
+  }
+  
+  public static func createMapServices() -> bridge.std__shared_ptr_HybridMapServicesSpec_ {
+    let hybridObject = HybridMapServices()
+    return { () -> bridge.std__shared_ptr_HybridMapServicesSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isMapServicesRecyclable() -> Bool {
+    return HybridMapServices.self is any RecyclableView.Type
+  }
+  
+  public static func createLookAroundView() -> bridge.std__shared_ptr_HybridLookAroundViewSpec_ {
+    let hybridObject = HybridLookAroundView()
+    return { () -> bridge.std__shared_ptr_HybridLookAroundViewSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isLookAroundViewRecyclable() -> Bool {
+    return HybridLookAroundView.self is any RecyclableView.Type
+  }
+  
+  public static func createMarkerView() -> bridge.std__shared_ptr_HybridMarkerViewSpec_ {
+    let hybridObject = HybridMarkerView()
+    return { () -> bridge.std__shared_ptr_HybridMarkerViewSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isMarkerViewRecyclable() -> Bool {
+    return HybridMarkerView.self is any RecyclableView.Type
+  }
 }

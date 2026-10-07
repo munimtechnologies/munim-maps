@@ -26,6 +26,8 @@ import { VEHICLES } from 'munim-maps/vehicles'
 import { Demo, SHOTS, type Shot } from './Demo'
 import { ORBIT_PATHS, satelliteModels } from './orbits'
 import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
+import { ParityScreen, type ParityHandle } from './Parity'
+import type { UserTrackingMode } from 'munim-maps'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -469,6 +471,11 @@ function Example() {
   const expoAttachedRef = useRef(false)
   const expoLayerRef = useRef<MapModelLayerRef | null>(null)
   const expoMapRef = useRef<AppleMaps.MapView | null>(null)
+  // The MapKit parity screen.
+  const [trackingMode, setTrackingMode] = useState<UserTrackingMode>('none')
+  const [parityFollow, setParityFollow] = useState(false)
+  const [parityDemo, setParityDemo] = useState('')
+  const parityHandle = useRef<ParityHandle>({ route: null, completions: [], trackingEvents: [] })
   const seconds = useLaunchClock(launching)
   const models = useMemo(() => buildModels(seconds, launching), [seconds, launching])
   const satellites = useMemo(() => (mode === 'space' ? satelliteModels(seconds) : []), [mode, seconds])
@@ -578,10 +585,19 @@ function Example() {
         setStatus('expo-maps')
         if (url.includes('nearest')) setExpoNearest(true)
         setMode('expomaps')
+      } else if (url?.includes('parity')) {
+        setLaunching(false)
+        setStatus('MapKit parity')
+        if (url.includes('follow')) setParityFollow(true)
+        setParityDemo(/parity\/(placecard|callout)/.exec(url)?.[1] ?? '')
+        setMode('parity')
       } else if (url?.includes('features')) {
         setLaunching(false)
         setStatus('Features')
         setMode('features')
+        // munimmapsexample://features/select/<marker id>: select a marker without a tap.
+        const selected = /select\/([\w-]+)/.exec(url)?.[1]
+        if (selected) setTimeout(() => munimRef.current?.selectMarker(selected), 3000)
       } else if (url?.includes('lagtest')) {
         setLaunching(false)
         setStatus('Lag test')
@@ -631,6 +647,8 @@ function Example() {
           setTerrainFlat(flat)
           setTerrainHybrid(satellite)
         },
+        parity: () => parityHandle.current,
+        setTrackingMode,
         waitForExpoLayerAttached: async (timeoutMs) => {
           const end = Date.now() + timeoutMs
           while (Date.now() < end) {
@@ -676,7 +694,7 @@ function Example() {
   }, [orbiting, mode])
 
   useEffect(() => {
-    if (!orbiting || mode === 'rnmaps' || mode === 'lag' || mode === 'expomaps' || mode === 'terrain') return
+    if (!orbiting || mode === 'rnmaps' || mode === 'lag' || mode === 'expomaps' || mode === 'terrain' || mode === 'parity') return
     const timer = setInterval(async () => {
       const map = munimRef.current
       if (!map) return
@@ -697,7 +715,18 @@ function Example() {
 
   return (
     <View style={styles.root}>
-      {mode === 'features' ? (
+      {mode === 'parity' ? (
+        <ParityScreen
+          mapRef={munimRef}
+          startFollowing={parityFollow}
+          demo={parityDemo}
+          handle={parityHandle}
+          trackingMode={trackingMode}
+          setTrackingMode={setTrackingMode}
+          onEvent={setLastEvent}
+          topInset={insets.top}
+        />
+      ) : mode === 'features' ? (
         <MunimMapView
           key="features"
           ref={munimRef}
@@ -878,6 +907,16 @@ function Example() {
             </>
           ) : null}
           <Toggle label="expo-maps" on={mode === 'expomaps'} onPress={() => setMode('expomaps')} />
+          <Toggle label="MapKit" on={mode === 'parity'} onPress={() => setMode('parity')} />
+          {mode === 'parity' ? (
+            <Toggle
+              label={`Track: ${trackingMode}`}
+              on={trackingMode !== 'none'}
+              onPress={() =>
+                setTrackingMode((m) => (m === 'none' ? 'follow' : m === 'follow' ? 'followWithHeading' : 'none'))
+              }
+            />
+          ) : null}
         </View>
         <View style={styles.row}>
           <Toggle label={launching ? 'Launching' : 'Launch'} on={launching} onPress={() => setLaunching((v) => !v)} />
@@ -899,7 +938,7 @@ function Example() {
         ) : null}
         {mode === 'terrain' && terrainHeights ? <Text style={styles.status}>{terrainHeights}</Text> : null}
         {pressed ? <Text style={styles.status}>Tapped: {pressed}</Text> : null}
-        {mode === 'features' && lastEvent ? <Text style={styles.status}>Last event: {lastEvent}</Text> : null}
+        {(mode === 'features' || mode === 'parity') && lastEvent ? <Text style={styles.status}>Last event: {lastEvent}</Text> : null}
       </View>
       <StatusBar style="auto" />
     </View>

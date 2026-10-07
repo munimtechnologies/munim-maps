@@ -18,14 +18,14 @@ public extension NativeMarker {
   /**
    * Create a new instance of `NativeMarker`.
    */
-  init(id: String, latitude: Double, longitude: Double, title: String, subtitle: String, style: MarkerStyle, color: String, glyph: String, imageUri: String, imageSize: Double, borderColor: String, borderWidth: Double, badges: [MarkerBadge], anchorX: Double, anchorY: Double, zIndex: Double, draggable: Bool, clusteringId: String, calloutEnabled: Bool, opacity: Double, visible: Bool) {
+  init(id: String, latitude: Double, longitude: Double, title: String, subtitle: String, style: MarkerStyle, color: String, glyph: String, imageUri: String, imageSize: Double, borderColor: String, borderWidth: Double, badges: [MarkerBadge], anchorX: Double, anchorY: Double, zIndex: Double, draggable: Bool, clusteringId: String, calloutEnabled: Bool, opacity: Double, visible: Bool, displayPriority: Double, collisionMode: MarkerCollisionMode, titleVisibility: FeatureVisibility, subtitleVisibility: FeatureVisibility, glyphSymbol: String, selectedGlyphSymbol: String, glyphColor: String, animatesWhenAdded: Bool, leftCalloutAccessory: NativeCalloutAccessory, rightCalloutAccessory: NativeCalloutAccessory, calloutDetail: String) {
     self.init(std.string(id), latitude, longitude, std.string(title), std.string(subtitle), style, std.string(color), std.string(glyph), std.string(imageUri), imageSize, std.string(borderColor), borderWidth, { () -> bridge.std__vector_MarkerBadge_ in
       var __vector = bridge.create_std__vector_MarkerBadge_(badges.count)
       for __item in badges {
         __vector.push_back(__item)
       }
       return __vector
-    }(), anchorX, anchorY, zIndex, draggable, std.string(clusteringId), calloutEnabled, opacity, visible)
+    }(), anchorX, anchorY, zIndex, draggable, std.string(clusteringId), calloutEnabled, opacity, visible, displayPriority, collisionMode, titleVisibility, subtitleVisibility, std.string(glyphSymbol), std.string(selectedGlyphSymbol), std.string(glyphColor), animatesWhenAdded, leftCalloutAccessory, rightCalloutAccessory, std.string(calloutDetail))
   }
 
   @inline(__always)
@@ -131,6 +131,61 @@ public extension NativeMarker {
   @inline(__always)
   var visible: Bool {
     return self.__visible
+  }
+  
+  @inline(__always)
+  var displayPriority: Double {
+    return self.__displayPriority
+  }
+  
+  @inline(__always)
+  var collisionMode: MarkerCollisionMode {
+    return self.__collisionMode
+  }
+  
+  @inline(__always)
+  var titleVisibility: FeatureVisibility {
+    return self.__titleVisibility
+  }
+  
+  @inline(__always)
+  var subtitleVisibility: FeatureVisibility {
+    return self.__subtitleVisibility
+  }
+  
+  @inline(__always)
+  var glyphSymbol: String {
+    return String(self.__glyphSymbol)
+  }
+  
+  @inline(__always)
+  var selectedGlyphSymbol: String {
+    return String(self.__selectedGlyphSymbol)
+  }
+  
+  @inline(__always)
+  var glyphColor: String {
+    return String(self.__glyphColor)
+  }
+  
+  @inline(__always)
+  var animatesWhenAdded: Bool {
+    return self.__animatesWhenAdded
+  }
+  
+  @inline(__always)
+  var leftCalloutAccessory: NativeCalloutAccessory {
+    return self.__leftCalloutAccessory
+  }
+  
+  @inline(__always)
+  var rightCalloutAccessory: NativeCalloutAccessory {
+    return self.__rightCalloutAccessory
+  }
+  
+  @inline(__always)
+  var calloutDetail: String {
+    return String(self.__calloutDetail)
   }
 }
 

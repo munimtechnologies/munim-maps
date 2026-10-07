@@ -18,8 +18,8 @@ public extension NativeTileOverlay {
   /**
    * Create a new instance of `NativeTileOverlay`.
    */
-  init(id: String, urlTemplate: String, replacesMap: Bool, minimumZoom: Double, maximumZoom: Double, opacity: Double, zIndex: Double) {
-    self.init(std.string(id), std.string(urlTemplate), replacesMap, minimumZoom, maximumZoom, opacity, zIndex)
+  init(id: String, urlTemplate: String, replacesMap: Bool, minimumZoom: Double, maximumZoom: Double, opacity: Double, zIndex: Double, level: OverlayLevel) {
+    self.init(std.string(id), std.string(urlTemplate), replacesMap, minimumZoom, maximumZoom, opacity, zIndex, level)
   }
 
   @inline(__always)
@@ -55,5 +55,10 @@ public extension NativeTileOverlay {
   @inline(__always)
   var zIndex: Double {
     return self.__zIndex
+  }
+  
+  @inline(__always)
+  var level: OverlayLevel {
+    return self.__level
   }
 }

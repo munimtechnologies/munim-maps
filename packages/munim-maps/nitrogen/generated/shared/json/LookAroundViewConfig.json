@@ -1,0 +1,19 @@
+{
+  "uiViewClassName": "LookAroundView",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "latitude": true,
+    "longitude": true,
+    "mapItemId": true,
+    "showsRoadLabels": true,
+    "pointsOfInterest": true,
+    "navigationEnabled": true,
+    "badgePosition": true,
+    "onSceneChange": true,
+    "onFullScreenChange": true,
+    "onError": true,
+    "hybridRef": true
+  }
+}

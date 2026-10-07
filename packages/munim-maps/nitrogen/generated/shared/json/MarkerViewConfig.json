@@ -1,0 +1,12 @@
+{
+  "uiViewClassName": "MarkerView",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "marker": true,
+    "tracksViewChanges": true,
+    "renderKey": true,
+    "hybridRef": true
+  }
+}

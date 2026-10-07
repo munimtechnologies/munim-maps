@@ -1,11 +1,34 @@
 import { Platform } from 'react-native'
 import {
+  createSearchCompleter,
+  directions,
+  eta,
+  formatDistance,
+  geocode,
   groundElevation,
+  hasLookAround,
+  lookAroundSnapshot,
+  mapItem,
+  mapSnapshot,
+  pointsOfInterest,
+  reverseGeocode,
+  searchPlaces,
+  type MapItem,
+  type SearchCompletion,
+  type UserTrackingMode,
   type MapAlignmentReport,
   type MapCamera,
   type MapModelLayerRef,
   type MunimMapViewRef,
 } from 'munim-maps'
+import {
+  LOOP_REGION,
+  NAVY_PIER,
+  PARITY_POLYGON_ID,
+  PARITY_VIEW_MARKER_ID,
+  WILLIS_TOWER,
+  type ParityHandle,
+} from './Parity'
 
 /**
  * Unattended device check for the example app. It runs once on launch and
@@ -34,7 +57,7 @@ export interface SelfTestReport {
   checks: Check[]
 }
 
-export type TestMode = 'munim' | 'rnmaps' | 'features' | 'globe' | 'expomaps' | 'terrain'
+export type TestMode = 'munim' | 'rnmaps' | 'features' | 'globe' | 'expomaps' | 'terrain' | 'parity'
 
 export interface SelfTestHost {
   showMode(mode: TestMode): Promise<void>
@@ -54,6 +77,26 @@ export interface SelfTestHost {
   waitForExpoLayerAttached(timeoutMs: number): Promise<boolean>
   /** The terrain screen's map: flat or 3D, standard or satellite. */
   setTerrainView(flat: boolean, satellite: boolean): void
+  /** The MapKit parity screen's state. */
+  parity(): ParityHandle
+  setTrackingMode(mode: UserTrackingMode): void
+}
+
+/** Metres between two coordinates (good enough for a few km). */
+function meters(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+  const dy = (a.latitude - b.latitude) * 111_320
+  const dx = (a.longitude - b.longitude) * 111_320 * Math.cos((a.latitude * Math.PI) / 180)
+  return Math.hypot(dx, dy)
+}
+
+async function waitFor<T>(read: () => T | undefined | null | false, timeoutMs: number): Promise<T | undefined> {
+  const end = Date.now() + timeoutMs
+  while (Date.now() < end) {
+    const value = read()
+    if (value) return value
+    await sleep(200)
+  }
+  return undefined
 }
 
 /** Yosemite Valley from the west, with Half Dome and Glacier Point in view. */
@@ -283,6 +326,125 @@ export async function runSelfTest(
     await check('hasLookAround in the Loop', async () =>
       map.hasLookAround({ latitude: 41.8838, longitude: -87.6305 })
     )
+  }
+
+  // MapKit parity: services, overlays hit-testing, React Native markers and
+  // user tracking, on the parity screen.
+  await host.showMode('parity')
+  await sleep(3000)
+  const parityMap = host.munimMap()
+  const parity = async (name: string, run: () => Promise<unknown>) => {
+    try {
+      const detail = await run()
+      record({ name: `MapKit: ${name}`, status: detail === false ? 'fail' : 'pass', detail })
+    } catch (error) {
+      record({ name: `MapKit: ${name}`, status: 'fail', detail: String(error) })
+    }
+  }
+  let firstPlace: MapItem | undefined
+  await parity('searchPlaces finds coffee in the Loop', async () => {
+    const items = await searchPlaces({ query: 'coffee', region: LOOP_REGION })
+    firstPlace = items.find((item) => item.identifier) ?? items[0]
+    return items.length > 0 ? { count: items.length, first: items[0]?.name, identifier: items[0]?.identifier } : false
+  })
+  await parity('search completer suggests and resolves', async () => {
+    let latest: SearchCompletion[] = []
+    const completer = createSearchCompleter({ region: LOOP_REGION, onResults: (r) => (latest = r) })
+    completer.setQuery('Willis Tower')
+    const results = await waitFor(() => (latest.length > 0 ? latest : undefined), 8000)
+    if (!results) return false
+    const [item] = await completer.resolve(results[0]!)
+    completer.cancel()
+    return item ? { suggestion: results[0]!.title, resolved: item.name } : false
+  })
+  await parity('pointsOfInterest finds cafés', async () => {
+    const items = await pointsOfInterest({ center: WILLIS_TOWER, radius: 600, categories: ['cafe'] })
+    return items.length > 0 && items.every((i) => i.category === 'MKPOICategoryCafe')
+      ? { count: items.length, first: items[0]?.name }
+      : false
+  })
+  await parity('directions Willis Tower to Navy Pier', async () => {
+    const routes = await directions({ from: WILLIS_TOWER, to: NAVY_PIER, transportType: 'automobile', alternates: true })
+    const best = routes[0]
+    return best && best.coordinates.length > 10 && best.steps.length > 0 && best.distance > 2000
+      ? { routes: routes.length, distance: best.distance, minutes: best.expectedTravelTime / 60, steps: best.steps.length, name: best.name }
+      : false
+  })
+  await parity('walking eta', async () => {
+    const result = await eta({ from: WILLIS_TOWER, to: NAVY_PIER, transportType: 'walking' })
+    return result.expectedTravelTime > 600 ? result : false
+  })
+  await parity('geocode an address', async () => {
+    const items = await geocode('233 S Wacker Dr, Chicago, IL')
+    const item = items[0]
+    return item && meters(item, WILLIS_TOWER) < 400 ? { name: item.name, formatted: item.address.formatted } : false
+  })
+  await parity('reverseGeocode finds Chicago', async () => {
+    const items = await reverseGeocode(WILLIS_TOWER)
+    return items[0]?.address.city === 'Chicago' ? items[0].address.formatted : false
+  })
+  await parity('mapItem by identifier', async () => {
+    if (!firstPlace?.identifier) return { skipped: 'search returned no identifier (iOS < 18)' }
+    const item = await mapItem(firstPlace.identifier)
+    return item.name === firstPlace.name ? { identifier: item.identifier, name: item.name } : false
+  })
+  await parity('mapSnapshot writes a PNG', async () => {
+    const path = await mapSnapshot({ region: LOOP_REGION, width: 300, height: 200, mapStyle: 'muted' })
+    return path.endsWith('.png') ? path : false
+  })
+  await parity('hasLookAround and lookAroundSnapshot', async () => {
+    const loop = { latitude: 41.8838, longitude: -87.6305 }
+    if (!(await hasLookAround(loop))) return false
+    const path = await lookAroundSnapshot({ coordinate: loop, width: 320, height: 200 })
+    return path.endsWith('.png') ? path : false
+  })
+  await parity('formatDistance', async () => {
+    const text = formatDistance(1609.34, { units: 'imperial' })
+    return text.length > 0 ? text : false
+  })
+  if (!parityMap) {
+    record({ name: 'MapKit: map', status: 'fail', detail: 'no ref' })
+  } else {
+    await parity('tap hit-testing finds the route and the polygon', async () => {
+      const route = await waitFor(() => host.parity().route, 10_000)
+      if (!route) return false
+      // The route draws itself in over about 1.5 s (strokeEnd).
+      await sleep(2000)
+      const middle = route.coordinates[Math.floor(route.coordinates.length / 2)]!
+      const onRoute = await parityMap.overlayAtPoint(await parityMap.pointForCoordinate(middle))
+      const inBlock = await parityMap.overlayAtPoint(
+        await parityMap.pointForCoordinate({ latitude: 41.876, longitude: -87.622 })
+      )
+      const outside = await parityMap.overlayAtPoint(
+        await parityMap.pointForCoordinate({ latitude: 41.8955, longitude: -87.6400 })
+      )
+      return onRoute === 'parity-route' && inBlock === PARITY_POLYGON_ID && outside === ''
+        ? { onRoute, inBlock, outside }
+        : false
+    })
+    await parity('MarkerView is a map marker', async () => {
+      parityMap.fitToMarkers(PARITY_VIEW_MARKER_ID, { top: 40, left: 40, bottom: 40, right: 40 }, false)
+      await sleep(1500)
+      const region = await parityMap.getVisibleRegion()
+      const ok =
+        Math.abs(region.latitude - 41.8826) < 0.01 &&
+        Math.abs(region.longitude + 87.6226) < 0.01 &&
+        region.latitudeDelta < 0.1
+      return ok ? region : false
+    })
+    await parity('user tracking follows and MapKit reports dropping it', async () => {
+      const events = host.parity().trackingEvents
+      events.length = 0
+      host.setTrackingMode('followWithHeading')
+      await sleep(4000)
+      const followed = events.length === 0 || events[events.length - 1] === 'followWithHeading'
+      // A camera move ends following, as a pan does; MapKit reports 'none'.
+      parityMap.setCamera({ ...WILLIS_TOWER, distance: 3000, pitch: 0, heading: 0 }, false)
+      const dropped = await waitFor(() => events.includes('none'), 4000)
+      host.setTrackingMode('none')
+      if (!dropped) throw new Error(`no 'none' event; events: ${JSON.stringify(events)}`)
+      return { events: [...events], followedUntilMoved: followed }
+    })
   }
 
   const report: SelfTestReport = {

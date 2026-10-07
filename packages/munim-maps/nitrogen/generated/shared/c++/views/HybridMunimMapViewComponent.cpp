@@ -226,24 +226,64 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.tileOverlays: ") + exc.what());
       }
     }()),
-    showsCompass([&]() -> CachedProp<bool> {
+    clusterStyles([&]() -> CachedProp<std::vector<NativeClusterStyle>> {
       try {
-        const react::RawValue* rawValue = rawProps.at("showsCompass", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsCompass;
+        const react::RawValue* rawValue = rawProps.at("clusterStyles", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.clusterStyles;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsCompass);
+        return CachedProp<std::vector<NativeClusterStyle>>::fromRawValue(*runtime, value, sourceProps.clusterStyles);
       } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsCompass: ") + exc.what());
+        throw std::runtime_error(std::string("MunimMapView.clusterStyles: ") + exc.what());
       }
     }()),
-    showsScale([&]() -> CachedProp<bool> {
+    compassVisibility([&]() -> CachedProp<FeatureVisibility> {
       try {
-        const react::RawValue* rawValue = rawProps.at("showsScale", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsScale;
+        const react::RawValue* rawValue = rawProps.at("compassVisibility", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.compassVisibility;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsScale);
+        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.compassVisibility);
       } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsScale: ") + exc.what());
+        throw std::runtime_error(std::string("MunimMapView.compassVisibility: ") + exc.what());
+      }
+    }()),
+    scaleVisibility([&]() -> CachedProp<FeatureVisibility> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("scaleVisibility", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.scaleVisibility;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.scaleVisibility);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.scaleVisibility: ") + exc.what());
+      }
+    }()),
+    showsUserTrackingButton([&]() -> CachedProp<bool> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("showsUserTrackingButton", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.showsUserTrackingButton;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsUserTrackingButton);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.showsUserTrackingButton: ") + exc.what());
+      }
+    }()),
+    pitchButtonVisibility([&]() -> CachedProp<FeatureVisibility> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("pitchButtonVisibility", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.pitchButtonVisibility;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.pitchButtonVisibility);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.pitchButtonVisibility: ") + exc.what());
+      }
+    }()),
+    mapScope([&]() -> CachedProp<std::string> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("mapScope", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.mapScope;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.mapScope);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.mapScope: ") + exc.what());
       }
     }()),
     showsTraffic([&]() -> CachedProp<bool> {
@@ -366,6 +406,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.selectableMapFeatures: ") + exc.what());
       }
     }()),
+    selectionAccessory([&]() -> CachedProp<SelectionAccessory> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("selectionAccessory", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.selectionAccessory;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<SelectionAccessory>::fromRawValue(*runtime, value, sourceProps.selectionAccessory);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.selectionAccessory: ") + exc.what());
+      }
+    }()),
     onModelPress([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onModelPress", nullptr, nullptr);
@@ -456,6 +506,36 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.onCalloutPress: ") + exc.what());
       }
     }()),
+    onCalloutAccessoryPress([&]() -> CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onCalloutAccessoryPress", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onCalloutAccessoryPress;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onCalloutAccessoryPress);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onCalloutAccessoryPress: ") + exc.what());
+      }
+    }()),
+    onClusterPress([&]() -> CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onClusterPress", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onClusterPress;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onClusterPress);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onClusterPress: ") + exc.what());
+      }
+    }()),
+    onOverlayPress([&]() -> CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onOverlayPress", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onOverlayPress;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onOverlayPress);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onOverlayPress: ") + exc.what());
+      }
+    }()),
     onMarkerDragStart([&]() -> CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onMarkerDragStart", nullptr, nullptr);
@@ -484,6 +564,16 @@ namespace margelo::nitro::munimmaps::views {
         return CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onUserLocationChange);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("MunimMapView.onUserLocationChange: ") + exc.what());
+      }
+    }()),
+    onUserTrackingModeChange([&]() -> CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onUserTrackingModeChange", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onUserTrackingModeChange;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onUserTrackingModeChange);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onUserTrackingModeChange: ") + exc.what());
       }
     }()),
     onMapFeaturePress([&]() -> CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> {
@@ -539,8 +629,12 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("polygons"): return true;
       case hashString("circles"): return true;
       case hashString("tileOverlays"): return true;
-      case hashString("showsCompass"): return true;
-      case hashString("showsScale"): return true;
+      case hashString("clusterStyles"): return true;
+      case hashString("compassVisibility"): return true;
+      case hashString("scaleVisibility"): return true;
+      case hashString("showsUserTrackingButton"): return true;
+      case hashString("pitchButtonVisibility"): return true;
+      case hashString("mapScope"): return true;
       case hashString("showsTraffic"): return true;
       case hashString("pointsOfInterest"): return true;
       case hashString("userTrackingMode"): return true;
@@ -553,6 +647,7 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("cameraBoundary"): return true;
       case hashString("mapPadding"): return true;
       case hashString("selectableMapFeatures"): return true;
+      case hashString("selectionAccessory"): return true;
       case hashString("onModelPress"): return true;
       case hashString("onCameraChange"): return true;
       case hashString("onCameraMove"): return true;
@@ -562,9 +657,13 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("onMarkerPress"): return true;
       case hashString("onMarkerDeselect"): return true;
       case hashString("onCalloutPress"): return true;
+      case hashString("onCalloutAccessoryPress"): return true;
+      case hashString("onClusterPress"): return true;
+      case hashString("onOverlayPress"): return true;
       case hashString("onMarkerDragStart"): return true;
       case hashString("onMarkerDragEnd"): return true;
       case hashString("onUserLocationChange"): return true;
+      case hashString("onUserTrackingModeChange"): return true;
       case hashString("onMapFeaturePress"): return true;
       case hashString("onError"): return true;
       case hashString("hybridRef"): return true;

@@ -30,6 +30,30 @@
         "language": "swift",
         "implementationClassName": "HybridMunimTerrain"
       }
+    },
+    "MapControl": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMapControl"
+      }
+    },
+    "MapServices": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMapServices"
+      }
+    },
+    "LookAroundView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridLookAroundView"
+      }
+    },
+    "MarkerView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMarkerView"
+      }
     }
   },
   "ignorePaths": [
