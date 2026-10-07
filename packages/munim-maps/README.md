@@ -213,6 +213,13 @@ layer.onModelPress = { id in print(id) }
 - ✏️ **Shapes**: polylines (dashed, geodesic), polygons with holes, circles, and tile overlays (your own tiles, over or instead of Apple's map)
 - 🍎 **New MapKit**: `standard`, `muted`, `hybrid` and `imagery` styles, realistic elevation, point-of-interest filters, traffic, tappable map features (`onMapFeaturePress`), Look Around, camera distance limits and boundaries
 - 🧭 **Camera and conversions**: `setCamera`, `setRegion`, `fitToCoordinates`, `fitToMarkers`, `pointForCoordinate`, `coordinateForPoint`, snapshots and reverse geocoding
+- 🔦 **Follow with heading**: `userTrackingMode="followWithHeading"` is MapKit's own tracking with the heading beam; MapKit owns the following and `onUserTrackingModeChange` tells you when the user pans away ([details](#follow-the-user-with-heading))
+- 🎛️ **Controls**: compass and scale that are always visible or adaptive, MapKit's tracking and 2D/3D buttons, and standalone `MapCompass`, `MapScale` and `MapUserTrackingButton` you can place anywhere
+- 🪪 **Place cards**: tap a place on Apple's map and get Apple's own place card (`selectionAccessory`, iOS 18+)
+- 🧷 **React Native views as markers**: `<MarkerView>` turns any React Native view into a real MapKit marker that clusters, collides and selects
+- 🌈 **Routes and overlays**: gradient polylines, `strokeStart` / `strokeEnd` to animate a route being drawn, line joins, overlays under or over labels, and `onOverlayPress` for taps on lines and shapes
+- 🔎 **MapKit services**: search and autocomplete, points of interest, directions and travel times, geocoding, places by id, Apple Maps hand-off and map images, without a map on screen ([details](#-mapkit-services))
+- 👀 **Look Around**: `<LookAroundView>` embeds Apple's street-level imagery, and `lookAroundSnapshot()` makes a picture of it
 - 🧩 **`MapModelLayer`**: or keep your map and draw the 3D over it, including `react-native-maps` and `expo-maps` on iOS
 
 ### Accuracy
@@ -446,6 +453,30 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`, loft
 | Hidden behind buildings | ✅ | ❌ | `occlusion="buildings"`: OpenStreetMap footprints and heights. MapKit's own 3D landmarks are not shared, so heights can differ slightly from what you see. |
 | glTF / GLB, OBJ, PLY, STL models | ✅ | ❌ | See [Bring Your Own Model](#-bring-your-own-model). |
 | Terrain height | ✅ | ❌ | MapKit does not expose it, so heights come from public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| User tracking (follow, follow with heading) | ✅ | ❌ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Compass, scale, tracking and 2D/3D buttons | ✅ | ❌ | Built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`). Tracking button built in from iOS 17 (a standalone `MKUserTrackingButton` before), 2D/3D button iOS 17+. |
+| Place cards for tapped places | ✅ iOS 18+ | ❌ | `selectionAccessory`. |
+| React Native views as markers | ✅ | ❌ | `MarkerView`: drawn into a native marker. |
+| Gradient polylines, overlay taps, overlay levels | ✅ | ❌ | |
+| Search, autocomplete, points of interest | ✅ | ❌ | `MKLocalSearch`, `MKLocalSearchCompleter`, `MKLocalPointsOfInterestRequest`. Physical features and `regionRequired` need iOS 18. |
+| Directions and travel times | ✅ | ❌ | `MKDirections`. MapKit gives transit only as travel times (`eta`). |
+| Geocoding | ✅ | ❌ | iOS 26 `MKGeocodingRequest` / `MKReverseGeocodingRequest`, `CLGeocoder` before. |
+| Places by id, place card sheet | ✅ iOS 18+ | ❌ | `mapItem(id)`, `presentPlaceCard(id)`. |
+| Look Around view and snapshots | ✅ iOS 16+ | ❌ | `LookAroundView`, `lookAroundSnapshot()`. |
+| Map images without a view | ✅ | ❌ | `mapSnapshot()` (`MKMapSnapshotter`). |
+
+### MapKit coverage
+
+Everything in MapKit's iOS 26 and 27 SDK that a React Native app can use is available. Left out on purpose:
+
+- **macOS-only controls**: `MKZoomControl`, `MKPitchControl`, `showsZoomControls` and `showsPitchControl` are not on iOS. There is no standalone 2D/3D button on iOS either (SwiftUI's `MapPitchToggle` has no UIKit version), so the 2D/3D button is the map's own (`pitchButtonVisibility`).
+- **`MKUserTrackingBarButtonItem`**: a navigation-bar item for UIKit; use `MapUserTrackingButton` anywhere in your layout instead.
+- **Place cards on your own markers**: MapKit only shows place cards (`MKSelectionAccessory`) for Apple's own places (`selectableMapFeatures`). For a place you found, use `presentPlaceCard(id)`.
+- **`MKGeoJSONDecoder`**: turns GeoJSON into the same polylines and polygons any GeoJSON library gives you in JavaScript; pass the coordinates to `polylines` and `polygons`.
+- **`MKMultiPolyline` / `MKMultiPolygon`**: a drawing optimisation only; use several entries.
+- **`MKOverlayRenderer.blendMode`**, **`MKAnnotationView.accessoryOffset`**, **drag and drop of `MKMapItem`**, **`NSUserActivity` map items** and **`MKDirections.Request(contentsOf:)`** (handling Apple Maps' directions URLs, which needs app-level URL routing): rarely needed from React Native.
+- **Glyph images on cluster balloons**: MapKit draws the member count or text, never an image, so `clusterStyles` take text and emoji.
+- **Background location**: CoreLocation, not MapKit.
 
 ## ⚡ Quick Start
 
@@ -557,18 +588,27 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `polygons` | `MapPolygon[]` | `[]` |
 | `circles` | `MapCircle[]` | `[]` |
 | `tileOverlays` | `MapTileOverlay[]` | `[]` |
+| `clusterStyles` | `MapClusterStyle[]` | MapKit's |
 | `showsCompass` / `showsScale` / `showsTraffic` | `boolean` | `true` / `false` / `false` |
-| `pointsOfInterest` | `'all' \| 'none' \| string[]` | `all` (`MKPOICategory…` values) |
-| `userTrackingMode` | `'none' \| 'follow' \| 'follow-with-heading'` | `none` |
+| `compassVisibility` / `scaleVisibility` | `'adaptive' \| 'visible' \| 'hidden'` | `adaptive` / `hidden` (override `showsCompass` / `showsScale`) |
+| `showsUserTrackingButton` | `boolean` | `false` |
+| `pitchButtonVisibility` | `'adaptive' \| 'visible' \| 'hidden'` | `hidden` (iOS 17+) |
+| `mapScope` | `string` | | name for standalone controls |
+| `pointsOfInterest` | `'all' \| 'none' \| string[]` | `all` (`MKPOICategory…` values or short names such as `'cafe'`) |
+| `userTrackingMode` | `'none' \| 'follow' \| 'followWithHeading'` | `none` ([details](#follow-the-user-with-heading)) |
 | `zoomEnabled` / `scrollEnabled` / `rotateEnabled` / `pitchEnabled` | `boolean` | `true` |
 | `cameraDistanceRange` | `{ min?, max? }` (metres) | MapKit's |
 | `cameraBoundary` | `MapRegion` | none |
 | `mapPadding` | `{ top, left, bottom, right }` | `0` |
 | `selectableMapFeatures` | `('pointsOfInterest' \| 'territories' \| 'physicalFeatures')[]` | `[]` |
+| `selectionAccessory` | `'none' \| 'automatic' \| 'callout' \| 'calloutCompact' \| 'calloutFull' \| 'sheet' \| 'openInMaps'` | `none`: Apple's place card for a tapped place (iOS 18+); see [Place cards](#place-cards) |
+| `children` | `MarkerView` elements | |
 
-**Events**: `onMapReady`, `onPress`, `onLongPress`, `onCameraMove` (every frame), `onCameraChange` (when it stops), `onMarkerPress`, `onMarkerDeselect`, `onCalloutPress`, `onMarkerDragStart`, `onMarkerDragEnd`, `onUserLocationChange`, `onMapFeaturePress`, `onModelPress`, `onError`.
+**Events**: `onMapReady`, `onPress`, `onLongPress`, `onCameraMove` (every frame), `onCameraChange` (when it stops), `onMarkerPress`, `onMarkerDeselect`, `onCalloutPress`, `onCalloutAccessoryPress` (`{ id, side: 'left' | 'right' }`), `onClusterPress` (`{ clusteringId, markerIds, latitude, longitude }`, `markerIds` comma-separated), `onOverlayPress` (`{ id, kind, latitude, longitude }` for tappable polylines, polygons and circles; taken instead of `onPress`), `onMarkerDragStart`, `onMarkerDragEnd`, `onUserLocationChange`, `onUserTrackingModeChange` (`'none' | 'follow' | 'followWithHeading'`), `onMapFeaturePress` (with an `id` for `mapItemForFeature`), `onModelPress`, `onError`.
 
-**Ref (`MunimMapViewRef`)**: `setCamera(camera, animated)`, `animateCamera(camera, durationMs, easing)`, `flyCamera(keyframes, start, loop)` (camera keyframes `{ t, camera }` on the same clock as `motion`, stepped natively every frame), `stopFlight()`, `getCamera()`, `setRegion(region, durationMs)`, `getVisibleRegion()`, `fitToCoordinates(coordinates, padding, animated)`, `fitToMarkers(ids, padding, animated)` (comma-separated ids, empty for all), `pointForCoordinate(coordinate)`, `coordinateForPoint(point)`, `selectMarker(id)`, `deselectMarker(id)`, `takeSnapshot(width, height)` (PNG path), `addressForCoordinate(coordinate)`, `hasLookAround(coordinate)`, `openLookAround(coordinate)`, `measureAlignment()`.
+**Ref (`MunimMapViewRef`)**: `setCamera(camera, animated)`, `animateCamera(camera, durationMs, easing)`, `flyCamera(keyframes, start, loop)` (camera keyframes `{ t, camera }` on the same clock as `motion`, stepped natively every frame), `stopFlight()`, `getCamera()`, `setRegion(region, durationMs)`, `getVisibleRegion()`, `fitToCoordinates(coordinates, padding, animated)`, `fitToMarkers(ids, padding, animated)` (comma-separated ids, empty for all), `pointForCoordinate(coordinate)`, `coordinateForPoint(point)`, `selectMarker(id)`, `deselectMarker(id)`, `takeSnapshot(width, height)` (PNG path), `addressForCoordinate(coordinate)`, `hasLookAround(coordinate)`, `openLookAround(coordinate)`, `mapItemForFeature(id)` (the full `MapItem` behind a tapped map feature: phone, website, address), `overlayAtPoint(point)` (id of the tappable overlay a tap there would hit), `measureAlignment()`.
+
+Camera moves from code (`setCamera`, `animateCamera`, `flyCamera`, `setRegion`, `fitTo…`) end user tracking, as a pan does, and report `'none'` through `onUserTrackingModeChange`.
 
 ### `MapMarker`
 
@@ -585,13 +625,110 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | `badges` | | `{ text, position, color, textColor }[]`: pills at `top-left`, `top-right`, `bottom-left`, `bottom-right` or `bottom`. |
 | `anchor` | centre (bottom for images) | `{ x, y }` in 0...1. |
 | `zIndex`, `draggable`, `clusteringId`, `callout`, `opacity`, `visible` | | |
+| `displayPriority` | `'required'` | `'required'` (1000, never hidden), `'high'` (750), `'low'` (250) or 0...1000: what MapKit hides first where markers overlap. |
+| `collisionMode` | `'rectangle'` | `'rectangle'`, `'circle'` or `'none'`. |
+| `titleVisibility`, `subtitleVisibility` | `'adaptive'` | `marker` style: when the title and subtitle show under the balloon. |
+| `glyphSymbol`, `selectedGlyphSymbol` | | `marker` style: an SF Symbol in the balloon, and while selected (`'cup.and.saucer.fill'`). |
+| `glyphColor` | white | `marker` style. |
+| `animatesWhenAdded` | `false` | `marker` style: MapKit's drop-in animation. |
+| `calloutLeft`, `calloutRight` | none, `'detail'` | `'detail'`, `'info'`, `{ text }` or `{ symbol }` (a button), `{ image }` or `{ symbol, button: false }` (a picture); `null` for none. Taps fire `onCalloutAccessoryPress`. |
+| `calloutDetail` | | Several lines of text in the callout, in place of the subtitle. |
+
+On iOS 26 and 27 MapKit shows no callout bubble for the balloon (`marker`) style: selecting one enlarges it and shows its title and subtitle under it. Pins, images, avatars, labels and dots show their callout.
+
+**`MapClusterStyle`** (`clusterStyles`): `{ clusteringId, color?, glyphColor?, glyph? ('{count}' is the number of markers, emoji welcome), title? ('{count} cafés'), subtitle?, displayPriority? }`. Tapping a cluster fires `onClusterPress`; `ref.fitToMarkers(event.markerIds, padding, true)` zooms in on it.
 
 ### `MapPolyline`, `MapPolygon`, `MapCircle`, `MapTileOverlay`
 
-- `MapPolyline`: `coordinates`, `strokeColor`, `strokeWidth`, `dashPattern` (`[4, 10]`), `geodesic`, `lineCap`, `zIndex`.
-- `MapPolygon`: `coordinates`, `holes`, `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `zIndex`.
-- `MapCircle`: `center`, `radius` (metres), `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `zIndex`.
-- `MapTileOverlay`: `urlTemplate` (`{z}/{x}/{y}`), `replacesMap`, `minimumZoom`, `maximumZoom`, `opacity`, `zIndex`.
+- `MapPolyline`: `coordinates`, `strokeColor`, `strokeColors` (a gradient along the line, `MKGradientPolylineRenderer`) with `strokeColorLocations` (0...1, default evenly spaced), `strokeWidth`, `dashPattern` (`[4, 10]`), `geodesic`, `lineCap`, `lineJoin` (`'round'`, `'bevel'`, `'miter'`), `strokeStart` / `strokeEnd` (draw part of the line, 0...1; change `strokeEnd` over time to animate a route, it updates in place), `level`, `tappable`, `zIndex`.
+- `MapPolygon`: `coordinates`, `holes`, `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `lineJoin`, `level`, `tappable`, `zIndex`.
+- `MapCircle`: `center`, `radius` (metres), `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `level`, `tappable`, `zIndex`.
+- `MapTileOverlay`: `urlTemplate` (`{z}/{x}/{y}`), `replacesMap`, `minimumZoom`, `maximumZoom`, `opacity`, `level`, `zIndex`.
+- `level`: `'aboveLabels'` (default for shapes) draws over MapKit's labels; `'aboveRoads'` (default for tiles) draws under labels and buildings, like Apple Maps' routes.
+- `tappable` (default `true`): taps on the shape fire `onOverlayPress` while that prop is set (the topmost shape wins: lines within a few points, polygons inside with holes cut out, circles inside the radius).
+
+### `MarkerView`
+
+React Native views as a marker, like SwiftUI's `Annotation { … }`. Put it inside `MunimMapView`:
+
+```tsx
+<MunimMapView initialCamera={camera} onMarkerPress={(id) => console.log(id)}>
+  <MarkerView id="bean" coordinate={{ latitude: 41.8827, longitude: -87.6233 }} anchor={{ x: 0.5, y: 1 }}>
+    <View style={styles.bubble}>
+      <Text>🫘 Cloud Gate</Text>
+    </View>
+  </MarkerView>
+</MunimMapView>
+```
+
+It takes the `MapMarker` fields that are not about the marker's look (`id`, `coordinate`, `anchor` (default the centre), `title`, `subtitle`, `callout…`, `zIndex`, `draggable`, `clusteringId`, `displayPriority`, `collisionMode`, `opacity`, `visible`), plus `tracksViewChanges`.
+
+How it works, and the trade-off: Nitro views can hold React Native children, but MapKit positions markers itself, so the children are laid out off screen and drawn into the picture of a real `MKAnnotationView`. That marker moves with the map in the same frame, clusters, collides, selects, drags and shows callouts like any other, and its events are the map's marker events. But it is a picture, not live views: buttons inside it do not get taps (the whole marker does), and changes show when the `MarkerView` re-renders (and for a second after, so images can load), or continuously with `tracksViewChanges` (15 redraws a second, so turn it off once the content is stable, as with react-native-maps).
+
+### `MapCompass`, `MapScale`, `MapUserTrackingButton`
+
+MapKit's own controls placed anywhere in your layout, like SwiftUI's `MapCompass(scope:)`. Give the map a `mapScope` and the controls the same name; hide the map's own (`compassVisibility="hidden"`) so there is only one.
+
+```tsx
+<MunimMapView mapScope="main" compassVisibility="hidden" … />
+<View style={styles.toolbar}>
+  <MapUserTrackingButton mapScope="main" />
+  <MapCompass mapScope="main" visibility="visible" />
+  <MapScale mapScope="main" visibility="visible" alignment="leading" style={{ width: 160 }} />
+</View>
+```
+
+| Prop | | |
+| --- | --- | --- |
+| `mapScope` | required | The map's `mapScope`. |
+| `visibility` | `'adaptive'` | `MapCompass`, `MapScale`: `'adaptive'` (while rotated, while zooming), `'visible'`, `'hidden'`. |
+| `alignment` | `'leading'` | `MapScale`: `'leading'`, `'trailing'`, `'center'` (iOS 26). |
+| `style` | 44 × 44 (scale 150 × 24) | |
+
+### `LookAroundView`
+
+Apple's Look Around (`MKLookAroundViewController`) inside your layout, like SwiftUI's `LookAroundPreview`. Tap it to go full screen. iOS 16+.
+
+| Prop | Default | |
+| --- | --- | --- |
+| `coordinate` | | Where to look, or |
+| `mapItemId` | | a place id (`MapItem.identifier`, iOS 18+), which wins. |
+| `showsRoadLabels` | `true` | |
+| `pointsOfInterest` | `'all'` | `'all'`, `'none'` or categories. |
+| `navigationEnabled` | `true` | Let the user move along the street. |
+| `badgePosition` | `'topLeading'` | `'topLeading'`, `'topTrailing'`, `'bottomTrailing'`. |
+| `onSceneChange` | | `(available: boolean)`: whether Apple has imagery there. |
+| `onFullScreenChange` | | `(fullScreen: boolean)` |
+| `onError`, `style` | | |
+
+### 🔎 MapKit services
+
+Functions, no map needed. All return promises and reject on Android.
+
+| Function | MapKit | Returns |
+| --- | --- | --- |
+| `searchPlaces({ query, region?, regionRequired?, resultTypes?, pointsOfInterest? })` | `MKLocalSearch` | `MapItem[]` |
+| `createSearchCompleter({ region?, resultTypes?, pointsOfInterest?, onResults, onError? })` | `MKLocalSearchCompleter` | `{ setQuery, setRegion, setResultTypes, setPointsOfInterest, resolve(completion), cancel }` |
+| `pointsOfInterest({ center, radius? \| region, categories? })` | `MKLocalPointsOfInterestRequest` | `MapItem[]` (radius up to 2 km) |
+| `directions({ from, to, transportType?, alternates?, departureDate?, arrivalDate?, avoidTolls?, avoidHighways? })` | `MKDirections` | `Route[]` |
+| `eta(sameOptions)` | `MKDirections.calculateETA` | `{ expectedTravelTime, distance, expectedArrivalDate, expectedDepartureDate, transportType }` |
+| `geocode(address, region?)` | `MKGeocodingRequest` (iOS 26), `CLGeocoder` | `MapItem[]` |
+| `reverseGeocode(coordinate)` | `MKReverseGeocodingRequest` (iOS 26), `CLGeocoder` | `MapItem[]` |
+| `mapItem(identifier)` | `MKMapItemRequest` (iOS 18) | `MapItem` |
+| `openInMaps(items, { directionsMode?, camera?, region?, mapStyle?, showsTraffic? })` | `MKMapItem.openMaps` | `boolean` |
+| `presentPlaceCard(identifier)` | `MKMapItemDetailViewController` (iOS 18) | `boolean` |
+| `mapSnapshot({ region \| camera, width, height, mapStyle?, elevation?, colorScheme?, pointsOfInterest?, showsBuildings?, showsTraffic? })` | `MKMapSnapshotter` | PNG path |
+| `hasLookAround(coordinate)` | `MKLookAroundSceneRequest` | `boolean` |
+| `lookAroundSnapshot({ coordinate \| mapItemId, width, height, pointsOfInterest?, colorScheme? })` | `MKLookAroundSnapshotter` | PNG path |
+| `formatDistance(meters, { units?, style? })` | `MKDistanceFormatter` | `"1.2 mi"` |
+| `routePolyline(route, { id, strokeColor?, strokeColors?, strokeWidth? })` | | a `polylines` entry drawn like Apple Maps (under labels, round caps) |
+
+- **`MapItem`**: `identifier` (`MKMapItem.Identifier`, iOS 18+, stable between launches), `name`, `phoneNumber`, `url`, `category` (`MKPOICategory…`), `timeZone`, `latitude`, `longitude`, `isCurrentLocation`, and `address` (`name`, `street`, `city`, `region`, `postalCode`, `country`, `countryCode`, `formatted`, `shortAddress`).
+- **`Route`**: `name`, `distance` (m), `expectedTravelTime` (s), `transportType`, `advisoryNotices`, `hasTolls`, `hasHighways`, `coordinates` (the full line) and `steps` (`instructions`, `notice`, `distance`, `transportType`, `coordinates`).
+- **Waypoints** (`from`, `to`): a coordinate, a `MapItem`, `{ mapItemId }` or `'currentLocation'`.
+- **`transportType`**: `'automobile'` (default), `'walking'`, `'cycling'`, `'transit'` (travel times only: MapKit gives no transit routes) or `'any'`.
+- **`directionsMode`** (`openInMaps`): `'none'` (show the places), `'automatic'` (the person's preferred mode), `'driving'`, `'walking'`, `'transit'`, `'cycling'`.
+- **Categories** (`pointsOfInterest`, `categories`): `MKPOICategory…` raw values or their short names, such as `'cafe'`, `'evCharger'`, `'nationalPark'` (`pointOfInterestCategory(name)` converts).
 
 ### Coming from react-native-maps
 
@@ -599,7 +736,16 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | --- | --- |
 | `<MapView provider={PROVIDER_DEFAULT}>` (iOS) | `<MunimMapView>` |
 | `<Marker coordinate title description pinColor>` | `markers={[{ id, coordinate, title, subtitle, style: 'pin', color }]}` |
-| `<Marker>` with a custom child view | `style: 'avatar'` / `'image'` / `'label'` with `badges` (markers are native, not React views) |
+| `<Marker>` with a custom child view | `<MarkerView>` with children (drawn into a native marker; `tracksViewChanges` works the same), or `style: 'avatar'` / `'image'` / `'label'` with `badges` |
+| `<Marker>` `<Callout>` with buttons | `callout`, `calloutLeft` / `calloutRight` (`onCalloutAccessoryPress`), `calloutDetail` |
+| `followsUserLocation` (and patching it to follow with heading) | `userTrackingMode="followWithHeading"` + `onUserTrackingModeChange`: MapKit owns the following, nothing recentres from JavaScript |
+| `showsMyLocationButton` / `showsCompass` / `showsScale` | `showsUserTrackingButton` / `compassVisibility` / `scaleVisibility`, or `MapUserTrackingButton` / `MapCompass` / `MapScale` anywhere |
+| `<Polyline strokeColors>` | `strokeColors` (+ `strokeColorLocations`), a real MapKit gradient |
+| `<Polyline tappable onPress>` | `tappable` + `onOverlayPress` on the map |
+| `react-native-map-clustering` | `clusteringId` + `clusterStyles` + `onClusterPress` (MapKit's own clustering) |
+| `<Geojson>` | parse the GeoJSON in JavaScript and pass `polylines` / `polygons` / `markers` |
+| `onPoiClick` | `selectableMapFeatures` + `onMapFeaturePress`, or Apple's place card with `selectionAccessory` |
+| Google Places / Directions APIs | `searchPlaces`, `createSearchCompleter`, `directions`, `geocode` (MapKit, no API key) |
 | `<Polyline>` / `<Polygon>` / `<Circle>` | `polylines` / `polygons` / `circles` |
 | `<UrlTile urlTemplate>` | `tileOverlays` |
 | `mapType="mutedStandard"` / `"hybridFlyover"` | `mapStyle="muted"` / `mapStyle="hybrid" elevation="realistic"` |
@@ -676,6 +822,92 @@ Unlike `MapPolyline` (a MapKit overlay, flat on the ground), a path is drawn by 
 - `munim-maps/vehicles`: `VEHICLES` (name → asset), `VEHICLE_NAMES`, `VehicleName`.
 
 ## 📖 Usage Examples
+
+### Follow the user with heading
+
+MapKit's own tracking: the map follows the user and turns with the device, with the heading beam on the blue dot. MapKit drops it when the user pans or zooms away (and a camera move from code does the same), and says so through `onUserTrackingModeChange`, so keep the mode in state:
+
+```tsx
+const [tracking, setTracking] = useState<UserTrackingMode>('followWithHeading')
+
+<MunimMapView
+  initialCamera={camera}
+  showsUserLocation
+  userTrackingMode={tracking}
+  onUserTrackingModeChange={setTracking}
+  showsUserTrackingButton
+/>
+<Button title="Follow" onPress={() => setTracking('followWithHeading')} />
+```
+
+Nothing recentres the map from JavaScript, so it never fights the user's pan (react-native-maps' `followsUserLocation` did). munim-maps asks for when-in-use location access the first time it needs it; add `NSLocationWhenInUseUsageDescription` to your Info.plist (`expo.ios.infoPlist` in app.json).
+
+### Search with autocomplete
+
+```tsx
+const [suggestions, setSuggestions] = useState<SearchCompletion[]>([])
+const completer = useMemo(
+  () => createSearchCompleter({ region, onResults: setSuggestions }),
+  [region]
+)
+useEffect(() => () => completer.cancel(), [completer])
+
+<TextInput onChangeText={(text) => completer.setQuery(text)} />
+{suggestions.map((s) => (
+  <Pressable key={s.index} onPress={async () => {
+    const [place] = await completer.resolve(s)
+    if (place) mapRef.current?.setCamera({ ...place, distance: 1500, pitch: 45, heading: 0 }, true)
+  }}>
+    <Text>{s.title}</Text>
+    <Text>{s.subtitle}</Text>
+  </Pressable>
+))}
+
+// Or a one-off search:
+const cafes = await searchPlaces({ query: 'coffee', region, resultTypes: ['pointOfInterest'] })
+```
+
+### Directions, drawn as a gradient
+
+```tsx
+const [route] = await directions({ from: 'currentLocation', to: place, transportType: 'automobile' })
+// route.distance, route.expectedTravelTime, route.steps[0].instructions …
+
+<MunimMapView
+  polylines={[routePolyline(route, { id: 'route', strokeColors: ['#30D158', '#0A84FF'] })]}
+  onOverlayPress={(e) => console.log('tapped', e.id)}
+/>
+```
+
+Animate it being drawn by stepping `strokeEnd` from 0 to 1; the line updates in place.
+
+### Place cards
+
+Let people tap Apple's own places and see Apple's place card (hours, photos, ratings, call and directions), iOS 18+:
+
+```tsx
+<MunimMapView
+  selectableMapFeatures={['pointsOfInterest']}
+  selectionAccessory="automatic"
+  onMapFeaturePress={async (feature) => {
+    const place = await mapRef.current?.mapItemForFeature(feature.id)
+    console.log(place?.phoneNumber, place?.url)
+  }}
+/>
+```
+
+`'callout'` shows the card in a callout over the map, `'sheet'` in a sheet, `'openInMaps'` as a button. While a selection accessory is set MapKit shows no classic callouts on your markers, so leave it `'none'` if you rely on them. For a place you found yourself, `presentPlaceCard(place.identifier)` opens the card as a sheet.
+
+### Look Around
+
+```tsx
+<LookAroundView
+  style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}
+  coordinate={place}
+  onSceneChange={(available) => setHasImagery(available)}
+/>
+const path = await lookAroundSnapshot({ coordinate: place, width: 320, height: 200 })
+```
 
 ### People in buildings
 
@@ -834,6 +1066,16 @@ The example app checks all of this on device: a self-test compares every model's
 4. **Models disappear when zoomed out**: raise `maxCameraDistance` (default 50 km).
 5. **Models float or sink on mountains with satellite imagery in 3D**: turn on `followTerrain` (see [Terrain](#terrain)). A model with `altitudeReference: 'sea'` that never appears is waiting for its terrain tile; check `onError`.
 6. **Over-the-air update crashes on an old build**: munim-maps is native; ship it in a new build.
+
+### Markers and callouts
+
+- A balloon (`marker`) shows no callout bubble on iOS 26 and 27: MapKit enlarges it and shows the title under it. Use `pin`, `image` or another style for callouts with buttons.
+- No callouts at all: a `selectionAccessory` other than `'none'` makes MapKit skip classic callouts.
+- `MarkerView` content looks stale: it is a picture. Re-render the `MarkerView` or set `tracksViewChanges` while it changes.
+
+### User tracking stops
+
+MapKit stops following when the user pans or zooms, and munim-maps stops it when you move the camera from code. Both report `'none'` through `onUserTrackingModeChange`; store it in state so setting `'followWithHeading'` again turns it back on. Without location access (or without `NSLocationWhenInUseUsageDescription`) MapKit cannot follow at all.
 
 ### Hidden behind buildings
 
