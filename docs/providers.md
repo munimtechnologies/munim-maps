@@ -5,7 +5,7 @@ munim-maps draws the same React Native API (`MunimMapView`, models, markers, sha
 | Provider | `provider=` | iOS | Android | Key |
 | --- | --- | --- | --- | --- |
 | Apple MapKit | `'mapkit'` | Built in, the default | — (Apple only) | None |
-| Google Maps | `'google'` | `NitroMunimMaps/Google` subspec | `munimMaps.google=true` (the default when on) | Google Maps SDK key |
+| Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` subspec | ✅ `munimMaps.google=true` (the default when on); photorealistic 3D with `munimMaps.googleMaps3d=true` | Google Maps SDK key |
 | Mapbox | `'mapbox'` | `NitroMunimMaps/Mapbox` subspec | `munimMaps.mapbox=true` | Mapbox public token (`pk.…`) |
 | MapLibre (open maps) | `'maplibre'` | `NitroMunimMaps/MapLibre` subspec | Built in (`munimMaps.maplibre=false` to drop it); the default without Google | None: OpenStreetMap data from [OpenFreeMap](https://openfreemap.org) |
 | Cesium | `'cesium'` | `NitroMunimMaps/Cesium` subspec | `munimMaps.cesium=true` | Cesium ion token for ion terrain, imagery and 3D Tiles |
@@ -68,41 +68,41 @@ configureMunimMaps({
 
 | Feature | MapKit iOS | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | Cesium iOS | Cesium Android |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Map on screen | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ `styleUrl` | ⏳ | ⏳ |
-| Dark mode (`colorScheme`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Map on screen | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ✅ map types, JSON styles, `styleUrl` = JSON style | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ `styleUrl` | ⏳ | ⏳ |
+| Dark mode (`colorScheme`) | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
 | Globe (`globe`) | ✅ | — | — | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ always a globe | ⏳ |
-| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `flyCamera` / `stopFlight` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `pointForCoordinate`, `coordinateForPoint` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Gestures on/off | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Camera limits, boundary, `mapPadding` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `MarkerView` (React Native views as markers) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Polylines, polygons, circles | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Gradient / animated polylines, overlay taps | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Tile overlays | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| User location, tracking modes | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Compass, scale, tracking button | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Points of interest filter, traffic | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Tappable places (`onMapFeaturePress`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Place cards (`selectionAccessory`), Look Around | ✅ | — | — | — | — | — | — | — | — |
-| `takeSnapshot`, `addressForCoordinate` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| 3D models: GLB / glTF | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| 3D models: USDZ, USD, SCN, OBJ… | ✅ | ⏳ | — | ⏳ | — | ⏳ | — | ⏳ | — |
-| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Effects (exhaust, smoke, contrail), occluders | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Zones, paths | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `occlusion="buildings"` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `onModelPress` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | ⏳ | ⏳ react-native-maps | ⏳ | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
+| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| `flyCamera` / `stopFlight` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| `pointForCoordinate`, `coordinateForPoint` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Gestures on/off | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Camera limits, boundary, `mapPadding` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ✅ Utils | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `MarkerView` (React Native views as markers) | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Polylines, polygons, circles | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Gradient / animated polylines, overlay taps | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Tile overlays | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| User location, tracking modes | ✅ | 🟡 tracking by munim-maps | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Compass, scale, tracking button | ✅ | 🟡 compass, my-location button; no scale | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Points of interest filter, traffic | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Tappable places (`onMapFeaturePress`) | ✅ | ✅ POIs (place IDs) | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Place cards (`selectionAccessory`), Look Around | ✅ | 🟡 Street View for Look Around | 🟡 Street View for Look Around; phone test pending | — | — | — | — | — | — |
+| `takeSnapshot`, `addressForCoordinate` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| 3D models: GLB / glTF | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| 3D models: USDZ, USD, SCN, OBJ… | ✅ | ✅ | — | ⏳ | — | ⏳ | — | ⏳ | — |
+| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ✅ | ⏳ Android 3D layer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Effects (exhaust, smoke, contrail), occluders | ✅ | ✅ | ⏳ Android 3D layer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Zones, paths | ✅ | ✅ | ⏳ Android 3D layer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `occlusion="buildings"` | ✅ | ✅ | ⏳ Android 3D layer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ✅ sea level (Google 2D has no terrain) | ⏳ Android 3D layer | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `onModelPress` | ✅ | ✅ | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ✅ ≤ 1.7 pt (iPad) | 🟡 built; phone test pending | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | — | 🟡 react-native-maps (Google `MapView` adapter); phone test pending | ⏳ | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
 | MapKit services (search, directions, geocoding) | ✅ | — | — | — | — | — | — | — | — |
 
 ## Architecture
@@ -176,7 +176,7 @@ For each engine:
 
 ## Google Maps engine checklist
 
-Every public capability of the Maps SDK for iOS (`GoogleMaps` 10.x, CocoaPods) and the Maps SDK for Android (`play-services-maps` 20.x), plus Google Maps Utils (iOS `Google-Maps-iOS-Utils` 7.x, Android `android-maps-utils` 3.20 by default), mapped to munim-maps. Shared props and methods work as on every engine; Google-only options go in `google={{ … }}` (`GoogleMapOptions`, `src/providers/google.ts`), Google-only events arrive in `onProviderEvent` (`provider: 'google'`, typed as `GoogleMapEvent`) and Google-only methods go through `providerCommand` (typed wrapper: `googleMap(ref)`). Status: ✅ done · 🟡 partly (see note) · — not offered, with the reason · ⏳ not done yet.
+Every public capability of the Maps SDK for iOS (`GoogleMaps` 10.x, CocoaPods) and the Maps SDK for Android (`play-services-maps` 20.x), plus Google Maps Utils (iOS `Google-Maps-iOS-Utils` 7.x, Android `android-maps-utils` 3.20 by default), mapped to munim-maps. Shared props and methods work as on every engine; Google-only options go in `google={{ … }}` (`GoogleMapOptions`, `src/providers/google.ts`), Google-only events arrive in `onProviderEvent` (`provider: 'google'`, typed as `GoogleMapEvent`) and Google-only methods go through `providerCommand` (typed wrapper: `googleMap(ref)`). Status: ✅ done · 🟡 partly (see note) · — not offered, with the reason · ⏳ not done yet. iOS was checked on an iPad (the Google screen's 30 checks: 30 passed, 3D layer within 1.7 pt of Google's projection at five cameras). Android ✅ means built into a release APK that compiles and runs the same code paths; the on-phone run is still pending (the test phone was disconnected).
 
 | SDK capability (iOS / Android API) | munim-maps API | iOS | Android |
 | --- | --- | --- | --- |
@@ -275,6 +275,7 @@ Every public capability of the Maps SDK for iOS (`GoogleMaps` 10.x, CocoaPods) a
 Notes:
 
 - **3D layer alignment.** Google publishes a zoom, not a camera distance or field of view. `GoogleCameraSource` (iOS) and `GoogleCamera` (Android) measure both from Google's own projection every frame: the ground scale along the screen row through the target gives points per metre at the target's depth, and the foreshortening of a point further up the screen gives the camera distance while the map is tilted; their product is the focal length (kept as a field of view for flat views). `googleMap(ref).cameraDiagnostics()` shows the numbers.
+- **iOS SDK versions.** GoogleMaps 9.4 or later with Google Maps Utils 6.1 or later (10.x with Utils 7 when nothing else pins them; react-native-maps' Google subspec pins 9.4.0 / 6.1.0, and must be added when react-native-maps is in the app, because it registers its Google component whenever the GoogleMaps pod exists). `transitEnabled` needs 10.x. The pod's iOS minimum becomes 16.0 with the Google engine on.
 - **Model rendering.** The 2D Maps SDKs have no 3D models, so on the 2D map `models` are always drawn by munim-maps' overlay (`modelRendering: 'native'` reports that). `google={{ mode: '3d' }}` (Android) switches the engine to Google's photorealistic 3D map (Maps 3D SDK, `Map3DView`): `modelRendering: 'auto'` (default) or `'native'` draws every glTF model (`uri`) as a Google `Model` (position, altitude mode from `altitudeReference`, heading, `scale` × `google.modelScale`, `motion` keyframes stepped natively, taps to `onModelPress`), and polylines, polygons and markers natively; the overlay cannot follow Google 3D's camera (no projection API), so `'overlay'` falls back to native with an error. Built-in shapes, pictures, labels, effects, zones and paths need the 2D map. Local GLBs are copied to the cache and passed as `file://` URLs.
 - **What the 3D mode needs:** `munimMaps.googleMaps3d=true` (Expo plugin `googleMaps3d: true`), and a key with the **Map Tiles API** and the **Maps 3D SDK for Android** enabled (with 3D billing). The development key has neither, so the mode compiles but could not be run. `play-services-maps3d` 0.2.0 is used because 0.2.2 is built with Kotlin 2.3, which React Native's Kotlin 2.1 compiler cannot read (`munimMaps.googleMaps3dVersion` overrides it). **iOS:** the Maps 3D SDK is `GoogleMaps3D`, a SwiftUI-only Swift package; CocoaPods (which React Native uses) cannot install it, so `mode: '3d'` reports an error on iOS and stays on the 2D map.
 - **Not in the SDKs**, so not offered: a scale bar, a globe, a 2D/3D button, Apple's place cards and MapKit's search (use `googleMapsServices` or MapKit's services, which work with any engine on iOS), tracking modes (munim-maps follows the user itself).
