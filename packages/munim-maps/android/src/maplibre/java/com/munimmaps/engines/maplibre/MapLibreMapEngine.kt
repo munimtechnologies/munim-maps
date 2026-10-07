@@ -1274,7 +1274,8 @@ class MapLibreMapEngine(private val context: Context) : MunimMapEngine, MapCamer
     activeSnapshotters.add(snapshotter)
     snapshotter.start({ snapshot ->
       activeSnapshotters.remove(snapshotter)
-      writePng(snapshot.bitmap, completion)
+      // A provider command answers JSON: the path as a JSON string.
+      writePng(snapshot.bitmap) { result -> completion(result.map { JSONObject.quote(it) }) }
     }, { error ->
       activeSnapshotters.remove(snapshotter)
       completion(Result.failure(RuntimeException(error)))
@@ -1315,7 +1316,7 @@ class MapLibreMapEngine(private val context: Context) : MunimMapEngine, MapCamer
     val map = map
     val style = style
     fun ok(value: Any? = null) = completion(Result.success(when (value) {
-      null -> "null"
+      null, is Unit -> "null"
       is String -> JSONObject.quote(value)
       else -> value.toString()
     }))
@@ -1434,14 +1435,14 @@ class MapLibreMapEngine(private val context: Context) : MunimMapEngine, MapCamer
           when (val source = style.getSource(sourceId)) {
             is GeoJsonSource -> when (command) {
               "setFeatureState" -> ok(source.setFeatureState(id ?: return fail("needs an id"), StyleSpec.gsonObject(args.optJSONObject("state"))))
-              "getFeatureState" -> ok(source.getFeatureState(id ?: return fail("needs an id"))?.toString())
+              "getFeatureState" -> ok(source.getFeatureState(id ?: return fail("needs an id"))?.let { JSONObject(it.toString()) })
               else -> ok(if (id == null) source.resetFeatureStates() else if (args.has("key")) source.removeFeatureState(id, args.getString("key")) else source.removeFeatureState(id))
             }
             is VectorSource -> {
               val layer = sourceLayer ?: return fail("vector sources need a sourceLayer")
               when (command) {
                 "setFeatureState" -> ok(source.setFeatureState(layer, id ?: return fail("needs an id"), StyleSpec.gsonObject(args.optJSONObject("state"))))
-                "getFeatureState" -> ok(source.getFeatureState(layer, id ?: return fail("needs an id"))?.toString())
+                "getFeatureState" -> ok(source.getFeatureState(layer, id ?: return fail("needs an id"))?.let { JSONObject(it.toString()) })
                 else -> ok(if (id == null) source.resetFeatureStates(layer) else if (args.has("key")) source.removeFeatureState(layer, id, args.getString("key")) else source.removeFeatureState(layer, id))
               }
             }
