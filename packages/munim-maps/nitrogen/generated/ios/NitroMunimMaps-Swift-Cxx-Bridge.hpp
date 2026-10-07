@@ -18,16 +18,24 @@ namespace margelo::nitro::munimmaps { enum class CalloutAccessorySide; }
 namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 // Forward declaration of `ClusterPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct ClusterPressEvent; }
+// Forward declaration of `Eta` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct Eta; }
 // Forward declaration of `FeatureVisibility` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
+// Forward declaration of `HybridLookAroundViewSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridLookAroundViewSpec; }
 // Forward declaration of `HybridMapControlSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapControlSpec; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
+// Forward declaration of `HybridMapServicesSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMapServicesSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
 // Forward declaration of `HybridMunimTerrainSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimTerrainSpec; }
+// Forward declaration of `HybridSearchCompleterSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridSearchCompleterSpec; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
 // Forward declaration of `LineJoin` to properly resolve imports.
@@ -94,20 +102,34 @@ namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
 namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 // Forward declaration of `OverlayPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
+// Forward declaration of `RouteStep` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct RouteStep; }
+// Forward declaration of `Route` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct Route; }
+// Forward declaration of `SearchCompletion` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct SearchCompletion; }
+// Forward declaration of `TransportType` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class TransportType; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 // Forward declaration of `UserTrackingMode` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridLookAroundViewSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridLookAroundViewSpec_cxx; }
 // Forward declaration of `HybridMapControlSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMapControlSpec_cxx; }
 // Forward declaration of `HybridMapModelLayerSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
+// Forward declaration of `HybridMapServicesSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMapServicesSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 // Forward declaration of `HybridMunimTerrainSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
+// Forward declaration of `HybridSearchCompleterSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridSearchCompleterSpec_cxx; }
 
 // Include C++ defined types
 #include "CalloutAccessoryEvent.hpp"
@@ -115,11 +137,15 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "CalloutAccessorySide.hpp"
 #include "CameraKeyframe.hpp"
 #include "ClusterPressEvent.hpp"
+#include "Eta.hpp"
 #include "FeatureVisibility.hpp"
+#include "HybridLookAroundViewSpec.hpp"
 #include "HybridMapControlSpec.hpp"
 #include "HybridMapModelLayerSpec.hpp"
+#include "HybridMapServicesSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
+#include "HybridSearchCompleterSpec.hpp"
 #include "LineCap.hpp"
 #include "LineJoin.hpp"
 #include "MapAddress.hpp"
@@ -153,6 +179,10 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "NativeTileOverlay.hpp"
 #include "OverlayLevel.hpp"
 #include "OverlayPressEvent.hpp"
+#include "Route.hpp"
+#include "RouteStep.hpp"
+#include "SearchCompletion.hpp"
+#include "TransportType.hpp"
 #include "UserLocationEvent.hpp"
 #include "UserTrackingMode.hpp"
 #include <NitroModules/Promise.hpp>
@@ -171,6 +201,107 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
  */
 namespace margelo::nitro::munimmaps::bridge::swift {
 
+  // pragma MARK: std::function<void(bool /* available */)>
+  /**
+   * Specialized version of `std::function<void(bool)>`.
+   */
+  using Func_void_bool = std::function<void(bool /* available */)>;
+  /**
+   * Wrapper class for a `std::function<void(bool / * available * /)>`, this can be used from Swift.
+   */
+  class Func_void_bool_Wrapper final {
+  public:
+    explicit Func_void_bool_Wrapper(std::function<void(bool /* available */)>&& func): _function(std::make_unique<std::function<void(bool /* available */)>>(std::move(func))) {}
+    inline void call(bool available) const noexcept {
+      _function->operator()(available);
+    }
+  private:
+    std::unique_ptr<std::function<void(bool /* available */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_bool_Wrapper wrap_Func_void_bool(Func_void_bool value) noexcept {
+    return Func_void_bool_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(bool /* available */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(bool / * available * /)>>`.
+   */
+  using std__optional_std__function_void_bool____available______ = std::optional<std::function<void(bool /* available */)>>;
+  inline std::optional<std::function<void(bool /* available */)>> create_std__optional_std__function_void_bool____available______(const std::function<void(bool /* available */)>& value) noexcept {
+    return std::optional<std::function<void(bool /* available */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_bool____available______(const std::optional<std::function<void(bool /* available */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(bool /* available */)> get_std__optional_std__function_void_bool____available______(const std::optional<std::function<void(bool /* available */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<std::function<void(bool /* fullScreen */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(bool / * fullScreen * /)>>`.
+   */
+  using std__optional_std__function_void_bool____fullScreen______ = std::optional<std::function<void(bool /* fullScreen */)>>;
+  inline std::optional<std::function<void(bool /* fullScreen */)>> create_std__optional_std__function_void_bool____fullScreen______(const std::function<void(bool /* fullScreen */)>& value) noexcept {
+    return std::optional<std::function<void(bool /* fullScreen */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_bool____fullScreen______(const std::optional<std::function<void(bool /* fullScreen */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(bool /* fullScreen */)> get_std__optional_std__function_void_bool____fullScreen______(const std::optional<std::function<void(bool /* fullScreen */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const std::string& /* message */)>
+  /**
+   * Specialized version of `std::function<void(const std::string&)>`.
+   */
+  using Func_void_std__string = std::function<void(const std::string& /* message */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::string& / * message * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__string_Wrapper final {
+  public:
+    explicit Func_void_std__string_Wrapper(std::function<void(const std::string& /* message */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* message */)>>(std::move(func))) {}
+    inline void call(std::string message) const noexcept {
+      _function->operator()(message);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::string& /* message */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__string_Wrapper wrap_Func_void_std__string(Func_void_std__string value) noexcept {
+    return Func_void_std__string_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const std::string& /* message */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const std::string& / * message * /)>>`.
+   */
+  using std__optional_std__function_void_const_std__string_____message______ = std::optional<std::function<void(const std::string& /* message */)>>;
+  inline std::optional<std::function<void(const std::string& /* message */)>> create_std__optional_std__function_void_const_std__string_____message______(const std::function<void(const std::string& /* message */)>& value) noexcept {
+    return std::optional<std::function<void(const std::string& /* message */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_std__string_____message______(const std::optional<std::function<void(const std::string& /* message */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const std::string& /* message */)> get_std__optional_std__function_void_const_std__string_____message______(const std::optional<std::function<void(const std::string& /* message */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridLookAroundViewSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridLookAroundViewSpec>`.
+   */
+  using std__shared_ptr_HybridLookAroundViewSpec_ = std::shared_ptr<HybridLookAroundViewSpec>;
+  std::shared_ptr<HybridLookAroundViewSpec> create_std__shared_ptr_HybridLookAroundViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridLookAroundViewSpec_(std__shared_ptr_HybridLookAroundViewSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridLookAroundViewSpec>
+  using std__weak_ptr_HybridLookAroundViewSpec_ = std::weak_ptr<HybridLookAroundViewSpec>;
+  inline std__weak_ptr_HybridLookAroundViewSpec_ weakify_std__shared_ptr_HybridLookAroundViewSpec_(const std::shared_ptr<HybridLookAroundViewSpec>& strong) noexcept { return strong; }
+  
   // pragma MARK: std::shared_ptr<HybridMapControlSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridMapControlSpec>`.
@@ -249,28 +380,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return vector;
   }
   
-  // pragma MARK: std::function<void(const std::string& /* id */)>
-  /**
-   * Specialized version of `std::function<void(const std::string&)>`.
-   */
-  using Func_void_std__string = std::function<void(const std::string& /* id */)>;
-  /**
-   * Wrapper class for a `std::function<void(const std::string& / * id * /)>`, this can be used from Swift.
-   */
-  class Func_void_std__string_Wrapper final {
-  public:
-    explicit Func_void_std__string_Wrapper(std::function<void(const std::string& /* id */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* id */)>>(std::move(func))) {}
-    inline void call(std::string id) const noexcept {
-      _function->operator()(id);
-    }
-  private:
-    std::unique_ptr<std::function<void(const std::string& /* id */)>> _function;
-  } SWIFT_NONCOPYABLE;
-  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_std__string_Wrapper wrap_Func_void_std__string(Func_void_std__string value) noexcept {
-    return Func_void_std__string_Wrapper(std::move(value));
-  }
-  
   // pragma MARK: std::optional<std::function<void(const std::string& /* id */)>>
   /**
    * Specialized version of `std::optional<std::function<void(const std::string& / * id * /)>>`.
@@ -286,28 +395,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::function<void(bool /* attached */)>
-  /**
-   * Specialized version of `std::function<void(bool)>`.
-   */
-  using Func_void_bool = std::function<void(bool /* attached */)>;
-  /**
-   * Wrapper class for a `std::function<void(bool / * attached * /)>`, this can be used from Swift.
-   */
-  class Func_void_bool_Wrapper final {
-  public:
-    explicit Func_void_bool_Wrapper(std::function<void(bool /* attached */)>&& func): _function(std::make_unique<std::function<void(bool /* attached */)>>(std::move(func))) {}
-    inline void call(bool attached) const noexcept {
-      _function->operator()(attached);
-    }
-  private:
-    std::unique_ptr<std::function<void(bool /* attached */)>> _function;
-  } SWIFT_NONCOPYABLE;
-  Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_bool_Wrapper wrap_Func_void_bool(Func_void_bool value) noexcept {
-    return Func_void_bool_Wrapper(std::move(value));
-  }
-  
   // pragma MARK: std::optional<std::function<void(bool /* attached */)>>
   /**
    * Specialized version of `std::optional<std::function<void(bool / * attached * /)>>`.
@@ -320,21 +407,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(bool /* attached */)> get_std__optional_std__function_void_bool____attached______(const std::optional<std::function<void(bool /* attached */)>>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<std::function<void(const std::string& /* message */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(const std::string& / * message * /)>>`.
-   */
-  using std__optional_std__function_void_const_std__string_____message______ = std::optional<std::function<void(const std::string& /* message */)>>;
-  inline std::optional<std::function<void(const std::string& /* message */)>> create_std__optional_std__function_void_const_std__string_____message______(const std::function<void(const std::string& /* message */)>& value) noexcept {
-    return std::optional<std::function<void(const std::string& /* message */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_const_std__string_____message______(const std::optional<std::function<void(const std::string& /* message */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(const std::string& /* message */)> get_std__optional_std__function_void_const_std__string_____message______(const std::optional<std::function<void(const std::string& /* message */)>>& optional) noexcept {
     return optional.value();
   }
   
@@ -422,6 +494,337 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_MapAlignmentReport___ create_Result_std__shared_ptr_Promise_MapAlignmentReport___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<MapAlignmentReport>>>::withError(error);
+  }
+  
+  // pragma MARK: std::vector<SearchCompletion>
+  /**
+   * Specialized version of `std::vector<SearchCompletion>`.
+   */
+  using std__vector_SearchCompletion_ = std::vector<SearchCompletion>;
+  inline std::vector<SearchCompletion> create_std__vector_SearchCompletion_(size_t size) noexcept {
+    std::vector<SearchCompletion> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<SearchCompletion>& /* results */)>
+  /**
+   * Specialized version of `std::function<void(const std::vector<SearchCompletion>&)>`.
+   */
+  using Func_void_std__vector_SearchCompletion_ = std::function<void(const std::vector<SearchCompletion>& /* results */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::vector<SearchCompletion>& / * results * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__vector_SearchCompletion__Wrapper final {
+  public:
+    explicit Func_void_std__vector_SearchCompletion__Wrapper(std::function<void(const std::vector<SearchCompletion>& /* results */)>&& func): _function(std::make_unique<std::function<void(const std::vector<SearchCompletion>& /* results */)>>(std::move(func))) {}
+    inline void call(std::vector<SearchCompletion> results) const noexcept {
+      _function->operator()(results);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::vector<SearchCompletion>& /* results */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__vector_SearchCompletion_ create_Func_void_std__vector_SearchCompletion_(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__vector_SearchCompletion__Wrapper wrap_Func_void_std__vector_SearchCompletion_(Func_void_std__vector_SearchCompletion_ value) noexcept {
+    return Func_void_std__vector_SearchCompletion__Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::vector<MapItem>
+  /**
+   * Specialized version of `std::vector<MapItem>`.
+   */
+  using std__vector_MapItem_ = std::vector<MapItem>;
+  inline std::vector<MapItem> create_std__vector_MapItem_(size_t size) noexcept {
+    std::vector<MapItem> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<std::vector<MapItem>>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<std::vector<MapItem>>>`.
+   */
+  using std__shared_ptr_Promise_std__vector_MapItem___ = std::shared_ptr<Promise<std::vector<MapItem>>>;
+  inline std::shared_ptr<Promise<std::vector<MapItem>>> create_std__shared_ptr_Promise_std__vector_MapItem___() noexcept {
+    return Promise<std::vector<MapItem>>::create();
+  }
+  inline PromiseHolder<std::vector<MapItem>> wrap_std__shared_ptr_Promise_std__vector_MapItem___(std::shared_ptr<Promise<std::vector<MapItem>>> promise) noexcept {
+    return PromiseHolder<std::vector<MapItem>>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<MapItem>& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const std::vector<MapItem>&)>`.
+   */
+  using Func_void_std__vector_MapItem_ = std::function<void(const std::vector<MapItem>& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::vector<MapItem>& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__vector_MapItem__Wrapper final {
+  public:
+    explicit Func_void_std__vector_MapItem__Wrapper(std::function<void(const std::vector<MapItem>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::vector<MapItem>& /* result */)>>(std::move(func))) {}
+    inline void call(std::vector<MapItem> result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::vector<MapItem>& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__vector_MapItem_ create_Func_void_std__vector_MapItem_(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__vector_MapItem__Wrapper wrap_Func_void_std__vector_MapItem_(Func_void_std__vector_MapItem_ value) noexcept {
+    return Func_void_std__vector_MapItem__Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridSearchCompleterSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridSearchCompleterSpec>`.
+   */
+  using std__shared_ptr_HybridSearchCompleterSpec_ = std::shared_ptr<HybridSearchCompleterSpec>;
+  std::shared_ptr<HybridSearchCompleterSpec> create_std__shared_ptr_HybridSearchCompleterSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridSearchCompleterSpec_(std__shared_ptr_HybridSearchCompleterSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridSearchCompleterSpec>
+  using std__weak_ptr_HybridSearchCompleterSpec_ = std::weak_ptr<HybridSearchCompleterSpec>;
+  inline std__weak_ptr_HybridSearchCompleterSpec_ weakify_std__shared_ptr_HybridSearchCompleterSpec_(const std::shared_ptr<HybridSearchCompleterSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<void>
+  using Result_void_ = Result<void>;
+  inline Result_void_ create_Result_void_() noexcept {
+    return Result<void>::withValue();
+  }
+  inline Result_void_ create_Result_void_(const std::exception_ptr& error) noexcept {
+    return Result<void>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<std::vector<MapItem>>>>
+  using Result_std__shared_ptr_Promise_std__vector_MapItem____ = Result<std::shared_ptr<Promise<std::vector<MapItem>>>>;
+  inline Result_std__shared_ptr_Promise_std__vector_MapItem____ create_Result_std__shared_ptr_Promise_std__vector_MapItem____(const std::shared_ptr<Promise<std::vector<MapItem>>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<MapItem>>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_std__vector_MapItem____ create_Result_std__shared_ptr_Promise_std__vector_MapItem____(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<MapItem>>>>::withError(error);
+  }
+  
+  // pragma MARK: std::vector<RouteStep>
+  /**
+   * Specialized version of `std::vector<RouteStep>`.
+   */
+  using std__vector_RouteStep_ = std::vector<RouteStep>;
+  inline std::vector<RouteStep> create_std__vector_RouteStep_(size_t size) noexcept {
+    std::vector<RouteStep> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<Route>
+  /**
+   * Specialized version of `std::vector<Route>`.
+   */
+  using std__vector_Route_ = std::vector<Route>;
+  inline std::vector<Route> create_std__vector_Route_(size_t size) noexcept {
+    std::vector<Route> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<std::vector<Route>>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<std::vector<Route>>>`.
+   */
+  using std__shared_ptr_Promise_std__vector_Route___ = std::shared_ptr<Promise<std::vector<Route>>>;
+  inline std::shared_ptr<Promise<std::vector<Route>>> create_std__shared_ptr_Promise_std__vector_Route___() noexcept {
+    return Promise<std::vector<Route>>::create();
+  }
+  inline PromiseHolder<std::vector<Route>> wrap_std__shared_ptr_Promise_std__vector_Route___(std::shared_ptr<Promise<std::vector<Route>>> promise) noexcept {
+    return PromiseHolder<std::vector<Route>>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<Route>& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const std::vector<Route>&)>`.
+   */
+  using Func_void_std__vector_Route_ = std::function<void(const std::vector<Route>& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::vector<Route>& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__vector_Route__Wrapper final {
+  public:
+    explicit Func_void_std__vector_Route__Wrapper(std::function<void(const std::vector<Route>& /* result */)>&& func): _function(std::make_unique<std::function<void(const std::vector<Route>& /* result */)>>(std::move(func))) {}
+    inline void call(std::vector<Route> result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::vector<Route>& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__vector_Route_ create_Func_void_std__vector_Route_(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__vector_Route__Wrapper wrap_Func_void_std__vector_Route_(Func_void_std__vector_Route_ value) noexcept {
+    return Func_void_std__vector_Route__Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<Eta>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<Eta>>`.
+   */
+  using std__shared_ptr_Promise_Eta__ = std::shared_ptr<Promise<Eta>>;
+  inline std::shared_ptr<Promise<Eta>> create_std__shared_ptr_Promise_Eta__() noexcept {
+    return Promise<Eta>::create();
+  }
+  inline PromiseHolder<Eta> wrap_std__shared_ptr_Promise_Eta__(std::shared_ptr<Promise<Eta>> promise) noexcept {
+    return PromiseHolder<Eta>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const Eta& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const Eta&)>`.
+   */
+  using Func_void_Eta = std::function<void(const Eta& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const Eta& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_Eta_Wrapper final {
+  public:
+    explicit Func_void_Eta_Wrapper(std::function<void(const Eta& /* result */)>&& func): _function(std::make_unique<std::function<void(const Eta& /* result */)>>(std::move(func))) {}
+    inline void call(Eta result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const Eta& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_Eta create_Func_void_Eta(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_Eta_Wrapper wrap_Func_void_Eta(Func_void_Eta value) noexcept {
+    return Func_void_Eta_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<MapItem>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MapItem>>`.
+   */
+  using std__shared_ptr_Promise_MapItem__ = std::shared_ptr<Promise<MapItem>>;
+  inline std::shared_ptr<Promise<MapItem>> create_std__shared_ptr_Promise_MapItem__() noexcept {
+    return Promise<MapItem>::create();
+  }
+  inline PromiseHolder<MapItem> wrap_std__shared_ptr_Promise_MapItem__(std::shared_ptr<Promise<MapItem>> promise) noexcept {
+    return PromiseHolder<MapItem>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MapItem& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MapItem&)>`.
+   */
+  using Func_void_MapItem = std::function<void(const MapItem& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapItem& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapItem_Wrapper final {
+  public:
+    explicit Func_void_MapItem_Wrapper(std::function<void(const MapItem& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapItem& /* result */)>>(std::move(func))) {}
+    inline void call(MapItem result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapItem& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapItem create_Func_void_MapItem(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapItem_Wrapper wrap_Func_void_MapItem(Func_void_MapItem value) noexcept {
+    return Func_void_MapItem_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<bool>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<bool>>`.
+   */
+  using std__shared_ptr_Promise_bool__ = std::shared_ptr<Promise<bool>>;
+  inline std::shared_ptr<Promise<bool>> create_std__shared_ptr_Promise_bool__() noexcept {
+    return Promise<bool>::create();
+  }
+  inline PromiseHolder<bool> wrap_std__shared_ptr_Promise_bool__(std::shared_ptr<Promise<bool>> promise) noexcept {
+    return PromiseHolder<bool>(std::move(promise));
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<std::string>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<std::string>>`.
+   */
+  using std__shared_ptr_Promise_std__string__ = std::shared_ptr<Promise<std::string>>;
+  inline std::shared_ptr<Promise<std::string>> create_std__shared_ptr_Promise_std__string__() noexcept {
+    return Promise<std::string>::create();
+  }
+  inline PromiseHolder<std::string> wrap_std__shared_ptr_Promise_std__string__(std::shared_ptr<Promise<std::string>> promise) noexcept {
+    return PromiseHolder<std::string>(std::move(promise));
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridMapServicesSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridMapServicesSpec>`.
+   */
+  using std__shared_ptr_HybridMapServicesSpec_ = std::shared_ptr<HybridMapServicesSpec>;
+  std::shared_ptr<HybridMapServicesSpec> create_std__shared_ptr_HybridMapServicesSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridMapServicesSpec_(std__shared_ptr_HybridMapServicesSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridMapServicesSpec>
+  using std__weak_ptr_HybridMapServicesSpec_ = std::weak_ptr<HybridMapServicesSpec>;
+  inline std__weak_ptr_HybridMapServicesSpec_ weakify_std__shared_ptr_HybridMapServicesSpec_(const std::shared_ptr<HybridMapServicesSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<std::shared_ptr<HybridSearchCompleterSpec>>
+  using Result_std__shared_ptr_HybridSearchCompleterSpec__ = Result<std::shared_ptr<HybridSearchCompleterSpec>>;
+  inline Result_std__shared_ptr_HybridSearchCompleterSpec__ create_Result_std__shared_ptr_HybridSearchCompleterSpec__(const std::shared_ptr<HybridSearchCompleterSpec>& value) noexcept {
+    return Result<std::shared_ptr<HybridSearchCompleterSpec>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_HybridSearchCompleterSpec__ create_Result_std__shared_ptr_HybridSearchCompleterSpec__(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<HybridSearchCompleterSpec>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<std::vector<Route>>>>
+  using Result_std__shared_ptr_Promise_std__vector_Route____ = Result<std::shared_ptr<Promise<std::vector<Route>>>>;
+  inline Result_std__shared_ptr_Promise_std__vector_Route____ create_Result_std__shared_ptr_Promise_std__vector_Route____(const std::shared_ptr<Promise<std::vector<Route>>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<Route>>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_std__vector_Route____ create_Result_std__shared_ptr_Promise_std__vector_Route____(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::vector<Route>>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<Eta>>>
+  using Result_std__shared_ptr_Promise_Eta___ = Result<std::shared_ptr<Promise<Eta>>>;
+  inline Result_std__shared_ptr_Promise_Eta___ create_Result_std__shared_ptr_Promise_Eta___(const std::shared_ptr<Promise<Eta>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<Eta>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_Eta___ create_Result_std__shared_ptr_Promise_Eta___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<Eta>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MapItem>>>
+  using Result_std__shared_ptr_Promise_MapItem___ = Result<std::shared_ptr<Promise<MapItem>>>;
+  inline Result_std__shared_ptr_Promise_MapItem___ create_Result_std__shared_ptr_Promise_MapItem___(const std::shared_ptr<Promise<MapItem>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MapItem>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MapItem___ create_Result_std__shared_ptr_Promise_MapItem___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MapItem>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<bool>>>
+  using Result_std__shared_ptr_Promise_bool___ = Result<std::shared_ptr<Promise<bool>>>;
+  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::shared_ptr<Promise<bool>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<bool>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<bool>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<std::string>>>
+  using Result_std__shared_ptr_Promise_std__string___ = Result<std::shared_ptr<Promise<std::string>>>;
+  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::shared_ptr<Promise<std::string>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<std::string>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<std::string>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::string>
+  using Result_std__string_ = Result<std::string>;
+  inline Result_std__string_ create_Result_std__string_(const std::string& value) noexcept {
+    return Result<std::string>::withValue(value);
+  }
+  inline Result_std__string_ create_Result_std__string_(const std::exception_ptr& error) noexcept {
+    return Result<std::string>::withError(error);
   }
   
   // pragma MARK: std::vector<MarkerBadge>
@@ -1007,18 +1410,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return Func_void_MapCoordinate_Wrapper(std::move(value));
   }
   
-  // pragma MARK: std::shared_ptr<Promise<std::string>>
-  /**
-   * Specialized version of `std::shared_ptr<Promise<std::string>>`.
-   */
-  using std__shared_ptr_Promise_std__string__ = std::shared_ptr<Promise<std::string>>;
-  inline std::shared_ptr<Promise<std::string>> create_std__shared_ptr_Promise_std__string__() noexcept {
-    return Promise<std::string>::create();
-  }
-  inline PromiseHolder<std::string> wrap_std__shared_ptr_Promise_std__string__(std::shared_ptr<Promise<std::string>> promise) noexcept {
-    return PromiseHolder<std::string>(std::move(promise));
-  }
-  
   // pragma MARK: std::shared_ptr<Promise<MapAddress>>
   /**
    * Specialized version of `std::shared_ptr<Promise<MapAddress>>`.
@@ -1053,52 +1444,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return Func_void_MapAddress_Wrapper(std::move(value));
   }
   
-  // pragma MARK: std::shared_ptr<Promise<bool>>
-  /**
-   * Specialized version of `std::shared_ptr<Promise<bool>>`.
-   */
-  using std__shared_ptr_Promise_bool__ = std::shared_ptr<Promise<bool>>;
-  inline std::shared_ptr<Promise<bool>> create_std__shared_ptr_Promise_bool__() noexcept {
-    return Promise<bool>::create();
-  }
-  inline PromiseHolder<bool> wrap_std__shared_ptr_Promise_bool__(std::shared_ptr<Promise<bool>> promise) noexcept {
-    return PromiseHolder<bool>(std::move(promise));
-  }
-  
-  // pragma MARK: std::shared_ptr<Promise<MapItem>>
-  /**
-   * Specialized version of `std::shared_ptr<Promise<MapItem>>`.
-   */
-  using std__shared_ptr_Promise_MapItem__ = std::shared_ptr<Promise<MapItem>>;
-  inline std::shared_ptr<Promise<MapItem>> create_std__shared_ptr_Promise_MapItem__() noexcept {
-    return Promise<MapItem>::create();
-  }
-  inline PromiseHolder<MapItem> wrap_std__shared_ptr_Promise_MapItem__(std::shared_ptr<Promise<MapItem>> promise) noexcept {
-    return PromiseHolder<MapItem>(std::move(promise));
-  }
-  
-  // pragma MARK: std::function<void(const MapItem& /* result */)>
-  /**
-   * Specialized version of `std::function<void(const MapItem&)>`.
-   */
-  using Func_void_MapItem = std::function<void(const MapItem& /* result */)>;
-  /**
-   * Wrapper class for a `std::function<void(const MapItem& / * result * /)>`, this can be used from Swift.
-   */
-  class Func_void_MapItem_Wrapper final {
-  public:
-    explicit Func_void_MapItem_Wrapper(std::function<void(const MapItem& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapItem& /* result */)>>(std::move(func))) {}
-    inline void call(MapItem result) const noexcept {
-      _function->operator()(result);
-    }
-  private:
-    std::unique_ptr<std::function<void(const MapItem& /* result */)>> _function;
-  } SWIFT_NONCOPYABLE;
-  Func_void_MapItem create_Func_void_MapItem(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_MapItem_Wrapper wrap_Func_void_MapItem(Func_void_MapItem value) noexcept {
-    return Func_void_MapItem_Wrapper(std::move(value));
-  }
-  
   // pragma MARK: std::shared_ptr<HybridMunimMapViewSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridMunimMapViewSpec>`.
@@ -1110,15 +1455,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   // pragma MARK: std::weak_ptr<HybridMunimMapViewSpec>
   using std__weak_ptr_HybridMunimMapViewSpec_ = std::weak_ptr<HybridMunimMapViewSpec>;
   inline std__weak_ptr_HybridMunimMapViewSpec_ weakify_std__shared_ptr_HybridMunimMapViewSpec_(const std::shared_ptr<HybridMunimMapViewSpec>& strong) noexcept { return strong; }
-  
-  // pragma MARK: Result<void>
-  using Result_void_ = Result<void>;
-  inline Result_void_ create_Result_void_() noexcept {
-    return Result<void>::withValue();
-  }
-  inline Result_void_ create_Result_void_(const std::exception_ptr& error) noexcept {
-    return Result<void>::withError(error);
-  }
   
   // pragma MARK: Result<std::shared_ptr<Promise<MapCamera>>>
   using Result_std__shared_ptr_Promise_MapCamera___ = Result<std::shared_ptr<Promise<MapCamera>>>;
@@ -1156,15 +1492,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return Result<std::shared_ptr<Promise<MapCoordinate>>>::withError(error);
   }
   
-  // pragma MARK: Result<std::shared_ptr<Promise<std::string>>>
-  using Result_std__shared_ptr_Promise_std__string___ = Result<std::shared_ptr<Promise<std::string>>>;
-  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::shared_ptr<Promise<std::string>>& value) noexcept {
-    return Result<std::shared_ptr<Promise<std::string>>>::withValue(value);
-  }
-  inline Result_std__shared_ptr_Promise_std__string___ create_Result_std__shared_ptr_Promise_std__string___(const std::exception_ptr& error) noexcept {
-    return Result<std::shared_ptr<Promise<std::string>>>::withError(error);
-  }
-  
   // pragma MARK: Result<std::shared_ptr<Promise<MapAddress>>>
   using Result_std__shared_ptr_Promise_MapAddress___ = Result<std::shared_ptr<Promise<MapAddress>>>;
   inline Result_std__shared_ptr_Promise_MapAddress___ create_Result_std__shared_ptr_Promise_MapAddress___(const std::shared_ptr<Promise<MapAddress>>& value) noexcept {
@@ -1172,24 +1499,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_MapAddress___ create_Result_std__shared_ptr_Promise_MapAddress___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<MapAddress>>>::withError(error);
-  }
-  
-  // pragma MARK: Result<std::shared_ptr<Promise<bool>>>
-  using Result_std__shared_ptr_Promise_bool___ = Result<std::shared_ptr<Promise<bool>>>;
-  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::shared_ptr<Promise<bool>>& value) noexcept {
-    return Result<std::shared_ptr<Promise<bool>>>::withValue(value);
-  }
-  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::exception_ptr& error) noexcept {
-    return Result<std::shared_ptr<Promise<bool>>>::withError(error);
-  }
-  
-  // pragma MARK: Result<std::shared_ptr<Promise<MapItem>>>
-  using Result_std__shared_ptr_Promise_MapItem___ = Result<std::shared_ptr<Promise<MapItem>>>;
-  inline Result_std__shared_ptr_Promise_MapItem___ create_Result_std__shared_ptr_Promise_MapItem___(const std::shared_ptr<Promise<MapItem>>& value) noexcept {
-    return Result<std::shared_ptr<Promise<MapItem>>>::withValue(value);
-  }
-  inline Result_std__shared_ptr_Promise_MapItem___ create_Result_std__shared_ptr_Promise_MapItem___(const std::exception_ptr& error) noexcept {
-    return Result<std::shared_ptr<Promise<MapItem>>>::withError(error);
   }
   
   // pragma MARK: std::vector<double>

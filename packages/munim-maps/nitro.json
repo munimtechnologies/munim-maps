@@ -36,6 +36,18 @@
         "language": "swift",
         "implementationClassName": "HybridMapControl"
       }
+    },
+    "MapServices": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMapServices"
+      }
+    },
+    "LookAroundView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridLookAroundView"
+      }
     }
   },
   "ignorePaths": [

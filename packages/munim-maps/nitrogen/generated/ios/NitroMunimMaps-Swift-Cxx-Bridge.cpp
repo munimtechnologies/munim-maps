@@ -8,15 +8,50 @@
 #include "NitroMunimMaps-Swift-Cxx-Bridge.hpp"
 
 // Include C++ implementation defined types
+#include "HybridLookAroundViewSpecSwift.hpp"
 #include "HybridMapControlSpecSwift.hpp"
 #include "HybridMapModelLayerSpecSwift.hpp"
+#include "HybridMapServicesSpecSwift.hpp"
 #include "HybridMunimMapViewSpecSwift.hpp"
 #include "HybridMunimTerrainSpecSwift.hpp"
+#include "HybridSearchCompleterSpecSwift.hpp"
 #include "NitroMunimMaps-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
 
 namespace margelo::nitro::munimmaps::bridge::swift {
 
+  // pragma MARK: std::function<void(bool /* available */)>
+  Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_bool::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](bool available) mutable -> void {
+      swiftClosure.call(available);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const std::string& /* message */)>
+  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_std__string::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::string& message) mutable -> void {
+      swiftClosure.call(message);
+    };
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridLookAroundViewSpec>
+  std::shared_ptr<HybridLookAroundViewSpec> create_std__shared_ptr_HybridLookAroundViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroMunimMaps::HybridLookAroundViewSpec_cxx swiftPart = NitroMunimMaps::HybridLookAroundViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::munimmaps::HybridLookAroundViewSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridLookAroundViewSpec_(std__shared_ptr_HybridLookAroundViewSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::munimmaps::HybridLookAroundViewSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::munimmaps::HybridLookAroundViewSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridLookAroundViewSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroMunimMaps::HybridLookAroundViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMapControlSpec>
   std::shared_ptr<HybridMapControlSpec> create_std__shared_ptr_HybridMapControlSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroMunimMaps::HybridMapControlSpec_cxx swiftPart = NitroMunimMaps::HybridMapControlSpec_cxx::fromUnsafe(swiftUnsafePointer);
@@ -31,22 +66,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     #endif
     NitroMunimMaps::HybridMapControlSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
-  }
-  
-  // pragma MARK: std::function<void(const std::string& /* id */)>
-  Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroMunimMaps::Func_void_std__string::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](const std::string& id) mutable -> void {
-      swiftClosure.call(id);
-    };
-  }
-  
-  // pragma MARK: std::function<void(bool /* attached */)>
-  Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroMunimMaps::Func_void_bool::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](bool attached) mutable -> void {
-      swiftClosure.call(attached);
-    };
   }
   
   // pragma MARK: std::function<void(const MapAlignmentReport& /* result */)>
@@ -78,6 +97,78 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     }
     #endif
     NitroMunimMaps::HybridMapModelLayerSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<SearchCompletion>& /* results */)>
+  Func_void_std__vector_SearchCompletion_ create_Func_void_std__vector_SearchCompletion_(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_std__vector_SearchCompletion_::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::vector<SearchCompletion>& results) mutable -> void {
+      swiftClosure.call(results);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<MapItem>& /* result */)>
+  Func_void_std__vector_MapItem_ create_Func_void_std__vector_MapItem_(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_std__vector_MapItem_::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::vector<MapItem>& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridSearchCompleterSpec>
+  std::shared_ptr<HybridSearchCompleterSpec> create_std__shared_ptr_HybridSearchCompleterSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroMunimMaps::HybridSearchCompleterSpec_cxx swiftPart = NitroMunimMaps::HybridSearchCompleterSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::munimmaps::HybridSearchCompleterSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridSearchCompleterSpec_(std__shared_ptr_HybridSearchCompleterSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::munimmaps::HybridSearchCompleterSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::munimmaps::HybridSearchCompleterSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridSearchCompleterSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroMunimMaps::HybridSearchCompleterSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::function<void(const std::vector<Route>& /* result */)>
+  Func_void_std__vector_Route_ create_Func_void_std__vector_Route_(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_std__vector_Route_::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::vector<Route>& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const Eta& /* result */)>
+  Func_void_Eta create_Func_void_Eta(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_Eta::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const Eta& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapItem& /* result */)>
+  Func_void_MapItem create_Func_void_MapItem(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapItem::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapItem& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridMapServicesSpec>
+  std::shared_ptr<HybridMapServicesSpec> create_std__shared_ptr_HybridMapServicesSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroMunimMaps::HybridMapServicesSpec_cxx swiftPart = NitroMunimMaps::HybridMapServicesSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::munimmaps::HybridMapServicesSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridMapServicesSpec_(std__shared_ptr_HybridMapServicesSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::munimmaps::HybridMapServicesSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::munimmaps::HybridMapServicesSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridMapServicesSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroMunimMaps::HybridMapServicesSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
   }
   
@@ -189,14 +280,6 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   Func_void_MapAddress create_Func_void_MapAddress(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroMunimMaps::Func_void_MapAddress::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](const MapAddress& result) mutable -> void {
-      swiftClosure.call(result);
-    };
-  }
-  
-  // pragma MARK: std::function<void(const MapItem& /* result */)>
-  Func_void_MapItem create_Func_void_MapItem(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroMunimMaps::Func_void_MapItem::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](const MapItem& result) mutable -> void {
       swiftClosure.call(result);
     };
   }

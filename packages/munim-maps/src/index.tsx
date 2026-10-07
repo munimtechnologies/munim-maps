@@ -64,6 +64,7 @@ import type {
   MarkerStyle,
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
+import { pointsOfInterestFilter } from './services'
 import {
   toNativeClusterStyle,
   toNativeCircle,
@@ -594,7 +595,10 @@ export interface MunimMapViewProperties {
    */
   mapScope?: string
   showsTraffic?: boolean
-  /** `'all'`, `'none'`, or the `MKPOICategory…` values to show. Default `'all'`. */
+  /**
+   * `'all'`, `'none'`, or the categories to show: `MKPOICategory…` values or
+   * their short names (`'cafe'`, `'evCharger'`). Default `'all'`.
+   */
   pointsOfInterest?: 'all' | 'none' | string[]
   /**
    * MapKit's user tracking, exactly like `MKMapView.userTrackingMode`:
@@ -720,9 +724,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
-    const pointsOfInterest = Array.isArray(props.pointsOfInterest)
-      ? props.pointsOfInterest.join(',')
-      : (props.pointsOfInterest ?? 'all')
+    const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
         callback((instance: MunimMapViewRef) => {
@@ -806,6 +808,13 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
   }
 )
+
+export * from './services'
+export {
+  LookAroundView,
+  type LookAroundViewProperties,
+  type LookAroundBadgePosition,
+} from './LookAroundView'
 
 export {
   MapCompass,

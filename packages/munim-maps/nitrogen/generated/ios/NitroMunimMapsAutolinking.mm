@@ -14,6 +14,8 @@
 #include "HybridMunimMapViewSpecSwift.hpp"
 #include "HybridMunimTerrainSpecSwift.hpp"
 #include "HybridMapControlSpecSwift.hpp"
+#include "HybridMapServicesSpecSwift.hpp"
+#include "HybridLookAroundViewSpecSwift.hpp"
 
 @interface NitroMunimMapsAutolinking : NSObject
 @end
@@ -49,6 +51,20 @@
     "MapControl",
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridMapControlSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMapControl();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MapServices",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMapServicesSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMapServices();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "LookAroundView",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridLookAroundViewSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createLookAroundView();
       return hybridObject;
     }
   );
