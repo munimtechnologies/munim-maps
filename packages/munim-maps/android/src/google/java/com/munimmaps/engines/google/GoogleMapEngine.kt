@@ -54,6 +54,7 @@ import com.margelo.nitro.munimmaps.MapRegion
 import com.margelo.nitro.munimmaps.MapStyle
 import com.margelo.nitro.munimmaps.NativeCircle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
+import com.margelo.nitro.munimmaps.MarkerStyle
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -482,7 +483,47 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
     applyGoogleOverlays()
   }
 
-  override fun setMarkers(markers: Array<NativeMarker>) { this.markers = markers; applyMarkers(); mode3d?.setMarkers(markers) }
+  override fun setMarkers(markers: Array<NativeMarker>) {
+    appMarkers = markers
+    showMarkers()
+  }
+
+  // MarkerView: React Native views drawn into bitmaps, shown as image markers.
+  private var appMarkers: Array<NativeMarker> = emptyArray()
+  private val viewMarkers = LinkedHashMap<String, NativeMarker>()
+  /** The bitmaps of `MarkerView`s, by the `imageUri` their markers carry. */
+  internal val viewBitmaps = HashMap<String, Bitmap>()
+  private var viewGeneration = 0
+
+  override fun setViewMarker(marker: NativeMarker, image: Bitmap?) = putViewMarker(marker, image)
+
+  override fun setViewMarkerImage(image: Bitmap?, id: String) {
+    val marker = viewMarkers[id] ?: return
+    putViewMarker(marker, image)
+  }
+
+  override fun removeViewMarker(id: String) {
+    val marker = viewMarkers.remove(id) ?: return
+    viewBitmaps.remove(marker.imageUri)
+    showMarkers()
+  }
+
+  private fun putViewMarker(marker: NativeMarker, image: Bitmap?) {
+    var uri = viewMarkers[marker.id]?.imageUri ?: ""
+    if (image != null) {
+      viewBitmaps.remove(uri)
+      uri = "munim-view:${marker.id}:${++viewGeneration}"
+      viewBitmaps[uri] = image
+    }
+    viewMarkers[marker.id] = marker.copy(style = MarkerStyle.IMAGE, imageUri = uri)
+    showMarkers()
+  }
+
+  private fun showMarkers() {
+    markers = appMarkers + viewMarkers.values
+    applyMarkers()
+    mode3d?.setMarkers(markers)
+  }
   override fun setPolylines(polylines: Array<NativePolyline>) { this.polylines = polylines; applyPolylines(); mode3d?.setPolylines(polylines) }
   override fun setPolygons(polygons: Array<NativePolygon>) { this.polygons = polygons; applyPolygons(); mode3d?.setPolygons(polygons) }
 

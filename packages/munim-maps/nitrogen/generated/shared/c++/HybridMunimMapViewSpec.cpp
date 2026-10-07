@@ -144,6 +144,7 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridMethod("stopFlight", &HybridMunimMapViewSpec::stopFlight);
       prototype.registerHybridMethod("getCamera", &HybridMunimMapViewSpec::getCamera);
       prototype.registerHybridMethod("setRegion", &HybridMunimMapViewSpec::setRegion);
+      prototype.registerHybridMethod("animateToRegion", &HybridMunimMapViewSpec::animateToRegion);
       prototype.registerHybridMethod("getVisibleRegion", &HybridMunimMapViewSpec::getVisibleRegion);
       prototype.registerHybridMethod("fitToCoordinates", &HybridMunimMapViewSpec::fitToCoordinates);
       prototype.registerHybridMethod("fitToMarkers", &HybridMunimMapViewSpec::fitToMarkers);

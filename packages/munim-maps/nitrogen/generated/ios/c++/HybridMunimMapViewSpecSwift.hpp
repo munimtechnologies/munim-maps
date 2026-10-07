@@ -677,6 +677,12 @@ namespace margelo::nitro::munimmaps {
         std::rethrow_exception(__result.error());
       }
     }
+    inline void animateToRegion(const MapRegion& region, double durationMs) override {
+      auto __result = _swiftPart.animateToRegion(std::forward<decltype(region)>(region), std::forward<decltype(durationMs)>(durationMs));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
     inline std::shared_ptr<Promise<MapRegion>> getVisibleRegion() override {
       auto __result = _swiftPart.getVisibleRegion();
       if (__result.hasError()) [[unlikely]] {

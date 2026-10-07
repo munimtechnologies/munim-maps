@@ -312,6 +312,10 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     DispatchQueue.main.async { self.map.setRegion(region.mapKit, duration: durationMs / 1000) }
   }
 
+  func animateToRegion(region: MapRegion, durationMs: Double) throws {
+    try setRegion(region: region, durationMs: durationMs)
+  }
+
   func getVisibleRegion() throws -> Promise<MapRegion> {
     mainPromise {
       let r = self.map.visibleRegion

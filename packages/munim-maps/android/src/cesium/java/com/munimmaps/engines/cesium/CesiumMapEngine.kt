@@ -47,6 +47,7 @@ import com.margelo.nitro.munimmaps.NativeClusterStyle
 import com.margelo.nitro.munimmaps.NativeMapModel
 import com.margelo.nitro.munimmaps.NativeMapPath
 import com.margelo.nitro.munimmaps.NativeMapZone
+import com.margelo.nitro.munimmaps.MarkerStyle
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -258,6 +259,7 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       "overlayPress" -> l?.onOverlayPress(OverlayPressEvent(d.optString("id"), d.optString("kind"), lat(), lon()))
       "markerDragStart" -> l?.onMarkerDragStart(MarkerDragEvent(d.optString("id"), lat(), lon()))
       "markerDragEnd" -> l?.onMarkerDragEnd(MarkerDragEvent(d.optString("id"), lat(), lon()))
+      "markerDrag" -> l?.onMarkerDrag(MarkerDragEvent(d.optString("id"), lat(), lon()))
       "modelPress" -> modelLayer.onModelPress?.invoke(d.optString("id"))
       "userTrackingModeChange" -> {
         trackingMode = when (d.optString("mode")) {
@@ -391,7 +393,43 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     setPaths(allPaths)
   }
 
-  override fun setMarkers(markers: Array<NativeMarker>) = set("markers", markers)
+  override fun setMarkers(markers: Array<NativeMarker>) {
+    appMarkers = markers
+    sendMarkers()
+  }
+
+  // MarkerView: the React Native views drawn to a PNG, sent as an image marker.
+  private var appMarkers: Array<NativeMarker> = emptyArray()
+  private val viewMarkers = LinkedHashMap<String, NativeMarker>()
+
+  private fun sendMarkers() = set("markers", appMarkers + viewMarkers.values)
+
+  private fun viewMarker(marker: NativeMarker, image: android.graphics.Bitmap?, previous: NativeMarker?): NativeMarker {
+    if (image == null) return marker.copy(style = previous?.style ?: MarkerStyle.IMAGE, imageUri = previous?.imageUri ?: "", imageSize = previous?.imageSize ?: marker.imageSize)
+    val png = java.io.ByteArrayOutputStream()
+    image.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, png)
+    val scale = if (image.density > 0) 160.0 / image.density else 1.0
+    return marker.copy(
+      style = MarkerStyle.IMAGE,
+      imageUri = "data:image/png;base64," + android.util.Base64.encodeToString(png.toByteArray(), android.util.Base64.NO_WRAP),
+      imageSize = maxOf(image.width, image.height) * scale,
+    )
+  }
+
+  override fun setViewMarker(marker: NativeMarker, image: android.graphics.Bitmap?) {
+    viewMarkers[marker.id] = viewMarker(marker, image, viewMarkers[marker.id])
+    sendMarkers()
+  }
+
+  override fun setViewMarkerImage(image: android.graphics.Bitmap?, id: String) {
+    val marker = viewMarkers[id] ?: return
+    viewMarkers[id] = viewMarker(marker, image, marker)
+    sendMarkers()
+  }
+
+  override fun removeViewMarker(id: String) {
+    if (viewMarkers.remove(id) != null) sendMarkers()
+  }
   override fun setPolylines(polylines: Array<NativePolyline>) = set("polylines", polylines)
   override fun setPolygons(polygons: Array<NativePolygon>) = set("polygons", polygons)
   override fun setCircles(circles: Array<NativeCircle>) = set("circles", circles)

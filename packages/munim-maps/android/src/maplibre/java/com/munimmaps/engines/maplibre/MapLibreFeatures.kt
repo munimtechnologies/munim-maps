@@ -159,11 +159,54 @@ internal class MapLibreFeatures(
   // MARK: Markers
 
   fun setMarkers(value: Array<NativeMarker>) {
+    appMarkers = value
+    showMarkers(appMarkers + viewMarkers.values)
+  }
+
+  // MARK: MarkerView (React Native views drawn into bitmaps, shown as image markers)
+
+  private var appMarkers: Array<NativeMarker> = emptyArray()
+  private val viewMarkers = LinkedHashMap<String, NativeMarker>()
+  private val viewBitmaps = HashMap<String, Bitmap>()
+  private var viewGeneration = 0
+
+  fun setViewMarker(marker: NativeMarker, image: Bitmap?) = putViewMarker(marker, image)
+
+  fun setViewMarkerImage(image: Bitmap?, id: String) {
+    val marker = viewMarkers[id] ?: return
+    putViewMarker(marker, image)
+  }
+
+  fun removeViewMarker(id: String) {
+    val marker = viewMarkers.remove(id) ?: return
+    dropViewBitmap(marker.imageUri)
+    showMarkers(appMarkers + viewMarkers.values)
+  }
+
+  private fun putViewMarker(marker: NativeMarker, image: Bitmap?) {
+    var uri = viewMarkers[marker.id]?.imageUri ?: ""
+    if (image != null) {
+      dropViewBitmap(uri)
+      uri = "munim-view:${marker.id}:${++viewGeneration}"
+      viewBitmaps[uri] = image
+    }
+    viewMarkers[marker.id] = marker.copy(style = MarkerStyle.IMAGE, imageUri = uri)
+    showMarkers(appMarkers + viewMarkers.values)
+  }
+
+  private fun dropViewBitmap(uri: String) {
+    if (viewBitmaps.remove(uri) == null) return
+    val name = "munim-view|$uri"
+    if (images.remove(name) != null) style?.removeImage(name)
+  }
+
+  private fun showMarkers(value: Array<NativeMarker>) {
     markers = value
     markerIds.clear()
     value.forEach { markerIds[it.id] = it }
     for (m in value) {
-      if (m.imageUri.isNotEmpty() && (m.style == MarkerStyle.IMAGE || m.style == MarkerStyle.AVATAR)) loadPhoto(m.imageUri)
+      if (m.imageUri.isNotEmpty() && !viewBitmaps.containsKey(m.imageUri) &&
+        (m.style == MarkerStyle.IMAGE || m.style == MarkerStyle.AVATAR)) loadPhoto(m.imageUri)
     }
     if (selectedId != null && markerIds[selectedId!!] == null) hideCallout()
     applyMarkers()
@@ -200,6 +243,15 @@ internal class MapLibreFeatures(
   }
 
   private fun imageName(m: NativeMarker, selected: Boolean): String {
+    viewBitmaps[m.imageUri]?.let { bitmap ->
+      // A MarkerView: the views as drawn (their density is set).
+      val name = "munim-view|${m.imageUri}"
+      if (!images.containsKey(name)) {
+        images[name] = bitmap
+        style?.addImage(name, bitmap)
+      }
+      return name
+    }
     val drawn = MarkerBitmaps.draw(m, photos[m.imageUri], density, selected)
     val name = "munim-m|" + Integer.toHexString((MarkerBitmaps.key(m, photos[m.imageUri] != null) + selected).hashCode())
     if (!images.containsKey(name)) {

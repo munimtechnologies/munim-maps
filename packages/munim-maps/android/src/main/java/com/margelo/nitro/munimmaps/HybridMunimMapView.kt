@@ -276,6 +276,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   }
 
   override fun setRegion(region: MapRegion, durationMs: Double) = onMain { it.stopFlight(); it.setRegion(region, durationMs) }
+  override fun animateToRegion(region: MapRegion, durationMs: Double) = setRegion(region, durationMs)
 
   override fun getVisibleRegion(): Promise<MapRegion> = mainPromise { e, p ->
     val region = e.getVisibleRegion()

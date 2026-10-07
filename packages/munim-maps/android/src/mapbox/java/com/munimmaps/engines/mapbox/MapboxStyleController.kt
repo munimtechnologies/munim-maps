@@ -784,6 +784,37 @@ internal class MapboxStyleController(private val engine: MapboxMapEngine) {
     engine.listener?.onProviderEvent("interaction", payload.toString())
   }
 
+  // Taps on Mapbox Standard's places (`selectableMapFeatures` → `onMapFeaturePress`)
+
+  private val selectableCancelables = mutableListOf<Cancelable>()
+  private var selectable: Set<String> = emptySet()
+
+  fun setSelectableFeatures(features: String) {
+    val next = features.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    if (next == selectable) return
+    selectable = next
+    selectableCancelables.forEach { it.cancel() }
+    selectableCancelables.clear()
+    val sets = mutableListOf<Pair<String, String>>()
+    if ("pointsOfInterest" in next) sets += listOf("poi" to "pointOfInterest", "landmark-icons" to "pointOfInterest")
+    if ("territories" in next) sets += "place-labels" to "territory"
+    for ((featureset, kind) in sets) {
+      val handler: (FeaturesetFeature<FeatureState>, com.mapbox.maps.InteractionContext) -> Boolean = { feature, context ->
+        val original = feature.originalFeature
+        val properties = original.properties()
+        fun text(key: String) = properties?.get(key)?.takeIf { it.isJsonPrimitive }?.asString ?: ""
+        val category = text("class").ifEmpty { text("group") }.ifEmpty { text("type") }
+        val point = original.geometry() as? com.mapbox.geojson.Point ?: context.coordinateInfo.coordinate
+        val id = feature.id?.featureId?.let { "$featureset:$it" } ?: ""
+        engine.listener?.onMapFeaturePress(
+          com.margelo.nitro.munimmaps.MapFeatureEvent(text("name"), point.latitude(), point.longitude(), kind, category, id)
+        )
+        true
+      }
+      selectableCancelables.add(engine.map.addInteraction(ClickInteraction.featureset(featureset, "basemap", null, null, handler)))
+    }
+  }
+
   private fun clearInteractionStates() {
     val map = engine.map
     for ((_, feature) in selectedByInteraction) runCatching { map.removeFeatureState(feature) }
@@ -795,6 +826,8 @@ internal class MapboxStyleController(private val engine: MapboxMapEngine) {
     events.clear()
     interactionCancelables.forEach { it.cancel() }
     interactionCancelables.clear()
+    selectableCancelables.forEach { it.cancel() }
+    selectableCancelables.clear()
   }
 
   companion object {

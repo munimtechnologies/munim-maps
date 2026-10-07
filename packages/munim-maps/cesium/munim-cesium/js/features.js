@@ -864,6 +864,8 @@
       if (ground) {
         drag.entry.entity.position = ground
         M.requestRender()
+        const p = M.fromCartesian(ground)
+        M.emit('markerDrag', { id: drag.entry.spec.id, latitude: p.latitude, longitude: p.longitude })
       }
     }, C.ScreenSpaceEventType.MOUSE_MOVE)
     handler.setInputAction(() => {

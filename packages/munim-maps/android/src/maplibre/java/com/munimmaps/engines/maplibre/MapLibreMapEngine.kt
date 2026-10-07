@@ -779,6 +779,9 @@ class MapLibreMapEngine(private val context: Context) : MunimMapEngine, MapCamer
   // MARK: 2D content
 
   override fun setMarkers(markers: Array<NativeMarker>) = features.setMarkers(markers)
+  override fun setViewMarker(marker: NativeMarker, image: android.graphics.Bitmap?) = features.setViewMarker(marker, image)
+  override fun setViewMarkerImage(image: android.graphics.Bitmap?, id: String) = features.setViewMarkerImage(image, id)
+  override fun removeViewMarker(id: String) = features.removeViewMarker(id)
   override fun setPolylines(polylines: Array<NativePolyline>) = features.setShapes(polylines = polylines)
   override fun setPolygons(polygons: Array<NativePolygon>) = features.setShapes(polygons = polygons)
   override fun setCircles(circles: Array<NativeCircle>) = features.setShapes(circles = circles)

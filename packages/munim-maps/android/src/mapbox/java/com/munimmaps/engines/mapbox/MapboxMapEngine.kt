@@ -395,6 +395,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   /** glTF models Mapbox draws itself (`mapbox.modelRendering`); the rest go to the Filament layer. */
   override fun setModels(models: Array<NativeMapModel>) { modelLayer.models = nativeModels.setModels(models) }
 
+  override fun setSelectableMapFeatures(features: String) = style.setSelectableFeatures(features)
   override fun setMarkers(markers: Array<NativeMarker>) = annotations.setMarkers(markers)
   override fun setClusterStyles(styles: Array<NativeClusterStyle>) = annotations.setClusterStyles(styles)
   override fun setViewMarker(marker: NativeMarker, image: Bitmap?) = annotations.setViewMarker(marker, image)

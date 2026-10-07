@@ -1,4 +1,4 @@
-import { forwardRef, useMemo, type ReactNode } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
   Platform,
   StyleSheet,
@@ -547,7 +547,19 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
    * Default OpenFreeMap Liberty for MapLibre, Mapbox Standard for Mapbox.
    */
   styleUrl?: string
-  initialCamera: MapCamera
+  /**
+   * Where the camera starts. One of `initialCamera`, `initialRegion` or
+   * `region` is needed.
+   */
+  initialCamera?: MapCamera
+  /** Where the map starts, as a region (react-native-maps' `initialRegion`). */
+  initialRegion?: MapRegion
+  /**
+   * A controlled region (react-native-maps' `region`): the map jumps to it
+   * whenever it changes. Store the region from `onRegionChangeComplete` in
+   * the same state, and the map does not move again for it.
+   */
+  region?: MapRegion
   // 3D
   models?: MapModel[]
   zones?: MapZone[]
@@ -664,6 +676,10 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onModelPress?: (id: string) => void
   onCameraChange?: (camera: MapCamera) => void
   onCameraMove?: (camera: MapCamera) => void
+  /** The camera started moving (a gesture, an animation or a jump). */
+  onRegionChangeStart?: () => void
+  /** The camera stopped: the visible region (react-native-maps' event). */
+  onRegionChangeComplete?: (region: MapRegion) => void
   onMapReady?: () => void
   onPress?: (event: MapPressEvent) => void
   onLongPress?: (event: MapPressEvent) => void
@@ -728,6 +744,47 @@ function insets(padding?: Partial<EdgeInsets>): EdgeInsets {
   }
 }
 
+/** The same region to well under a metre. */
+function sameRegion(a?: MapRegion, b?: MapRegion): boolean {
+  if (!a || !b) return false
+  const close = (x: number, y: number) => Math.abs(x - y) < 1e-6
+  return (
+    close(a.latitude, b.latitude) &&
+    close(a.longitude, b.longitude) &&
+    close(a.latitudeDelta, b.latitudeDelta) &&
+    close(a.longitudeDelta, b.longitudeDelta)
+  )
+}
+
+/**
+ * A camera showing about `region` before the map can frame it exactly
+ * (`setRegion` once the map is ready).
+ */
+function cameraForRegion(region: MapRegion): MapCamera {
+  const metresPerDegree = 111_320
+  const height = Math.max(
+    region.latitudeDelta * metresPerDegree,
+    region.longitudeDelta *
+      metresPerDegree *
+      Math.cos((region.latitude * Math.PI) / 180)
+  )
+  return {
+    latitude: region.latitude,
+    longitude: region.longitude,
+    distance: Math.max(height, 1) * 1.7,
+    pitch: 0,
+    heading: 0,
+  }
+}
+
+const WORLD_CAMERA: MapCamera = {
+  latitude: 0,
+  longitude: 0,
+  distance: 20_000_000,
+  pitch: 0,
+  heading: 0,
+}
+
 function useMapped<T, N>(items: T[] | undefined, map: (item: T) => N): N[] {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => (items ?? []).map(map), [items])
@@ -748,9 +805,96 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const circles = useMapped(props.circles, toNativeCircle)
     const tileOverlays = useMapped(props.tileOverlays, toNativeTileOverlay)
     const onModelPress = useCallbackProp(props.onModelPress)
-    const onCameraChange = useCallbackProp(props.onCameraChange)
-    const onCameraMove = useCallbackProp(props.onCameraMove)
-    const onMapReady = useCallbackProp(props.onMapReady)
+    // Regions (react-native-maps' `region`, `initialRegion`,
+    // `onRegionChangeStart` and `onRegionChangeComplete`) on top of the
+    // camera events.
+    const latest = useRef(props)
+    latest.current = props
+    const instance = useRef<MunimMapViewRef | null>(null)
+    const ready = useRef(false)
+    const moving = useRef(false)
+    const reportedRegion = useRef<MapRegion | undefined>(undefined)
+    const appliedRegion = useRef<MapRegion | undefined>(undefined)
+    const showRegion = (region: MapRegion) => {
+      appliedRegion.current = region
+      instance.current?.setRegion(region, 0)
+    }
+    const wantsMoves = !!(props.onCameraMove || props.onRegionChangeStart)
+    const wantsChanges = !!(
+      props.onCameraChange ||
+      props.onRegionChangeComplete ||
+      props.onRegionChangeStart ||
+      props.region
+    )
+    const onCameraMove = useMemo(
+      () =>
+        wantsMoves
+          ? callback((camera: MapCamera) => {
+              if (!moving.current) {
+                moving.current = true
+                latest.current.onRegionChangeStart?.()
+              }
+              latest.current.onCameraMove?.(camera)
+            })
+          : undefined,
+      [wantsMoves]
+    )
+    const onCameraChange = useMemo(
+      () =>
+        wantsChanges
+          ? callback((camera: MapCamera) => {
+              moving.current = false
+              latest.current.onCameraChange?.(camera)
+              const map = instance.current
+              if (!map || !latest.current.onRegionChangeComplete) return
+              map
+                .getVisibleRegion()
+                .then((region) => {
+                  reportedRegion.current = region
+                  latest.current.onRegionChangeComplete?.(region)
+                })
+                .catch(() => {})
+            })
+          : undefined,
+      [wantsChanges]
+    )
+    const onMapReady = useMemo(
+      () =>
+        callback(() => {
+          ready.current = true
+          const {
+            region: controlled,
+            initialRegion,
+            initialCamera,
+          } = latest.current
+          const region =
+            controlled ?? (initialCamera ? undefined : initialRegion)
+          if (region) showRegion(region)
+          latest.current.onMapReady?.()
+        }),
+
+      []
+    )
+    // Without `initialCamera`, the camera for the first region, kept so the
+    // native prop does not change with `region`.
+    const regionCamera = useRef<MapCamera | undefined>(undefined)
+    if (!regionCamera.current) {
+      const first = props.region ?? props.initialRegion
+      regionCamera.current = first ? cameraForRegion(first) : WORLD_CAMERA
+    }
+    const region = props.region
+    useEffect(() => {
+      if (!region || !ready.current) return
+      if (sameRegion(region, reportedRegion.current)) return
+      if (sameRegion(region, appliedRegion.current)) return
+      showRegion(region)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      region?.latitude,
+      region?.longitude,
+      region?.latitudeDelta,
+      region?.longitudeDelta,
+    ])
     const onPress = useCallbackProp(props.onPress)
     const onLongPress = useCallbackProp(props.onLongPress)
     const onMarkerPress = useCallbackProp(props.onMarkerPress)
@@ -784,9 +928,10 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
-        callback((instance: MunimMapViewRef) => {
-          if (typeof ref === 'function') ref(instance)
-          else if (ref) ref.current = instance
+        callback((map: MunimMapViewRef) => {
+          instance.current = map
+          if (typeof ref === 'function') ref(map)
+          else if (ref) ref.current = map
         }),
       [ref]
     )
@@ -807,7 +952,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         occlusion={props.occlusion ?? 'none'}
         buildingTilesUrl={props.buildingTilesUrl ?? ''}
         followTerrain={props.followTerrain ?? false}
-        initialCamera={props.initialCamera}
+        initialCamera={props.initialCamera ?? regionCamera.current}
         mapStyle={props.mapStyle ?? 'standard'}
         elevation={props.elevation ?? 'realistic'}
         globe={props.globe ?? false}
@@ -929,6 +1074,7 @@ export {
   type MapLibreMapOptions,
   type MapProvider,
   type MapProviderEvent,
+  type ModelRendering,
   type MunimMapsConfiguration,
   type ProviderCommandTarget,
   type ProviderOptionProps,

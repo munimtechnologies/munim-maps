@@ -284,6 +284,8 @@ public final class MunimMapKitView: UIView {
   public var onOverlayPress: ((String, String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
+  /// While a marker is dragged: its coordinate about once a frame.
+  public var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)?
   public var onUserLocationChange: ((CLLocation) -> Void)?
   public var onMapFeaturePress: ((MunimMapFeature) -> Void)?
   /// MapKit changed the user tracking mode: the user panned or zoomed away,
@@ -825,13 +827,53 @@ public final class MunimMapKitView: UIView {
     onCalloutAccessoryPress?(a.id, side)
   }
 
-  fileprivate func dragChanged(_ annotation: MKAnnotation, to state: MKAnnotationView.DragState) {
-    guard let a = annotation as? MunimAnnotation else { return }
+  fileprivate func dragChanged(_ view: MKAnnotationView, to state: MKAnnotationView.DragState) {
+    guard let a = view.annotation as? MunimAnnotation else { return }
     switch state {
-    case .starting: onMarkerDragStart?(a.id, a.coordinate)
-    case .ending, .canceling: onMarkerDragEnd?(a.id, a.coordinate)
+    case .starting:
+      onMarkerDragStart?(a.id, a.coordinate)
+      startDragUpdates(view)
+    case .ending, .canceling:
+      stopDragUpdates()
+      onMarkerDragEnd?(a.id, a.coordinate)
     default: break
     }
+  }
+
+  // MARK: Continuous drag (`onMarkerDrag`)
+
+  // MapKit moves the annotation view while dragging and sets the coordinate
+  // only on drop, so a display link reads the view's anchor point each frame.
+  private var dragLink: CADisplayLink?
+  private weak var draggedView: MKAnnotationView?
+  private var lastDragPoint: CGPoint?
+
+  private func startDragUpdates(_ view: MKAnnotationView) {
+    stopDragUpdates()
+    guard onMarkerDrag != nil else { return }
+    draggedView = view
+    let link = CADisplayLink(target: DragTarget(self), selector: #selector(DragTarget.tick))
+    link.add(to: .main, forMode: .common)
+    dragLink = link
+  }
+
+  private func stopDragUpdates() {
+    dragLink?.invalidate()
+    dragLink = nil
+    draggedView = nil
+    lastDragPoint = nil
+  }
+
+  fileprivate func stepDrag() {
+    guard let view = draggedView, let a = view.annotation as? MunimAnnotation, let container = view.superview else {
+      return stopDragUpdates()
+    }
+    // The coordinate sits at the view's centre minus its centre offset.
+    let anchor = CGPoint(x: view.center.x - view.centerOffset.x, y: view.center.y - view.centerOffset.y)
+    let point = container.convert(anchor, to: mapView)
+    if let last = lastDragPoint, abs(last.x - point.x) < 0.5, abs(last.y - point.y) < 0.5 { return }
+    lastDragPoint = point
+    onMarkerDrag?(a.id, mapView.convert(point, toCoordinateFrom: mapView))
   }
 
   fileprivate func regionDidChange() { onCameraChange?(camera) }
@@ -903,7 +945,7 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
 
   func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,
                didChange newState: MKAnnotationView.DragState, fromOldState oldState: MKAnnotationView.DragState) {
-    if let annotation = view.annotation { owner?.dragChanged(annotation, to: newState) }
+    owner?.dragChanged(view, to: newState)
     if newState == .ending || newState == .canceling { view.dragState = .none }
   }
 
@@ -938,5 +980,18 @@ private final class FlightTarget: NSObject {
 
   @objc func tick() {
     owner?.stepFlight()
+  }
+}
+
+/// Breaks the retain cycle between the drag's `CADisplayLink` and the view.
+private final class DragTarget: NSObject {
+  weak var owner: MunimMapKitView?
+
+  init(_ owner: MunimMapKitView) {
+    self.owner = owner
+  }
+
+  @objc func tick() {
+    owner?.stepDrag()
   }
 }

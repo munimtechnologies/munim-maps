@@ -80,6 +80,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   func stopFlight() throws -> Void
   func getCamera() throws -> Promise<MapCamera>
   func setRegion(region: MapRegion, durationMs: Double) throws -> Void
+  func animateToRegion(region: MapRegion, durationMs: Double) throws -> Void
   func getVisibleRegion() throws -> Promise<MapRegion>
   func fitToCoordinates(coordinates: [MapCoordinate], padding: EdgeInsets, animated: Bool) throws -> Void
   func fitToMarkers(ids: String, padding: EdgeInsets, animated: Bool) throws -> Void

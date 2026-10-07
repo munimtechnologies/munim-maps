@@ -587,6 +587,10 @@ abstract class HybridMunimMapViewSpec: HybridView() {
   
   @DoNotStrip
   @Keep
+  abstract fun animateToRegion(region: MapRegion, durationMs: Double): Unit
+  
+  @DoNotStrip
+  @Keep
   abstract fun getVisibleRegion(): Promise<MapRegion>
   
   @DoNotStrip

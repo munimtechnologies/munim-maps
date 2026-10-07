@@ -132,7 +132,28 @@ export function defaultProvider(): MapProvider {
 }
 
 /** Per-provider options on `MunimMapView`, namespaced by engine. */
+/**
+ * Who draws `models`: `native` = the engine itself (Mapbox's model layer,
+ * Cesium's glTF entities, Google's photorealistic 3D map on Android), so
+ * they are lit, shadowed and hidden by the map's own buildings and terrain;
+ * `overlay` = munim-maps' 3D layer (SceneKit on iOS, Filament on Android)
+ * over the map; `auto` (default) = native where the engine can draw models
+ * (Mapbox, Cesium, Google 3D) and the overlay elsewhere (MapKit, MapLibre,
+ * the Google 2D map). Whatever an engine cannot draw natively (avatars,
+ * labels, stems, effects, occluders, USDZ files) stays on the overlay,
+ * except on Cesium, which draws avatars, labels, zones and paths as
+ * entities too.
+ */
+export type ModelRendering = 'auto' | 'native' | 'overlay'
+
 export interface ProviderOptionProps {
+  /**
+   * Who draws `models` (`auto` by default): the engine itself or munim-maps'
+   * 3D layer. See `ModelRendering`. The per-engine `google.modelRendering`,
+   * `mapbox.modelRendering` and `cesium.modelRendering` are aliases; this
+   * prop wins when both are set.
+   */
+  modelRendering?: ModelRendering
   /** MapKit-only options (`provider="mapkit"`). */
   mapkit?: MapKitMapOptions
   /** Google Maps-only options (`provider="google"`). */
@@ -150,7 +171,11 @@ export function providerOptionsJson(
   provider: MapProvider,
   props: ProviderOptionProps
 ): string {
-  const options = props[provider]
+  const options = props[provider] as object | undefined
+  // The shared `modelRendering` reaches the engine with its own options.
+  if (props.modelRendering) {
+    return JSON.stringify({ ...options, modelRendering: props.modelRendering })
+  }
   return options ? JSON.stringify(options) : '{}'
 }
 

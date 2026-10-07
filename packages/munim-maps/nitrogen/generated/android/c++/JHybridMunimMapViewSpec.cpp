@@ -1189,6 +1189,10 @@ namespace margelo::nitro::munimmaps {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JMapRegion> /* region */, double /* durationMs */)>("setRegion");
     method(_javaPart, JMapRegion::fromCpp(region), durationMs);
   }
+  void JHybridMunimMapViewSpec::animateToRegion(const MapRegion& region, double durationMs) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JMapRegion> /* region */, double /* durationMs */)>("animateToRegion");
+    method(_javaPart, JMapRegion::fromCpp(region), durationMs);
+  }
   std::shared_ptr<Promise<MapRegion>> JHybridMunimMapViewSpec::getVisibleRegion() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>()>("getVisibleRegion");
     auto __result = method(_javaPart);

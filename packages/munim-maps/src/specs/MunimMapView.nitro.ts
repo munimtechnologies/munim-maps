@@ -242,6 +242,8 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   getCamera(): Promise<MapCamera>
   /** Animates to a region over `durationMs` (0 jumps). */
   setRegion(region: MapRegion, durationMs: number): void
+  /** `setRegion` under react-native-maps' name: animates to `region` over `durationMs`. */
+  animateToRegion(region: MapRegion, durationMs: number): void
   getVisibleRegion(): Promise<MapRegion>
   /** Frames the coordinates with `padding` points around them. */
   fitToCoordinates(

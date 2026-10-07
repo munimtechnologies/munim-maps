@@ -288,6 +288,7 @@ namespace margelo::nitro::munimmaps {
       virtual void stopFlight() = 0;
       virtual std::shared_ptr<Promise<MapCamera>> getCamera() = 0;
       virtual void setRegion(const MapRegion& region, double durationMs) = 0;
+      virtual void animateToRegion(const MapRegion& region, double durationMs) = 0;
       virtual std::shared_ptr<Promise<MapRegion>> getVisibleRegion() = 0;
       virtual void fitToCoordinates(const std::vector<MapCoordinate>& coordinates, const EdgeInsets& padding, bool animated) = 0;
       virtual void fitToMarkers(const std::string& ids, const EdgeInsets& padding, bool animated) = 0;

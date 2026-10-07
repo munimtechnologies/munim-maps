@@ -77,6 +77,7 @@ internal fun GoogleMapEngine.setUpMarkerCollection(collection: MarkerManager.Col
 
     override fun onMarkerDrag(marker: Marker) {
       val id = markerId(marker) ?: return
+      listener?.onMarkerDrag(MarkerDragEvent(id, marker.position.latitude, marker.position.longitude))
       emit("markerDrag", GOut.obj("id" to id, "latitude" to marker.position.latitude, "longitude" to marker.position.longitude))
     }
 
@@ -281,6 +282,8 @@ internal fun GoogleMapEngine.markerIcon(m: NativeMarker, extras: GJson, advanced
       descriptor to (0.5 to 1.0)
     }
     MarkerStyle.IMAGE, MarkerStyle.AVATAR -> {
+      // A MarkerView: the views as drawn.
+      viewBitmaps[m.imageUri]?.let { return BitmapDescriptorFactory.fromBitmap(it) to (m.anchorX to m.anchorY) }
       val photo = if (m.imageUri.isNotEmpty()) photos[m.imageUri] ?: run { loadPhoto(m.imageUri); null } else null
       BitmapDescriptorFactory.fromBitmap(GoogleMarkerIcons.image(m, photo, density.toFloat())) to (m.anchorX to m.anchorY)
     }

@@ -206,6 +206,7 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
     case "overlayPress": onOverlayPress?(d["id"] as? String ?? "", d["kind"] as? String ?? "", coordinate(d))
     case "markerDragStart": onMarkerDragStart?(d["id"] as? String ?? "", coordinate(d))
     case "markerDragEnd": onMarkerDragEnd?(d["id"] as? String ?? "", coordinate(d))
+    case "markerDrag": onMarkerDrag?(d["id"] as? String ?? "", coordinate(d))
     case "modelPress": modelLayer.onModelPress?(d["id"] as? String ?? "")
     case "userTrackingModeChange":
       let mode = d["mode"] as? String ?? "none"
@@ -451,6 +452,7 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
   }
   var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
+  var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)?
   var onUserLocationChange: ((CLLocation) -> Void)?
   var onMapFeaturePress: ((MunimMapFeature) -> Void)?
   var onUserTrackingModeChange: ((MKUserTrackingMode) -> Void)?

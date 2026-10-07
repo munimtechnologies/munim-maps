@@ -226,6 +226,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   public var onOverlayPress: ((String, String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
+  public var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)?
   public var onUserLocationChange: ((CLLocation) -> Void)?
   public var onMapFeaturePress: ((MunimMapFeature) -> Void)?
   public var onUserTrackingModeChange: ((MKUserTrackingMode) -> Void)?
@@ -907,6 +908,7 @@ extension GoogleMapEngine: GMSMapViewDelegate {
 
   public func mapView(_ mapView: GMSMapView, didDrag marker: GMSMarker) {
     guard let id = marker.userData as? String else { return }
+    onMarkerDrag?(id, marker.position)
     emit("markerDrag", ["id": id, "latitude": marker.position.latitude, "longitude": marker.position.longitude])
   }
 
