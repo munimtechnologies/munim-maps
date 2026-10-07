@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import {
   MAP_PROVIDERS,
@@ -10,8 +10,10 @@ import {
   type MapCamera,
   type MapModel,
   type MapProvider,
+  type MapRegion,
   type MunimMapViewRef,
 } from 'munim-maps'
+import { File, Paths } from 'expo-file-system'
 import { VEHICLES } from 'munim-maps-vehicles'
 import bundledBalloon from 'munim-maps-vehicles/bundled/balloon'
 
@@ -21,7 +23,32 @@ import bundledBalloon from 'munim-maps-vehicles/bundled/balloon'
  * app (or not implemented yet) show munim-maps' placeholder. The status line
  * shows how far the 3D layer is from where the engine draws the same points
  * (`measureAlignment`). munimmapsexample://providers/<provider>
+ *
+ * munimmapsexample://providers/<provider>/check runs the shared-API checks
+ * on that engine (react-native-maps' region API: `animateToRegion`,
+ * `onRegionChangeStart`, `onRegionChangeComplete`, the controlled `region`)
+ * and writes Documents/munim-maps-shared-checks-<provider>.json and
+ * `MUNIM_MAPS_SHARED` log lines.
  */
+
+const REGION_A: MapRegion = { latitude: 41.8790, longitude: -87.6350, latitudeDelta: 0.02, longitudeDelta: 0.02 }
+const REGION_B: MapRegion = { latitude: 41.8900, longitude: -87.6200, latitudeDelta: 0.03, longitudeDelta: 0.03 }
+
+interface SharedCheck {
+  name: string
+  ok: boolean
+  detail: string
+}
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/** The region's centre is within a quarter of its span of `want`'s. */
+function near(region: MapRegion, want: MapRegion) {
+  return (
+    Math.abs(region.latitude - want.latitude) < want.latitudeDelta / 4 &&
+    Math.abs(region.longitude - want.longitude) < want.longitudeDelta / 4
+  )
+}
 
 const NAMES: Record<MapProvider, string> = {
   mapkit: 'MapKit',
@@ -92,6 +119,8 @@ export function ProvidersScreen(props: {
   onExit?: () => void
   /** Opens another screen; `layer3d` gets the engine picked here. */
   onOpen?: (screen: ExampleScreen, provider: MapProvider) => void
+  /** Run the shared-API checks once the map is ready. */
+  autoCheck?: boolean
 }) {
   const [provider, setProvider] = useState<MapProvider>(props.initial ?? defaultProvider())
   const [errors, setErrors] = useState<string[]>([])
@@ -100,6 +129,63 @@ export function ProvidersScreen(props: {
   const ref = useRef<MunimMapViewRef | null>(null)
   const available = useMemo(() => availableProviders(), [])
   const installed = useMemo(() => installedProviders(), [])
+
+  // Shared-API checks: react-native-maps' region API on this engine.
+  const [region, setRegion] = useState<MapRegion | undefined>(undefined)
+  const [checkStatus, setCheckStatus] = useState('')
+  const ready = useRef(false)
+  const starts = useRef(0)
+  const completes = useRef<MapRegion[]>([])
+  const runChecks = useCallback(async () => {
+    const map = ref.current
+    if (!map) return
+    const checks: SharedCheck[] = []
+    const check = (name: string, ok: boolean, detail: unknown) => {
+      checks.push({ name, ok, detail: JSON.stringify(detail) })
+      console.log(`MUNIM_MAPS_SHARED ${provider} ${ok ? 'pass' : 'FAIL'} ${name} ${JSON.stringify(detail)}`)
+    }
+    setCheckStatus('Checking…')
+    for (let i = 0; i < 60 && !ready.current; i++) await wait(250)
+    check('onMapReady', ready.current, {})
+    await wait(1500)
+    starts.current = 0
+    completes.current = []
+    map.animateToRegion(REGION_A, 600)
+    await wait(3500)
+    check('onRegionChangeStart fires', starts.current > 0, { starts: starts.current })
+    const last = completes.current[completes.current.length - 1]
+    check('onRegionChangeComplete reports the region', !!last && near(last, REGION_A), last ?? null)
+    const visibleA = await map.getVisibleRegion()
+    check('animateToRegion moves the map', near(visibleA, REGION_A), visibleA)
+    setRegion(REGION_B)
+    await wait(3500)
+    const visibleB = await map.getVisibleRegion()
+    check('controlled region moves the map', near(visibleB, REGION_B), visibleB)
+    const passed = checks.filter((c) => c.ok).length
+    const report = { provider, platform: Platform.OS, finishedAt: new Date().toISOString(), passed, total: checks.length, checks }
+    console.log(`MUNIM_MAPS_SHARED ${provider} done ${passed}/${checks.length}`)
+    setCheckStatus(`Shared API: ${passed}/${checks.length}`)
+    try {
+      const file = new File(Paths.document, `munim-maps-shared-checks-${provider}.json`)
+      if (file.exists) file.delete()
+      file.create()
+      file.write(JSON.stringify(report, null, 2))
+    } catch (error) {
+      console.warn('MUNIM_MAPS_SHARED could not write the report', error)
+    }
+  }, [provider])
+
+  useEffect(() => {
+    ready.current = false
+    setRegion(undefined)
+    setCheckStatus('')
+  }, [provider])
+
+  useEffect(() => {
+    if (props.autoCheck) void runChecks()
+    // Once per engine opened by the deep link.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.autoCheck, provider])
 
   // A deep link can arrive after the screen is up (Android starts here).
   useEffect(() => {
@@ -132,10 +218,20 @@ export function ProvidersScreen(props: {
         provider={provider}
         style={StyleSheet.absoluteFill}
         initialCamera={CAMERA}
+        region={region}
         models={MODELS}
         lighting="day"
         onModelPress={setPressed}
-        onMapReady={() => console.log(`MUNIM_MAPS_PROVIDERS ${provider} map ready`)}
+        onRegionChangeStart={() => {
+          starts.current += 1
+        }}
+        onRegionChangeComplete={(r) => {
+          completes.current.push(r)
+        }}
+        onMapReady={() => {
+          ready.current = true
+          console.log(`MUNIM_MAPS_PROVIDERS ${provider} map ready`)
+        }}
         onError={(message) => {
           console.log(`MUNIM_MAPS_PROVIDERS ${provider} error ${message}`)
           setErrors((list) => (list.includes(message) ? list : [...list, message].slice(-4)))
@@ -157,6 +253,9 @@ export function ProvidersScreen(props: {
               <Text style={[styles.chipText, p === provider && styles.chipTextOn]}>{NAMES[p]}</Text>
             </Pressable>
           ))}
+          <Pressable onPress={() => void runChecks()} style={styles.chip}>
+            <Text style={styles.chipText}>Check regions</Text>
+          </Pressable>
         </ScrollView>
         {props.onOpen ? (
           <ScrollView horizontal contentContainerStyle={styles.row} showsHorizontalScrollIndicator={false}>
@@ -194,6 +293,7 @@ export function ProvidersScreen(props: {
           </Text>
         ) : null}
         {pressed ? <Text style={styles.status}>Tapped: {pressed}</Text> : null}
+        {checkStatus ? <Text style={styles.status}>{checkStatus}</Text> : null}
         {errors.map((e) => (
           <Text key={e} style={styles.error} numberOfLines={2}>
             {e}

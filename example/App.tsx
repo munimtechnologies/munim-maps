@@ -460,6 +460,7 @@ function Example() {
   const [layer3dCamera, setLayer3dCamera] = useState<MapCamera | undefined>(undefined)
   const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
   const [googleChecks, setGoogleChecks] = useState(false)
+  const [providersCheck, setProvidersCheck] = useState(false)
   const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
   const [mapLibreCheck, setMapLibreCheck] = useState(false)
   const [cesiumChecks, setCesiumChecks] = useState(false)
@@ -601,6 +602,7 @@ function Example() {
       if (provider || Platform.OS === 'android') {
         setLaunching(false)
         setProviderLink(provider?.[1] as MapProvider | undefined)
+        setProvidersCheck(!!provider && /providers\/\w+\/check/.test(url ?? ''))
         setMode('providers')
         return
       }
@@ -826,6 +828,7 @@ function Example() {
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
+          autoCheck={providersCheck}
           topInset={insets.top}
           panel={panel}
           onExit={Platform.OS === 'ios' ? () => setMode('munim') : undefined}

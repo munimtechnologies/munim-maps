@@ -5,6 +5,13 @@ import SceneKit
 // Conventions: metres, base on y = 0, front faces -Z (north at heading 0),
 // x to the right. Materials named "paint" are recoloured at runtime by
 // munim-maps' `tint`.
+//
+// Writes the munim-maps-vehicles package's models, then its generated files:
+//   swiftc -O scripts/vehicles/make-vehicles.swift -o /tmp/make-vehicles
+//   /tmp/make-vehicles packages/munim-maps-vehicles/usdz packages/munim-maps-vehicles/glb
+//   node scripts/vehicles/write-catalogue.mjs
+// Galleries for the README (.github/resources/vehicles-*.jpg):
+//   swift scripts/vehicles/contact-sheet.swift packages/munim-maps-vehicles/usdz /tmp/sheet.png
 
 typealias V3 = SIMD3<Float>
 

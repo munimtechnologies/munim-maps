@@ -1,6 +1,7 @@
 import SceneKit
 import AppKit
 // Renders every .usdz in a folder from the side and from 3/4 above, in a grid.
+//   swift scripts/vehicles/contact-sheet.swift packages/munim-maps-vehicles/usdz out.png
 let dir = URL(fileURLWithPath: CommandLine.arguments[1])
 let files = try! FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil).filter { $0.pathExtension == "usdz" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
 let cell = CGSize(width: 360, height: 240)
