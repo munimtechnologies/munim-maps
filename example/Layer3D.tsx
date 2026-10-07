@@ -169,12 +169,20 @@ const POSES: Partial<MapCamera>[] = [
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-export function Layer3DScreen(props: { provider?: MapProvider; autoCheck?: boolean; topInset: number }) {
+export function Layer3DScreen(props: {
+  provider?: MapProvider
+  autoCheck?: boolean
+  /** munimmapsexample://layer3d/cam/lat,lon,distance,pitch,heading */
+  camera?: MapCamera
+  /** munimmapsexample://layer3d/noocclusion */
+  occlusion?: boolean
+  topInset: number
+}) {
   const provider = props.provider ?? defaultProvider()
   const ref = useRef<MunimMapViewRef | null>(null)
   const [start] = useState(() => Date.now() / 1000)
   const models = useMemo(() => buildModels(start), [start])
-  const [buildings, setBuildings] = useState(true)
+  const [buildings, setBuildings] = useState(props.occlusion ?? true)
   const [status, setStatus] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const [pressed, setPressed] = useState('')
@@ -235,7 +243,7 @@ export function Layer3DScreen(props: { provider?: MapProvider; autoCheck?: boole
     setStatus(
       `max ${summary.maxErrorPoints.toFixed(2)} pt, mean ${summary.meanErrorPoints.toFixed(2)} pt over ${all.length} cameras · flight max ${summary.flightMaxErrorPoints.toFixed(2)} pt`
     )
-    map.setCamera(CAMERA, false)
+    map.setCamera(props.camera ?? CAMERA, false)
   }
 
   useEffect(() => {
@@ -252,7 +260,7 @@ export function Layer3DScreen(props: { provider?: MapProvider; autoCheck?: boole
         ref={ref}
         provider={provider}
         style={StyleSheet.absoluteFill}
-        initialCamera={CAMERA}
+        initialCamera={props.camera ?? CAMERA}
         models={models}
         zones={ZONES}
         paths={PATHS}

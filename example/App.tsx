@@ -27,7 +27,7 @@ import { Demo, SHOTS, type Shot } from './Demo'
 import { ORBIT_PATHS, satelliteModels } from './orbits'
 import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 import { ParityScreen, type ParityHandle } from './Parity'
-import type { MapProvider, UserTrackingMode } from 'munim-maps'
+import { MAP_PROVIDERS, type MapProvider, type UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
 import { Layer3DScreen } from './Layer3D'
 
@@ -453,6 +453,8 @@ function Example() {
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
   const [layer3dCheck, setLayer3dCheck] = useState(false)
+  const [layer3dCamera, setLayer3dCamera] = useState<MapCamera | undefined>(undefined)
+  const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -536,9 +538,15 @@ function Example() {
       const layer3d = /layer3d(?:\/(\w+))?/.exec(url ?? '')
       if (layer3d) {
         setLaunching(false)
-        const engine = layer3d[1] && layer3d[1] !== 'check' ? (layer3d[1] as MapProvider) : undefined
+        const engine = MAP_PROVIDERS.find((p) => p === layer3d[1])
         setProviderLink(engine)
         setLayer3dCheck(url?.includes('/check') ?? false)
+        const cam = /cam\/([-\d.,]+)/.exec(url ?? '')?.[1]?.split(',').map(Number)
+        if (cam?.length === 5) {
+          const [latitude, longitude, distance, pitch, heading] = cam as [number, number, number, number, number]
+          setLayer3dCamera({ latitude, longitude, distance, pitch, heading })
+        }
+        setLayer3dOcclusion(!url?.includes('noocclusion'))
         setMode('layer3d')
         return
       }
@@ -739,7 +747,13 @@ function Example() {
   return (
     <View style={styles.root}>
       {mode === 'layer3d' ? (
-        <Layer3DScreen provider={providerLink} autoCheck={layer3dCheck} topInset={insets.top} />
+        <Layer3DScreen
+          provider={providerLink}
+          autoCheck={layer3dCheck}
+          camera={layer3dCamera}
+          occlusion={layer3dOcclusion}
+          topInset={insets.top}
+        />
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
