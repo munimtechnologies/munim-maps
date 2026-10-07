@@ -670,9 +670,14 @@
   }
 
   M.defaultResolutionScale = function () {
-    // Cesium draws at CSS pixels by default; device pixels look sharp but
-    // cost a lot of fill rate on phones, so cap at 2.
-    return Math.min(2, window.devicePixelRatio || 1)
+    // Draw at device pixels, at most 2 per CSS pixel: sharp, without the
+    // fill rate of 3x phones. Cesium multiplies resolutionScale by
+    // devicePixelRatio itself (useBrowserRecommendedResolution is off), so
+    // the scale is relative to device pixels (it was min(2, dpr), which drew
+    // 2 x 2.625 = 5.25 pixels per CSS pixel on a 420 dpi phone).
+    if (M.viewer && M.viewer.useBrowserRecommendedResolution) return 1
+    const dpr = window.devicePixelRatio || 1
+    return Math.min(2, dpr) / dpr
   }
 
   function globeMaterial(spec) {
