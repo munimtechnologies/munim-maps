@@ -164,6 +164,8 @@ android {
         if (enabled) java.srcDirs += ["src/${name}/java"]
       }
       if (munimMapsGoogle3d) java.srcDirs += ["src/google3d/java"]
+      // Cesium: the bundled CesiumJS page, as assets under munim-cesium/.
+      if (munimMapsProviders.cesium) assets.srcDirs += ["../cesium"]
       if (isNewArchitectureEnabled()) {
         java.srcDirs += [
           // React Codegen files

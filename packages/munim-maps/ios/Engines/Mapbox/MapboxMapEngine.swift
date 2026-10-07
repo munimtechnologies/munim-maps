@@ -247,8 +247,8 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
 
   /// glTF models go to Mapbox's model layer (`mapbox.modelRendering`); the
   /// rest to munim-maps' 3D layer.
-  func overlayModels(_ models: [MunimModel]) -> [MunimModel] {
-    nativeModels.setModels(models)
+  func setModels(_ models: [MunimModel]) {
+    modelLayer.models = nativeModels.setModels(models)
   }
 
   var mapStyle: MunimMapStyle = .standard { didSet { if oldValue != mapStyle { styleInputsChanged() } } }

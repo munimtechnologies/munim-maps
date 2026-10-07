@@ -274,9 +274,12 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   mapItemForFeature(id: string): Promise<MapItem>
   /**
    * A method only the active engine has, such as Google's
-   * `streetView.open`: `command` names it, `argsJson` is its arguments as
-   * JSON, and the promise resolves with the result as JSON (`null` for
-   * none). Rejects when the engine does not know the command.
+   * `streetView.open`, MapLibre's `queryRenderedFeatures` or Cesium's
+   * `flyTo`: `command` names it, `argsJson` is its arguments as JSON, and
+   * the promise resolves with the result as JSON (`null` for none). Rejects
+   * when the engine does not know the command. Typed wrappers live with
+   * each engine (`googleMap`, `mapboxMap`, `maplibreCommands`,
+   * `cesiumCommands`).
    */
   providerCommand(command: string, argsJson: string): Promise<string>
 }

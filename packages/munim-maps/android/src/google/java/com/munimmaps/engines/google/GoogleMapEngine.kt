@@ -188,18 +188,12 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
 
   // Photorealistic 3D mode (Google3DMode.kt, src/google3d)
   internal var mode3d: Google3DMode? = null
-  private var models3d: Array<com.margelo.nitro.munimmaps.NativeMapModel>? = null
   private var reportedNativeIn2d = false
-  private val modelWatch = object : Runnable {
-    override fun run() {
-      val mode = mode3d ?: return
-      val models = modelLayer.models
-      if (models !== models3d) {
-        models3d = models
-        mode.setModels(models)
-      }
-      main.postDelayed(this, 250)
-    }
+
+  /** The 2D map's models go to the munim overlay; the 3D map draws them itself. */
+  override fun setModels(models: Array<com.margelo.nitro.munimmaps.NativeMapModel>) {
+    modelLayer.models = models
+    mode3d?.setModels(models)
   }
 
   // Flights
@@ -551,15 +545,13 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
     mode.setMarkers(markers)
     mode.setPolylines(polylines)
     mode.setPolygons(polygons)
-    models3d = null
-    main.post(modelWatch)
+    mode.setModels(modelLayer.models)
     emit("modeChange", GOut.obj("mode" to "3d"))
   }
 
   private fun leave3d() {
     val mode = mode3d ?: return
     mode3d = null
-    main.removeCallbacks(modelWatch)
     mode.destroy()
     root.removeView(mode.view)
     mapView?.visibility = View.VISIBLE

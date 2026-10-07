@@ -146,14 +146,18 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     }
   }
 
-  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = map.overlayModels(models.map(\.core)) } }
-  var zones: [NativeMapZone] = [] { didSet { map.modelLayer.zones = zones.map(\.core) } }
-  var paths: [NativeMapPath] = [] { didSet { map.modelLayer.paths = paths.map(\.core) } }
-  var occlusion: MapOcclusion = .none { didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings } }
-  var buildingTilesUrl = "" { didSet { map.modelLayer.buildingTilesURL = buildingTilesUrl } }
-  var followTerrain = false { didSet { map.modelLayer.followsTerrain = followTerrain } }
-  var lighting: MapModelLighting = .auto { didSet { map.modelLayer.lighting = lighting.core } }
-  var maxCameraDistance: Double = 50_000 { didSet { map.modelLayer.maxCameraDistance = maxCameraDistance } }
+  var models: [NativeMapModel] = [] { didSet { map.setModels(models.map(\.core)) } }
+  var zones: [NativeMapZone] = [] { didSet { map.setZones(zones.map(\.core)) } }
+  var paths: [NativeMapPath] = [] { didSet { map.setPaths(paths.map(\.core)) } }
+  var occlusion: MapOcclusion = .none {
+    didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings; map.modelLayerDidChange() }
+  }
+  var buildingTilesUrl = "" { didSet { map.modelLayer.buildingTilesURL = buildingTilesUrl; map.modelLayerDidChange() } }
+  var followTerrain = false { didSet { map.modelLayer.followsTerrain = followTerrain; map.modelLayerDidChange() } }
+  var lighting: MapModelLighting = .auto { didSet { map.modelLayer.lighting = lighting.core; map.modelLayerDidChange() } }
+  var maxCameraDistance: Double = 50_000 {
+    didSet { map.modelLayer.maxCameraDistance = maxCameraDistance; map.modelLayerDidChange() }
+  }
 
   var markers: [NativeMarker] = [] { didSet { map.markers = markers.map(\.core) } }
   var polylines: [NativePolyline] = [] { didSet { map.polylines = polylines.map(\.core) } }

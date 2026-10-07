@@ -207,6 +207,20 @@ public protocol MunimMapEngine: AnyObject {
   func overlayHit(at point: CGPoint) -> (id: String, kind: String)?
   func mapItem(forFeature id: String, completion: @escaping (Result<MKMapItem, Error>) -> Void)
 
+  // MARK: 3D content (defaults below, for every engine)
+
+  /// The app's models, zones and paths. The engine draws what it can itself
+  /// (Mapbox's model layer, Cesium's entities), following `modelRendering`
+  /// (`auto` / `native` / `overlay`, in the engine's options), and hands the
+  /// rest to `modelLayer`; engines re-split on their own when
+  /// `modelRendering` changes. The defaults hand everything to `modelLayer`.
+  func setModels(_ models: [MunimModel])
+  func setZones(_ zones: [MunimZone])
+  func setPaths(_ paths: [MunimPath])
+  /// The host changed `modelLayer`'s lighting, occlusion, terrain or
+  /// distance settings.
+  func modelLayerDidChange()
+
   // MARK: Engine-only features (defaults below, for every engine)
 
   /// Where this engine sends events only it has (`onProviderEvent` in
@@ -220,13 +234,14 @@ public protocol MunimMapEngine: AnyObject {
   /// A dragged marker moved (continuously, between drag start and end).
   /// Declare it as a stored property to send it; the default drops it.
   var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get set }
-  /// The models the host gives the map. The engine draws the ones it can
-  /// itself (Mapbox's model layer) and returns the rest for `modelLayer`.
-  /// The default returns them all.
-  func overlayModels(_ models: [MunimModel]) -> [MunimModel]
 }
 
 public extension MunimMapEngine {
+  func setModels(_ models: [MunimModel]) { modelLayer.models = models }
+  func setZones(_ zones: [MunimZone]) { modelLayer.zones = zones }
+  func setPaths(_ paths: [MunimPath]) { modelLayer.paths = paths }
+  func modelLayerDidChange() {}
+
   func setProviderEventHandler(_ handler: ((String, Any) -> Void)?) {}
 
   func providerCommand(
@@ -235,7 +250,6 @@ public extension MunimMapEngine {
     completion(.failure(MunimMapEngineError("\(provider.displayName) has no command \"\(command)\"")))
   }
   var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get { nil } set {} }
-  func overlayModels(_ models: [MunimModel]) -> [MunimModel] { models }
 
   /// Reports that this engine cannot do `what` yet.
   func reportUnsupported(_ what: String) {

@@ -699,9 +699,11 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   /**
    * Events only the active engine has, such as Google's indoor level
    * changes, Street View panorama moves, Mapbox's `mapIdle` or a tap on a
-   * Standard style featureset (`mapbox.interactions`). `data` is the decoded
-   * payload. Each engine documents its own (`GoogleMapEvent`,
-   * `MapboxMapOptions.events`…).
+   * Standard style featureset (`mapbox.interactions`), MapLibre's
+   * `offlineProgress` or Cesium's `pick`. `data` is the decoded payload.
+   * Each engine documents its own and narrows them with types
+   * (`googleEvent`, `parseCesiumEvent`, `MapboxMapOptions.events`,
+   * `MapLibreEventName`).
    */
   onProviderEvent?: (event: MapProviderEvent) => void
   onError?: (message: string) => void
@@ -932,6 +934,7 @@ export {
   type ProviderOptionProps,
 } from './providers'
 export * from './providers/google'
+export * from './providers/cesium'
 export { MarkerView, type MarkerViewProperties } from './MarkerView'
 export {
   LookAroundView,
@@ -984,6 +987,7 @@ export type {
   UserLocationEvent,
   UserTrackingMode,
   FeatureVisibility,
+  ProviderEvent,
   MapAlignmentReport,
   MapAltitudeReference,
   MapCoordinate,

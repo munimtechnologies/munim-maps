@@ -25,6 +25,8 @@ import com.margelo.nitro.munimmaps.MarkerDragEvent
 import com.margelo.nitro.munimmaps.NativeCircle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
 import com.margelo.nitro.munimmaps.NativeMapModel
+import com.margelo.nitro.munimmaps.NativeMapPath
+import com.margelo.nitro.munimmaps.NativeMapZone
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -144,12 +146,6 @@ interface MunimMapEngine {
    */
   fun setViewMarker(marker: NativeMarker, image: Bitmap?) { reportUnsupported("MarkerView") }
   fun setViewMarkerImage(image: Bitmap?, id: String) {}
-  /**
-   * The models the host gives the map. The engine draws the ones it can
-   * itself (Mapbox's model layer) and returns the rest for [modelLayer].
-   * The default returns them all.
-   */
-  fun overlayModels(models: Array<NativeMapModel>): Array<NativeMapModel> = models
   fun removeViewMarker(id: String) {}
 
   // Look
@@ -172,6 +168,8 @@ interface MunimMapEngine {
 
   fun setCompassVisibility(visibility: FeatureVisibility) {}
   fun setScaleVisibility(visibility: FeatureVisibility) {}
+  /** The 2D/3D button (`pitchButtonVisibility`). */
+  fun setPitchButtonVisibility(visibility: FeatureVisibility) {}
   fun setShowsUserTrackingButton(shows: Boolean) {}
 
   // Gestures and limits
@@ -233,6 +231,24 @@ interface MunimMapEngine {
   fun measureAlignment(): MapAlignmentReport = modelLayer.measureAlignment()
   /** Id of the tappable overlay a tap at `point` (points) would hit, or empty. */
   fun overlayAtPoint(point: MapPoint): String = ""
+
+  // 3D content (all have defaults)
+
+  /**
+   * The app's models, zones and paths. The engine draws what it can itself
+   * (Mapbox's model layer, Cesium's entities, Google's 3D map), following
+   * `modelRendering` (`auto` / `native` / `overlay`, in the engine's
+   * options), and hands the rest to [modelLayer]; engines re-split on their
+   * own when `modelRendering` changes. The defaults hand everything to
+   * [modelLayer].
+   */
+  fun setModels(models: Array<NativeMapModel>) { modelLayer.models = models }
+  fun setZones(zones: Array<NativeMapZone>) { modelLayer.zones = zones }
+  fun setPaths(paths: Array<NativeMapPath>) { modelLayer.paths = paths }
+  /** The host changed [modelLayer]'s lighting, occlusion, terrain or distance settings. */
+  fun modelLayerDidChange() {}
+
+  // Engine-only extras
 
   /**
    * A method only this engine has (`providerCommand` in JavaScript): `args`

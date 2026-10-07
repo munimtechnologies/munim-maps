@@ -29,6 +29,7 @@
     "vehicles-glb.d.ts",
     "vehicles/glb",
     "ios/Vehicles/Models",
+    "cesium",
     "app.plugin.js",
     "android/build.gradle",
     "android/fix-prefab.gradle",
@@ -145,7 +146,9 @@
     "nitrogen/generated/",
     "vehicles.js",
     "vehicles.android.js",
-    "vehicles-glb.js"
+    "vehicles-glb.js",
+    "cesium/",
+    "android/build/"
   ],
   "prettier": {
     "quoteProps": "consistent",
