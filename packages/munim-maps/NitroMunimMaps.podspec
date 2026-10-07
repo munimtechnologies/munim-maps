@@ -29,10 +29,13 @@ munim_maps_providers = lambda do
   (list || "").split(",").map { |p| p.strip.downcase }.select { |p| munim_maps_subspecs.key?(p) }.uniq
 end
 
-# CesiumJS loads from a pinned CDN by default. Bundle it in the app (13 MB,
-# offline from the first launch) with MUNIM_MAPS_CESIUM_BUNDLED=1 or
-# "munimMaps.cesiumBundled": "true" in ios/Podfile.properties.json (the Expo
-# config plugin's `cesium: { bundled: true }` writes it).
+# CesiumJS loads from a pinned CDN by default; munim-maps does not ship it.
+# Bundle it in the app (13 MB, offline from the first launch) with
+# MUNIM_MAPS_CESIUM_BUNDLED=1 or "munimMaps.cesiumBundled": "true" in
+# ios/Podfile.properties.json (the Expo config plugin's
+# `cesium: { bundled: true }` writes it). The minified build is then copied
+# from the app's own `cesium` npm package (pin the version the engine is
+# written for, see scripts/cesium/copy-cesium.js) at `pod install`.
 munim_maps_cesium_bundled = lambda do
   value = ENV["MUNIM_MAPS_CESIUM_BUNDLED"]
   if value.nil?
@@ -45,6 +48,33 @@ munim_maps_cesium_bundled = lambda do
     end
   end
   ["1", "true", "yes"].include?(value.to_s.strip.downcase)
+end
+
+# Copies CesiumJS from the app's `cesium` package into cesium/build/Cesium
+# (skipped when it is already there) and returns that folder for the
+# MunimMapsCesium resource bundle.
+munim_maps_copy_cesium = lambda do
+  require "open3"
+  dest = File.join(__dir__, "cesium", "build", "Cesium")
+  root = begin
+    Pod::Config.instance.installation_root.to_s
+  rescue StandardError
+    Dir.pwd
+  end
+  script = File.join(__dir__, "scripts", "cesium", "copy-cesium.js")
+  out, err, status = Open3.capture3("node", script, "--root", root, "--dest", dest)
+  unless status.success?
+    message = err.strip.sub(/^error: /, "")
+    message = "munim-maps: could not bundle CesiumJS" if message.empty?
+    raise(defined?(Pod::Informative) ? Pod::Informative : RuntimeError, message)
+  end
+  err.each_line do |line|
+    message = line.strip.sub(/^warning: /, "")
+    next if message.empty?
+    defined?(Pod::UI) ? Pod::UI.warn(message) : warn(message)
+  end
+  Pod::UI.puts(out.strip) if defined?(Pod::UI) && !out.strip.empty?
+  "cesium/build/Cesium"
 end
 
 Pod::Spec.new do |s|
@@ -108,14 +138,15 @@ Pod::Spec.new do |s|
   end
 
   # The engine's page (cesium/page/munim-cesium) runs in a WKWebView the
-  # engine owns. CesiumJS (Apache-2.0, pinned in CesiumMapEngine) comes from
+  # engine owns. CesiumJS (Apache-2.0, pinned in CesiumSupport) comes from
   # jsDelivr through the engine's URL handler and is cached on disk, or from
-  # this resource bundle when bundled (cesium/cesiumjs, 13 MB).
+  # this resource bundle when bundled (copied from the app's `cesium`
+  # package, with its LICENSE.md and ThirdParty.json; 13 MB).
   s.subspec "Cesium" do |ss|
     ss.source_files = "ios/Engines/Cesium/**/*.swift"
     ss.frameworks = "WebKit", "CoreLocation"
     cesium_resources = ["cesium/page/munim-cesium"]
-    cesium_resources << "cesium/cesiumjs/munim-cesium/Cesium" if munim_maps_cesium_bundled.call
+    cesium_resources << munim_maps_copy_cesium.call if munim_maps_cesium_bundled.call
     ss.resource_bundles = { "MunimMapsCesium" => cesium_resources }
     ss.pod_target_xcconfig = { "SWIFT_ACTIVE_COMPILATION_CONDITIONS" => "$(inherited) MUNIM_MAPS_CESIUM" }
   end

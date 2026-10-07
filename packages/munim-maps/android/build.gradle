@@ -50,7 +50,10 @@ def munimMapsProvider(name, defaultValue) {
 }
 
 // munimMaps.cesiumBundled=true: CesiumJS in the APK (offline from the first
-// launch, 13 MB) instead of from jsDelivr.
+// launch, 13 MB) instead of from jsDelivr. munim-maps does not ship it: the
+// munimMapsCopyCesium task below copies the minified build from the app's
+// own `cesium` npm package (munimMaps.cesiumDir=<folder> points elsewhere)
+// into generated assets, with its licence and third-party notices.
 def munimMapsCesiumBundled = (project.findProperty("munimMaps.cesiumBundled") ?: "false").toString().toBoolean()
 
 def munimMapsProviders = [
@@ -170,10 +173,10 @@ android {
       if (munimMapsGoogle3d) java.srcDirs += ["src/google3d/java"]
       // Cesium: the engine's page as assets under munim-cesium/. CesiumJS
       // itself comes from jsDelivr (cached on disk) unless
-      // munimMaps.cesiumBundled=true puts it in the APK (13 MB).
+      // munimMaps.cesiumBundled=true puts it in the APK (13 MB, see
+      // munimMapsCopyCesium below).
       if (munimMapsProviders.cesium) {
         assets.srcDirs += ["../cesium/page"]
-        if (munimMapsCesiumBundled) assets.srcDirs += ["../cesium/cesiumjs"]
       }
       if (isNewArchitectureEnabled()) {
         java.srcDirs += [
@@ -181,6 +184,54 @@ android {
           layout.buildDirectory.dir("generated/source/codegen/java").get().asFile
         ]
       }
+    }
+  }
+}
+
+// Bundled CesiumJS: copies Build/Cesium from the app's `cesium` package into
+// generated assets (munim-cesium/Cesium/…) with scripts/cesium/copy-cesium.js,
+// which also checks the version against the one the engine is written for.
+abstract class MunimMapsCopyCesiumTask extends DefaultTask {
+  @Input abstract Property<String> getCesiumDir()
+  @Input abstract Property<String> getCesiumVersion()
+  @InputFile abstract RegularFileProperty getScript()
+  @OutputDirectory abstract DirectoryProperty getOutputDir()
+  @javax.inject.Inject abstract ExecOperations getExecOperations()
+
+  @TaskAction
+  void copyCesium() {
+    def dest = new File(outputDir.get().asFile, "munim-cesium/Cesium")
+    def copyScript = script.get().asFile.absolutePath
+    def from = cesiumDir.get()
+    execOperations.exec { spec ->
+      spec.commandLine("node", copyScript, "--cesium-dir", from, "--dest", dest.absolutePath, "--no-version-warning")
+    }
+  }
+}
+
+if (munimMapsProviders.cesium && munimMapsCesiumBundled) {
+  def copyScript = file("../scripts/cesium/copy-cesium.js")
+  def resolveArgs = ["node", copyScript.absolutePath, "--resolve", "--root", rootProject.projectDir.absolutePath]
+  def cesiumDirProperty = project.findProperty("munimMaps.cesiumDir")
+  if (cesiumDirProperty) resolveArgs += ["--cesium-dir", rootProject.file(cesiumDirProperty.toString()).absolutePath]
+  def resolved = providers.exec { spec ->
+    spec.commandLine(resolveArgs)
+    spec.ignoreExitValue = true
+  }
+  if (resolved.result.get().exitValue != 0) {
+    throw new GradleException(resolved.standardError.asText.get().trim())
+  }
+  def cesium = new groovy.json.JsonSlurper().parseText(resolved.standardOutput.asText.get().trim())
+  if (cesium.warning) logger.warn("munim-maps: ${cesium.warning}")
+  def copyCesium = tasks.register("munimMapsCopyCesium", MunimMapsCopyCesiumTask) { task ->
+    task.cesiumDir.set(cesium.dir.toString())
+    task.cesiumVersion.set(cesium.version.toString())
+    task.script.set(copyScript)
+    task.outputDir.set(layout.buildDirectory.dir("generated/munim-maps/cesium-assets"))
+  }
+  androidComponents {
+    onVariants(selector().all()) { variant ->
+      variant.sources.assets?.addGeneratedSourceDirectory(copyCesium) { it.outputDir }
     }
   }
 }

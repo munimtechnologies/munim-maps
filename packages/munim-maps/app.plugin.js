@@ -217,7 +217,32 @@ function withMunimMapsAndroid(config, options) {
   return config
 }
 
+/**
+ * Bundling CesiumJS copies it from the app's own `cesium` package at build
+ * time (munim-maps does not ship it): say so at prebuild when that package
+ * is missing or not the version the engine is written for.
+ */
+function checkBundledCesium(config, options) {
+  const bundled = ['ios', 'android'].some((platform) =>
+    cesiumBundled(options, providersFor(options, platform))
+  )
+  if (!bundled) return
+  const {
+    resolveCesium,
+    versionWarning,
+  } = require('./scripts/cesium/copy-cesium')
+  try {
+    const warning = versionWarning(
+      resolveCesium({ root: config._internal?.projectRoot ?? process.cwd() })
+    )
+    if (warning) console.warn(`munim-maps: ${warning}`)
+  } catch (error) {
+    console.warn(`munim-maps: ${error.message}`)
+  }
+}
+
 module.exports = function withMunimMaps(config, options = {}) {
+  checkBundledCesium(config, options)
   config = withMunimMapsIos(config, options)
   config = withMunimMapsAndroid(config, options)
   return config

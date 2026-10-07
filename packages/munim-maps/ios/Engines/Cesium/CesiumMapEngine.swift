@@ -4,9 +4,10 @@ import MapKit
 import UIKit
 import WebKit
 
-// The Cesium engine on iOS: CesiumJS (bundled with munim-maps, in the
-// `MunimMapsCesium` resource bundle of the `NitroMunimMaps/Cesium` subspec)
-// running in a WKWebView this engine owns. The web half
+// The Cesium engine on iOS: CesiumJS (from jsDelivr, cached on disk, or
+// bundled from the app's `cesium` package into the `MunimMapsCesium`
+// resource bundle of the `NitroMunimMaps/Cesium` subspec) running in a
+// WKWebView this engine owns. The web half
 // (cesium/page/munim-cesium/js) draws the map, markers, shapes and the glTF
 // models; this half hosts it, turns props into messages, messages into
 // events, and keeps munim-maps' native 3D layer (USDZ, SCN, OBJ models) on

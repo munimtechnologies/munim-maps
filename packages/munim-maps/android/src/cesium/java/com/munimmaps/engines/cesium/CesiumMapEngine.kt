@@ -79,9 +79,10 @@ object CesiumMapEngineFactory : MunimMapEngineFactory {
 }
 
 /**
- * The Cesium engine on Android: CesiumJS (bundled with munim-maps as
- * assets under `munim-cesium/`, added by `munimMaps.cesium=true`) running in
- * an `android.webkit.WebView` this engine owns. The web half
+ * The Cesium engine on Android: CesiumJS (from jsDelivr, cached on disk, or
+ * bundled from the app's `cesium` package as assets under
+ * `munim-cesium/Cesium/` with `munimMaps.cesiumBundled=true`) running in an
+ * `android.webkit.WebView` this engine owns. The web half
  * (cesium/page/munim-cesium/js) draws the map, markers, shapes and the glTF
  * models; this half hosts it, serves its files at
  * `https://appassets.androidplatform.net/` (so it is a secure https origin
