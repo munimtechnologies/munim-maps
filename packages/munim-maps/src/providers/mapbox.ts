@@ -641,6 +641,62 @@ export interface MapboxMapMethods {
   }): Promise<boolean>
   /** A PNG of a map drawn off screen by Mapbox's `Snapshotter`; its path. */
   snapshot(options?: MapboxSnapshotOptions): Promise<string>
+  /** The camera as a position in space (Mapbox's free camera). */
+  getFreeCamera(): Promise<{
+    position: { latitude: number; longitude: number; altitude: number }
+  }>
+  /**
+   * Places the camera at `position` (altitude in metres) and points it at
+   * `lookAt`, or turns it to `pitch` and `bearing`.
+   */
+  setFreeCamera(options: {
+    position?: { latitude: number; longitude: number; altitude?: number }
+    lookAt?: { latitude: number; longitude: number; altitude?: number }
+    pitch?: number
+    bearing?: number
+  }): Promise<null>
+  /** The camera limits in effect. */
+  getCameraBounds(): Promise<MapboxCameraBounds>
+  /** The camera the style asks for (its `center`, `zoom`, …). */
+  getStyleDefaultCamera(): Promise<MapboxCameraOptions>
+  /** The tiles covering the view. */
+  tileCover(options?: {
+    tileSize?: number
+    minZoom?: number
+    maxZoom?: number
+    roundZoom?: boolean
+  }): Promise<
+    { z: number; x: number; y: number; overscaledZ: number; wrap: number }[]
+  >
+  /** Rendering statistics sampled over `durationMs` (default 1000). */
+  collectPerformanceStatistics(options?: { durationMs?: number }): Promise<{
+    collectionDurationMillis: number
+    mapRenderDuration: { maxMillis: number; medianMillis: number }
+    cumulative?: {
+      drawCalls?: number
+      textureBytes?: number
+      vertexBytes?: number
+    }
+  }>
+  /**
+   * Drives the location puck (and the follow modes) from these values
+   * instead of the device's location: simulation, tests, or your own
+   * positioning. Call again to move it; `clearLocationOverride` goes back to
+   * the device.
+   */
+  setLocationOverride(location: {
+    latitude: number
+    longitude: number
+    altitude?: number
+    /** Metres. */
+    accuracy?: number
+    /** Degrees, for `puck.bearing: 'heading'`. */
+    heading?: number
+    /** Degrees, for `puck.bearing: 'course'`. */
+    course?: number
+    speed?: number
+  }): Promise<null>
+  clearLocationOverride(): Promise<null>
   /** Redraw now. */
   triggerRepaint(): Promise<null>
   /** Free memory the map can rebuild. */

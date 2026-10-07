@@ -1,5 +1,6 @@
 #if canImport(MapboxMaps)
 @_spi(Experimental) import MapboxMaps
+import Combine
 import MapKit
 import UIKit
 
@@ -275,6 +276,85 @@ enum MapboxCalls {
       done(map.elevation(at: c) ?? NSNull())
     case "setViewport":
       setViewport(args, engine: e, completion: completion)
+
+    case "getFreeCamera":
+      let free = map.freeCameraOptions
+      done(["position": ["latitude": free.location.latitude, "longitude": free.location.longitude, "altitude": free.altitude]])
+    case "setFreeCamera":
+      e.stopFlight()
+      let free = map.freeCameraOptions
+      if let p = args["position"] as? [String: Any], let c = MapboxJSON.coordinate(p) {
+        free.location = c
+        if let altitude = MapboxJSON.double(p["altitude"]) { free.altitude = altitude }
+      }
+      if let l = args["lookAt"] as? [String: Any], let c = MapboxJSON.coordinate(l) {
+        free.lookAtPoint(forLocation: c, altitude: MapboxJSON.double(l["altitude"]) ?? 0)
+      } else if let pitch = MapboxJSON.double(args["pitch"]), let bearing = MapboxJSON.double(args["bearing"]) {
+        free.setPitchBearingForPitch(pitch, bearing: bearing)
+      }
+      map.freeCameraOptions = free
+      done()
+    case "getCameraBounds":
+      let b = map.cameraBounds
+      done(["bounds": ["southwest": coordinateJSON(b.bounds.southwest), "northeast": coordinateJSON(b.bounds.northeast)],
+            "minZoom": b.minZoom, "maxZoom": b.maxZoom, "minPitch": b.minPitch, "maxPitch": b.maxPitch])
+    case "getStyleDefaultCamera":
+      done(cameraOptionsJSON(map.styleDefaultCamera))
+    case "tileCover":
+      let tiles = map.tileCover(for: TileCoverOptions(
+        tileSize: UInt16(MapboxJSON.double(args["tileSize"]) ?? 512),
+        minZoom: UInt8(MapboxJSON.double(args["minZoom"]) ?? 0),
+        maxZoom: UInt8(MapboxJSON.double(args["maxZoom"]) ?? 22),
+        roundZoom: MapboxJSON.bool(args["roundZoom"]) ?? false))
+      done(tiles.map { ["z": Int($0.canonical.z), "x": Int($0.canonical.x), "y": Int($0.canonical.y),
+                        "overscaledZ": Int($0.overscaledZ), "wrap": Int($0.wrap)] })
+    case "collectPerformanceStatistics":
+      let duration = MapboxJSON.double(args["durationMs"]) ?? 1000
+      var token: AnyCancelable?
+      token = map.collectPerformanceStatistics(
+        PerformanceStatisticsOptions([.cumulative, .perFrame], samplingDurationMillis: duration)
+      ) { stats in
+        var json: [String: Any] = [
+          "collectionDurationMillis": stats.collectionDurationMillis,
+          "mapRenderDuration": ["maxMillis": stats.mapRenderDurationStatistics.maxMillis,
+                                "medianMillis": stats.mapRenderDurationStatistics.medianMillis],
+        ]
+        if let c = stats.cumulativeStatistics {
+          json["cumulative"] = ["drawCalls": c.drawCalls ?? NSNull(), "textureBytes": c.textureBytes ?? NSNull(),
+                                "vertexBytes": c.vertexBytes ?? NSNull()]
+        }
+        done(json)
+        token = nil
+      }
+      _ = token
+    case "setLocationOverride":
+      guard let c = MapboxJSON.coordinate(args) else { return fail("needs latitude and longitude") }
+      let clLocation = CLLocation(
+        coordinate: c, altitude: MapboxJSON.double(args["altitude"]) ?? 0,
+        horizontalAccuracy: MapboxJSON.double(args["accuracy"]) ?? 5, verticalAccuracy: 5,
+        course: MapboxJSON.double(args["course"]) ?? -1, speed: MapboxJSON.double(args["speed"]) ?? -1,
+        timestamp: Date())
+      let location = Location(clLocation: clLocation)
+      let heading = Heading(direction: MapboxJSON.double(args["heading"]) ?? clLocation.course, accuracy: 5)
+      if let subject = e.content.locationSubject {
+        subject.send([location])
+        e.content.headingSubject?.send(heading)
+      } else {
+        let subject = CurrentValueSubject<[Location], Never>([location])
+        let headings = CurrentValueSubject<Heading, Never>(heading)
+        e.content.locationSubject = subject
+        e.content.headingSubject = headings
+        e.content.originalDataModel = e.mapView.location.dataModel
+        e.mapView.location.dataModel = LocationDataModel(
+          location: subject.eraseToAnyPublisher(), heading: headings.eraseToAnyPublisher())
+      }
+      done()
+    case "clearLocationOverride":
+      if let original = e.content.originalDataModel { e.mapView.location.dataModel = original }
+      e.content.locationSubject = nil
+      e.content.headingSubject = nil
+      e.content.originalDataModel = nil
+      done()
 
     // MARK: Snapshots and housekeeping
     case "snapshot":

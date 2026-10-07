@@ -1,5 +1,6 @@
 #if canImport(MapboxMaps)
 @_spi(Experimental) import MapboxMaps
+import Combine
 import MapKit
 import UIKit
 
@@ -34,6 +35,10 @@ final class MapboxContentState {
   var trackingButton: UIButton?
   var interactions: [AnyCancelable] = []
   var lastInteractionFeatures: [String: FeaturesetFeature] = [:]
+  /// `setLocationOverride`: simulated locations for the puck and following.
+  var locationSubject: CurrentValueSubject<[Location], Never>?
+  var headingSubject: CurrentValueSubject<Heading, Never>?
+  var originalDataModel: LocationDataModel?
 }
 
 final class MapboxViewMarker {
