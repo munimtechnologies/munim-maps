@@ -273,6 +273,10 @@ void JHybridMunimMapViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass
     hybridView->setOnMapFeaturePress(props->onMapFeaturePress.value);
     props->onMapFeaturePress.isDirty = false;
   }
+  if (props->onProviderEvent.isDirty) {
+    hybridView->setOnProviderEvent(props->onProviderEvent.value);
+    props->onProviderEvent.isDirty = false;
+  }
   if (props->onError.isDirty) {
     hybridView->setOnError(props->onError.value);
     props->onError.isDirty = false;

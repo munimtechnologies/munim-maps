@@ -69,7 +69,13 @@ class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec
     handler.postDelayed(searchLater, if (searches < 20) 250L else 2000L)
   }
 
-  private fun findMap() = if (mapTestID.isNotEmpty()) {
+  private fun findMap(): com.munimmaps.engine.MapCameraSource? {
+    // Loading the engine factories registers their map view adapters.
+    com.munimmaps.engine.MunimMapEngines.installed
+    return findMapView()
+  }
+
+  private fun findMapView() = if (mapTestID.isNotEmpty()) {
     findTagged(frame.rootView)?.let { MapViewAdapters.find(it, skip = frame) }
   } else {
     var ancestor = frame.parent as? View

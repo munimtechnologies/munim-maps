@@ -81,6 +81,17 @@ export interface EdgeInsets {
   right: number
 }
 
+/**
+ * An event only one engine has (Google's indoor level change, a Street View
+ * panorama change…): the engine's `provider` id, the event `name` and its
+ * data as JSON. `onProviderEvent` on `MunimMapView` parses `json`.
+ */
+export interface ProviderEvent {
+  provider: string
+  name: string
+  json: string
+}
+
 export interface MapCamera {
   latitude: number
   longitude: number
@@ -206,6 +217,8 @@ export interface MunimMapViewProps extends HybridViewProps {
   /** MapKit changed the tracking mode: the user panned away, or used the tracking button. */
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
+  /** Events only the active engine has (see each engine's docs). */
+  onProviderEvent?: (event: ProviderEvent) => void
   onError?: (message: string) => void
 }
 
@@ -257,6 +270,13 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   overlayAtPoint(point: MapPoint): Promise<string>
   /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
   mapItemForFeature(id: string): Promise<MapItem>
+  /**
+   * A method only the active engine has, such as Google's
+   * `streetView.open`: `command` names it, `argsJson` is its arguments as
+   * JSON, and the promise resolves with the result as JSON (`null` for
+   * none). Rejects when the engine does not know the command.
+   */
+  providerCommand(command: string, argsJson: string): Promise<string>
 }
 
 export type MunimMapView = HybridView<

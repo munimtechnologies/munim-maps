@@ -518,6 +518,20 @@ abstract class HybridMunimMapViewSpec: HybridView() {
       onMapFeaturePress = value?.let { it }
     }
   
+  abstract var onProviderEvent: ((event: ProviderEvent) -> Unit)?
+  
+  private var onProviderEvent_cxx: Func_void_ProviderEvent?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onProviderEvent?.let { Func_void_ProviderEvent_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onProviderEvent = value?.let { it }
+    }
+  
   abstract var onError: ((message: String) -> Unit)?
   
   private var onError_cxx: Func_void_std__string?
@@ -612,6 +626,10 @@ abstract class HybridMunimMapViewSpec: HybridView() {
   @DoNotStrip
   @Keep
   abstract fun mapItemForFeature(id: String): Promise<MapItem>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun providerCommand(command: String, argsJson: String): Promise<String>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

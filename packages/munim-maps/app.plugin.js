@@ -7,7 +7,8 @@
 //     "android": { "providers": ["cesium"] },
 //     "googleMapsApiKey": "…" | { "ios": "…", "android": "…" },
 //     "mapboxAccessToken": "pk.…",
-//     "cesiumIonToken": "…"
+//     "cesiumIonToken": "…",
+//     "googleMaps3d": true                         // Android: Google's photorealistic 3D SDK
 //   }]
 //
 // iOS: Podfile.properties.json `munimMaps.providers` (the podspec turns
@@ -115,6 +116,19 @@ function withMunimMapsAndroid(config, options) {
       if (providers.includes(provider)) {
         props.push({ type: 'property', key, value: 'true' })
       }
+    }
+    // Google's photorealistic 3D map SDK (google={{ mode: '3d' }}).
+    const index3d = props.findIndex(
+      (item) =>
+        item.type === 'property' && item.key === 'munimMaps.googleMaps3d'
+    )
+    if (index3d >= 0) props.splice(index3d, 1)
+    if (options.googleMaps3d && providers.includes('google')) {
+      props.push({
+        type: 'property',
+        key: 'munimMaps.googleMaps3d',
+        value: 'true',
+      })
     }
     return c
   })

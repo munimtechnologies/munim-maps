@@ -156,7 +156,7 @@ layer.onModelPress = { id in print(id) }
 | Provider | `provider=` | iOS | Android | Key |
 | --- | --- | --- | --- | --- |
 | Apple MapKit | `'mapkit'` | ✅ Built in, the default | — | None |
-| Google Maps | `'google'` | ⏳ Coming in this release | ⏳ Coming in this release | Google Maps SDK key |
+| Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` (Maps SDK 10 + Utils) | ✅ `munimMaps.google=true` (Maps SDK 20 + maps-utils), the default when on | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ⏳ Coming in this release | ⏳ Coming in this release | Mapbox public token |
 | MapLibre (open maps) | `'maplibre'` | ⏳ Coming in this release | ✅ Built in, the default (map, camera, events, GLB models) | None (OpenStreetMap data from OpenFreeMap) |
 | Cesium | `'cesium'` | ⏳ Coming in this release | ⏳ Coming in this release | Cesium ion token |
@@ -176,6 +176,52 @@ Pick engines and keys with the Expo config plugin:
 ```
 
 Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
+
+### Google Maps
+
+`provider="google"` draws with the Maps SDK for iOS (`GoogleMaps` 10, CocoaPods) and the Maps SDK for Android (`play-services-maps` 20), with Google Maps Utils for clustering, heatmaps, KML and GeoJSON, and munim-maps' 3D layer on Google's camera. Every shared prop, event and method works; everything only Google has is in `google={{ … }}`, `onProviderEvent` and `googleMap(ref)`. The full capability list is in [docs/providers.md](docs/providers.md#google-maps-engine-checklist).
+
+**Setup.** Get a key with the *Maps SDK for iOS* and *Maps SDK for Android* APIs on (restrict it to your bundle ID and package + SHA-1). With Expo: `["munim-maps", { "providers": ["google"], "googleMapsApiKey": { "ios": "…", "android": "…" } }]`, then `npx expo prebuild`. Without Expo: `pod 'NitroMunimMaps/Google', :path => '../node_modules/munim-maps'` plus `configureMunimMaps({ googleMapsApiKey })` (or Info.plist `MunimMapsGoogleMapsApiKey`) on iOS, and `munimMaps.google=true` in `android/gradle.properties` plus `com.google.android.geo.API_KEY` meta-data on Android. Showing the user's location needs `NSLocationWhenInUseUsageDescription` (iOS) and `ACCESS_FINE_LOCATION` in the manifest (Android); munim-maps asks for the permission when `showsUserLocation` or tracking turns on. With Google built in, Android maps default to it.
+
+```tsx
+import { MunimMapView, googleMap, googleEvent, googleMapsServices } from 'munim-maps'
+
+<MunimMapView
+  ref={ref}
+  provider="google"
+  initialCamera={{ latitude: 41.88, longitude: -87.63, distance: 1200, pitch: 55, heading: 30 }}
+  colorScheme="dark"
+  showsTraffic
+  markers={[{ id: 'hq', coordinate, style: 'marker', glyph: 'G', callout: true, title: 'HQ' }]}
+  google={{
+    mapId: 'DEMO_MAP_ID',                 // cloud styling, advanced markers, data-driven styling
+    mapType: 'hybrid',                    // normal | satellite | hybrid | terrain | none
+    indoorEnabled: true,
+    zoomControls: true, mapToolbar: true, // Android
+    markers: { hq: { pin: { background: '#0A84FF', glyph: 'HQ' }, collisionBehavior: 'required' } },
+    polylines: { route: { pattern: [{ type: 'dash', length: 12 }, { type: 'gap', length: 6 }], stamp: { imageUri } } },
+    heatmaps: [{ id: 'heat', points, radius: 30 }],
+    groundOverlays: [{ id: 'plan', imageUri, bounds: { southwest, northeast } }],
+    geoJsonLayers: [{ id: 'zones', url: 'https://…/zones.geojson' }],
+    kmlLayers: [{ id: 'trail', url: 'https://…/trail.kml' }],
+    featureLayers: [{ featureType: 'LOCALITY', placeStyles: { [placeId]: { fillColor: '#0A84FF55' } } }],
+  }}
+  onProviderEvent={(event) => {
+    const e = googleEvent(event) // typed: indoorLevelActivated, poiClick, featureClick, streetViewChange…
+  }}
+/>
+
+const google = googleMap(ref.current!)
+await google.animateCamera({ zoom: 18, tilt: 60, bearing: 90 }, 800) // Google's own units
+await google.streetView.open({ latitude, longitude, heading: 90 })  // Street View over the map
+await ref.current!.openLookAround(coordinate)                       // full-screen Street View
+```
+
+**Places, Geocoding, Routes.** These are Google web services, not part of the Maps SDKs: turn the APIs on for a key, then `googleMapsServices({ apiKey })` gives `places.autocomplete`, `places.details`, `places.searchText`, `places.searchNearby`, `places.photoUrl`, `geocoding.geocode` / `reverseGeocode`, `routes.computeRoutes` (lines decoded) and `routes.computeRouteMatrix`. They are billed per request; call them from your server where you can, or use a separate app-restricted key (`iosBundleId`, `androidPackage` + `androidCertSha1` are sent as Google's app-restriction headers). `googleGeometry` has Google's distance, heading, offset, area and polyline encoding in JavaScript.
+
+With react-native-maps in the same iOS app: react-native-maps registers its Google map whenever the GoogleMaps pod is present, so also add `pod 'react-native-maps/Google'` (it pins GoogleMaps 9.4, which munim-maps accepts; `transitEnabled` needs GoogleMaps 10), or the app stops at launch with `RCTThirdPartyComponentsProvider` inserting nil (the example's app.config.js shows the Podfile line).
+
+Caveats: Google publishes a zoom level, not a camera distance, so munim-maps measures Google's field of view from its own projection (the 3D layer then lines up with the map to within a point; `measureAlignment()` reports it). JSON styles (`styleJson`, `styleUrl`, `mapStyle="muted"`, `pointsOfInterest`) and cloud styling (`mapId`) do not mix. Google draws info windows as pictures, so a whole callout is one tap (`onCalloutPress`). The iOS SDK has no stroke patterns, caps or joints: dashes are drawn as spans in metres at the current zoom. Android uses android-maps-utils 3.20 by default (it builds with React Native's Kotlin 2.1); apps on Kotlin 2.3 can set `munimMaps.googleMapsUtilsVersion`. Google has no globe, scale bar or tracking modes (munim-maps follows the user itself). Photorealistic 3D: `google={{ mode: '3d' }}` on Android (Maps 3D SDK, `googleMaps3d: true` in the Expo plugin; the key needs the Map Tiles API and the Maps 3D SDK for Android) draws models as Google's own glTF models (`modelRendering: 'auto' | 'native' | 'overlay'`); iOS's Maps 3D SDK is a SwiftUI-only Swift package that CocoaPods cannot install, so iOS stays on the 2D map with the overlay.
 
 ## Table of contents
 
@@ -470,30 +516,30 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`) and 
 
 ## Platform Support Matrix
 
-Columns are engines; two marks are iOS / Android. ✅ works · ⏳ coming in this release · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
+Columns are engines; two marks are iOS / Android. ✅ works · 🟡 partly or not yet device-tested (Google on Android: built, phone test pending) · ⏳ coming in this release · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
 
 | Capability | MapKit (iOS) | Google | Mapbox | MapLibre | Cesium | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `MunimMapView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android draws MapLibre (OpenFreeMap) today; see [Map Providers](#️-map-providers). |
-| `MapModelLayer` over `react-native-maps` | ✅ | ⏳ / ⏳ | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
-| `MapModelLayer` over `expo-maps` | ✅ | ⏳ / ⏳ | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
-| GLB / glTF models | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
-| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ⏳ / — | ⏳ / — | ⏳ / — | ⏳ / — | SceneKit / Model I/O, iOS only. |
-| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ |  |
-| Vehicle catalogue | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
-| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
-| Globe | ✅ | — | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
-| Hidden behind buildings | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
-| Terrain height | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
-| Camera API, regions, conversions, gestures | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
-| Map events | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
-| Markers, clustering, callouts, `MarkerView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| User location and tracking (follow, follow with heading) | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
-| Compass, scale, tracking and 2D/3D buttons | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. |
+| `MunimMapView` | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android draws MapLibre (OpenFreeMap) today; see [Map Providers](#️-map-providers). |
+| `MapModelLayer` over `react-native-maps` | ✅ | — / 🟡 | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
+| `MapModelLayer` over `expo-maps` | ✅ | — / — | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
+| GLB / glTF models | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
+| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ / — | ⏳ / — | ⏳ / — | ⏳ / — | SceneKit / Model I/O, iOS only. |
+| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ |  |
+| Vehicle catalogue | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
+| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
+| Globe | ✅ | — / — | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
+| Hidden behind buildings | ✅ | ✅ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
+| Terrain height | ✅ | ✅ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| Camera API, regions, conversions, gestures | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
+| Map events | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
+| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
+| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
+| User location and tracking (follow, follow with heading) | ✅ | ✅ / 🟡 | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 / 🟡 | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. |
 | Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | `selectionAccessory`. |
-| Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | — | — | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS. |
-| Look Around view and snapshots | ✅ iOS 16+ | — | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |
+| Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | 🟡 `googleMapsServices` / 🟡 `googleMapsServices` | — | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS. |
+| Look Around view and snapshots | ✅ iOS 16+ | 🟡 Street View / 🟡 Street View | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |
 | Map images without a view | ✅ | — | — | — | — | `mapSnapshot()` (`MKMapSnapshotter`). |
 
 ### MapKit coverage

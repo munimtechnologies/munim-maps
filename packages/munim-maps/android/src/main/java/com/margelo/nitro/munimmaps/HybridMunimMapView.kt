@@ -110,6 +110,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     override fun onUserLocationChange(location: UserLocationEvent) { onUserLocationChange?.invoke(location) }
     override fun onUserTrackingModeChange(mode: UserTrackingMode) { onUserTrackingModeChange?.invoke(mode) }
     override fun onMapFeaturePress(feature: MapFeatureEvent) { onMapFeaturePress?.invoke(feature) }
+    override fun onProviderEvent(name: String, json: String) {
+      onProviderEvent?.invoke(ProviderEvent(provider.name.lowercase(), name, json))
+    }
     override fun onError(message: String) { onError?.invoke(message) }
   }
 
@@ -227,6 +230,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var onUserLocationChange: ((location: UserLocationEvent) -> Unit)? = null
   override var onUserTrackingModeChange: ((mode: UserTrackingMode) -> Unit)? = null
   override var onMapFeaturePress: ((feature: MapFeatureEvent) -> Unit)? = null
+  override var onProviderEvent: ((event: ProviderEvent) -> Unit)? = null
   override var onError: ((message: String) -> Unit)? = null
 
   // Methods (called on the JavaScript thread; the engine runs on the main thread)
@@ -301,10 +305,14 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     e.addressForCoordinate(coordinate) { result -> result.fold({ p.resolve(it) }, { p.reject(it) }) }
   }
 
-  /** Look Around is Apple's. */
-  override fun hasLookAround(coordinate: MapCoordinate): Promise<Boolean> = Promise.resolved(false)
+  /** Street-level imagery: Look Around is Apple's; engines with their own (Google's Street View) answer. */
+  override fun hasLookAround(coordinate: MapCoordinate): Promise<Boolean> = mainPromise { e, p ->
+    e.hasLookAround(coordinate) { p.resolve(it) }
+  }
 
-  override fun openLookAround(coordinate: MapCoordinate): Promise<Boolean> = Promise.resolved(false)
+  override fun openLookAround(coordinate: MapCoordinate): Promise<Boolean> = mainPromise { e, p ->
+    e.openLookAround(coordinate) { p.resolve(it) }
+  }
 
   override fun measureAlignment(): Promise<MapAlignmentReport> = mainPromise { e, p -> p.resolve(e.measureAlignment()) }
 
@@ -312,4 +320,8 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
 
   override fun mapItemForFeature(id: String): Promise<MapItem> =
     Promise.rejected(UnsupportedOperationException("mapItemForFeature is MapKit only"))
+
+  override fun providerCommand(command: String, argsJson: String): Promise<String> = mainPromise { e, p ->
+    e.providerCommand(command, options(argsJson)) { result -> result.fold({ p.resolve(it) }, { p.reject(it) }) }
+  }
 }

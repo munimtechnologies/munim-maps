@@ -1,7 +1,7 @@
 import { Platform } from 'react-native'
 import { NitroModules } from 'react-native-nitro-modules'
 import type { MunimMapsConfig } from '../specs/MunimMapsConfig.nitro'
-import type { MapProvider } from '../specs/MunimMapView.nitro'
+import type { MapProvider, ProviderEvent } from '../specs/MunimMapView.nitro'
 import type { CesiumMapOptions } from './cesium'
 import type { GoogleMapOptions } from './google'
 import type { MapboxMapOptions } from './mapbox'
@@ -143,4 +143,44 @@ export function providerOptionsJson(
 ): string {
   const options = props[provider]
   return options ? JSON.stringify(options) : '{}'
+}
+
+/**
+ * An event only one engine has (`onProviderEvent`): which engine, the
+ * event's name and its data (parsed from JSON). Engines document their
+ * events; Google's are typed as `GoogleMapEvent`.
+ */
+export interface MapProviderEvent<Data = any> {
+  provider: MapProvider
+  name: string
+  data: Data
+}
+
+/** Parses a native `ProviderEvent`. */
+export function parseProviderEvent(event: ProviderEvent): MapProviderEvent {
+  let data: unknown = null
+  try {
+    data = JSON.parse(event.json)
+  } catch {
+    data = event.json
+  }
+  return { provider: event.provider as MapProvider, name: event.name, data }
+}
+
+/** Anything with `MunimMapView`'s `providerCommand` method (its ref). */
+export interface ProviderCommandTarget {
+  providerCommand(command: string, argsJson: string): Promise<string>
+}
+
+/**
+ * Calls a method only the active engine has (`ref.providerCommand` with
+ * JSON in and out). Rejects when the engine does not know the command.
+ */
+export async function providerCommand<Result = unknown>(
+  map: ProviderCommandTarget,
+  command: string,
+  args: object = {}
+): Promise<Result> {
+  const json = await map.providerCommand(command, JSON.stringify(args))
+  return JSON.parse(json || 'null') as Result
 }

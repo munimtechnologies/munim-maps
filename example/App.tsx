@@ -30,6 +30,7 @@ import { ParityScreen, type ParityHandle } from './Parity'
 import { MAP_PROVIDERS, type MapProvider, type UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
 import { Layer3DScreen } from './Layer3D'
+import { GoogleScreen } from './GoogleScreen'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -60,7 +61,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'google'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -455,6 +456,7 @@ function Example() {
   const [layer3dCheck, setLayer3dCheck] = useState(false)
   const [layer3dCamera, setLayer3dCamera] = useState<MapCamera | undefined>(undefined)
   const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
+  const [googleChecks, setGoogleChecks] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -548,6 +550,13 @@ function Example() {
         }
         setLayer3dOcclusion(!url?.includes('noocclusion'))
         setMode('layer3d')
+        return
+      }
+      // munimmapsexample://google(/checks): the Google engine screen.
+      if (/:\/\/google/.test(url ?? '')) {
+        setLaunching(false)
+        setGoogleChecks(url?.includes('checks') ?? false)
+        setMode('google')
         return
       }
       // munimmapsexample://providers/<provider>: the engine picker.
@@ -754,6 +763,12 @@ function Example() {
           occlusion={layer3dOcclusion}
           topInset={insets.top}
         />
+      ) : mode === 'google' ? (
+        <GoogleScreen
+          topInset={insets.top}
+          autoCheck={googleChecks}
+          onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
+        />
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
@@ -936,7 +951,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode === 'google') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

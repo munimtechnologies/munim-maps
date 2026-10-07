@@ -374,6 +374,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setOnMapFeaturePress(newViewProps.onMapFeaturePress.value);
     newViewProps.onMapFeaturePress.isDirty = false;
   }
+  // onProviderEvent: optional
+  if (newViewProps.onProviderEvent.isDirty) {
+    swiftPart.setOnProviderEvent(newViewProps.onProviderEvent.value);
+    newViewProps.onProviderEvent.isDirty = false;
+  }
   // onError: optional
   if (newViewProps.onError.isDirty) {
     swiftPart.setOnError(newViewProps.onError.value);
