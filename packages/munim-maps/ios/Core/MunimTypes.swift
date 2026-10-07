@@ -354,7 +354,7 @@ public enum MunimBadgePosition: String, Sendable {
 }
 
 @_expose(!Cxx)
-public struct MunimMarkerBadge: Sendable {
+public struct MunimMarkerBadge: Sendable, Equatable {
   public var text: String
   public var position: MunimBadgePosition
   public var color: String
@@ -370,7 +370,7 @@ public struct MunimMarkerBadge: Sendable {
 
 /// A button or picture at one end of a marker's callout.
 @_expose(!Cxx)
-public struct MunimCalloutAccessory: Sendable {
+public struct MunimCalloutAccessory: Sendable, Equatable {
   @_expose(!Cxx)
   public enum Kind: String, Sendable { case none, detail, info, button, image }
 
@@ -398,22 +398,20 @@ public struct MunimClusterStyle: Sendable {
   public var clusteringId: String
   public var color: String
   public var glyphColor: String
-  /// Text in the balloon; `{count}` is the number of markers. Empty shows the count.
+  /// Text in the balloon; `{count}` is the number of markers. Empty shows
+  /// the count. MapKit draws no glyph images on cluster balloons.
   public var glyph: String
-  /// SF Symbol in the balloon instead of text.
-  public var glyphSymbol: String
   /// `{count}` is the number of markers.
   public var title: String
   public var subtitle: String
   public var displayPriority: Double
 
   public init(clusteringId: String, color: String = "", glyphColor: String = "", glyph: String = "",
-              glyphSymbol: String = "", title: String = "", subtitle: String = "", displayPriority: Double = 1000) {
+              title: String = "", subtitle: String = "", displayPriority: Double = 1000) {
     self.clusteringId = clusteringId
     self.color = color
     self.glyphColor = glyphColor
     self.glyph = glyph
-    self.glyphSymbol = glyphSymbol
     self.title = title
     self.subtitle = subtitle
     self.displayPriority = displayPriority
@@ -424,7 +422,7 @@ public struct MunimClusterStyle: Sendable {
 public enum MunimCollisionMode: String, Sendable { case rectangle, circle, none }
 
 @_expose(!Cxx)
-public struct MunimMarker: Sendable {
+public struct MunimMarker: Sendable, Equatable {
   public var id: String
   public var latitude: Double
   public var longitude: Double

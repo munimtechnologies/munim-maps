@@ -43,14 +43,13 @@ namespace margelo::nitro::munimmaps {
     std::string color     SWIFT_PRIVATE;
     std::string glyphColor     SWIFT_PRIVATE;
     std::string glyph     SWIFT_PRIVATE;
-    std::string glyphSymbol     SWIFT_PRIVATE;
     std::string title     SWIFT_PRIVATE;
     std::string subtitle     SWIFT_PRIVATE;
     double displayPriority     SWIFT_PRIVATE;
 
   public:
     NativeClusterStyle() = default;
-    explicit NativeClusterStyle(std::string clusteringId, std::string color, std::string glyphColor, std::string glyph, std::string glyphSymbol, std::string title, std::string subtitle, double displayPriority): clusteringId(clusteringId), color(color), glyphColor(glyphColor), glyph(glyph), glyphSymbol(glyphSymbol), title(title), subtitle(subtitle), displayPriority(displayPriority) {}
+    explicit NativeClusterStyle(std::string clusteringId, std::string color, std::string glyphColor, std::string glyph, std::string title, std::string subtitle, double displayPriority): clusteringId(clusteringId), color(color), glyphColor(glyphColor), glyph(glyph), title(title), subtitle(subtitle), displayPriority(displayPriority) {}
 
   public:
     friend bool operator==(const NativeClusterStyle& lhs, const NativeClusterStyle& rhs) = default;
@@ -70,7 +69,6 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "color"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphColor"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyph"))),
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphSymbol"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "title"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "subtitle"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "displayPriority")))
@@ -82,7 +80,6 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "color"), JSIConverter<std::string>::toJSI(runtime, arg.color));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "glyphColor"), JSIConverter<std::string>::toJSI(runtime, arg.glyphColor));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "glyph"), JSIConverter<std::string>::toJSI(runtime, arg.glyph));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "glyphSymbol"), JSIConverter<std::string>::toJSI(runtime, arg.glyphSymbol));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "title"), JSIConverter<std::string>::toJSI(runtime, arg.title));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "subtitle"), JSIConverter<std::string>::toJSI(runtime, arg.subtitle));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "displayPriority"), JSIConverter<double>::toJSI(runtime, arg.displayPriority));
@@ -100,7 +97,6 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "color")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphColor")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyph")))) return false;
-      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "glyphSymbol")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "title")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "subtitle")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "displayPriority")))) return false;

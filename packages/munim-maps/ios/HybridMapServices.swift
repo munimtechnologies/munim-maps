@@ -204,13 +204,13 @@ final class HybridMapServices: HybridMapServicesSpec {
       MapServiceParsing.mapItem(identifier: identifier) { item, error in
         guard let item else { return promise.reject(withError: error) }
         guard let presenter = MapServiceParsing.topViewController() else { return promise.resolve(withResult: false) }
-        let controller = MKMapItemDetailViewController(mapItem: item)
+        let controller = MKMapItemDetailViewController(mapItem: item, displaysMap: true)
         let closer = PlaceCardCloser()
         controller.delegate = closer
         objc_setAssociatedObject(controller, &PlaceCardCloser.key, closer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        controller.modalPresentationStyle = .pageSheet
-        if let sheet = controller.sheetPresentationController { sheet.detents = [.medium(), .large()] }
-        presenter.present(controller, animated: true)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.modalPresentationStyle = .formSheet
+        presenter.present(navigation, animated: true)
         promise.resolve(withResult: true)
       }
     }
@@ -314,7 +314,7 @@ private final class PlaceCardCloser: NSObject, MKMapItemDetailViewControllerDele
   static var key: UInt8 = 0
 
   func mapItemDetailViewControllerDidFinish(_ detailViewController: MKMapItemDetailViewController) {
-    detailViewController.dismiss(animated: true)
+    (detailViewController.navigationController ?? detailViewController).dismiss(animated: true)
   }
 }
 

@@ -70,12 +70,21 @@ const MARKERS: MapMarker[] = [
     glyphSymbol: 'building.2.fill',
     selectedGlyphSymbol: 'binoculars.fill',
     color: '#FF3B30',
-    callout: true,
-    calloutLeft: { symbol: 'phone.fill', color: '#30D158' },
-    calloutRight: 'info',
-    calloutDetail: 'The Skydeck is open daily.\nTickets at the door.',
     titleVisibility: 'visible',
     animatesWhenAdded: true,
+  },
+  {
+    // Classic pin with a full callout: buttons at both ends and detail text.
+    id: 'parity-skydeck',
+    coordinate: { latitude: 41.8786, longitude: -87.6352 },
+    style: 'pin',
+    color: '#FF9F0A',
+    title: 'Skydeck Chicago',
+    subtitle: 'Floor 103',
+    callout: true,
+    calloutLeft: { symbol: 'phone.fill', color: '#30D158' },
+    calloutRight: { text: 'Tickets' },
+    calloutDetail: 'Open daily, 9 am to 10 pm.\nThe Ledge: glass boxes 412 m up.',
   },
   {
     id: 'parity-pier',
@@ -169,7 +178,10 @@ export function ParityScreen(props: {
   const { demo, mapRef } = props
   useEffect(() => {
     if (demo === 'callout') {
-      const timer = setTimeout(() => mapRef.current?.selectMarker('parity-willis'), 2500)
+      const timer = setTimeout(() => {
+        mapRef.current?.setCamera({ ...WILLIS_TOWER, distance: 2500, pitch: 0, heading: 0 }, false)
+        setTimeout(() => mapRef.current?.selectMarker('parity-skydeck'), 800)
+      }, 2500)
       return () => clearTimeout(timer)
     }
     if (demo === 'placecard' && found[0]?.identifier) {
@@ -244,7 +256,7 @@ export function ParityScreen(props: {
           },
         ]}
         clusterStyles={[
-          { clusteringId: 'cafes', color: '#6D4C41', glyphSymbol: 'cup.and.saucer.fill', title: '{count} cafés' },
+          { clusteringId: 'cafes', color: '#6D4C41', glyph: '☕{count}', glyphColor: '#FFD60A', title: '{count} cafés' },
         ]}
         showsUserLocation
         userTrackingMode={props.trackingMode}
@@ -258,7 +270,7 @@ export function ParityScreen(props: {
         compassVisibility="hidden"
         scaleVisibility="hidden"
         selectableMapFeatures={['pointsOfInterest']}
-        selectionAccessory="automatic"
+        selectionAccessory={props.demo === 'callout' ? 'none' : 'automatic'}
         onMapFeaturePress={(f) => onEvent(`place ${f.title}`)}
         onOverlayPress={(e) => onEvent(`overlay ${e.id}`)}
         onClusterPress={(e) => {

@@ -51,10 +51,11 @@ export interface MapClusterStyle {
   /** Balloon colour. */
   color?: string
   glyphColor?: string
-  /** Text in the balloon; `{count}` is the number of markers. Default the count. */
+  /**
+   * Text or emoji in the balloon; `{count}` is the number of markers.
+   * Default the count. (MapKit draws no SF Symbols on cluster balloons.)
+   */
   glyph?: string
-  /** SF Symbol in the balloon instead of text. */
-  glyphSymbol?: string
   /** Title under the balloon, such as `'{count} cafés'`. */
   title?: string
   subtitle?: string
@@ -250,7 +251,6 @@ export function toNativeClusterStyle(
     color: style.color ?? '',
     glyphColor: style.glyphColor ?? '',
     glyph: style.glyph ?? '',
-    glyphSymbol: style.glyphSymbol ?? '',
     title: style.title ?? '',
     subtitle: style.subtitle ?? '',
     displayPriority: displayPriorityValue(style.displayPriority),

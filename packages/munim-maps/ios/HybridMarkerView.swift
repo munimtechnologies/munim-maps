@@ -130,13 +130,10 @@ private final class MarkerViewHost: UIView {
     let format = UIGraphicsImageRendererFormat()
     format.scale = window?.screen.scale ?? UIScreen.main.scale
     format.opaque = false
+    // The whole container, so the children's own transforms apply; this
+    // view is empty and draws nothing.
     return UIGraphicsImageRenderer(bounds: container.bounds, format: format).image { context in
-      for child in container.subviews where child !== self && !child.isHidden {
-        context.cgContext.saveGState()
-        context.cgContext.translateBy(x: child.frame.minX, y: child.frame.minY)
-        child.layer.render(in: context.cgContext)
-        context.cgContext.restoreGState()
-      }
+      container.layer.render(in: context.cgContext)
     }
   }
 

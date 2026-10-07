@@ -63,10 +63,11 @@ export interface NativeClusterStyle {
   /** Balloon colour. */
   color: string
   glyphColor: string
-  /** Text in the balloon; `{count}` is the number of markers. Empty shows the count. */
+  /**
+   * Text in the balloon; `{count}` is the number of markers. Empty shows the
+   * count. (MapKit draws no glyph images on cluster balloons, so no SF Symbol.)
+   */
   glyph: string
-  /** SF Symbol in the balloon instead of text. */
-  glyphSymbol: string
   /** Title under the balloon; `{count}` is the number of markers. */
   title: string
   subtitle: string

@@ -174,7 +174,17 @@ public final class MunimMapKitView: UIView {
 
   /// What tapping a place on Apple's map (`selectableFeatures`) shows: Apple's
   /// place card in a callout or sheet, or an Open in Maps button. iOS 18+.
-  public var selectionAccessory: MunimSelectionAccessory = .none
+  public var selectionAccessory: MunimSelectionAccessory = .none {
+    didSet {
+      // MapKit asks whether the delegate answers `selectionAccessoryFor`
+      // when it is set; set it again so it asks anew.
+      guard (oldValue == .none) != (selectionAccessory == .none) else { return }
+      mapView.delegate = nil
+      mapView.delegate = delegate
+    }
+  }
+
+  fileprivate var wantsSelectionAccessory: Bool { selectionAccessory != .none }
 
   // MARK: Look
 
@@ -918,6 +928,15 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
 
   init(owner: MunimMapKitView) {
     self.owner = owner
+  }
+
+  /// Only answer `selectionAccessoryFor` when a selection accessory is
+  /// wanted: while the method exists MapKit shows no classic callouts.
+  override func responds(to selector: Selector!) -> Bool {
+    if selector == NSSelectorFromString("mapView:selectionAccessoryForAnnotation:") {
+      return owner?.wantsSelectionAccessory == true && super.responds(to: selector)
+    }
+    return super.responds(to: selector)
   }
 
   @objc func handleTap(_ recognizer: UITapGestureRecognizer) {

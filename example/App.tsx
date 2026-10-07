@@ -595,6 +595,9 @@ function Example() {
         setLaunching(false)
         setStatus('Features')
         setMode('features')
+        // munimmapsexample://features/select/<marker id>: select a marker without a tap.
+        const selected = /select\/([\w-]+)/.exec(url)?.[1]
+        if (selected) setTimeout(() => munimRef.current?.selectMarker(selected), 3000)
       } else if (url?.includes('lagtest')) {
         setLaunching(false)
         setStatus('Lag test')

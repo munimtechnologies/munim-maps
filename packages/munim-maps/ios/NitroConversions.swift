@@ -113,7 +113,7 @@ extension NativeCalloutAccessory {
 extension NativeClusterStyle {
   var core: MunimClusterStyle {
     MunimClusterStyle(clusteringId: clusteringId, color: color, glyphColor: glyphColor, glyph: glyph,
-                      glyphSymbol: glyphSymbol, title: title, subtitle: subtitle, displayPriority: displayPriority)
+                      title: title, subtitle: subtitle, displayPriority: displayPriority)
   }
 }
 

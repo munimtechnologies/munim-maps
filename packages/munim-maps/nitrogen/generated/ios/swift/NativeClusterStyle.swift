@@ -18,8 +18,8 @@ public extension NativeClusterStyle {
   /**
    * Create a new instance of `NativeClusterStyle`.
    */
-  init(clusteringId: String, color: String, glyphColor: String, glyph: String, glyphSymbol: String, title: String, subtitle: String, displayPriority: Double) {
-    self.init(std.string(clusteringId), std.string(color), std.string(glyphColor), std.string(glyph), std.string(glyphSymbol), std.string(title), std.string(subtitle), displayPriority)
+  init(clusteringId: String, color: String, glyphColor: String, glyph: String, title: String, subtitle: String, displayPriority: Double) {
+    self.init(std.string(clusteringId), std.string(color), std.string(glyphColor), std.string(glyph), std.string(title), std.string(subtitle), displayPriority)
   }
 
   @inline(__always)
@@ -40,11 +40,6 @@ public extension NativeClusterStyle {
   @inline(__always)
   var glyph: String {
     return String(self.__glyph)
-  }
-  
-  @inline(__always)
-  var glyphSymbol: String {
-    return String(self.__glyphSymbol)
   }
   
   @inline(__always)

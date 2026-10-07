@@ -208,6 +208,17 @@ enum MarkerImages {
   }
 }
 
+/// A cluster balloon that keeps its style when MapKit prepares it again
+/// (its member count changes).
+final class ClusterMarkerView: MKMarkerAnnotationView {
+  var restyle: ((ClusterMarkerView) -> Void)?
+
+  override func prepareForDisplay() {
+    super.prepareForDisplay()
+    restyle?(self)
+  }
+}
+
 // MARK: - Controller
 
 /// Keeps a map's markers and overlays in step with the props, and answers
@@ -239,6 +250,9 @@ final class MapFeatureController {
       seen.insert(marker.id)
       if let existing = annotations[marker.id] {
         let old = existing.marker
+        // Unchanged: leave the view alone (re-configuring it would replace
+        // the accessory views of an open callout and close it).
+        if old == marker { continue }
         existing.marker = marker
         existing.title = marker.title.isEmpty ? nil : marker.title
         existing.subtitle = marker.subtitle.isEmpty ? nil : marker.subtitle
@@ -302,9 +316,13 @@ final class MapFeatureController {
   /// The view for a cluster with a style, or nil for MapKit's default.
   func clusterView(for cluster: MKClusterAnnotation, in mapView: MKMapView) -> MKAnnotationView? {
     guard let style = style(for: cluster) else { return nil }
-    let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.clusterReuse) as? MKMarkerAnnotationView
-      ?? MKMarkerAnnotationView(annotation: cluster, reuseIdentifier: Self.clusterReuse)
+    let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.clusterReuse) as? ClusterMarkerView
+      ?? ClusterMarkerView(annotation: cluster, reuseIdentifier: Self.clusterReuse)
     view.annotation = cluster
+    view.restyle = { [weak self] view in
+      guard let self, let cluster = view.annotation as? MKClusterAnnotation else { return }
+      self.configureCluster(view, cluster)
+    }
     configureCluster(view, cluster, style: style)
     return view
   }
@@ -324,13 +342,7 @@ final class MapFeatureController {
     func fill(_ text: String) -> String { text.replacingOccurrences(of: "{count}", with: count) }
     view.markerTintColor = UIColor(mapModelHex: style.color)
     view.glyphTintColor = UIColor(mapModelHex: style.glyphColor)
-    if !style.glyphSymbol.isEmpty, let symbol = UIImage(systemName: style.glyphSymbol) {
-      view.glyphImage = symbol
-      view.glyphText = nil
-    } else {
-      view.glyphImage = nil
-      view.glyphText = style.glyph.isEmpty ? count : fill(style.glyph)
-    }
+    view.glyphText = style.glyph.isEmpty ? count : fill(style.glyph)
     if !style.title.isEmpty { cluster.title = fill(style.title) }
     if !style.subtitle.isEmpty { cluster.subtitle = fill(style.subtitle) }
     view.displayPriority = MKFeatureDisplayPriority(rawValue: Float(min(1000, max(0, style.displayPriority))))
