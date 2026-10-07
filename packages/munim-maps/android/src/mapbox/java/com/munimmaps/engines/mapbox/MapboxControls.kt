@@ -313,6 +313,14 @@ internal class MapboxControls(private val engine: MapboxMapEngine) {
         else -> {}
       }
     }
+    // A location override set while the puck was off must survive the puck
+    // turning on (following turns it on): keep our provider and re-send the
+    // overridden location, or the puck (and the follow camera) stays on the
+    // device's own location until the next override.
+    overrideProvider?.let { o ->
+      if (mapView.location.getLocationProvider() !== o) mapView.location.setLocationProvider(o)
+      o.pushAll()
+    }
     updateLocationObserver()
   }
 
@@ -584,7 +592,9 @@ internal class MapboxControls(private val engine: MapboxMapEngine) {
           completion(false)
           return
         }
-        val geometry = if (points.size == 1) points[0] else LineString.fromLngLats(points)
+        // Typed as Geometry: inferred, the common type of Point and LineString is
+        // geojson's package-private FlattenedCoordinateContainer (IllegalAccessError).
+        val geometry: com.mapbox.geojson.Geometry = if (points.size == 1) points[0] else LineString.fromLngLats(points)
         val builder = OverviewViewportStateOptions.Builder().geometry(geometry)
         padding?.let { builder.geometryPadding(it) }
         if (args.has("pitch")) builder.pitch(args.optDouble("pitch"))

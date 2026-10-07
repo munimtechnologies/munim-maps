@@ -322,6 +322,7 @@ internal class MapboxCalls(private val engine: MapboxMapEngine) {
               .put("vertexBytes", c?.vertexBytes ?: JSONObject.NULL)))
         }
       }
+      "getNativeModels" -> ok(done, engine.nativeModels.describe())
       "setLocationOverride" -> {
         engine.controls.setLocationOverride(args)
         ok(done)

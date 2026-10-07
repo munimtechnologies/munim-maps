@@ -359,20 +359,53 @@ internal class MapboxShapes(private val engine: MapboxMapEngine) {
   fun hit(x: Double, y: Double): Pair<String, String>? {
     if (!engine.styleLoaded) return null
     val map = engine.map
+    val view = engine.mapView
+    if (x < 0 || y < 0 || x > view.width || y > view.height) return null
     val slop = 10 * engine.density
     for (shape in current.asReversed()) {
       if (!shape.tappable) continue
       shape.line?.let { line ->
-        val xy = map.pixelsForCoordinates(line)
-        if (MapboxGeo.distanceToPolyline(x, y, xy) <= shape.halfWidth * engine.density + slop) return shape.id to shape.kind
+        // Segment by segment between on-screen points only (see onScreen).
+        val xy = map.pixelsForCoordinates(densify(line, closed = false))
+        val reach = shape.halfWidth * engine.density + slop
+        for (i in 0 until xy.size - 1) {
+          if (!onScreen(xy[i]) || !onScreen(xy[i + 1])) continue
+          if (MapboxGeo.distanceToPolyline(x, y, listOf(xy[i], xy[i + 1])) <= reach) return shape.id to shape.kind
+        }
       }
       shape.rings?.let { rings ->
-        val outer = map.pixelsForCoordinates(rings[0])
-        if (MapboxGeo.inside(x, y, outer) && rings.drop(1).none { MapboxGeo.inside(x, y, map.pixelsForCoordinates(it)) }) {
+        fun ring(points: List<Point>) = map.pixelsForCoordinates(densify(points, closed = true)).filter { onScreen(it) }
+        val outer = ring(rings[0])
+        if (outer.size >= 3 && MapboxGeo.inside(x, y, outer) && rings.drop(1).none { MapboxGeo.inside(x, y, ring(it)) }) {
           return shape.id to shape.kind
         }
       }
     }
     return null
+  }
+
+  /**
+   * Mapbox answers ScreenCoordinate(-1, -1) for a coordinate outside the
+   * map view, so a shape reaching off screen used to be hit-tested against
+   * the top-left corner (a line below the screen "hit" any tap that was
+   * also projected from off screen).
+   */
+  private fun onScreen(p: com.mapbox.maps.ScreenCoordinate) = !(p.x == -1.0 && p.y == -1.0)
+
+  /** Extra points along each edge, so the on-screen part of a long edge still has points. */
+  private fun densify(points: List<Point>, closed: Boolean, steps: Int = 16): List<Point> {
+    if (points.size < 2) return points
+    val out = ArrayList<Point>(points.size * steps + 1)
+    val edges = if (closed) points.size else points.size - 1
+    for (i in 0 until edges) {
+      val a = points[i]
+      val b = points[(i + 1) % points.size]
+      for (s in 0 until steps) {
+        val t = s.toDouble() / steps
+        out.add(Point.fromLngLat(a.longitude() + (b.longitude() - a.longitude()) * t, a.latitude() + (b.latitude() - a.latitude()) * t))
+      }
+    }
+    if (!closed) out.add(points.last())
+    return out
   }
 }

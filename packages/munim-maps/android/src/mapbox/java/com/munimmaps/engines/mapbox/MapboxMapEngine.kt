@@ -153,7 +153,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   internal val annotations = MapboxAnnotations(this)
   internal val controls = MapboxControls(this)
   private val calls = MapboxCalls(this)
-  private lateinit var nativeModels: MapboxNativeModels
+  internal lateinit var nativeModels: MapboxNativeModels
 
   internal var destroyed = false
     private set

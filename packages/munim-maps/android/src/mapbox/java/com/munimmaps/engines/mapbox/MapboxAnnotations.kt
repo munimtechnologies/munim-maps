@@ -17,6 +17,7 @@ import com.mapbox.maps.MapboxExperimental
 import com.mapbox.maps.ViewAnnotationAnchor
 import com.mapbox.maps.ViewAnnotationAnchorConfig
 import com.mapbox.maps.ViewAnnotationOptions
+import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
 import com.mapbox.maps.plugin.annotation.AnnotationConfig
 import com.mapbox.maps.plugin.annotation.AnnotationSourceOptions
@@ -124,7 +125,11 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
         circleRadius = 18.0,
         textColor = textColor,
         textSize = 13.0,
-        textField = MapboxJson.value(clusterText(style?.glyph ?: "")),
+        // ClusterOptions wants an Expression (a bindgen Value crashes when the
+        // annotation plugin builds its cluster text layer).
+        textField = clusterText(style?.glyph ?: "").let { text ->
+          if (text is String) Expression.literal(text) else Expression.fromRaw(text.toString())
+        },
         colorLevels = listOf(Pair(0, color)),
       ))
     } else null
@@ -355,7 +360,8 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
     }
     row.addView(texts)
     accessory(marker, marker.rightCalloutAccessory, CalloutAccessorySide.RIGHT)?.let { row.addView(it) }
-    row.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+    // A view annotation: Mapbox's FrameLayout needs margin layout params.
+    row.layoutParams = android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     return row
   }
 
@@ -482,7 +488,9 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
     }
     view.setImageBitmap(bitmap)
     view.alpha = marker.opacity.toFloat().coerceIn(0f, 1f)
-    view.layoutParams = ViewGroup.LayoutParams(w, h)
+    // Mapbox puts view annotations in a FrameLayout, which measures children
+    // with margins: plain ViewGroup.LayoutParams crash it on the next layout.
+    view.layoutParams = android.widget.FrameLayout.LayoutParams(w, h)
     val anchor = ViewAnnotationAnchorConfig.Builder()
       .anchor(ViewAnnotationAnchor.CENTER)
       .offsetX((0.5 - marker.anchorX) * w)
@@ -499,8 +507,13 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
       .priority(marker.zIndex.toLong())
       .build()
     val manager = engine.mapView.viewAnnotationManager
-    if (view.parent == null || !manager.updateViewAnnotation(view, options)) {
-      if (view.parent != null) manager.removeViewAnnotation(view)
+    // Registered with the manager is not the same as attached: the view only
+    // gets a parent on the next layout, so a second update before that (a
+    // MarkerView re-renders right away) must update, not add again (Mapbox
+    // throws "Trying to add view annotation that was already added").
+    val registered = manager.getViewAnnotationOptions(view) != null
+    if (!registered || !manager.updateViewAnnotation(view, options)) {
+      if (registered) manager.removeViewAnnotation(view)
       manager.addViewAnnotation(view, options)
     }
   }

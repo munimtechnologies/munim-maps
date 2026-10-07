@@ -52,6 +52,33 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
   private var ticking = false
   private val interactions = mutableListOf<Cancelable>()
 
+  /** `getNativeModels`: who draws what (as on iOS), and the model layers Mapbox has. */
+  fun describe(): JSONObject {
+    val now = System.currentTimeMillis() / 1000.0
+    val heights = JSONObject()
+    infos.forEach { (uri, info) -> heights.put(uri, info.height) }
+    val uris = JSONObject()
+    all.forEach { if (!uris.has(it.id)) uris.put(it.id, it.uri) }
+    val positions = JSONObject()
+    native.forEach { model ->
+      val pose = pose(model, now)
+      positions.put(model.id, JSONArray().put(pose[0]).put(pose[1]).put(pose[2]).put(pose[3]))
+    }
+    val json = JSONObject()
+      .put("mode", mode)
+      .put("native", JSONArray(native.map { it.id }))
+      .put("overlay", JSONArray(overlay.map { it.id }))
+      .put("installed", installed)
+      .put("heights", heights)
+      .put("uris", uris)
+      .put("positions", positions)
+    if (!engine.destroyed && engine.styleLoaded) {
+      val map = engine.map
+      json.put("layers", JSONArray(listOf(GROUND_LAYER, SEA_LAYER, ANIMATED_LAYER, ANIMATED_SEA_LAYER).filter { map.styleLayerExists(it) }))
+    }
+    return json
+  }
+
   private val frame = object : Choreographer.FrameCallback {
     override fun doFrame(frameTimeNanos: Long) {
       if (!ticking || engine.destroyed) return
