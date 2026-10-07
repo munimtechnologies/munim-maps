@@ -74,7 +74,7 @@ configureMunimMaps({
 | 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
 | Globe (`globe`) | ✅ | — | — | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ always a globe | ⏳ |
 | `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `flyCamera` / `stopFlight` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `flyCamera` / `stopFlight` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | 🟡 built, not yet device-checked | ⏳ | ⏳ |
 | `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
 | `pointForCoordinate`, `coordinateForPoint` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
 | Gestures on/off | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
@@ -95,11 +95,11 @@ configureMunimMaps({
 | 3D models: GLB / glTF | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
 | 3D models: USDZ, USD, SCN, OBJ… | ✅ | ⏳ | — | ⏳ | — | ⏳ | — | ⏳ | — |
 | Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Effects (exhaust, smoke, contrail), occluders | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Zones, paths | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `occlusion="buildings"` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Effects (exhaust, smoke, contrail), occluders | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Zones, paths | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| `occlusion="buildings"` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
+| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | 🟡 built, not yet device-checked | ⏳ | ⏳ |
 | `onModelPress` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
 | `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
 | `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | ⏳ | ⏳ react-native-maps | ⏳ | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
@@ -168,12 +168,12 @@ MunimMapView (JS)  ──provider, props──▶  HybridMunimMapView (Swift / K
 | Paths (3D ribbons, fixed width in points, `closed`, on the globe) | ✅ | Rebuilt every frame to face the camera, as iOS |
 | `occlusion="buildings"`, `buildingTilesUrl` | ✅ | Kotlin port of the vector-tile decoder; z14 OpenMapTiles `building` walls (OpenFreeMap by default) in depth only, within 9 km, nine tiles nearest first, cached in the app's cache folder |
 | Globe: the Earth hides the far side | ✅ | A depth-only sphere when `MapCameraState.globe` |
-| Terrain: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()` | ✅ | `MunimTerrain` in Kotlin (Terrarium PNG tiles, zoom 14, bilinear, memory + disk cache, read without colour management); lifting onto drawn terrain needs an engine that sets `drawsTerrain` |
+| Terrain: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()` | ✅ (built; not yet checked on the phone) | `MunimTerrain` in Kotlin (Terrarium PNG tiles, zoom 14, bilinear, memory + disk cache, read without colour management); lifting onto drawn terrain needs an engine that sets `drawsTerrain` |
 | `lighting` (`auto` follows the map's dark mode) | ✅ | Sun + ambient light, as phase 1 |
 | `maxCameraDistance` | ✅ | |
 | `onModelPress` / `modelHit` | ✅ | iOS's hit test (bounding radius, 22 pt slop, nearest wins) |
 | `measureAlignment` | ✅ | `modelsVisibleInRender` counts models whose bounds are on screen (iOS reads the rendered pixels) |
-| `flyCamera` / `stopFlight` | ✅ every engine | `MunimMapEngine`'s default steps the keyframes on the layer's frame clock with `setCamera`, before the layer reads the camera, so the map and the models move together; other camera calls stop it |
+| `flyCamera` / `stopFlight` | ✅ every engine (built; not yet checked on the phone) | `MunimMapEngine`'s default steps the keyframes on the layer's frame clock with `setCamera`, before the layer reads the camera, so the map and the models move together; other camera calls stop it |
 | `realisticElevation`, `globe` on `MapModelLayer` | — | MapKit switches |
 
 Additive blending (the exhaust core and shock diamonds) is exact: unlit blended ubershader materials output premultiplied colour, so a zero alpha adds. Textures are uploaded as linear premultiplied half floats for the same reason.
@@ -203,4 +203,5 @@ For each engine:
 ## Testing
 
 - **iOS**: plain launch of the example runs the MapKit self-test (`Documents/munim-maps-selftest.json`); `munimmapsexample://providers/<provider>` opens the engine picker. A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
+- **Android 3D layer**: `munimmapsexample://layer3d/<provider>` shows every 3D group on one engine; add `/check` (or tap Run checks) to measure the layer against the engine at six cameras and four points of a `flyCamera` flight (`adb logcat | grep MUNIM_MAPS_LAYER3D`). `cam/lat,lon,distance,pitch,heading` sets the camera, `noocclusion` turns building occlusion off.
 - **Android**: the example starts on the engine picker (MapLibre by default) and logs `MUNIM_MAPS_PROVIDERS … alignment {…}` every 3 s (`adb logcat | grep MUNIM_MAPS`). Build with `./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a` (from `example/android`, after `npx expo prebuild --platform android`) for an arm64 phone or emulator. Phase 1 was checked on an Android 15 phone: MapLibre with the GLB vehicles, 3D layer within 0.41 pt of MapLibre's own projection.

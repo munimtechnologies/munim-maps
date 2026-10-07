@@ -484,7 +484,7 @@ Columns are engines; two marks are iOS / Android. ✅ works · ⏳ coming in thi
 | Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
 | Globe | ✅ | — | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
 | Hidden behind buildings | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
-| Terrain height | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| Terrain height | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
 | Camera API, regions, conversions, gestures | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
 | Map events | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
 | Markers, clustering, callouts, `MarkerView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
