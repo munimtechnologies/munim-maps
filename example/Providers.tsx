@@ -137,6 +137,8 @@ export function ProvidersScreen(props: {
   const starts = useRef(0)
   const completes = useRef<MapRegion[]>([])
   const runChecks = useCallback(async () => {
+    // The map's ref arrives after the first render.
+    for (let i = 0; i < 60 && !ref.current; i++) await wait(250)
     const map = ref.current
     if (!map) return
     const checks: SharedCheck[] = []
