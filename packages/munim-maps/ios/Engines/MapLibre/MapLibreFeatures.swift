@@ -154,7 +154,7 @@ final class MapLibreFeatures {
   /// The image for a marker, its name in the style, and its anchor (0…1).
   private func image(for m: MunimMarker, selected: Bool) -> (name: String, image: UIImage, anchor: CGPoint)? {
     let photo = photos[m.imageUri]
-    let drawn: UIImage?
+    var drawn: UIImage?
     var anchor = CGPoint(x: m.anchorX, y: m.anchorY)
     switch m.style {
     case .pin:
@@ -165,6 +165,12 @@ final class MapLibreFeatures {
         fill: MapLibreMarkerArt.color(m.color, .systemRed), glyph: m.glyph, symbol: selected && !m.selectedGlyphSymbol.isEmpty ? m.selectedGlyphSymbol : m.glyphSymbol,
         glyphColor: MapLibreMarkerArt.color(m.glyphColor, .white), selected: selected, scale: scale)
       anchor = CGPoint(x: 0.5, y: 1)
+      // The title under the balloon, as MapKit draws it (no glyphs needed from the style).
+      if let balloon = drawn, !m.title.isEmpty, m.titleVisibility != .hidden {
+        let titled = MapLibreMarkerArt.titled(balloon, title: m.title, scale: scale)
+        drawn = titled.image
+        anchor = CGPoint(x: 0.5, y: titled.anchorY)
+      }
     default:
       drawn = MarkerImages.image(for: m, photo: photo, scale: scale)
     }
@@ -187,7 +193,6 @@ final class MapLibreFeatures {
     feature.coordinate = CLLocationCoordinate2D(latitude: m.latitude, longitude: m.longitude)
     feature.identifier = m.id
     let required = m.displayPriority >= 1000 || m.collisionMode == .none
-    let showsTitle = m.style == .marker && !m.title.isEmpty && m.titleVisibility != .hidden
     feature.attributes = [
       "id": m.id,
       "icon": name,
@@ -195,7 +200,6 @@ final class MapLibreFeatures {
       "sort": m.zIndex + m.displayPriority / 10_000,
       "opacity": m.opacity,
       "req": required,
-      "title": showsTitle ? m.title : "",
     ]
     return feature
   }
@@ -243,15 +247,6 @@ final class MapLibreFeatures {
       layer.iconIgnoresPlacement = NSExpression(forConstantValue: required)
       layer.symbolSortKey = NSExpression(forKeyPath: "sort")
       layer.iconOpacity = NSExpression(forKeyPath: "opacity")
-      layer.text = NSExpression(mglJSONObject: ["get", "title"])
-      layer.textFontSize = NSExpression(forConstantValue: 11)
-      layer.textAnchor = NSExpression(mglJSONObject: ["let", "a", "top", ["var", "a"]])
-      layer.textOptional = NSExpression(forConstantValue: true)
-      layer.textOffset = NSExpression(mglJSONObject: ["let", "o", ["literal", [0, 0.2]], ["var", "o"]])
-      layer.textHaloColor = NSExpression(forConstantValue: UIColor.white.withAlphaComponent(0.9))
-      layer.textHaloWidth = NSExpression(forConstantValue: 1.2)
-      layer.textColor = NSExpression(forConstantValue: UIColor(white: 0.11, alpha: 1))
-      if let titleFont { layer.textFontNames = NSExpression(forConstantValue: titleFont) }
       layer.predicate = NSPredicate(mglJSONObject: ["all", ["!", ["has", "point_count"]], ["==", ["get", "req"], required]])
       style.insertLayer(layer, below: slot)
     }
@@ -711,6 +706,25 @@ enum MapLibreMarkerArt {
       UIColor.white.withAlphaComponent(0.4).setFill()
       cg.fillEllipse(in: CGRect(x: 8, y: 6, width: 6, height: 6))
     }
+  }
+
+  /// A balloon with its title under it; the anchor stays on the balloon's point.
+  static func titled(_ balloon: UIImage, title: String, scale: CGFloat) -> (image: UIImage, anchorY: CGFloat) {
+    let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+    let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor(white: 0.11, alpha: 1)]
+    let text = String(title.prefix(32)) as NSString
+    let textSize = text.size(withAttributes: attrs)
+    let width = max(balloon.size.width, textSize.width + 8)
+    let height = balloon.size.height + textSize.height + 2
+    let image = renderer(CGSize(width: width, height: height), scale).image { ctx in
+      balloon.draw(at: CGPoint(x: (width - balloon.size.width) / 2, y: 0))
+      let origin = CGPoint(x: (width - textSize.width) / 2, y: balloon.size.height + 1)
+      let halo: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white, .strokeColor: UIColor.white, .strokeWidth: 6]
+      text.draw(at: origin, withAttributes: halo)
+      text.draw(at: origin, withAttributes: attrs)
+      _ = ctx
+    }
+    return (image, balloon.size.height / height)
   }
 
   /// MapKit's marker balloon: a circle with a point under it, glyph inside.

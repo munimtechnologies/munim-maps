@@ -250,6 +250,12 @@ export interface MapLibreMapOptions {
   pixelRatio?: number
   /** Android: colour shown before the style loads. */
   foregroundLoadColor?: string
+  /**
+   * Nominatim server for `addressForCoordinate`. Default the public
+   * `https://nominatim.openstreetmap.org` (light use only: one request a
+   * second); use your own or a hosted one in production.
+   */
+  nominatimUrl?: string
   /** Headers added to every MapLibre request (tiles, styles, glyphs). */
   httpHeaders?: Record<string, string>
   /** `error`, `warning`, `info`, `debug`, `verbose` or `none`. */

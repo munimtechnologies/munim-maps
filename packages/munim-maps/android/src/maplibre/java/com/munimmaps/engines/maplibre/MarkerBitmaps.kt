@@ -11,6 +11,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.util.LruCache
+import com.margelo.nitro.munimmaps.FeatureVisibility
 import com.margelo.nitro.munimmaps.MarkerBadgePosition
 import com.margelo.nitro.munimmaps.MarkerStyle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
@@ -79,7 +80,9 @@ internal object MarkerBitmaps {
     cache.get(cacheKey)?.let { return Drawn(it, defaultX, defaultY) }
     val bitmap = when (m.style) {
       MarkerStyle.PIN -> pin(m, density)
-      MarkerStyle.MARKER -> balloon(color(m.color, SYSTEM_RED), m.glyph, color(m.glyphColor, Color.WHITE), density, selected)
+      MarkerStyle.MARKER -> balloon(color(m.color, SYSTEM_RED), m.glyph, color(m.glyphColor, Color.WHITE), density, selected).let {
+        if (m.title.isNotEmpty() && m.titleVisibility != FeatureVisibility.HIDDEN) titled(it, m.title, density) else it
+      }
       MarkerStyle.IMAGE -> picture(m, photo, density)
       MarkerStyle.AVATAR -> avatar(m, photo, density)
       MarkerStyle.LABEL -> label(m, density)
@@ -115,6 +118,41 @@ internal object MarkerBitmaps {
     c.drawRect(13f, 18f, 15f, 39f, paint(0xFF8E8E93.toInt()))
     c.drawCircle(14f, 12f, 10f, head)
     c.drawCircle(11f, 9f, 3f, paint(0x66FFFFFF))
+    return b
+  }
+
+  /** Height of the balloon itself in a titled marker image, 0…1 (its point is the anchor). */
+  fun balloonFraction(m: NativeMarker, bitmap: Bitmap, density: Float, selected: Boolean): Double {
+    if (m.style != MarkerStyle.MARKER || m.title.isEmpty() || m.titleVisibility == FeatureVisibility.HIDDEN) return 1.0
+    val balloonPx = (if (selected) 44f * 1.5f else 44f) * density
+    return (balloonPx / bitmap.height).toDouble()
+  }
+
+  /** A balloon with its title under it, as MapKit draws it (no style glyphs needed). */
+  fun titled(balloon: Bitmap, title: String, density: Float): Bitmap {
+    val t = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+      color = 0xFF1C1C1E.toInt()
+      textSize = 11f
+      typeface = Typeface.DEFAULT_BOLD
+      textAlign = Paint.Align.CENTER
+    }
+    val halo = Paint(t).apply {
+      color = Color.WHITE
+      style = Paint.Style.STROKE
+      strokeWidth = 3f
+    }
+    val text = title.take(32)
+    val bw = balloon.width / density
+    val bh = balloon.height / density
+    val w = max(bw, t.measureText(text) + 8f)
+    val h = bh + 15f
+    val (b, c) = bitmap(w, h, density)
+    c.save()
+    c.scale(1 / density, 1 / density)
+    c.drawBitmap(balloon, (w - bw) / 2 * density, 0f, null)
+    c.restore()
+    c.drawText(text, w / 2, bh + 11f, halo)
+    c.drawText(text, w / 2, bh + 11f, t)
     return b
   }
 

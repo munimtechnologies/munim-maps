@@ -405,6 +405,7 @@ export function MapLibreScreen(props: { topInset: number; panel: boolean; autoCh
     
     const report = {
       platform: Platform.OS,
+      finishedAt: new Date().toISOString(),
       passed: results.filter((r) => r.ok).length,
       total: results.length,
       checks: results,

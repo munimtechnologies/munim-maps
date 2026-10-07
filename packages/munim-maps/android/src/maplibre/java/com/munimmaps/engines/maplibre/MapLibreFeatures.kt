@@ -217,10 +217,9 @@ internal class MapLibreFeatures(
     val w = bitmap.width / density
     val h = bitmap.height / density
     val (ax, ay) = if (m.style == MarkerStyle.PIN || m.style == MarkerStyle.MARKER) {
-      MarkerBitmaps.defaultAnchor(m.style)
+      0.5 to MarkerBitmaps.balloonFraction(m, bitmap, density, selected)
     } else m.anchorX to m.anchorY
     val required = m.displayPriority >= 1000 || m.collisionMode == MarkerCollisionMode.NONE
-    val showsTitle = m.style == MarkerStyle.MARKER && m.title.isNotEmpty() && m.titleVisibility != FeatureVisibility.HIDDEN
     return JSONObject()
       .put("type", "Feature")
       .put("id", m.id)
@@ -232,7 +231,6 @@ internal class MapLibreFeatures(
         .put("sort", m.zIndex + m.displayPriority / 10_000.0)
         .put("opacity", m.opacity)
         .put("req", required)
-        .put("title", if (showsTitle) m.title else "")
         .put("titleOffset", h * (1 - ay)))
   }
 
@@ -279,16 +277,7 @@ internal class MapLibreFeatures(
         PropertyFactory.iconIgnorePlacement(required),
         PropertyFactory.symbolSortKey(Expression.get("sort")),
         PropertyFactory.iconOpacity(Expression.get("opacity")),
-        PropertyFactory.textField(Expression.get("title")),
-        PropertyFactory.textSize(11f),
-        PropertyFactory.textAnchor("top"),
-        PropertyFactory.textOptional(true),
-        PropertyFactory.textOffset(Expression.array(Expression.literal(arrayOf(0f, 0.2f)))),
-        PropertyFactory.textHaloColor("rgba(255,255,255,0.9)"),
-        PropertyFactory.textHaloWidth(1.2f),
-        PropertyFactory.textColor("#1C1C1E"),
       )
-      titleFont?.let { layer.setProperties(PropertyFactory.textFont(it)) }
       layer.setFilter(Expression.all(notCluster, Expression.eq(Expression.get("req"), required)))
       style.addLayerBelow(layer, SLOT_MARKERS)
     }
@@ -408,7 +397,9 @@ internal class MapLibreFeatures(
     val p = map.projection.toScreenLocation(LatLng(marker.latitude, marker.longitude))
     val name = imageName(marker, marker.style == MarkerStyle.MARKER)
     val bitmap = images[name]
-    val (_, ay) = if (marker.style == MarkerStyle.PIN || marker.style == MarkerStyle.MARKER) MarkerBitmaps.defaultAnchor(marker.style) else marker.anchorX to marker.anchorY
+    val ay = if (marker.style == MarkerStyle.PIN || marker.style == MarkerStyle.MARKER) {
+      if (bitmap != null) MarkerBitmaps.balloonFraction(marker, bitmap, density, true) else 1.0
+    } else marker.anchorY
     val top = p.y - (bitmap?.height ?: 0) * ay.toFloat()
     callout.translationX = p.x - callout.width / 2f
     callout.translationY = top - callout.height - 4 * density
