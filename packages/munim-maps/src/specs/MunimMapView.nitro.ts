@@ -37,7 +37,14 @@ export interface CameraKeyframe {
   t: number
   camera: MapCamera
 }
-export type UserTrackingMode = 'none' | 'follow' | 'follow-with-heading'
+/**
+ * MapKit's user tracking: `follow` keeps the map centred on the user,
+ * `followWithHeading` also turns it with the device (and shows the heading
+ * beam). MapKit drops back to `none` when the user pans or zooms away.
+ */
+export type UserTrackingMode = 'none' | 'follow' | 'followWithHeading'
+/** `adaptive`: MapKit shows the control when it is useful (the compass while the map is rotated, the scale while zooming). */
+export type FeatureVisibility = 'adaptive' | 'visible' | 'hidden'
 
 export interface EdgeInsets {
   top: number
@@ -102,8 +109,14 @@ export interface MunimMapViewProps extends HybridViewProps {
   tileOverlays: NativeTileOverlay[]
 
   // Controls and behaviour.
-  showsCompass: boolean
-  showsScale: boolean
+  compassVisibility: FeatureVisibility
+  scaleVisibility: FeatureVisibility
+  /** MapKit's button that cycles user tracking (top right). iOS 17+ built in, earlier a `MKUserTrackingButton`. */
+  showsUserTrackingButton: boolean
+  /** MapKit's 2D/3D button. iOS 17+. */
+  pitchButtonVisibility: FeatureVisibility
+  /** Name standalone controls (`MapCompass`, `MapScale`, `MapUserTrackingButton`) use to find this map. */
+  mapScope: string
   showsTraffic: boolean
   /** `all`, `none`, or comma-separated `MKPOICategory…` values to include. */
   pointsOfInterest: string
@@ -136,6 +149,8 @@ export interface MunimMapViewProps extends HybridViewProps {
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
+  /** MapKit changed the tracking mode: the user panned away, or used the tracking button. */
+  onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
 }

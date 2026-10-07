@@ -21,8 +21,8 @@ public extension UserTrackingMode {
         self = .none
       case "follow":
         self = .follow
-      case "follow-with-heading":
-        self = .followWithHeading
+      case "followWithHeading":
+        self = .followwithheading
       default:
         return nil
     }
@@ -37,8 +37,8 @@ public extension UserTrackingMode {
         return "none"
       case .follow:
         return "follow"
-      case .followWithHeading:
-        return "follow-with-heading"
+      case .followwithheading:
+        return "followWithHeading"
     }
   }
 }

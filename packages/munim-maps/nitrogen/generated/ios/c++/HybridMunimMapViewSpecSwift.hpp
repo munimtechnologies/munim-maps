@@ -60,6 +60,8 @@ namespace margelo::nitro::munimmaps { struct NativePolygon; }
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeTileOverlay` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `FeatureVisibility` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
 // Forward declaration of `UserTrackingMode` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 // Forward declaration of `MapRegion` to properly resolve imports.
@@ -111,6 +113,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
+#include "FeatureVisibility.hpp"
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
@@ -307,17 +310,39 @@ namespace margelo::nitro::munimmaps {
     inline void setTileOverlays(const std::vector<NativeTileOverlay>& tileOverlays) noexcept override {
       _swiftPart.setTileOverlays(tileOverlays);
     }
-    inline bool getShowsCompass() noexcept override {
-      return _swiftPart.getShowsCompass();
+    inline FeatureVisibility getCompassVisibility() noexcept override {
+      auto __result = _swiftPart.getCompassVisibility();
+      return static_cast<FeatureVisibility>(__result);
     }
-    inline void setShowsCompass(bool showsCompass) noexcept override {
-      _swiftPart.setShowsCompass(std::forward<decltype(showsCompass)>(showsCompass));
+    inline void setCompassVisibility(FeatureVisibility compassVisibility) noexcept override {
+      _swiftPart.setCompassVisibility(static_cast<int>(compassVisibility));
     }
-    inline bool getShowsScale() noexcept override {
-      return _swiftPart.getShowsScale();
+    inline FeatureVisibility getScaleVisibility() noexcept override {
+      auto __result = _swiftPart.getScaleVisibility();
+      return static_cast<FeatureVisibility>(__result);
     }
-    inline void setShowsScale(bool showsScale) noexcept override {
-      _swiftPart.setShowsScale(std::forward<decltype(showsScale)>(showsScale));
+    inline void setScaleVisibility(FeatureVisibility scaleVisibility) noexcept override {
+      _swiftPart.setScaleVisibility(static_cast<int>(scaleVisibility));
+    }
+    inline bool getShowsUserTrackingButton() noexcept override {
+      return _swiftPart.getShowsUserTrackingButton();
+    }
+    inline void setShowsUserTrackingButton(bool showsUserTrackingButton) noexcept override {
+      _swiftPart.setShowsUserTrackingButton(std::forward<decltype(showsUserTrackingButton)>(showsUserTrackingButton));
+    }
+    inline FeatureVisibility getPitchButtonVisibility() noexcept override {
+      auto __result = _swiftPart.getPitchButtonVisibility();
+      return static_cast<FeatureVisibility>(__result);
+    }
+    inline void setPitchButtonVisibility(FeatureVisibility pitchButtonVisibility) noexcept override {
+      _swiftPart.setPitchButtonVisibility(static_cast<int>(pitchButtonVisibility));
+    }
+    inline std::string getMapScope() noexcept override {
+      auto __result = _swiftPart.getMapScope();
+      return __result;
+    }
+    inline void setMapScope(const std::string& mapScope) noexcept override {
+      _swiftPart.setMapScope(mapScope);
     }
     inline bool getShowsTraffic() noexcept override {
       return _swiftPart.getShowsTraffic();
@@ -477,6 +502,13 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setOnUserLocationChange(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& onUserLocationChange) noexcept override {
       _swiftPart.setOnUserLocationChange(onUserLocationChange);
+    }
+    inline std::optional<std::function<void(UserTrackingMode /* mode */)>> getOnUserTrackingModeChange() noexcept override {
+      auto __result = _swiftPart.getOnUserTrackingModeChange();
+      return __result;
+    }
+    inline void setOnUserTrackingModeChange(const std::optional<std::function<void(UserTrackingMode /* mode */)>>& onUserTrackingModeChange) noexcept override {
+      _swiftPart.setOnUserTrackingModeChange(onUserTrackingModeChange);
     }
     inline std::optional<std::function<void(const MapFeatureEvent& /* feature */)>> getOnMapFeaturePress() noexcept override {
       auto __result = _swiftPart.getOnMapFeaturePress();

@@ -13,6 +13,7 @@
 #include "HybridMapModelLayerSpecSwift.hpp"
 #include "HybridMunimMapViewSpecSwift.hpp"
 #include "HybridMunimTerrainSpecSwift.hpp"
+#include "HybridMapControlSpecSwift.hpp"
 
 @interface NitroMunimMapsAutolinking : NSObject
 @end
@@ -41,6 +42,13 @@
     "MunimTerrain",
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridMunimTerrainSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMunimTerrain();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MapControl",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMapControlSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMapControl();
       return hybridObject;
     }
   );

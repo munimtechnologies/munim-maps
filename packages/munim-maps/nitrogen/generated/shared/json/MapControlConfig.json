@@ -1,0 +1,13 @@
+{
+  "uiViewClassName": "MapControl",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "kind": true,
+    "mapScope": true,
+    "visibility": true,
+    "scaleAlignment": true,
+    "hybridRef": true
+  }
+}

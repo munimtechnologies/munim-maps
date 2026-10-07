@@ -42,6 +42,7 @@ import type {
   MunimMapViewMethods,
   MunimMapViewProps,
   UserTrackingMode,
+  FeatureVisibility,
 } from './specs/MunimMapView.nitro'
 import type {
   LineCap,
@@ -554,12 +555,44 @@ export interface MunimMapViewProperties {
   colorScheme?: MapColorScheme
   showsBuildings?: boolean
   showsUserLocation?: boolean
+  /** Shorthand for `compassVisibility` `'adaptive'` (true, default) or `'hidden'`. */
   showsCompass?: boolean
+  /** Shorthand for `scaleVisibility` `'adaptive'` (true) or `'hidden'` (default). */
   showsScale?: boolean
+  /**
+   * The compass, top right: `'adaptive'` shows it while the map is rotated
+   * (MapKit's default), `'visible'` always, `'hidden'` never.
+   */
+  compassVisibility?: FeatureVisibility
+  /** The scale legend, top left: `'adaptive'` shows it while zooming. */
+  scaleVisibility?: FeatureVisibility
+  /**
+   * MapKit's button that cycles `userTrackingMode` (none, follow, follow
+   * with heading), top right. Use `onUserTrackingModeChange` to keep your
+   * state in step. Default false.
+   */
+  showsUserTrackingButton?: boolean
+  /** MapKit's 2D/3D button, top right. iOS 17+. Default `'hidden'`. */
+  pitchButtonVisibility?: FeatureVisibility
+  /**
+   * A name for this map, so `MapCompass`, `MapScale` and
+   * `MapUserTrackingButton` placed anywhere else can drive it.
+   */
+  mapScope?: string
   showsTraffic?: boolean
   /** `'all'`, `'none'`, or the `MKPOICategory…` values to show. Default `'all'`. */
   pointsOfInterest?: 'all' | 'none' | string[]
-  userTrackingMode?: UserTrackingMode
+  /**
+   * MapKit's user tracking, exactly like `MKMapView.userTrackingMode`:
+   * `'follow'` keeps the map on the user, `'followWithHeading'` also turns
+   * it with the device and shows the heading beam. MapKit owns the
+   * following (nothing recentres from JavaScript, so it never fights the
+   * user) and drops back to `'none'` when the user pans or zooms away:
+   * handle `onUserTrackingModeChange` and store the mode in state, so
+   * setting it again re-enables tracking. Asks for when-in-use location
+   * access if needed (add `NSLocationWhenInUseUsageDescription`).
+   */
+  userTrackingMode?: UserTrackingMode | 'follow-with-heading'
   // Gestures and limits
   zoomEnabled?: boolean
   scrollEnabled?: boolean
@@ -588,6 +621,11 @@ export interface MunimMapViewProperties {
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
+  /**
+   * MapKit changed the tracking mode: the user panned or zoomed away (to
+   * `'none'`), used the tracking button, or a camera move ended following.
+   */
+  onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
   style?: StyleProp<ViewStyle>
@@ -637,6 +675,9 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
     const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
     const onUserLocationChange = useCallbackProp(props.onUserLocationChange)
+    const onUserTrackingModeChange = useCallbackProp(
+      props.onUserTrackingModeChange
+    )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
     const pointsOfInterest = Array.isArray(props.pointsOfInterest)
@@ -674,11 +715,23 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         polygons={polygons}
         circles={circles}
         tileOverlays={tileOverlays}
-        showsCompass={props.showsCompass ?? true}
-        showsScale={props.showsScale ?? false}
+        compassVisibility={
+          props.compassVisibility ??
+          (props.showsCompass === false ? 'hidden' : 'adaptive')
+        }
+        scaleVisibility={
+          props.scaleVisibility ?? (props.showsScale ? 'adaptive' : 'hidden')
+        }
+        showsUserTrackingButton={props.showsUserTrackingButton ?? false}
+        pitchButtonVisibility={props.pitchButtonVisibility ?? 'hidden'}
+        mapScope={props.mapScope ?? ''}
         showsTraffic={props.showsTraffic ?? false}
         pointsOfInterest={pointsOfInterest}
-        userTrackingMode={props.userTrackingMode ?? 'none'}
+        userTrackingMode={
+          props.userTrackingMode === 'follow-with-heading'
+            ? 'followWithHeading'
+            : (props.userTrackingMode ?? 'none')
+        }
         zoomEnabled={props.zoomEnabled ?? true}
         scrollEnabled={props.scrollEnabled ?? true}
         rotateEnabled={props.rotateEnabled ?? true}
@@ -700,6 +753,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onMarkerDragStart={onMarkerDragStart}
         onMarkerDragEnd={onMarkerDragEnd}
         onUserLocationChange={onUserLocationChange}
+        onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
         onError={onError}
         hybridRef={hybridRef}
@@ -707,6 +761,14 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
   }
 )
+
+export {
+  MapCompass,
+  MapScale,
+  MapUserTrackingButton,
+  type MapControlProperties,
+  type MapScaleAlignment,
+} from './controls'
 
 export {
   toNativeCircle,
@@ -733,6 +795,7 @@ export type {
   MarkerStyle,
   UserLocationEvent,
   UserTrackingMode,
+  FeatureVisibility,
   MapAlignmentReport,
   MapAltitudeReference,
   MapCoordinate,

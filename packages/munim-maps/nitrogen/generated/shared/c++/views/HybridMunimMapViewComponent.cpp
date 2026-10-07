@@ -226,24 +226,54 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.tileOverlays: ") + exc.what());
       }
     }()),
-    showsCompass([&]() -> CachedProp<bool> {
+    compassVisibility([&]() -> CachedProp<FeatureVisibility> {
       try {
-        const react::RawValue* rawValue = rawProps.at("showsCompass", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsCompass;
+        const react::RawValue* rawValue = rawProps.at("compassVisibility", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.compassVisibility;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsCompass);
+        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.compassVisibility);
       } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsCompass: ") + exc.what());
+        throw std::runtime_error(std::string("MunimMapView.compassVisibility: ") + exc.what());
       }
     }()),
-    showsScale([&]() -> CachedProp<bool> {
+    scaleVisibility([&]() -> CachedProp<FeatureVisibility> {
       try {
-        const react::RawValue* rawValue = rawProps.at("showsScale", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsScale;
+        const react::RawValue* rawValue = rawProps.at("scaleVisibility", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.scaleVisibility;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsScale);
+        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.scaleVisibility);
       } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsScale: ") + exc.what());
+        throw std::runtime_error(std::string("MunimMapView.scaleVisibility: ") + exc.what());
+      }
+    }()),
+    showsUserTrackingButton([&]() -> CachedProp<bool> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("showsUserTrackingButton", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.showsUserTrackingButton;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsUserTrackingButton);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.showsUserTrackingButton: ") + exc.what());
+      }
+    }()),
+    pitchButtonVisibility([&]() -> CachedProp<FeatureVisibility> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("pitchButtonVisibility", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.pitchButtonVisibility;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.pitchButtonVisibility);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.pitchButtonVisibility: ") + exc.what());
+      }
+    }()),
+    mapScope([&]() -> CachedProp<std::string> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("mapScope", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.mapScope;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.mapScope);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.mapScope: ") + exc.what());
       }
     }()),
     showsTraffic([&]() -> CachedProp<bool> {
@@ -486,6 +516,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.onUserLocationChange: ") + exc.what());
       }
     }()),
+    onUserTrackingModeChange([&]() -> CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onUserTrackingModeChange", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onUserTrackingModeChange;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onUserTrackingModeChange);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onUserTrackingModeChange: ") + exc.what());
+      }
+    }()),
     onMapFeaturePress([&]() -> CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onMapFeaturePress", nullptr, nullptr);
@@ -539,8 +579,11 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("polygons"): return true;
       case hashString("circles"): return true;
       case hashString("tileOverlays"): return true;
-      case hashString("showsCompass"): return true;
-      case hashString("showsScale"): return true;
+      case hashString("compassVisibility"): return true;
+      case hashString("scaleVisibility"): return true;
+      case hashString("showsUserTrackingButton"): return true;
+      case hashString("pitchButtonVisibility"): return true;
+      case hashString("mapScope"): return true;
       case hashString("showsTraffic"): return true;
       case hashString("pointsOfInterest"): return true;
       case hashString("userTrackingMode"): return true;
@@ -565,6 +608,7 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("onMarkerDragStart"): return true;
       case hashString("onMarkerDragEnd"): return true;
       case hashString("onUserLocationChange"): return true;
+      case hashString("onUserTrackingModeChange"): return true;
       case hashString("onMapFeaturePress"): return true;
       case hashString("onError"): return true;
       case hashString("hybridRef"): return true;

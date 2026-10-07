@@ -389,25 +389,58 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
-  public final var showsCompass: Bool {
+  public final var compassVisibility: Int32 {
     @inline(__always)
     get {
-      return self.__implementation.showsCompass
+      return self.__implementation.compassVisibility.rawValue
     }
     @inline(__always)
     set {
-      self.__implementation.showsCompass = newValue
+      self.__implementation.compassVisibility = margelo.nitro.munimmaps.FeatureVisibility(rawValue: newValue)!
     }
   }
   
-  public final var showsScale: Bool {
+  public final var scaleVisibility: Int32 {
     @inline(__always)
     get {
-      return self.__implementation.showsScale
+      return self.__implementation.scaleVisibility.rawValue
     }
     @inline(__always)
     set {
-      self.__implementation.showsScale = newValue
+      self.__implementation.scaleVisibility = margelo.nitro.munimmaps.FeatureVisibility(rawValue: newValue)!
+    }
+  }
+  
+  public final var showsUserTrackingButton: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showsUserTrackingButton
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showsUserTrackingButton = newValue
+    }
+  }
+  
+  public final var pitchButtonVisibility: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.pitchButtonVisibility.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.pitchButtonVisibility = margelo.nitro.munimmaps.FeatureVisibility(rawValue: newValue)!
+    }
+  }
+  
+  public final var mapScope: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.mapScope)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.mapScope = String(newValue)
     }
   }
   
@@ -918,6 +951,38 @@ open class HybridMunimMapViewSpec_cxx {
             let __wrappedFunction = bridge.wrap_Func_void_UserLocationEvent(__unwrapped)
             return { (__location: UserLocationEvent) -> Void in
               __wrappedFunction.call(__location)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
+  public final var onUserTrackingModeChange: bridge.std__optional_std__function_void_UserTrackingMode____mode______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_UserTrackingMode____mode______ in
+        if let __unwrappedValue = self.__implementation.onUserTrackingModeChange {
+          return bridge.create_std__optional_std__function_void_UserTrackingMode____mode______({ () -> bridge.Func_void_UserTrackingMode in
+            let __closureWrapper = Func_void_UserTrackingMode(__unwrappedValue)
+            return bridge.create_Func_void_UserTrackingMode(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onUserTrackingModeChange = { () -> ((_ mode: UserTrackingMode) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_UserTrackingMode____mode______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_UserTrackingMode____mode______(newValue)
+          return { () -> (UserTrackingMode) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_UserTrackingMode(__unwrapped)
+            return { (__mode: UserTrackingMode) -> Void in
+              __wrappedFunction.call(__mode.rawValue)
             }
           }()
         } else {

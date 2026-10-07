@@ -30,6 +30,12 @@
         "language": "swift",
         "implementationClassName": "HybridMunimTerrain"
       }
+    },
+    "MapControl": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMapControl"
+      }
     }
   },
   "ignorePaths": [

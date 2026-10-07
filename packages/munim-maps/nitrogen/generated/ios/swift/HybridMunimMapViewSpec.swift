@@ -30,8 +30,11 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var polygons: [NativePolygon] { get set }
   var circles: [NativeCircle] { get set }
   var tileOverlays: [NativeTileOverlay] { get set }
-  var showsCompass: Bool { get set }
-  var showsScale: Bool { get set }
+  var compassVisibility: FeatureVisibility { get set }
+  var scaleVisibility: FeatureVisibility { get set }
+  var showsUserTrackingButton: Bool { get set }
+  var pitchButtonVisibility: FeatureVisibility { get set }
+  var mapScope: String { get set }
   var showsTraffic: Bool { get set }
   var pointsOfInterest: String { get set }
   var userTrackingMode: UserTrackingMode { get set }
@@ -56,6 +59,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)? { get set }
+  var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)? { get set }
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)? { get set }
   var onError: ((_ message: String) -> Void)? { get set }
 

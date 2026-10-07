@@ -10,6 +10,8 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `CameraKeyframe` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
+// Forward declaration of `HybridMapControlSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMapControlSpec; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
@@ -70,8 +72,12 @@ namespace margelo::nitro::munimmaps { struct NativePolyline; }
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
+// Forward declaration of `UserTrackingMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridMapControlSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMapControlSpec_cxx; }
 // Forward declaration of `HybridMapModelLayerSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
@@ -81,6 +87,7 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 
 // Include C++ defined types
 #include "CameraKeyframe.hpp"
+#include "HybridMapControlSpec.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
@@ -111,6 +118,7 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "NativePolyline.hpp"
 #include "NativeTileOverlay.hpp"
 #include "UserLocationEvent.hpp"
+#include "UserTrackingMode.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -127,6 +135,18 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
  */
 namespace margelo::nitro::munimmaps::bridge::swift {
 
+  // pragma MARK: std::shared_ptr<HybridMapControlSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridMapControlSpec>`.
+   */
+  using std__shared_ptr_HybridMapControlSpec_ = std::shared_ptr<HybridMapControlSpec>;
+  std::shared_ptr<HybridMapControlSpec> create_std__shared_ptr_HybridMapControlSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridMapControlSpec_(std__shared_ptr_HybridMapControlSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridMapControlSpec>
+  using std__weak_ptr_HybridMapControlSpec_ = std::weak_ptr<HybridMapControlSpec>;
+  inline std__weak_ptr_HybridMapControlSpec_ weakify_std__shared_ptr_HybridMapControlSpec_(const std::shared_ptr<HybridMapControlSpec>& strong) noexcept { return strong; }
+  
   // pragma MARK: std::vector<MotionKeyframe>
   /**
    * Specialized version of `std::vector<MotionKeyframe>`.
@@ -627,6 +647,43 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(const UserLocationEvent& /* location */)> get_std__optional_std__function_void_const_UserLocationEvent_____location______(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(UserTrackingMode /* mode */)>
+  /**
+   * Specialized version of `std::function<void(UserTrackingMode)>`.
+   */
+  using Func_void_UserTrackingMode = std::function<void(UserTrackingMode /* mode */)>;
+  /**
+   * Wrapper class for a `std::function<void(UserTrackingMode / * mode * /)>`, this can be used from Swift.
+   */
+  class Func_void_UserTrackingMode_Wrapper final {
+  public:
+    explicit Func_void_UserTrackingMode_Wrapper(std::function<void(UserTrackingMode /* mode */)>&& func): _function(std::make_unique<std::function<void(UserTrackingMode /* mode */)>>(std::move(func))) {}
+    inline void call(int mode) const noexcept {
+      _function->operator()(static_cast<UserTrackingMode>(mode));
+    }
+  private:
+    std::unique_ptr<std::function<void(UserTrackingMode /* mode */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_UserTrackingMode create_Func_void_UserTrackingMode(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_UserTrackingMode_Wrapper wrap_Func_void_UserTrackingMode(Func_void_UserTrackingMode value) noexcept {
+    return Func_void_UserTrackingMode_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(UserTrackingMode /* mode */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(UserTrackingMode / * mode * /)>>`.
+   */
+  using std__optional_std__function_void_UserTrackingMode____mode______ = std::optional<std::function<void(UserTrackingMode /* mode */)>>;
+  inline std::optional<std::function<void(UserTrackingMode /* mode */)>> create_std__optional_std__function_void_UserTrackingMode____mode______(const std::function<void(UserTrackingMode /* mode */)>& value) noexcept {
+    return std::optional<std::function<void(UserTrackingMode /* mode */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_UserTrackingMode____mode______(const std::optional<std::function<void(UserTrackingMode /* mode */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(UserTrackingMode /* mode */)> get_std__optional_std__function_void_UserTrackingMode____mode______(const std::optional<std::function<void(UserTrackingMode /* mode */)>>& optional) noexcept {
     return optional.value();
   }
   

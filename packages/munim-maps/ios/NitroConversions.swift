@@ -122,6 +122,28 @@ extension NativeTileOverlay {
   }
 }
 
+extension FeatureVisibility {
+  var core: MunimFeatureVisibility { MunimFeatureVisibility(rawValue: stringValue) ?? .adaptive }
+}
+
+extension UserTrackingMode {
+  var mapKit: MKUserTrackingMode {
+    switch self {
+    case .none: return .none
+    case .follow: return .follow
+    case .followwithheading: return .followWithHeading
+    }
+  }
+
+  init(_ mode: MKUserTrackingMode) {
+    switch mode {
+    case .follow: self = .follow
+    case .followWithHeading: self = .followwithheading
+    default: self = .none
+    }
+  }
+}
+
 extension MapCamera {
   var core: MunimCamera {
     MunimCamera(latitude: latitude, longitude: longitude, distance: distance, pitch: pitch, heading: heading)

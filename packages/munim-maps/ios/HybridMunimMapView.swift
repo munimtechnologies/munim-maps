@@ -36,6 +36,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
         horizontalAccuracy: l.horizontalAccuracy, verticalAccuracy: l.verticalAccuracy,
         heading: l.course >= 0 ? l.course : -1, speed: l.speed >= 0 ? l.speed : -1))
     }
+    map.onUserTrackingModeChange = { [weak self] mode in self?.onUserTrackingModeChange?(UserTrackingMode(mode)) }
     map.onMapFeaturePress = { [weak self] f in
       self?.onMapFeaturePress?(MapFeatureEvent(
         title: f.title, latitude: f.coordinate.latitude, longitude: f.coordinate.longitude,
@@ -86,8 +87,11 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   var showsBuildings = true { didSet { map.showsBuildings = showsBuildings } }
   var showsUserLocation = false { didSet { map.showsUserLocation = showsUserLocation } }
-  var showsCompass = true { didSet { map.showsCompass = showsCompass } }
-  var showsScale = false { didSet { map.showsScale = showsScale } }
+  var compassVisibility: FeatureVisibility = .adaptive { didSet { map.compassVisibility = compassVisibility.core } }
+  var scaleVisibility: FeatureVisibility = .hidden { didSet { map.scaleVisibility = scaleVisibility.core } }
+  var showsUserTrackingButton = false { didSet { map.showsUserTrackingButton = showsUserTrackingButton } }
+  var pitchButtonVisibility: FeatureVisibility = .hidden { didSet { map.pitchButtonVisibility = pitchButtonVisibility.core } }
+  var mapScope = "" { didSet { map.mapScope = mapScope } }
   var showsTraffic = false { didSet { map.showsTraffic = showsTraffic } }
 
   var pointsOfInterest = "all" {
@@ -104,13 +108,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
 
   var userTrackingMode: UserTrackingMode = .none {
-    didSet {
-      switch userTrackingMode {
-      case .none: map.userTrackingMode = .none
-      case .follow: map.userTrackingMode = .follow
-      case .followWithHeading: map.userTrackingMode = .followWithHeading
-      }
-    }
+    didSet { map.userTrackingMode = userTrackingMode.mapKit }
   }
 
   var zoomEnabled = true { didSet { map.isZoomEnabled = zoomEnabled } }
@@ -161,6 +159,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)?
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)?
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)?
+  var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?
   var onError: ((_ message: String) -> Void)?
 

@@ -164,23 +164,65 @@ public final class MunimMapKitView: UIView {
 
   public var showsUserLocation: Bool {
     get { mapView.showsUserLocation }
-    set { mapView.showsUserLocation = newValue }
+    set {
+      if newValue { locationAuthorization.requestIfNeeded() }
+      mapView.showsUserLocation = newValue
+    }
   }
 
+  /// The compass: `adaptive` (MapKit's, shown while the map is rotated),
+  /// `visible` (always) or `hidden`.
+  public var compassVisibility: MunimFeatureVisibility = .adaptive { didSet { applyControls() } }
+
+  /// The scale legend: `adaptive` (MapKit's, shown while zooming), `visible`
+  /// (always) or `hidden`.
+  public var scaleVisibility: MunimFeatureVisibility = .hidden { didSet { applyControls() } }
+
   public var showsCompass: Bool {
-    get { mapView.showsCompass }
-    set { mapView.showsCompass = newValue }
+    get { compassVisibility != .hidden }
+    set { compassVisibility = newValue ? .adaptive : .hidden }
   }
 
   public var showsScale: Bool {
-    get { mapView.showsScale }
-    set { mapView.showsScale = newValue }
+    get { scaleVisibility != .hidden }
+    set { scaleVisibility = newValue ? .adaptive : .hidden }
   }
 
+  /// MapKit's button that cycles the user tracking mode, top right. Built in
+  /// on iOS 17+, an `MKUserTrackingButton` before.
+  public var showsUserTrackingButton = false { didSet { applyControls() } }
+
+  /// MapKit's 2D/3D button. iOS 17+.
+  public var pitchButtonVisibility: MunimFeatureVisibility = .hidden { didSet { applyControls() } }
+
+  /// Name that standalone controls (`MunimMapControlView`) use to find this map.
+  public var mapScope = "" {
+    didSet { if oldValue != mapScope { MunimMapScopes.register(self, scope: mapScope, previous: oldValue) } }
+  }
+
+  /// MapKit's user tracking. MapKit owns the following: it keeps the map on
+  /// the user (and turned with the device for `.followWithHeading`, with
+  /// the heading beam) and drops back to `.none` when the user pans or
+  /// zooms away, which `onUserTrackingModeChange` reports. Setting a mode
+  /// asks for when-in-use location access if the app has not yet (the app
+  /// needs `NSLocationWhenInUseUsageDescription`).
   @nonobjc public var userTrackingMode: MKUserTrackingMode {
     get { mapView.userTrackingMode }
-    set { if mapView.userTrackingMode != newValue { mapView.setUserTrackingMode(newValue, animated: true) } }
+    set {
+      requestedTrackingMode = newValue
+      trackingDroppedByMapKit = false
+      applyTrackingMode()
+    }
   }
+
+  /// The mode last asked for, re-applied once location access is granted if
+  /// MapKit dropped it while waiting.
+  private var requestedTrackingMode: MKUserTrackingMode = .none
+  private var trackingDroppedByMapKit = false
+  private let locationAuthorization = MapLocationAuthorization()
+  private var builtInCompass: MKCompassButton?
+  private var builtInScale: MKScaleView?
+  private var builtInTrackingButton: MKUserTrackingButton?
 
   public var isZoomEnabled: Bool {
     get { mapView.isZoomEnabled }
@@ -223,6 +265,7 @@ public final class MunimMapKitView: UIView {
   public var mapPadding: UIEdgeInsets = .zero {
     didSet {
       mapView.layoutMargins = mapPadding
+      setNeedsLayout()
       modelLayer.setNeedsRender()
     }
   }
@@ -255,6 +298,9 @@ public final class MunimMapKitView: UIView {
   public var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
   public var onUserLocationChange: ((CLLocation) -> Void)?
   public var onMapFeaturePress: ((MunimMapFeature) -> Void)?
+  /// MapKit changed the user tracking mode: the user panned or zoomed away,
+  /// used the tracking button, or a camera move ended the following.
+  @nonobjc public var onUserTrackingModeChange: ((MKUserTrackingMode) -> Void)?
 
   public var onModelPress: ((String) -> Void)? {
     get { modelLayer.onModelPress }
@@ -290,7 +336,9 @@ public final class MunimMapKitView: UIView {
     let longPress = UILongPressGestureRecognizer(target: delegate, action: #selector(MunimMapDelegate.handleLongPress(_:)))
     longPress.delegate = delegate
     mapView.addGestureRecognizer(longPress)
+    locationAuthorization.onAuthorized = { [weak self] in self?.locationAuthorized() }
     applyConfiguration()
+    applyControls()
   }
 
   public required init?(coder: NSCoder) {
@@ -300,7 +348,18 @@ public final class MunimMapKitView: UIView {
   public override func layoutSubviews() {
     super.layoutSubviews()
     applyInitialCameraIfReady()
+    layoutControls()
     modelLayer.setNeedsRender()
+  }
+
+  public override func didMoveToWindow() {
+    super.didMoveToWindow()
+    if window != nil { applyTrackingMode() }
+  }
+
+  public override func safeAreaInsetsDidChange() {
+    super.safeAreaInsetsDidChange()
+    setNeedsLayout()
   }
 
   // MARK: Camera and conversions
@@ -504,6 +563,97 @@ public final class MunimMapKitView: UIView {
     modelLayer.measureAlignment()
   }
 
+  // MARK: Controls and tracking
+
+  /// MapKit's own controls where it has them; a standalone control where
+  /// MapKit cannot do what was asked (an always-visible compass or scale,
+  /// the tracking button before iOS 17).
+  private func applyControls() {
+    mapView.showsCompass = compassVisibility == .adaptive
+    mapView.showsScale = scaleVisibility == .adaptive
+    if compassVisibility == .visible {
+      let compass = builtInCompass ?? MKCompassButton(mapView: mapView)
+      compass.compassVisibility = .visible
+      if compass.superview == nil { addSubview(compass) }
+      builtInCompass = compass
+    } else {
+      builtInCompass?.removeFromSuperview()
+      builtInCompass = nil
+    }
+    if scaleVisibility == .visible {
+      let scale = builtInScale ?? MKScaleView(mapView: mapView)
+      scale.scaleVisibility = .visible
+      if scale.superview == nil { addSubview(scale) }
+      builtInScale = scale
+    } else {
+      builtInScale?.removeFromSuperview()
+      builtInScale = nil
+    }
+    if #available(iOS 17.0, *) {
+      mapView.showsUserTrackingButton = showsUserTrackingButton
+      mapView.pitchButtonVisibility = pitchButtonVisibility.mapKit
+    } else if showsUserTrackingButton {
+      let button = builtInTrackingButton ?? MKUserTrackingButton(mapView: mapView)
+      if button.superview == nil { addSubview(button) }
+      builtInTrackingButton = button
+    } else {
+      builtInTrackingButton?.removeFromSuperview()
+      builtInTrackingButton = nil
+    }
+    setNeedsLayout()
+  }
+
+  /// Places the standalone controls where MapKit puts its own: the scale top
+  /// left, the buttons top right, inside the safe area and `mapPadding`.
+  private func layoutControls() {
+    let safe = mapView.safeAreaInsets
+    let top = safe.top + mapPadding.top + 8
+    let right = bounds.width - safe.right - mapPadding.right - 8
+    var y = top
+    if let button = builtInTrackingButton {
+      let size = button.intrinsicContentSize
+      button.frame = CGRect(x: right - size.width, y: y, width: size.width, height: size.height)
+      y += size.height + 8
+    } else if #available(iOS 17.0, *) {
+      // MapKit's own button group sits above the compass.
+      let buttons = (showsUserTrackingButton ? 1 : 0) + (pitchButtonVisibility == .visible ? 1 : 0)
+      if buttons > 0 { y += CGFloat(buttons) * 44 + 8 }
+    }
+    if let compass = builtInCompass {
+      let size = compass.intrinsicContentSize
+      compass.frame = CGRect(x: right - size.width, y: y, width: size.width, height: size.height)
+    }
+    if let scale = builtInScale {
+      let left = safe.left + mapPadding.left + 8
+      let size = scale.intrinsicContentSize
+      scale.frame = CGRect(x: left, y: top, width: max(size.width, min(200, bounds.width / 2)), height: size.height)
+    }
+  }
+
+  private func applyTrackingMode() {
+    let mode = requestedTrackingMode
+    if mode != .none { locationAuthorization.requestIfNeeded() }
+    guard mapView.userTrackingMode != mode else { return }
+    mapView.setUserTrackingMode(mode, animated: window != nil)
+  }
+
+  private func locationAuthorized() {
+    // MapKit drops tracking it cannot start while access is undecided; pick
+    // it back up once the user allows it, unless they have moved on since.
+    if trackingDroppedByMapKit, requestedTrackingMode != .none, mapView.userTrackingMode == .none {
+      trackingDroppedByMapKit = false
+      applyTrackingMode()
+    }
+  }
+
+  fileprivate func trackingModeChanged(_ mode: MKUserTrackingMode) {
+    if mode == .none, requestedTrackingMode != .none {
+      let status = CLLocationManager().authorizationStatus
+      trackingDroppedByMapKit = status == .notDetermined
+    }
+    onUserTrackingModeChange?(mode)
+  }
+
   // MARK: Internals
 
   private func topViewController() -> UIViewController? {
@@ -678,6 +828,7 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
   func mapViewDidFinishLoadingMap(_ mapView: MKMapView) { owner?.didFinishLoading() }
   func mapViewDidFinishRenderingMap(_ mapView: MKMapView, fullyRendered: Bool) { owner?.didFinishLoading() }
   func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) { owner?.userLocationChanged(userLocation.location) }
+  func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) { owner?.trackingModeChanged(mode) }
 }
 
 private extension UIView {

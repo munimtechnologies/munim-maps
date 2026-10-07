@@ -31,7 +31,7 @@ namespace margelo::nitro::munimmaps {
   enum class UserTrackingMode {
     NONE      SWIFT_NAME(none) = 0,
     FOLLOW      SWIFT_NAME(follow) = 1,
-    FOLLOW_WITH_HEADING      SWIFT_NAME(followWithHeading) = 2,
+    FOLLOWWITHHEADING      SWIFT_NAME(followwithheading) = 2,
   } CLOSED_ENUM;
 
 } // namespace margelo::nitro::munimmaps
@@ -46,7 +46,7 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("none"): return margelo::nitro::munimmaps::UserTrackingMode::NONE;
         case hashString("follow"): return margelo::nitro::munimmaps::UserTrackingMode::FOLLOW;
-        case hashString("follow-with-heading"): return margelo::nitro::munimmaps::UserTrackingMode::FOLLOW_WITH_HEADING;
+        case hashString("followWithHeading"): return margelo::nitro::munimmaps::UserTrackingMode::FOLLOWWITHHEADING;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum UserTrackingMode - invalid value!");
       }
@@ -55,7 +55,7 @@ namespace margelo::nitro {
       switch (arg) {
         case margelo::nitro::munimmaps::UserTrackingMode::NONE: return JSIConverter<std::string>::toJSI(runtime, "none");
         case margelo::nitro::munimmaps::UserTrackingMode::FOLLOW: return JSIConverter<std::string>::toJSI(runtime, "follow");
-        case margelo::nitro::munimmaps::UserTrackingMode::FOLLOW_WITH_HEADING: return JSIConverter<std::string>::toJSI(runtime, "follow-with-heading");
+        case margelo::nitro::munimmaps::UserTrackingMode::FOLLOWWITHHEADING: return JSIConverter<std::string>::toJSI(runtime, "followWithHeading");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert UserTrackingMode to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
@@ -69,7 +69,7 @@ namespace margelo::nitro {
       switch (hashString(unionValue.c_str(), unionValue.size())) {
         case hashString("none"):
         case hashString("follow"):
-        case hashString("follow-with-heading"):
+        case hashString("followWithHeading"):
           return true;
         default:
           return false;

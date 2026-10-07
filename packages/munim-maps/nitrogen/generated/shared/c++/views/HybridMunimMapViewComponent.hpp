@@ -32,6 +32,7 @@
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
+#include "FeatureVisibility.hpp"
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
@@ -84,8 +85,11 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::vector<NativePolygon>> polygons;
     CachedProp<std::vector<NativeCircle>> circles;
     CachedProp<std::vector<NativeTileOverlay>> tileOverlays;
-    CachedProp<bool> showsCompass;
-    CachedProp<bool> showsScale;
+    CachedProp<FeatureVisibility> compassVisibility;
+    CachedProp<FeatureVisibility> scaleVisibility;
+    CachedProp<bool> showsUserTrackingButton;
+    CachedProp<FeatureVisibility> pitchButtonVisibility;
+    CachedProp<std::string> mapScope;
     CachedProp<bool> showsTraffic;
     CachedProp<std::string> pointsOfInterest;
     CachedProp<UserTrackingMode> userTrackingMode;
@@ -110,6 +114,7 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
     CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
+    CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> onUserTrackingModeChange;
     CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;
     CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> hybridRef;

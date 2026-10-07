@@ -41,6 +41,8 @@ namespace margelo::nitro::munimmaps { struct NativePolygon; }
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeTileOverlay` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `FeatureVisibility` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
 // Forward declaration of `UserTrackingMode` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 // Forward declaration of `MapRegion` to properly resolve imports.
@@ -84,6 +86,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
+#include "FeatureVisibility.hpp"
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
@@ -168,10 +171,16 @@ namespace margelo::nitro::munimmaps {
       virtual void setCircles(const std::vector<NativeCircle>& circles) = 0;
       virtual std::vector<NativeTileOverlay> getTileOverlays() = 0;
       virtual void setTileOverlays(const std::vector<NativeTileOverlay>& tileOverlays) = 0;
-      virtual bool getShowsCompass() = 0;
-      virtual void setShowsCompass(bool showsCompass) = 0;
-      virtual bool getShowsScale() = 0;
-      virtual void setShowsScale(bool showsScale) = 0;
+      virtual FeatureVisibility getCompassVisibility() = 0;
+      virtual void setCompassVisibility(FeatureVisibility compassVisibility) = 0;
+      virtual FeatureVisibility getScaleVisibility() = 0;
+      virtual void setScaleVisibility(FeatureVisibility scaleVisibility) = 0;
+      virtual bool getShowsUserTrackingButton() = 0;
+      virtual void setShowsUserTrackingButton(bool showsUserTrackingButton) = 0;
+      virtual FeatureVisibility getPitchButtonVisibility() = 0;
+      virtual void setPitchButtonVisibility(FeatureVisibility pitchButtonVisibility) = 0;
+      virtual std::string getMapScope() = 0;
+      virtual void setMapScope(const std::string& mapScope) = 0;
       virtual bool getShowsTraffic() = 0;
       virtual void setShowsTraffic(bool showsTraffic) = 0;
       virtual std::string getPointsOfInterest() = 0;
@@ -220,6 +229,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setOnMarkerDragEnd(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragEnd) = 0;
       virtual std::optional<std::function<void(const UserLocationEvent& /* location */)>> getOnUserLocationChange() = 0;
       virtual void setOnUserLocationChange(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& onUserLocationChange) = 0;
+      virtual std::optional<std::function<void(UserTrackingMode /* mode */)>> getOnUserTrackingModeChange() = 0;
+      virtual void setOnUserTrackingModeChange(const std::optional<std::function<void(UserTrackingMode /* mode */)>>& onUserTrackingModeChange) = 0;
       virtual std::optional<std::function<void(const MapFeatureEvent& /* feature */)>> getOnMapFeaturePress() = 0;
       virtual void setOnMapFeaturePress(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& onMapFeaturePress) = 0;
       virtual std::optional<std::function<void(const std::string& /* message */)>> getOnError() = 0;

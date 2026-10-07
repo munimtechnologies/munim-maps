@@ -8,6 +8,7 @@
 #include "NitroMunimMaps-Swift-Cxx-Bridge.hpp"
 
 // Include C++ implementation defined types
+#include "HybridMapControlSpecSwift.hpp"
 #include "HybridMapModelLayerSpecSwift.hpp"
 #include "HybridMunimMapViewSpecSwift.hpp"
 #include "HybridMunimTerrainSpecSwift.hpp"
@@ -16,6 +17,22 @@
 
 namespace margelo::nitro::munimmaps::bridge::swift {
 
+  // pragma MARK: std::shared_ptr<HybridMapControlSpec>
+  std::shared_ptr<HybridMapControlSpec> create_std__shared_ptr_HybridMapControlSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroMunimMaps::HybridMapControlSpec_cxx swiftPart = NitroMunimMaps::HybridMapControlSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::munimmaps::HybridMapControlSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridMapControlSpec_(std__shared_ptr_HybridMapControlSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::munimmaps::HybridMapControlSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::munimmaps::HybridMapControlSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridMapControlSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroMunimMaps::HybridMapControlSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
   // pragma MARK: std::function<void(const std::string& /* id */)>
   Func_void_std__string create_Func_void_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroMunimMaps::Func_void_std__string::fromUnsafe(swiftClosureWrapper);
@@ -101,6 +118,14 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     auto swiftClosure = NitroMunimMaps::Func_void_UserLocationEvent::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](const UserLocationEvent& location) mutable -> void {
       swiftClosure.call(location);
+    };
+  }
+  
+  // pragma MARK: std::function<void(UserTrackingMode /* mode */)>
+  Func_void_UserTrackingMode create_Func_void_UserTrackingMode(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_UserTrackingMode::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](UserTrackingMode mode) mutable -> void {
+      swiftClosure.call(static_cast<int>(mode));
     };
   }
   

@@ -12,6 +12,10 @@
 namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 // Forward declaration of `EdgeInsets` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct EdgeInsets; }
+// Forward declaration of `FeatureVisibility` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
+// Forward declaration of `HybridMapControlSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMapControlSpec; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
@@ -32,6 +36,8 @@ namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
 namespace margelo::nitro::munimmaps { struct MapCamera; }
 // Forward declaration of `MapColorScheme` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapColorScheme; }
+// Forward declaration of `MapControlKind` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapControlKind; }
 // Forward declaration of `MapCoordinate` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapElevation` to properly resolve imports.
@@ -54,6 +60,8 @@ namespace margelo::nitro::munimmaps { struct MapPoint; }
 namespace margelo::nitro::munimmaps { struct MapPressEvent; }
 // Forward declaration of `MapRegion` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapRegion; }
+// Forward declaration of `MapScaleAlignment` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapScaleAlignment; }
 // Forward declaration of `MapStyle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapStyle; }
 // Forward declaration of `MarkerBadgePosition` to properly resolve imports.
@@ -90,6 +98,8 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 // Include C++ defined types
 #include "CameraKeyframe.hpp"
 #include "EdgeInsets.hpp"
+#include "FeatureVisibility.hpp"
+#include "HybridMapControlSpec.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
@@ -100,6 +110,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "MapCamera.hpp"
 #include "MapCameraEasing.hpp"
 #include "MapColorScheme.hpp"
+#include "MapControlKind.hpp"
 #include "MapCoordinate.hpp"
 #include "MapElevation.hpp"
 #include "MapFeatureEvent.hpp"
@@ -111,6 +122,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "MapPoint.hpp"
 #include "MapPressEvent.hpp"
 #include "MapRegion.hpp"
+#include "MapScaleAlignment.hpp"
 #include "MapStyle.hpp"
 #include "MarkerBadge.hpp"
 #include "MarkerBadgePosition.hpp"
@@ -146,6 +158,8 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include <NitroModules/DateToChronoDate.hpp>
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridMapControlSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMapControlSpec_cxx; }
 // Forward declaration of `HybridMapModelLayerSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.

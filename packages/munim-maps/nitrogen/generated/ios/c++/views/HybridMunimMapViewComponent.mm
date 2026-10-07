@@ -179,15 +179,30 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setTileOverlays(newViewProps.tileOverlays.value);
     newViewProps.tileOverlays.isDirty = false;
   }
-  // showsCompass: boolean
-  if (newViewProps.showsCompass.isDirty) {
-    swiftPart.setShowsCompass(newViewProps.showsCompass.value);
-    newViewProps.showsCompass.isDirty = false;
+  // compassVisibility: enum
+  if (newViewProps.compassVisibility.isDirty) {
+    swiftPart.setCompassVisibility(static_cast<int>(newViewProps.compassVisibility.value));
+    newViewProps.compassVisibility.isDirty = false;
   }
-  // showsScale: boolean
-  if (newViewProps.showsScale.isDirty) {
-    swiftPart.setShowsScale(newViewProps.showsScale.value);
-    newViewProps.showsScale.isDirty = false;
+  // scaleVisibility: enum
+  if (newViewProps.scaleVisibility.isDirty) {
+    swiftPart.setScaleVisibility(static_cast<int>(newViewProps.scaleVisibility.value));
+    newViewProps.scaleVisibility.isDirty = false;
+  }
+  // showsUserTrackingButton: boolean
+  if (newViewProps.showsUserTrackingButton.isDirty) {
+    swiftPart.setShowsUserTrackingButton(newViewProps.showsUserTrackingButton.value);
+    newViewProps.showsUserTrackingButton.isDirty = false;
+  }
+  // pitchButtonVisibility: enum
+  if (newViewProps.pitchButtonVisibility.isDirty) {
+    swiftPart.setPitchButtonVisibility(static_cast<int>(newViewProps.pitchButtonVisibility.value));
+    newViewProps.pitchButtonVisibility.isDirty = false;
+  }
+  // mapScope: string
+  if (newViewProps.mapScope.isDirty) {
+    swiftPart.setMapScope(newViewProps.mapScope.value);
+    newViewProps.mapScope.isDirty = false;
   }
   // showsTraffic: boolean
   if (newViewProps.showsTraffic.isDirty) {
@@ -308,6 +323,11 @@ using namespace margelo::nitro::munimmaps::views;
   if (newViewProps.onUserLocationChange.isDirty) {
     swiftPart.setOnUserLocationChange(newViewProps.onUserLocationChange.value);
     newViewProps.onUserLocationChange.isDirty = false;
+  }
+  // onUserTrackingModeChange: optional
+  if (newViewProps.onUserTrackingModeChange.isDirty) {
+    swiftPart.setOnUserTrackingModeChange(newViewProps.onUserTrackingModeChange.value);
+    newViewProps.onUserTrackingModeChange.isDirty = false;
   }
   // onMapFeaturePress: optional
   if (newViewProps.onMapFeaturePress.isDirty) {
