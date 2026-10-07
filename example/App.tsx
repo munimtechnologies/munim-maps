@@ -29,6 +29,7 @@ import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 import { ParityScreen, type ParityHandle } from './Parity'
 import type { MapProvider, UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
+import { MapboxScreen } from './MapboxScreen'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -59,7 +60,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'mapbox'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -451,6 +452,7 @@ function Example() {
   // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
+  const [mapboxChecks, setMapboxChecks] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -528,7 +530,24 @@ function Example() {
   useEffect(() => {
     if (ran.current) return
     ran.current = true
+    // munimmapsexample://mapbox (/checks runs the Mapbox checks), also while running.
+    const openMapbox = (url: string | null) => {
+      if (!url || !/:\/\/mapbox/.test(url)) return false
+      setLaunching(false)
+      setMapboxChecks(url.includes('checks'))
+      setMode('mapbox')
+      return true
+    }
+    const subscription = Linking.addEventListener('url', (event) => {
+      if (openMapbox(event.url)) return
+      const provider = /providers(?:\/(\w+))?/.exec(event.url)
+      if (provider) {
+        setProviderLink(provider[1] as MapProvider | undefined)
+        setMode('providers')
+      }
+    })
     void Linking.getInitialURL().then((url) => {
+      if (openMapbox(url)) return
       if (url?.includes('nopanel')) setPanel(false)
       // munimmapsexample://providers/<provider>: the engine picker.
       const provider = /providers(?:\/(\w+))?/.exec(url ?? '')
@@ -618,6 +637,7 @@ function Example() {
         startSelfTest()
       }
     })
+    return () => subscription.remove()
   }, [])
 
   function startSelfTest() {
@@ -726,7 +746,13 @@ function Example() {
 
   return (
     <View style={styles.root}>
-      {mode === 'providers' ? (
+      {mode === 'mapbox' ? (
+        <MapboxScreen
+          topInset={insets.top}
+          autoChecks={mapboxChecks}
+          onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
+        />
+      ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
           topInset={insets.top}
@@ -908,7 +934,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'mapbox') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />
