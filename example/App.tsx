@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { File, Paths } from 'expo-file-system'
 import { StatusBar } from 'expo-status-bar'
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context'
 import MapView, { Circle } from 'react-native-maps'
 import { AppleMaps } from 'expo-maps'
@@ -27,7 +27,8 @@ import { Demo, SHOTS, type Shot } from './Demo'
 import { ORBIT_PATHS, satelliteModels } from './orbits'
 import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 import { ParityScreen, type ParityHandle } from './Parity'
-import type { UserTrackingMode } from 'munim-maps'
+import type { MapProvider, UserTrackingMode } from 'munim-maps'
+import { ProvidersScreen } from './Providers'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -58,7 +59,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -447,7 +448,9 @@ function writeReport(report: SelfTestReport) {
 
 function Example() {
   const insets = useSafeAreaInsets()
-  const [mode, setMode] = useState<Mode>('munim')
+  // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
+  const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
+  const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -527,6 +530,14 @@ function Example() {
     ran.current = true
     void Linking.getInitialURL().then((url) => {
       if (url?.includes('nopanel')) setPanel(false)
+      // munimmapsexample://providers/<provider>: the engine picker.
+      const provider = /providers(?:\/(\w+))?/.exec(url ?? '')
+      if (provider || Platform.OS === 'android') {
+        setLaunching(false)
+        setProviderLink(provider?.[1] as MapProvider | undefined)
+        setMode('providers')
+        return
+      }
       const shot = /demo\/(\w+)/.exec(url ?? '')?.[1] as Shot | undefined
       if (shot && SHOTS.includes(shot)) {
         setLaunching(false)
@@ -715,7 +726,14 @@ function Example() {
 
   return (
     <View style={styles.root}>
-      {mode === 'parity' ? (
+      {mode === 'providers' ? (
+        <ProvidersScreen
+          initial={providerLink}
+          topInset={insets.top}
+          panel={panel}
+          onExit={Platform.OS === 'ios' ? () => setMode('munim') : undefined}
+        />
+      ) : mode === 'parity' ? (
         <ParityScreen
           mapRef={munimRef}
           startFollowing={parityFollow}
@@ -890,7 +908,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, !panel && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />
@@ -908,6 +926,7 @@ function Example() {
           ) : null}
           <Toggle label="expo-maps" on={mode === 'expomaps'} onPress={() => setMode('expomaps')} />
           <Toggle label="MapKit" on={mode === 'parity'} onPress={() => setMode('parity')} />
+          <Toggle label="Engines" on={false} onPress={() => setMode('providers')} />
           {mode === 'parity' ? (
             <Toggle
               label={`Track: ${trackingMode}`}

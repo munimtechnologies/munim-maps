@@ -22,7 +22,8 @@
   "scripts": {
     "start": "expo start",
     "prebuild": "expo prebuild",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "android": "expo run:android"
   },
   "private": true
 }
