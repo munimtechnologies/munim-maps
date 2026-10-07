@@ -173,3 +173,101 @@ For each engine:
 
 - **iOS**: plain launch of the example runs the MapKit self-test (`Documents/munim-maps-selftest.json`); `munimmapsexample://providers/<provider>` opens the engine picker. A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
 - **Android**: the example starts on the engine picker (MapLibre by default) and logs `MUNIM_MAPS_PROVIDERS … alignment {…}` every 3 s (`adb logcat | grep MUNIM_MAPS`). Build with `./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a` (from `example/android`, after `npx expo prebuild --platform android`) for an arm64 phone or emulator. Phase 1 was checked on an Android 15 phone: MapLibre with the GLB vehicles, 3D layer within 0.41 pt of MapLibre's own projection.
+
+## Google Maps engine checklist
+
+Every public capability of the Maps SDK for iOS (`GoogleMaps` 10.x, CocoaPods) and the Maps SDK for Android (`play-services-maps` 20.x), plus Google Maps Utils (iOS `Google-Maps-iOS-Utils` 7.x, Android `android-maps-utils` 4.x), mapped to munim-maps. Shared props and methods work as on every engine; Google-only options go in `google={{ … }}` (`GoogleMapOptions`, `src/providers/google.ts`), Google-only events arrive in `onProviderEvent` (`provider: 'google'`, typed as `GoogleMapEvent`) and Google-only methods go through `providerCommand` (typed wrapper: `googleMap(ref)`). Status: ✅ done · 🟡 partly (see note) · — not offered, with the reason · ⏳ not done yet.
+
+| SDK capability (iOS / Android API) | munim-maps API | iOS | Android |
+| --- | --- | --- | --- |
+| **Map** | | | |
+| Map view (`GMSMapView(options:)` / `MapView` + lifecycle) | `provider="google"` | ⏳ | ⏳ |
+| API key (`GMSServices.provideAPIKey` / manifest `com.google.android.geo.API_KEY`) | `configureMunimMaps({ googleMapsApiKey })`, Info.plist `MunimMapsGoogleMapsApiKey`, Expo plugin `googleMapsApiKey` | ⏳ | ⏳ |
+| Map types normal / satellite / hybrid / terrain / none (`mapType`) | `mapStyle` (`standard`, `hybrid`, `imagery`) or `google.mapType` | ⏳ | ⏳ |
+| Cloud-based map styling, Map ID (`GMSMapID` / `GoogleMapOptions.mapId`) | `google.mapId` (applied when the map is created) | ⏳ | ⏳ |
+| JSON styling (`GMSMapStyle(jsonString:)` / `MapStyleOptions`) | `google.styleJson` (string or array) | ⏳ | ⏳ |
+| Dark mode (`overrideUserInterfaceStyle` / `setMapColorScheme`) | `colorScheme` | ⏳ | ⏳ |
+| 3D buildings (`buildingsEnabled`) | `showsBuildings` | ⏳ | ⏳ |
+| Traffic, transit (`trafficEnabled`, `transitEnabled`) | `showsTraffic`, `google.transitEnabled` | ⏳ | ⏳ |
+| Points of interest on/off and by category | `pointsOfInterest` (`'none'` or categories, as a JSON style; not with `mapId`) | ⏳ | ⏳ |
+| Indoor maps (`indoorEnabled`), level picker | `google.indoorEnabled`, `google.indoorLevelPicker` | ⏳ | ⏳ |
+| Active building / level events (`GMSIndoorDisplayDelegate` / `OnIndoorStateChangeListener`) | events `indoorBuildingFocused`, `indoorLevelActivated` | ⏳ | ⏳ |
+| Set the active level (`indoorDisplay.activeLevel` / `IndoorLevel.activate()`) | commands `setIndoorLevel`, `getIndoorBuilding` | ⏳ | ⏳ |
+| Lite mode (`GoogleMapOptions.liteMode`) | `google.liteMode` | — Android only | ⏳ |
+| Background colour, frame rate (`backgroundColor`, `preferredFrameRate`) | `google.backgroundColor`, `google.preferredFrameRate` (iOS) | ⏳ | ⏳ |
+| Map capabilities (`mapCapabilities` + change event) | command `getMapCapabilities`, event `mapCapabilitiesChanged` | ⏳ | ⏳ |
+| Accessibility (`accessibilityElementsHidden` / `setContentDescription`) | `google.accessibilityElementsHidden`, `google.contentDescription` | ⏳ | ⏳ |
+| **Controls and gestures** | | | |
+| Compass (`compassButton` / `setCompassEnabled`) | `compassVisibility` (Google shows it only while rotated) | ⏳ | ⏳ |
+| My location layer + button (`myLocationEnabled`, `myLocationButton`) | `showsUserLocation`, `showsUserTrackingButton` or `google.myLocationButton` | ⏳ | ⏳ |
+| Zoom controls (`setZoomControlsEnabled`) | `google.zoomControls` | — Android only | ⏳ |
+| Map toolbar (`setMapToolbarEnabled`) | `google.mapToolbar` | — Android only | ⏳ |
+| Scroll / zoom / tilt / rotate gestures | `scrollEnabled`, `zoomEnabled`, `pitchEnabled`, `rotateEnabled` | ⏳ | ⏳ |
+| Scroll during rotate or zoom | `google.scrollGesturesDuringRotateOrZoom` | ⏳ | ⏳ |
+| Consumes gestures in view (`consumesGesturesInView`) | `google.consumesGesturesInView` | ⏳ | — iOS only |
+| Scale bar | `scaleVisibility` | — not in the SDK | — not in the SDK |
+| User tracking (follow, follow with heading) | `userTrackingMode` (munim-maps follows location updates; Google has no tracking mode) | ⏳ | ⏳ |
+| **Camera** | | | |
+| Camera position (target, zoom, bearing, tilt) | `initialCamera`, `setCamera`, `getCamera` (metres; zoom converted with 256-point tiles); commands `moveCamera`, `animateCamera`, `getCameraPosition` in Google's units | ⏳ | ⏳ |
+| Animations with durations (`CATransaction` + `animate` / `animateCamera(update, ms, cb)`) | `animateCamera(camera, ms, easing)`, `flyCamera`, `setRegion(r, ms)` | ⏳ | ⏳ |
+| Camera updates: zoom in / out / by / to, scroll by, fit bounds | commands `zoomIn`, `zoomOut`, `zoomBy`, `zoomTo`, `scrollBy`; `fitToCoordinates`, `fitToMarkers` | ⏳ | ⏳ |
+| Stop animation (`stopAnimation`) | `stopFlight`, command `stopAnimation` | ⏳ | ⏳ |
+| Padding (`padding`, `paddingAdjustmentBehavior`) | `mapPadding`, `google.paddingAdjustmentBehavior` (iOS) | ⏳ | ⏳ |
+| Min / max zoom (`setMinZoom:maxZoom:` / `setMin/MaxZoomPreference`) | `cameraDistanceRange`, or `google.minZoom` / `google.maxZoom` | ⏳ | ⏳ |
+| Camera target bounds (`cameraTargetBounds` / `setLatLngBoundsForCameraTarget`) | `cameraBoundary`, or `google.cameraTargetBounds` | ⏳ | ⏳ |
+| Projection: point ↔ coordinate, visible region (four corners), metres → points | `pointForCoordinate`, `coordinateForPoint`, `getVisibleRegion`, command `getProjection` | ⏳ | ⏳ |
+| **Events** | | | |
+| Map ready, map loaded (`OnMapLoadedCallback` / first tiles rendered) | `onMapReady`, event `mapLoaded` | ⏳ | ⏳ |
+| Camera move started (with reason), move, idle, cancelled | event `cameraMoveStarted` (`gesture`, `apiAnimation`, `developerAnimation`), `onCameraMove`, `onCameraChange`, event `cameraMoveCanceled` (Android) | ⏳ | ⏳ |
+| Tap, long press | `onPress`, `onLongPress` | ⏳ | ⏳ |
+| POI tap (`didTapPOIWithPlaceID` / `OnPoiClickListener`) | `onMapFeaturePress` (`id` is the place ID), event `poiClick` | ⏳ | ⏳ |
+| Tiles rendering started / finished (iOS) | events `tilesRenderingStarted`, `tilesRenderingFinished` | ⏳ | — iOS only |
+| My location button / dot taps | events `myLocationButtonPress`, `myLocationPress` | ⏳ | ⏳ |
+| User location changes | `onUserLocationChange` | ⏳ | ⏳ |
+| **Markers** | | | |
+| Default marker, coloured (`markerImageWithColor` / `defaultMarker(hue)`) | `style: 'pin'`, `color` | ⏳ | ⏳ |
+| Icon images, view icons (`icon`, `iconView`) | `style: 'image' / 'avatar' / 'label' / 'dot' / 'marker'`, `MarkerView` | ⏳ | ⏳ |
+| Anchors, info window anchor (`groundAnchor`, `infoWindowAnchor`) | `anchor`, `google.markers[id].infoWindowAnchor` | ⏳ | ⏳ |
+| Info windows: title + snippet, custom windows (`markerInfoWindow` / `InfoWindowAdapter`) | `title`, `description`, `calloutDetail`; accessories drawn in a custom window | ⏳ | ⏳ |
+| Info window tap / long press / close | `onCalloutPress`, events `infoWindowLongPress`, `infoWindowClose` | ⏳ | ⏳ |
+| Draggable, drag start / drag / end | `draggable`, `onMarkerDragStart`, event `markerDrag`, `onMarkerDragEnd` | ⏳ | ⏳ |
+| Flat, rotation, opacity, zIndex, visible | `google.markers[id].flat`, `.rotation`, `opacity`, `zIndex`, `visible` | ⏳ | ⏳ |
+| Appear animation (`appearAnimation`) | `animatesWhenAdded` | ⏳ | — not in the SDK |
+| Advanced markers with pins (`GMSAdvancedMarker` + `GMSPinImageOptions` / `AdvancedMarkerOptions` + `PinConfig`): background, border, glyph text, colour or image | automatic for `pin` / `marker` on a map with a `mapId`; `google.markers[id].pin` | ⏳ | ⏳ |
+| Collision behaviour (`collisionBehavior`) | `displayPriority` + `collisionMode`, or `google.markers[id].collisionBehavior` | ⏳ | ⏳ |
+| Select / deselect (`selectedMarker` / `showInfoWindow`) | `selectMarker`, `deselectMarker`, `onMarkerPress`, `onMarkerDeselect` | ⏳ | ⏳ |
+| Clustering (Utils `GMUClusterManager` / `ClusterManager`) | `clusteringId`, `clusterStyles`, `onClusterPress`, `google.clusterAlgorithm` | ⏳ | ⏳ |
+| **Shapes and overlays** | | | |
+| Polylines: colour, width, geodesic, zIndex, tappable | `polylines` | ⏳ | ⏳ |
+| Stroke spans and gradients (`GMSStyleSpan` / `StyleSpan`) | `strokeColors` + `strokeColorLocations`, `google.polylines[id].spans` | ⏳ | ⏳ |
+| Patterns (dash / gap / dot) | `dashPattern`, `google.polylines[id].pattern` (iOS draws them as spans) | ⏳ | ⏳ |
+| Caps and joints (`startCap`, `endCap`, `jointType`) | `lineCap`, `lineJoin`, `google.polylines[id].startCap` / `endCap` | — not in the iOS SDK | ⏳ |
+| Texture stamps (`GMSTextureStyle`, `GMSSpriteStyle` / `TextureStyle`, `SpriteStyle`) | `google.polylines[id].stamp` | ⏳ | ⏳ |
+| Partial lines | `strokeStart`, `strokeEnd` | ⏳ | ⏳ |
+| Polygons with holes, geodesic, stroke pattern and joints | `polygons`, `google.polygons[id]` | ⏳ | ⏳ |
+| Circles | `circles` | ⏳ | ⏳ |
+| Overlay taps | `onOverlayPress`, `overlayAtPoint` | ⏳ | ⏳ |
+| Ground overlays (an image on the ground: bounds, or position + width; bearing, opacity, anchor, tappable) | `google.groundOverlays`, event `groundOverlayPress` | ⏳ | ⏳ |
+| Tile overlays: URL templates, opacity, zIndex, fade-in, tile size, clear cache | `tileOverlays` (`{x}`, `{y}`, `{z}`, `{-y}`, `{quadkey}`), `google.tileOverlays[id]`, command `clearTileCache` | ⏳ | ⏳ |
+| Custom tile providers (`GMSSyncTileLayer` / `TileProvider`) | `file://` templates from JavaScript; native code: the engine's `customTileLayers` hook | ⏳ | ⏳ |
+| Heatmaps, weighted, gradients (Utils) | `google.heatmaps` | ⏳ | ⏳ |
+| KML layers (Utils) | `google.kmlLayers`, event `kmlFeaturePress` | ⏳ | ⏳ |
+| GeoJSON layers (Utils) | `google.geoJsonLayers`, event `geoJsonFeaturePress` | ⏳ | ⏳ |
+| Data-driven styling for boundaries (feature layers: country, admin areas 1 and 2, locality, postal code, school district) | `google.featureLayers` (needs a `mapId` with those layers on), event `featureClick` | ⏳ | ⏳ |
+| Data-driven styling for datasets | `google.featureLayers[].datasetId` | ⏳ | ⏳ |
+| **Street View** | | | |
+| Panorama view (`GMSPanoramaView` / `StreetViewPanoramaView`) near a coordinate, by ID, radius, outdoor source | `openLookAround` (Street View on this engine), command `streetView.open` | ⏳ | ⏳ |
+| Coverage check (`GMSPanoramaService` / panorama location) | `hasLookAround`, command `streetView.hasCoverage` | ⏳ | ⏳ |
+| Panorama camera (heading, pitch, zoom, FOV), animated | command `streetView.setCamera` | ⏳ | ⏳ |
+| Links, navigation, gestures, street names | `streetView.open` options, command `streetView.moveTo` | ⏳ | ⏳ |
+| Panorama events (change, camera, tap, error) | events `streetViewChange`, `streetViewCamera`, `streetViewTap`, `streetViewError` | ⏳ | ⏳ |
+| **Snapshot and services** | | | |
+| Snapshot | `takeSnapshot` | ⏳ | ⏳ |
+| Reverse geocoding (`GMSGeocoder`; Android has none in the SDK, so `android.location.Geocoder`) | `addressForCoordinate` | ⏳ | ⏳ |
+| Geometry utils (distance, heading, offset, area, encode / decode polylines, contains / on-edge) | `googleGeometry` (JavaScript, Google's formulas) | ⏳ | ⏳ |
+| SDK version, open-source licences | command `sdkInfo` | ⏳ | ⏳ |
+| Places (autocomplete, place details, text / nearby search, photos) | `googlePlaces` (Places API (New) web service, your key) | ⏳ | ⏳ |
+| Geocoding, Routes (directions, route matrix) | `googleGeocoding`, `googleRoutes` (web services, your key; better from your server) | ⏳ | ⏳ |
+| **3D** | | | |
+| munim 3D layer (models, paths, zones, effects) on Google's camera | `models`, `paths`, `zones`, `measureAlignment` | ⏳ | ⏳ |
+| Photorealistic 3D maps (Maps 3D SDK) | see the notes below | ⏳ | ⏳ |
