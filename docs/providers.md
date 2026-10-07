@@ -98,7 +98,7 @@ Every engine adds methods and events without changing the shared spec, through o
 
 - `onMarkerDrag`: a dragged marker's position while it moves, between `onMarkerDragStart` and `onMarkerDragEnd`, on every engine: MapKit (a display link reads the dragged view, since MapKit only sets the coordinate on drop), Google (`mapView(_:didDrag:)`, `OnMarkerDragListener.onMarkerDrag`), Mapbox, MapLibre, Cesium (the page's drag handler). Natively `MunimMapEngine.onMarkerDrag` (Swift) and `MunimMapEngineListener.onMarkerDrag` (Kotlin), defaulted.
 - `MarkerView` on Android: `MunimMapView` keeps its children off screen next to the map (Android's Nitro views cannot hold React children); each `MarkerView` draws its children into a bitmap (again on every change with `tracksViewChanges`) and calls `MunimMapEngine.setViewMarker` / `setViewMarkerImage` / `removeViewMarker`. Mapbox shows it as a view annotation; Google, MapLibre and Cesium as an image marker with the marker's `anchor`, `zIndex`, callout, taps and dragging.
-- react-native-maps' region API: `initialRegion`, a controlled `region` (the map jumps to it when it changes; the region reported by `onRegionChangeComplete` does not move it again), `onRegionChangeStart`, `onRegionChangeComplete(region)` and `ref.animateToRegion(region, ms)`. They are built on `setRegion`, `getVisibleRegion` and the camera events, so they work on every engine. `initialCamera` is optional when a region is given.
+- react-native-maps' region API: `initialRegion`, a controlled `region` (the map jumps to it when it changes; the region reported by `onRegionChangeComplete` does not move it again), `onRegionChangeStart`, `onRegionChangeComplete(region)` and `ref.animateToRegion(region, ms)`. They are built on `setRegion`, `getVisibleRegion` and the camera events, so they work on every engine (`munimmapsexample://providers/<provider>/check`: 5 of 5 on every engine on the iPad). Mapbox and MapLibre keep the camera's pitch and heading when they frame a region, so on a pitched map the visible region (and what `onRegionChangeComplete` reports) is larger than the region asked for. `initialCamera` is optional when a region is given.
 - `selectableMapFeatures` reaches every engine on both platforms (`setSelectableMapFeatures` on Android): MapKit's places, Google's POIs, Mapbox Standard's featuresets (POIs, landmarks, place labels), MapLibre's OpenMapTiles layers, Cesium's 3D Tiles features.
 
 ### Models: the vehicle catalogue and remote files
@@ -112,8 +112,8 @@ What an app moving off react-native-maps (MapKit on iOS) or @rnmapbox/maps (Mapb
 
 | Need | munim-maps | MapKit | Google | Mapbox | MapLibre | Cesium |
 | --- | --- | --- | --- | --- | --- | --- |
-| Controlled `region`, `initialRegion` | `region`, `initialRegion` (JavaScript, on `setRegion`) | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
-| `onRegionChangeStart`, `onRegionChangeComplete(region)` | same names (from the camera events + `getVisibleRegion`) | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| Controlled `region`, `initialRegion` | `region`, `initialRegion` (JavaScript, on `setRegion`) | ✅ | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android |
+| `onRegionChangeStart`, `onRegionChangeComplete(region)` | same names (from the camera events + `getVisibleRegion`) | ✅ | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android |
 | `animateToRegion(region, ms)` | `ref.animateToRegion` (= `setRegion(region, ms)`) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `animateCamera({ pitch }, { duration })` | `animateCamera({ ...(await getCamera()), pitch }, ms, 'easeInOut')` (a whole camera, in metres) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `fitToCoordinates(coords, { edgePadding, animated })` | `fitToCoordinates(coords, edgePadding, animated)` | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -149,7 +149,7 @@ What an app moving off react-native-maps (MapKit on iOS) or @rnmapbox/maps (Mapb
 | Clustering (`clusteringId`, `clusterStyles`) | ✅ | ✅ Utils | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
 | `MarkerView` (React Native views as markers) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 |
 | `onMarkerDrag` (continuous drag) | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | 🔨 | 🔨 |
-| `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion` | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 |
 | `modelRendering` (engine-drawn models) | — overlay only | — overlay only | 🔨 3D mode | ✅ | 🔨 | — overlay only | — overlay only | ✅ | ✅ |
 | Polylines, polygons, circles | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
 | Gradient / animated polylines, overlay taps | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
@@ -271,12 +271,13 @@ For each engine:
 ## Testing
 
 - **Example deep links** (checks never run on their own, except the MapKit self-test on a plain iOS launch, `Documents/munim-maps-selftest.json`, which includes the MapKit parity screen's checks):
-  - `munimmapsexample://providers[/<provider>]`: the engine picker, which opens every other screen (Android starts here).
+  - `munimmapsexample://providers[/<provider>][/check]`: the engine picker, which opens every other screen (Android starts here); `/check` runs the shared region checks on that engine (`Documents/munim-maps-shared-checks-<provider>.json`, `MUNIM_MAPS_SHARED` log lines).
   - `munimmapsexample://google[/checks]` (`Documents/munim-maps-google-checks.json`), `mapbox[/checks|/native]` (`munim-maps-mapbox-checks.json`), `maplibre[/check]` (`munim-maps-maplibre-check.json`), `cesium[/checks]` (`munim-maps-cesium-checks.json`): each engine's screen with every feature group; the suffix runs its checks.
   - `munimmapsexample://layer3d[/<provider>][/check][/cam/lat,lon,distance,pitch,heading][/noocclusion]`: every 3D layer group on one engine.
   - `munimmapsexample://parity`, `terrain`, `expomaps`, `features`, `globe`, `cities`, `orbit`, `demo/<shot>`, `lagtest` (iOS).
   - Models come from munim-maps-vehicles on jsDelivr; before it is published, build with `EXPO_PUBLIC_MUNIM_MAPS_VEHICLES_BASE_URL=<url>` and serve `packages/munim-maps-vehicles` there (`python3 -m http.server`, or a tunnel to it). A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
 - **Android 3D layer**: `munimmapsexample://layer3d/<provider>` shows every 3D group on one engine; add `/check` (or tap Run checks) to measure the layer against the engine at six cameras and four points of a `flyCamera` flight (`adb logcat | grep MUNIM_MAPS_LAYER3D`). `cam/lat,lon,distance,pitch,heading` sets the camera, `noocclusion` turns building occlusion off.
+- **Integration build (0.5.0 candidate), iPad Air M3, iPadOS 27.0.1, every engine in one Release build, models from munim-maps-vehicles over the network, CesiumJS from jsDelivr**: MapKit self-test 47/47, Google checks 30/30, Mapbox 38/38, MapLibre 27/27, Cesium 26/26, shared region checks 5/5 on each of the five engines. Android: the release APK with every engine builds (arm64); the on-phone checks are pending (no phone was connected).
 - **Android**: the example starts on the engine picker (MapLibre by default) and logs `MUNIM_MAPS_PROVIDERS … alignment {…}` every 3 s (`adb logcat | grep MUNIM_MAPS`). Build with `./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a` (from `example/android`, after `npx expo prebuild --platform android`) for an arm64 phone or emulator. Phase 1 was checked on an Android 15 phone: MapLibre with the GLB vehicles, 3D layer within 0.41 pt of MapLibre's own projection.
 
 ## Google Maps engine checklist

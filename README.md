@@ -700,7 +700,7 @@ A column per engine and platform. ✅ works (checked on a device) · 🟡 partly
 | Map events | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
 | Markers, clustering, callouts, `MarkerView` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | `MarkerView` on Android draws its views into an image marker (Mapbox: a view annotation). |
 | Continuous marker drag (`onMarkerDrag`) | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | 🔨 | 🔨 | Between `onMarkerDragStart` and `onMarkerDragEnd`. |
-| react-native-maps' region API | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion`. |
+| react-native-maps' region API | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion`. |
 | Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |  |
 | User location and tracking (follow, follow with heading) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
 | Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 | 🔨 | 🟡 | 🔨 | ✅ | ✅ | ✅ | ✅ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. Mapbox: compass, scale bar and a tracking button, no 2D/3D button. |

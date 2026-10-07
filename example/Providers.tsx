@@ -42,12 +42,20 @@ interface SharedCheck {
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-/** The region's centre is within a quarter of its span of `want`'s. */
+/**
+ * The map shows `want`: its corners are inside the visible region (a pitched
+ * camera, as here, sees more than the region, so the visible region is
+ * larger), and the visible region is not wildly larger.
+ */
 function near(region: MapRegion, want: MapRegion) {
-  return (
-    Math.abs(region.latitude - want.latitude) < want.latitudeDelta / 4 &&
-    Math.abs(region.longitude - want.longitude) < want.longitudeDelta / 4
+  const slack = 0.1
+  const inside = (lat: number, lon: number) =>
+    Math.abs(lat - region.latitude) <= (region.latitudeDelta / 2) * (1 + slack) &&
+    Math.abs(lon - region.longitude) <= (region.longitudeDelta / 2) * (1 + slack)
+  const corners = [-1, 1].flatMap((a) =>
+    [-1, 1].map((b) => inside(want.latitude + (a * want.latitudeDelta) / 2, want.longitude + (b * want.longitudeDelta) / 2))
   )
+  return corners.every(Boolean) && region.latitudeDelta < want.latitudeDelta * 25
 }
 
 const NAMES: Record<MapProvider, string> = {
