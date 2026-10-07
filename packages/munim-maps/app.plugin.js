@@ -29,8 +29,27 @@ const {
   withGradleProperties,
   withInfoPlist,
   withPodfileProperties,
+  withProjectBuildGradle,
   withStringsXml,
 } = plugins
+
+const MAPBOX_MAVEN = 'https://api.mapbox.com/downloads/v2/releases/maven'
+
+/**
+ * Adds Mapbox's Maven repository (public, no secret token) to the app's
+ * `allprojects.repositories`: the app resolves the Mapbox SDK that comes
+ * through munim-maps.
+ */
+function addMapboxMaven(gradle) {
+  if (gradle.includes(MAPBOX_MAVEN)) return gradle
+  const line = `    maven { url '${MAPBOX_MAVEN}' }\n`
+  const match = /allprojects\s*\{\s*repositories\s*\{[^\n]*\n/.exec(gradle)
+  if (match) {
+    const at = match.index + match[0].length
+    return gradle.slice(0, at) + line + gradle.slice(at)
+  }
+  return `${gradle}\nallprojects {\n  repositories {\n${line}  }\n}\n`
+}
 
 const PROVIDERS = ['mapkit', 'google', 'mapbox', 'maplibre', 'cesium']
 
@@ -148,6 +167,14 @@ function withMunimMapsAndroid(config, options) {
     )
     return c
   })
+  if (providers.includes('mapbox')) {
+    config = withProjectBuildGradle(config, (c) => {
+      if (c.modResults.language === 'groovy') {
+        c.modResults.contents = addMapboxMaven(c.modResults.contents)
+      }
+      return c
+    })
+  }
   if (options.mapboxAccessToken) {
     config = withStringsXml(config, (c) => {
       c.modResults = AndroidConfig.Strings.setStringItem(
@@ -171,3 +198,5 @@ module.exports = function withMunimMaps(config, options = {}) {
   config = withMunimMapsAndroid(config, options)
   return config
 }
+
+module.exports.addMapboxMaven = addMapboxMaven
