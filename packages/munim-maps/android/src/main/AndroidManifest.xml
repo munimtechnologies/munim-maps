@@ -2,4 +2,13 @@
   <!-- Map tiles, styles and model files are loaded over the network. -->
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-feature android:glEsVersion="0x00030000" android:required="false" />
+  <application>
+    <!-- Google Maps: older Google Play services map modules (still on many
+         emulator images and devices that have not updated Play services)
+         use the Apache HTTP classes, which apps targeting API 28+ only get
+         when they ask for them; without this the app stops as soon as a
+         Google map is created (NoClassDefFoundError
+         org/apache/http/ProtocolVersion). Harmless without Google. -->
+    <uses-library android:name="org.apache.http.legacy" android:required="false" />
+  </application>
 </manifest>

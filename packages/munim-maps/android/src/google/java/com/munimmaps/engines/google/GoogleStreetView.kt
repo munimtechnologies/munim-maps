@@ -209,16 +209,29 @@ internal fun GoogleMapEngine.closeStreetView() {
   emit("streetViewClose")
 }
 
-/** Whether Google has a panorama near a point: asks a hidden panorama. */
+/**
+ * Whether Google has a panorama near a point: asks a hidden panorama. The
+ * probe has to be attached and started (a detached, never-resumed
+ * StreetViewPanoramaView never reports a location), so it sits in the map's
+ * view, 1 px and transparent, until it answers.
+ */
 internal fun GoogleMapEngine.streetViewCoverage(args: GJson, completion: (JSONObject?) -> Unit) {
   val options = GoogleStreetView.options(args) ?: return completion(null)
   val probe = StreetViewPanoramaView(context, options)
   probe.onCreate(null)
+  probe.alpha = 0f
+  probe.isClickable = false
+  (view as? ViewGroup)?.addView(probe, 0, FrameLayout.LayoutParams(1, 1))
+  probe.onStart()
+  probe.onResume()
   var done = false
   fun finish(result: JSONObject?) {
     if (done) return
     done = true
+    probe.onPause()
+    probe.onStop()
     probe.onDestroy()
+    (probe.parent as? ViewGroup)?.removeView(probe)
     completion(result)
   }
   probe.getStreetViewPanoramaAsync { pano ->
