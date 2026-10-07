@@ -37,7 +37,7 @@
     const tick = () => {
       const viewer = M.viewer
       if (viewer && !viewer.isDestroyed()) {
-        const animating = M.isFlying() || viewer.clock.shouldAnimate || (M.modelsAnimating && M.modelsAnimating()) || Object.keys(M.continuous).length > 0 || viewer.trackedEntity
+        const animating = M.isFlying() || viewer.scene.mode === C.SceneMode.MORPHING || viewer.clock.shouldAnimate || (M.modelsAnimating && M.modelsAnimating()) || Object.keys(M.continuous).length > 0 || viewer.trackedEntity
         if (animating) viewer.scene.requestRender()
       }
       requestAnimationFrame(tick)

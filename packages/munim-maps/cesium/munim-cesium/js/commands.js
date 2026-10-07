@@ -704,8 +704,9 @@
 
   M.method('evaluate', (a) => {
     if (M.options().allowEvaluate !== true) throw new Error('evaluate needs cesium={{ allowEvaluate: true }}')
-    // eslint-disable-next-line no-new-func
-    const fn = new Function('Cesium', 'viewer', 'munim', a.script)
+    // An async function, so scripts can `await`.
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+    const fn = new AsyncFunction('Cesium', 'viewer', 'munim', a.script)
     return Promise.resolve(fn(C, M.viewer, M)).then((value) => {
       try {
         return JSON.parse(JSON.stringify(value === undefined ? null : value))

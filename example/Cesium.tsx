@@ -128,6 +128,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
   const [panel, setPanel] = useState(true)
   const ready = useRef(false)
   const events = useRef<string[]>([])
+  const errors = useRef<string[]>([])
   const ranAuto = useRef(false)
 
   const note = (line: string) => {
@@ -200,12 +201,21 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
       const r = await map.getVisibleRegion()
       return [Math.abs(r.latitude - CAMERA.latitude) < r.latitudeDelta && r.latitudeDelta > 0, JSON.stringify(r)]
     })
+    await attempt('basemap tiles', async () => {
+      const r = (await c.evaluate({ script: "const url = munim.tileUrl('https://tile.openstreetmap.org/2/1/1.png'); const res = await fetch(url); return { url, status: res.status, type: res.headers.get('content-type'), bytes: (await res.arrayBuffer()).byteLength, layers: viewer.imageryLayers.length, ready: viewer.imageryLayers.get(0) && viewer.imageryLayers.get(0).ready, tilesLoaded: viewer.scene.globe.tilesLoaded }" })) as { status: number; bytes: number }
+      return [r.status === 200 && r.bytes > 100, JSON.stringify(r)]
+    })
     await attempt('animateCamera', async () => {
       const target = { ...CAMERA, heading: 120, distance: 1500 }
       map.animateCamera(target, 500, 'easeInOut')
-      await wait(1200)
+      const samples: string[] = []
+      for (let i = 0; i < 6; i++) {
+        await wait(250)
+        const s = await map.getCamera()
+        samples.push(`${s.latitude.toFixed(4)},${s.longitude.toFixed(4)} ${s.distance.toFixed(0)}m ${s.heading.toFixed(1)}`)
+      }
       const cam = await map.getCamera()
-      return [near(cam.heading, 120, 1.5) && near(cam.distance, 1500, 40), JSON.stringify(cam)]
+      return [near(cam.heading, 120, 1.5) && near(cam.distance, 1500, 40), samples.join(' | ')]
     })
     await attempt('fitToCoordinates', async () => {
       const coords = [{ latitude: 41.87, longitude: -87.65 }, { latitude: 41.90, longitude: -87.61 }]
@@ -320,7 +330,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
       const file = new File(Paths.document, 'munim-maps-cesium-checks.json')
       if (file.exists) file.delete()
       file.create()
-      file.write(JSON.stringify({ platform: Platform.OS, finishedAt: new Date().toISOString(), passed, total: out.length, checks: out }, null, 2))
+      file.write(JSON.stringify({ platform: Platform.OS, finishedAt: new Date().toISOString(), passed, total: out.length, checks: out, errors: errors.current.slice(-40) }, null, 2))
     } catch (e) {
       note(`could not write the report: ${String(e)}`)
     }
@@ -386,7 +396,10 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
           if (event.name === 'pick' && event.data.kind !== 'none') note(`pick ${event.data.kind} ${event.data.id ?? event.data.name ?? ''}`)
           if (event.name === 'tilesetLoaded' || event.name === 'dataSourceLoaded') note(`${event.name} ${event.data.id}`)
         }}
-        onError={(m) => note(`error ${m}`)}
+        onError={(m) => {
+          errors.current.push(m)
+          note(`error ${m}`)
+        }}
       />
       <View style={[styles.panel, { top: props.topInset + 8 }, !panel && styles.hidden]}>
         <ScrollView horizontal contentContainerStyle={styles.row} showsHorizontalScrollIndicator={false}>

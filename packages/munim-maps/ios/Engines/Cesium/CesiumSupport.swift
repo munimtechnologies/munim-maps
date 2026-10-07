@@ -179,12 +179,12 @@ enum CesiumJSON {
   /// A JSON-ready value for munim-maps' Swift values (structs, enums,
   /// coordinates), by reflection, so the web side sees the same field names.
   static func value(_ any: Any) -> Any {
-    // Values from JSONSerialization (the `cesium` options) are NSNumbers:
-    // keep booleans and numbers apart (1 is not `true`).
-    if let n = any as? NSNumber, !(any is Bool) || CFGetTypeID(n) == CFBooleanGetTypeID() {
+    // Numbers from JSONSerialization (the `cesium` options, results) and
+    // Swift numbers both bridge to NSNumber; only CFBoolean is a boolean
+    // (`0 as Any is Bool` is true for an NSNumber, so test the CF type).
+    if let n = any as? NSNumber {
       if CFGetTypeID(n) == CFBooleanGetTypeID() { return n.boolValue }
-      let d = n.doubleValue
-      return d.isFinite ? n : 0
+      return n.doubleValue.isFinite ? n : NSNumber(value: 0)
     }
     switch any {
     case is NSNull: return NSNull()
