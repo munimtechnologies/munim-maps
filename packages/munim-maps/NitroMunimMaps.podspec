@@ -37,7 +37,14 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported }
+  # Google Maps 10 and its Utils need iOS 16, so the pod does too with the
+  # Google engine on (apps that add `NitroMunimMaps/Google` by hand without
+  # MUNIM_MAPS_PROVIDERS / Podfile.properties.json need iOS 16 themselves).
+  ios_minimum = min_ios_version_supported
+  if munim_maps_providers.call.include?("google") && Gem::Version.new(ios_minimum.to_s) < Gem::Version.new("16.0")
+    ios_minimum = "16.0"
+  end
+  s.platforms    = { :ios => ios_minimum }
   s.source       = { :git => "https://github.com/munimtechnologies/munim-maps.git", :tag => "v#{s.version}" }
   s.frameworks   = "MapKit", "SceneKit", "Metal", "ModelIO", "QuartzCore"
 
