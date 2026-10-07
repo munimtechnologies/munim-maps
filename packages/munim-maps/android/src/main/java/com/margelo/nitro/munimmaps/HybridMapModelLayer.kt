@@ -4,9 +4,11 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import com.facebook.react.uimanager.ThemedReactContext
 import com.margelo.nitro.core.Promise
+import com.munimmaps.engine.MapCameraSource
 import com.munimmaps.engine.MapViewAdapters
 import com.munimmaps.models.MunimModelLayer
 
@@ -14,26 +16,32 @@ import com.munimmaps.models.MunimModelLayer
  * React Native `MapModelLayer` on Android: munim-maps' 3D layer over another
  * library's map. It looks for the map (the view whose `testID` is
  * `mapTestID`, or the nearest map up the hierarchy) through
- * [MapViewAdapters], which engines fill with adapters for their SDK's view
- * (react-native-maps' Google `MapView` comes with the Google engine). Until
- * one matches, it reports `onAttachChange(false)`.
+ * [MapViewAdapters]: react-native-maps' Google `MapView` and
+ * `@rnmapbox/maps`' Mapbox `MapView`, whose adapters are compiled whenever
+ * those libraries are in the app. Until one matches, it reports
+ * `onAttachChange(false)`.
+ *
+ * The 3D layer's view is kept exactly over the map's view (position and
+ * size, before every draw), so the layer can be anywhere around the map.
  */
 class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec() {
   private val layer = MunimModelLayer(context)
   private val frame = object : FrameLayout(context) {
     override fun onAttachedToWindow() {
       super.onAttachedToWindow()
+      viewTreeObserver.addOnPreDrawListener(followMap)
       search()
     }
 
     override fun onDetachedFromWindow() {
       super.onDetachedFromWindow()
+      viewTreeObserver.removeOnPreDrawListener(followMap)
       handler.removeCallbacks(searchLater)
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
       super.onLayout(changed, l, t, r, b)
-      layer.view.layout(0, 0, r - l, b - t)
+      placeOverMap()
       layer.setNeedsRender()
     }
   }
@@ -41,6 +49,23 @@ class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec
   private val searchLater = Runnable { search() }
   private var reportedAttached: Boolean? = null
   private var searches = 0
+  private var source: MapCameraSource? = null
+  private val frameLocation = IntArray(2)
+  private val mapLocation = IntArray(2)
+
+  /** Before every draw: follow the map's view, and look again when it has gone. */
+  private val followMap = ViewTreeObserver.OnPreDrawListener {
+    if (source != null && source?.cameraView == null) {
+      // The map left the window (a new screen, a remount): find it again.
+      detachSource()
+      searches = 0
+      handler.removeCallbacks(searchLater)
+      handler.post(searchLater)
+    } else {
+      placeOverMap()
+    }
+    true
+  }
 
   override val view: View get() = frame
 
@@ -51,11 +76,36 @@ class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec
     layer.onError = { message -> onError?.invoke(message) }
   }
 
+  /** Lays the 3D layer's view out over the map's view (in the frame's coordinates). */
+  private fun placeOverMap() {
+    val map = source?.cameraView
+    val target = layer.view
+    var left = 0
+    var top = 0
+    var width = frame.width
+    var height = frame.height
+    if (map != null && map.width > 0 && map.height > 0) {
+      frame.getLocationInWindow(frameLocation)
+      map.getLocationInWindow(mapLocation)
+      left = mapLocation[0] - frameLocation[0]
+      top = mapLocation[1] - frameLocation[1]
+      width = map.width
+      height = map.height
+    }
+    if (target.left != left || target.top != top || target.width != width || target.height != height) {
+      target.layout(left, top, left + width, top + height)
+      layer.setNeedsRender()
+    }
+  }
+
   private fun search() {
     if (!frame.isAttachedToWindow) return
-    val source = findMap()
-    if (source != null) {
-      layer.attach(source)
+    val found = findMapView()
+    if (found != null) {
+      source = found
+      layer.attach(found)
+      found.setTapListener { x, y -> layer.handleTap(x, y) }
+      placeOverMap()
       report(true)
       return
     }
@@ -63,23 +113,29 @@ class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec
     searches += 1
     if (searches == 20) {
       onError?.invoke(
-        "MapModelLayer found no map it can draw over on Android. Use MunimMapView, or the engine " +
-          "for your map library (react-native-maps needs the Google engine).")
+        if (MapViewAdapters.isEmpty) {
+          "MapModelLayer: no map library munim-maps can draw over is built into this app. On Android it " +
+            "draws over react-native-maps and @rnmapbox/maps; or use MunimMapView."
+        } else {
+          "MapModelLayer found no map it can draw over. Give the map a testID and pass it as mapTestID, " +
+            "or put the layer next to a react-native-maps or @rnmapbox/maps MapView."
+        })
     }
     handler.postDelayed(searchLater, if (searches < 20) 250L else 2000L)
   }
 
-  private fun findMap(): com.munimmaps.engine.MapCameraSource? {
-    // Loading the engine factories registers their map view adapters.
-    com.munimmaps.engine.MunimMapEngines.installed
-    return findMapView()
+  private fun detachSource() {
+    source?.setTapListener(null)
+    source = null
+    layer.detach()
+    report(false)
   }
 
-  private fun findMapView() = if (mapTestID.isNotEmpty()) {
+  private fun findMapView(): MapCameraSource? = if (mapTestID.isNotEmpty()) {
     findTagged(frame.rootView)?.let { MapViewAdapters.find(it, skip = frame) }
   } else {
     var ancestor = frame.parent as? View
-    var found: com.munimmaps.engine.MapCameraSource? = null
+    var found: MapCameraSource? = null
     var depth = 0
     while (ancestor != null && found == null && depth < 10) {
       found = MapViewAdapters.find(ancestor, skip = frame)
@@ -105,6 +161,8 @@ class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec
 
   override fun onDropView() {
     handler.removeCallbacks(searchLater)
+    source?.setTapListener(null)
+    source = null
     layer.destroy()
   }
 
@@ -124,8 +182,9 @@ class HybridMapModelLayer(context: ThemedReactContext) : HybridMapModelLayerSpec
     set(value) {
       if (field == value) return
       field = value
-      layer.detach()
+      detachSource()
       searches = 0
+      handler.removeCallbacks(searchLater)
       search()
     }
   override var lighting: MapModelLighting = MapModelLighting.AUTO

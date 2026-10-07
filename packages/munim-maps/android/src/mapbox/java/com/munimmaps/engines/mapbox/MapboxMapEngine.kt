@@ -759,6 +759,8 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     val fov = fieldOfView(cs.verticalFov)
     val distance = distance(cs.zoom, center.latitude(), fov)
     val padding = cs.padding
+    val centerX = padding.left + (width - padding.left - padding.right) / 2
+    val centerY = padding.top + (height - padding.top - padding.bottom) / 2
     return MapCameraState(
       latitude = center.latitude(),
       longitude = center.longitude(),
@@ -769,8 +771,11 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       width = width,
       height = height,
       focalLength = MapCameraState.focalLength(height, fov),
-      centerX = padding.left + (width - padding.left - padding.right) / 2,
-      centerY = padding.top + (height - padding.top - padding.bottom) / 2,
+      centerX = centerX,
+      centerY = centerY,
+      // Mapbox moves its centre of perspective to the padded centre.
+      principalX = centerX,
+      principalY = centerY,
       globe = style.isGlobe && cs.zoom < GLOBE_ZOOM,
       drawsTerrain = style.terrainOn,
       darkAppearance = style.isDark,
