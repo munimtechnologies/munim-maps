@@ -184,6 +184,10 @@ interface MunimMapEngine {
   fun addressForCoordinate(coordinate: MapCoordinate, completion: (Result<MapAddress>) -> Unit) {
     completion(Result.failure(UnsupportedOperationException("${provider.displayName}: addressForCoordinate is not supported yet")))
   }
+  /** Whether the engine has street-level imagery here (Apple's Look Around, Google's Street View). */
+  fun hasLookAround(coordinate: MapCoordinate, completion: (Boolean) -> Unit) = completion(false)
+  /** Opens the engine's street-level imagery at the coordinate; false when there is none. */
+  fun openLookAround(coordinate: MapCoordinate, completion: (Boolean) -> Unit) = completion(false)
   /** How far the 3D layer is from where the engine draws the same points. */
   fun measureAlignment(): MapAlignmentReport = modelLayer.measureAlignment()
   /** Id of the tappable overlay a tap at `point` (points) would hit, or empty. */

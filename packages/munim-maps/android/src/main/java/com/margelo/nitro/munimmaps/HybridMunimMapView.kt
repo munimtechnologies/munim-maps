@@ -305,10 +305,14 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     e.addressForCoordinate(coordinate) { result -> result.fold({ p.resolve(it) }, { p.reject(it) }) }
   }
 
-  /** Look Around is Apple's. */
-  override fun hasLookAround(coordinate: MapCoordinate): Promise<Boolean> = Promise.resolved(false)
+  /** Street-level imagery: Look Around is Apple's; engines with their own (Google's Street View) answer. */
+  override fun hasLookAround(coordinate: MapCoordinate): Promise<Boolean> = mainPromise { e, p ->
+    e.hasLookAround(coordinate) { p.resolve(it) }
+  }
 
-  override fun openLookAround(coordinate: MapCoordinate): Promise<Boolean> = Promise.resolved(false)
+  override fun openLookAround(coordinate: MapCoordinate): Promise<Boolean> = mainPromise { e, p ->
+    e.openLookAround(coordinate) { p.resolve(it) }
+  }
 
   override fun measureAlignment(): Promise<MapAlignmentReport> = mainPromise { e, p -> p.resolve(e.measureAlignment()) }
 

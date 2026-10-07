@@ -554,3 +554,20 @@ export function googleMap(map: ProviderCommandTarget) {
 }
 
 export type GoogleMapMethods = ReturnType<typeof googleMap>
+
+export {
+  GoogleServiceError,
+  decodePolyline,
+  encodePolyline,
+  googleMapsServices,
+  type GoogleAutocompleteSuggestion,
+  type GoogleLocalizedText,
+  type GoogleLocationBias,
+  type GoogleMapsServices,
+  type GooglePlace,
+  type GoogleRoute,
+  type GoogleServicesOptions,
+  type GoogleTravelMode,
+  type GoogleWaypoint,
+} from './googleServices'
+export { googleGeometry } from './googleGeometry'
