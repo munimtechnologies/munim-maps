@@ -8,8 +8,18 @@
 #pragma once
 
 // Forward declarations of C++ defined types
+// Forward declaration of `CalloutAccessoryEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CalloutAccessoryEvent; }
+// Forward declaration of `CalloutAccessoryKind` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class CalloutAccessoryKind; }
+// Forward declaration of `CalloutAccessorySide` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class CalloutAccessorySide; }
 // Forward declaration of `CameraKeyframe` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
+// Forward declaration of `ClusterPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ClusterPressEvent; }
+// Forward declaration of `FeatureVisibility` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
 // Forward declaration of `HybridMapControlSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapControlSpec; }
 // Forward declaration of `HybridMapModelLayerSpec` to properly resolve imports.
@@ -32,6 +42,8 @@ namespace margelo::nitro::munimmaps { struct MapCamera; }
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `MapFeatureEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `MapItem` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapItem; }
 // Forward declaration of `MapModelEffect` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapModelEffect; }
 // Forward declaration of `MapModelShape` to properly resolve imports.
@@ -48,14 +60,20 @@ namespace margelo::nitro::munimmaps { struct MapRegion; }
 namespace margelo::nitro::munimmaps { enum class MarkerBadgePosition; }
 // Forward declaration of `MarkerBadge` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerBadge; }
+// Forward declaration of `MarkerCollisionMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerCollisionMode; }
 // Forward declaration of `MarkerDragEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `MarkerStyle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
 // Forward declaration of `MotionKeyframe` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MotionKeyframe; }
+// Forward declaration of `NativeCalloutAccessory` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCalloutAccessory; }
 // Forward declaration of `NativeCircle` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
+// Forward declaration of `NativeClusterStyle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeClusterStyle; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `NativeMapPath` to properly resolve imports.
@@ -86,7 +104,12 @@ namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 
 // Include C++ defined types
+#include "CalloutAccessoryEvent.hpp"
+#include "CalloutAccessoryKind.hpp"
+#include "CalloutAccessorySide.hpp"
 #include "CameraKeyframe.hpp"
+#include "ClusterPressEvent.hpp"
+#include "FeatureVisibility.hpp"
 #include "HybridMapControlSpec.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
@@ -98,6 +121,7 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "MapCamera.hpp"
 #include "MapCoordinate.hpp"
 #include "MapFeatureEvent.hpp"
+#include "MapItem.hpp"
 #include "MapModelEffect.hpp"
 #include "MapModelShape.hpp"
 #include "MapPathPoint.hpp"
@@ -106,10 +130,13 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "MapRegion.hpp"
 #include "MarkerBadge.hpp"
 #include "MarkerBadgePosition.hpp"
+#include "MarkerCollisionMode.hpp"
 #include "MarkerDragEvent.hpp"
 #include "MarkerStyle.hpp"
 #include "MotionKeyframe.hpp"
+#include "NativeCalloutAccessory.hpp"
 #include "NativeCircle.hpp"
+#include "NativeClusterStyle.hpp"
 #include "NativeMapModel.hpp"
 #include "NativeMapPath.hpp"
 #include "NativeMapZone.hpp"
@@ -465,6 +492,17 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return vector;
   }
   
+  // pragma MARK: std::vector<NativeClusterStyle>
+  /**
+   * Specialized version of `std::vector<NativeClusterStyle>`.
+   */
+  using std__vector_NativeClusterStyle_ = std::vector<NativeClusterStyle>;
+  inline std::vector<NativeClusterStyle> create_std__vector_NativeClusterStyle_(size_t size) noexcept {
+    std::vector<NativeClusterStyle> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
   // pragma MARK: std::function<void(const MapCamera& /* camera */)>
   /**
    * Specialized version of `std::function<void(const MapCamera&)>`.
@@ -573,6 +611,80 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(const MapPressEvent& /* event */)> get_std__optional_std__function_void_const_MapPressEvent_____event______(const std::optional<std::function<void(const MapPressEvent& /* event */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const CalloutAccessoryEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const CalloutAccessoryEvent&)>`.
+   */
+  using Func_void_CalloutAccessoryEvent = std::function<void(const CalloutAccessoryEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const CalloutAccessoryEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_CalloutAccessoryEvent_Wrapper final {
+  public:
+    explicit Func_void_CalloutAccessoryEvent_Wrapper(std::function<void(const CalloutAccessoryEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const CalloutAccessoryEvent& /* event */)>>(std::move(func))) {}
+    inline void call(CalloutAccessoryEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const CalloutAccessoryEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_CalloutAccessoryEvent create_Func_void_CalloutAccessoryEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_CalloutAccessoryEvent_Wrapper wrap_Func_void_CalloutAccessoryEvent(Func_void_CalloutAccessoryEvent value) noexcept {
+    return Func_void_CalloutAccessoryEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const CalloutAccessoryEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_CalloutAccessoryEvent_____event______ = std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>;
+  inline std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>> create_std__optional_std__function_void_const_CalloutAccessoryEvent_____event______(const std::function<void(const CalloutAccessoryEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_CalloutAccessoryEvent_____event______(const std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const CalloutAccessoryEvent& /* event */)> get_std__optional_std__function_void_const_CalloutAccessoryEvent_____event______(const std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const ClusterPressEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const ClusterPressEvent&)>`.
+   */
+  using Func_void_ClusterPressEvent = std::function<void(const ClusterPressEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const ClusterPressEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_ClusterPressEvent_Wrapper final {
+  public:
+    explicit Func_void_ClusterPressEvent_Wrapper(std::function<void(const ClusterPressEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const ClusterPressEvent& /* event */)>>(std::move(func))) {}
+    inline void call(ClusterPressEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const ClusterPressEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_ClusterPressEvent create_Func_void_ClusterPressEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_ClusterPressEvent_Wrapper wrap_Func_void_ClusterPressEvent(Func_void_ClusterPressEvent value) noexcept {
+    return Func_void_ClusterPressEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const ClusterPressEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const ClusterPressEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_ClusterPressEvent_____event______ = std::optional<std::function<void(const ClusterPressEvent& /* event */)>>;
+  inline std::optional<std::function<void(const ClusterPressEvent& /* event */)>> create_std__optional_std__function_void_const_ClusterPressEvent_____event______(const std::function<void(const ClusterPressEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const ClusterPressEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_ClusterPressEvent_____event______(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const ClusterPressEvent& /* event */)> get_std__optional_std__function_void_const_ClusterPressEvent_____event______(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& optional) noexcept {
     return optional.value();
   }
   
@@ -907,6 +1019,40 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return PromiseHolder<bool>(std::move(promise));
   }
   
+  // pragma MARK: std::shared_ptr<Promise<MapItem>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<MapItem>>`.
+   */
+  using std__shared_ptr_Promise_MapItem__ = std::shared_ptr<Promise<MapItem>>;
+  inline std::shared_ptr<Promise<MapItem>> create_std__shared_ptr_Promise_MapItem__() noexcept {
+    return Promise<MapItem>::create();
+  }
+  inline PromiseHolder<MapItem> wrap_std__shared_ptr_Promise_MapItem__(std::shared_ptr<Promise<MapItem>> promise) noexcept {
+    return PromiseHolder<MapItem>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const MapItem& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const MapItem&)>`.
+   */
+  using Func_void_MapItem = std::function<void(const MapItem& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const MapItem& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_MapItem_Wrapper final {
+  public:
+    explicit Func_void_MapItem_Wrapper(std::function<void(const MapItem& /* result */)>&& func): _function(std::make_unique<std::function<void(const MapItem& /* result */)>>(std::move(func))) {}
+    inline void call(MapItem result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const MapItem& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_MapItem create_Func_void_MapItem(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_MapItem_Wrapper wrap_Func_void_MapItem(Func_void_MapItem value) noexcept {
+    return Func_void_MapItem_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMunimMapViewSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridMunimMapViewSpec>`.
@@ -989,6 +1135,15 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<bool>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<MapItem>>>
+  using Result_std__shared_ptr_Promise_MapItem___ = Result<std::shared_ptr<Promise<MapItem>>>;
+  inline Result_std__shared_ptr_Promise_MapItem___ create_Result_std__shared_ptr_Promise_MapItem___(const std::shared_ptr<Promise<MapItem>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<MapItem>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_MapItem___ create_Result_std__shared_ptr_Promise_MapItem___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<MapItem>>>::withError(error);
   }
   
   // pragma MARK: std::vector<double>

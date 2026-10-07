@@ -1,6 +1,11 @@
 import type { ImageSourcePropType } from 'react-native'
 import type {
+  CalloutAccessoryKind,
+  FeatureVisibility,
   LineCap,
+  MarkerCollisionMode,
+  NativeCalloutAccessory,
+  NativeClusterStyle,
   MarkerBadge,
   MarkerBadgePosition,
   MarkerStyle,
@@ -12,6 +17,47 @@ import type {
 } from './specs/MapFeatures.nitro'
 
 type LatLng = { latitude: number; longitude: number }
+
+/**
+ * How much a marker matters when markers overlap: `'required'` (1000, never
+ * hidden, the default), `'high'` (750), `'low'` (250), or 0...1000.
+ */
+export type MarkerDisplayPriority = 'required' | 'high' | 'low' | number
+
+/**
+ * A button or picture at one end of a marker's callout. `'detail'` and
+ * `'info'` are UIKit's round buttons; `{ text }` or `{ symbol }` makes a
+ * button; `{ image }` or `{ symbol, button: false }` a picture. Taps fire
+ * `onCalloutAccessoryPress` (and `onCalloutPress`).
+ */
+export type CalloutAccessory =
+  | 'detail'
+  | 'info'
+  | {
+      text?: string
+      /** SF Symbol name, such as `'phone.fill'`. */
+      symbol?: string
+      image?: number | string | { uri: string }
+      /** Default true, false for `image`. */
+      button?: boolean
+      color?: string
+    }
+
+/** The look of a cluster of markers sharing `clusteringId`. */
+export interface MapClusterStyle {
+  clusteringId: string
+  /** Balloon colour. */
+  color?: string
+  glyphColor?: string
+  /** Text in the balloon; `{count}` is the number of markers. Default the count. */
+  glyph?: string
+  /** SF Symbol in the balloon instead of text. */
+  glyphSymbol?: string
+  /** Title under the balloon, such as `'{count} cafés'`. */
+  title?: string
+  subtitle?: string
+  displayPriority?: MarkerDisplayPriority
+}
 
 /** A marker on a `MunimMapView`. Only `id` and `coordinate` are required. */
 export interface MapMarker {
@@ -45,8 +91,29 @@ export interface MapMarker {
   clusteringId?: string
   /** Show MapKit's callout (title, subtitle) on tap. Default false. */
   callout?: boolean
+  /** Left end of the callout. Default none. */
+  calloutLeft?: CalloutAccessory | null
+  /** Right end of the callout. Default `'detail'`; `null` for none. */
+  calloutRight?: CalloutAccessory | null
+  /** Several lines of text in the callout, in place of the subtitle. */
+  calloutDetail?: string
   opacity?: number
   visible?: boolean
+  /** What MapKit hides first where markers overlap. Default `'required'`. */
+  displayPriority?: MarkerDisplayPriority
+  /** The shape MapKit uses to find overlaps. Default `'rectangle'`. */
+  collisionMode?: MarkerCollisionMode
+  /** `marker` style: when the title shows under the balloon. Default `'adaptive'`. */
+  titleVisibility?: FeatureVisibility
+  subtitleVisibility?: FeatureVisibility
+  /** `marker` style: an SF Symbol in the balloon, such as `'cup.and.saucer.fill'`. */
+  glyphSymbol?: string
+  /** `marker` style: the SF Symbol while selected. */
+  selectedGlyphSymbol?: string
+  /** `marker` style: colour of the glyph. Default white. */
+  glyphColor?: string
+  /** `marker` style: MapKit's drop-in animation when added. Default false. */
+  animatesWhenAdded?: boolean
 }
 
 export interface MapPolyline {
@@ -107,6 +174,57 @@ function resolveImage(image: MapMarker['image']): string {
   return (image as { uri?: string }).uri ?? ''
 }
 
+export function displayPriorityValue(
+  priority: MarkerDisplayPriority | undefined
+): number {
+  if (priority === 'high') return 750
+  if (priority === 'low') return 250
+  if (typeof priority === 'number') return Math.min(1000, Math.max(0, priority))
+  return 1000
+}
+
+const NO_ACCESSORY: NativeCalloutAccessory = {
+  kind: 'none',
+  text: '',
+  symbol: '',
+  imageUri: '',
+  color: '',
+}
+
+function toNativeAccessory(
+  accessory: CalloutAccessory | null | undefined
+): NativeCalloutAccessory {
+  if (accessory == null) return NO_ACCESSORY
+  if (accessory === 'detail' || accessory === 'info') {
+    return { ...NO_ACCESSORY, kind: accessory }
+  }
+  const imageUri = resolveImage(accessory.image)
+  const kind: CalloutAccessoryKind =
+    (accessory.button ?? !imageUri) ? 'button' : 'image'
+  return {
+    kind,
+    text: accessory.text ?? '',
+    symbol: accessory.symbol ?? '',
+    imageUri,
+    color: accessory.color ?? '',
+  }
+}
+
+export function toNativeClusterStyle(
+  style: MapClusterStyle
+): NativeClusterStyle {
+  return {
+    clusteringId: style.clusteringId,
+    color: style.color ?? '',
+    glyphColor: style.glyphColor ?? '',
+    glyph: style.glyph ?? '',
+    glyphSymbol: style.glyphSymbol ?? '',
+    title: style.title ?? '',
+    subtitle: style.subtitle ?? '',
+    displayPriority: displayPriorityValue(style.displayPriority),
+  }
+}
+
 const dash = (pattern?: number[]) =>
   pattern && pattern.length >= 2 ? pattern.join(',') : ''
 
@@ -140,6 +258,19 @@ export function toNativeMarker(marker: MapMarker): NativeMarker {
     calloutEnabled: marker.callout ?? false,
     opacity: marker.opacity ?? 1,
     visible: marker.visible ?? true,
+    displayPriority: displayPriorityValue(marker.displayPriority),
+    collisionMode: marker.collisionMode ?? 'rectangle',
+    titleVisibility: marker.titleVisibility ?? 'adaptive',
+    subtitleVisibility: marker.subtitleVisibility ?? 'adaptive',
+    glyphSymbol: marker.glyphSymbol ?? '',
+    selectedGlyphSymbol: marker.selectedGlyphSymbol ?? '',
+    glyphColor: marker.glyphColor ?? '',
+    animatesWhenAdded: marker.animatesWhenAdded ?? false,
+    leftCalloutAccessory: toNativeAccessory(marker.calloutLeft),
+    rightCalloutAccessory: toNativeAccessory(
+      marker.calloutRight === undefined ? 'detail' : marker.calloutRight
+    ),
+    calloutDetail: marker.calloutDetail ?? '',
   }
 }
 

@@ -54,6 +54,14 @@ public struct MunimMapFeature: Sendable {
   public var kind: String
   /// The point-of-interest category raw value, such as `MKPOICategoryCafe`.
   public var category: String
+  /// For `mapItem(forFeature:)`.
+  public var id: String = ""
+}
+
+/// What tapping a place on Apple's map shows (iOS 18+).
+@_expose(!Cxx)
+public enum MunimSelectionAccessory: String, Sendable {
+  case none, automatic, callout, calloutCompact, calloutFull, sheet, openInMaps
 }
 
 @_expose(!Cxx)
@@ -129,6 +137,14 @@ public final class MunimMapKitView: UIView {
   public var polygons: [MunimPolygon] = [] { didSet { features.setPolygons(polygons) } }
   public var circles: [MunimCircle] = [] { didSet { features.setCircles(circles) } }
   public var tileOverlays: [MunimTileOverlay] = [] { didSet { features.setTileOverlays(tileOverlays) } }
+  /// How clusters of markers look, by clustering id.
+  public var clusterStyles: [MunimClusterStyle] = [] {
+    didSet { features.clusterStyles = Dictionary(clusterStyles.map { ($0.clusteringId, $0) }, uniquingKeysWith: { $1 }) }
+  }
+
+  /// What tapping a place on Apple's map (`selectableFeatures`) shows: Apple's
+  /// place card in a callout or sheet, or an Open in Maps button. iOS 18+.
+  public var selectionAccessory: MunimSelectionAccessory = .none
 
   // MARK: Look
 
@@ -294,6 +310,10 @@ public final class MunimMapKitView: UIView {
   public var onMarkerPress: ((String) -> Void)?
   public var onMarkerDeselect: ((String) -> Void)?
   public var onCalloutPress: ((String) -> Void)?
+  /// A callout accessory was tapped: marker id and `"left"` or `"right"`.
+  public var onCalloutAccessoryPress: ((String, String) -> Void)?
+  /// A cluster was tapped: its clustering id, the member marker ids and where it is.
+  public var onClusterPress: ((String, [String], CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
   public var onUserLocationChange: ((CLLocation) -> Void)?
@@ -563,6 +583,22 @@ public final class MunimMapKitView: UIView {
     modelLayer.measureAlignment()
   }
 
+  /// Tapped map features by `MunimMapFeature.id`, the most recent few.
+  private var featureAnnotations: [(id: String, annotation: MKAnnotation)] = []
+  private var featureCounter = 0
+
+  /// The full place (phone, website, address…) behind a tapped map feature.
+  @nonobjc public func mapItem(forFeature id: String, completion: @escaping (Result<MKMapItem, Error>) -> Void) {
+    guard #available(iOS 16.0, *),
+          let feature = featureAnnotations.last(where: { $0.id == id })?.annotation as? MKMapFeatureAnnotation
+    else { return completion(.failure(MapModelError.message("No map feature with id \(id)"))) }
+    MKMapItemRequest(mapFeatureAnnotation: feature).getMapItem { item, error in
+      if let item { completion(.success(item)) } else {
+        completion(.failure(error ?? MapModelError.message("No place found for the feature")))
+      }
+    }
+  }
+
   // MARK: Controls and tracking
 
   /// MapKit's own controls where it has them; a standalone control where
@@ -720,8 +756,35 @@ public final class MunimMapKitView: UIView {
   }
 
   fileprivate func viewFor(_ annotation: MKAnnotation) -> MKAnnotationView? {
+    if let cluster = annotation as? MKClusterAnnotation { return features.clusterView(for: cluster, in: mapView) }
     guard let annotation = annotation as? MunimAnnotation else { return nil }
     return features.view(for: annotation, in: mapView)
+  }
+
+  @available(iOS 18.0, *)
+  fileprivate func selectionAccessory(for annotation: MKAnnotation) -> MKSelectionAccessory? {
+    guard annotation is MKMapFeatureAnnotation else { return nil }
+    switch selectionAccessory {
+    case .none: return nil
+    case .automatic: return .mapItemDetail(.automatic(presentationViewController: hostViewController()))
+    case .callout: return .mapItemDetail(.callout())
+    case .calloutCompact: return .mapItemDetail(.callout(.compact))
+    case .calloutFull: return .mapItemDetail(.callout(.full))
+    case .sheet:
+      guard let controller = hostViewController() else { return .mapItemDetail(.callout()) }
+      return .mapItemDetail(.sheet(presentedFrom: controller))
+    case .openInMaps: return .mapItemDetail(.openInMaps)
+    }
+  }
+
+  /// The view controller showing this map, for sheets.
+  private func hostViewController() -> UIViewController? {
+    var responder: UIResponder? = self
+    while let current = responder {
+      if let controller = current as? UIViewController { return controller }
+      responder = current.next
+    }
+    return topViewController()
   }
 
   fileprivate func rendererFor(_ overlay: MKOverlay) -> MKOverlayRenderer {
@@ -733,6 +796,15 @@ public final class MunimMapKitView: UIView {
       onMarkerPress?(a.id)
       return
     }
+    if let cluster = annotation as? MKClusterAnnotation {
+      let ids = cluster.memberAnnotations.compactMap { ($0 as? MunimAnnotation)?.id }
+      onClusterPress?(features.clusteringId(of: cluster), ids, cluster.coordinate)
+      // Leave MapKit's enlarged cluster up only when it has a title to show.
+      if cluster.title == nil || features.clusterStyles[features.clusteringId(of: cluster)] == nil {
+        mapView.deselectAnnotation(cluster, animated: false)
+      }
+      return
+    }
     if #available(iOS 16.0, *), let feature = annotation as? MKMapFeatureAnnotation {
       let kind: String
       switch feature.featureType {
@@ -741,9 +813,13 @@ public final class MunimMapKitView: UIView {
       case .physicalFeature: kind = "physicalFeature"
       @unknown default: kind = "unknown"
       }
+      featureCounter += 1
+      let id = "feature-\(featureCounter)"
+      featureAnnotations.append((id, feature))
+      if featureAnnotations.count > 32 { featureAnnotations.removeFirst() }
       onMapFeaturePress?(MunimMapFeature(
         title: feature.title ?? "", coordinate: feature.coordinate, kind: kind,
-        category: feature.pointOfInterestCategory?.rawValue ?? ""))
+        category: feature.pointOfInterestCategory?.rawValue ?? "", id: id))
     }
   }
 
@@ -751,8 +827,11 @@ public final class MunimMapKitView: UIView {
     if let a = annotation as? MunimAnnotation { onMarkerDeselect?(a.id) }
   }
 
-  fileprivate func calloutTapped(_ annotation: MKAnnotation) {
-    if let a = annotation as? MunimAnnotation { onCalloutPress?(a.id) }
+  fileprivate func calloutTapped(_ annotation: MKAnnotation, control: UIControl) {
+    guard let a = annotation as? MunimAnnotation else { return }
+    onCalloutPress?(a.id)
+    let side = control.tag == MapFeatureController.leftAccessoryTag ? "left" : "right"
+    onCalloutAccessoryPress?(a.id, side)
   }
 
   fileprivate func dragChanged(_ annotation: MKAnnotation, to state: MKAnnotationView.DragState) {
@@ -814,7 +893,12 @@ private final class MunimMapDelegate: NSObject, MKMapViewDelegate, UIGestureReco
 
   func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,
                calloutAccessoryControlTapped control: UIControl) {
-    if let annotation = view.annotation { owner?.calloutTapped(annotation) }
+    if let annotation = view.annotation { owner?.calloutTapped(annotation, control: control) }
+  }
+
+  @available(iOS 18.0, *)
+  func mapView(_ mapView: MKMapView, selectionAccessoryFor annotation: MKAnnotation) -> MKSelectionAccessory? {
+    owner?.selectionAccessory(for: annotation)
   }
 
   func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,

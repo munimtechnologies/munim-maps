@@ -179,6 +179,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setTileOverlays(newViewProps.tileOverlays.value);
     newViewProps.tileOverlays.isDirty = false;
   }
+  // clusterStyles: array
+  if (newViewProps.clusterStyles.isDirty) {
+    swiftPart.setClusterStyles(newViewProps.clusterStyles.value);
+    newViewProps.clusterStyles.isDirty = false;
+  }
   // compassVisibility: enum
   if (newViewProps.compassVisibility.isDirty) {
     swiftPart.setCompassVisibility(static_cast<int>(newViewProps.compassVisibility.value));
@@ -264,6 +269,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setSelectableMapFeatures(newViewProps.selectableMapFeatures.value);
     newViewProps.selectableMapFeatures.isDirty = false;
   }
+  // selectionAccessory: enum
+  if (newViewProps.selectionAccessory.isDirty) {
+    swiftPart.setSelectionAccessory(static_cast<int>(newViewProps.selectionAccessory.value));
+    newViewProps.selectionAccessory.isDirty = false;
+  }
   // onModelPress: optional
   if (newViewProps.onModelPress.isDirty) {
     swiftPart.setOnModelPress(newViewProps.onModelPress.value);
@@ -308,6 +318,16 @@ using namespace margelo::nitro::munimmaps::views;
   if (newViewProps.onCalloutPress.isDirty) {
     swiftPart.setOnCalloutPress(newViewProps.onCalloutPress.value);
     newViewProps.onCalloutPress.isDirty = false;
+  }
+  // onCalloutAccessoryPress: optional
+  if (newViewProps.onCalloutAccessoryPress.isDirty) {
+    swiftPart.setOnCalloutAccessoryPress(newViewProps.onCalloutAccessoryPress.value);
+    newViewProps.onCalloutAccessoryPress.isDirty = false;
+  }
+  // onClusterPress: optional
+  if (newViewProps.onClusterPress.isDirty) {
+    swiftPart.setOnClusterPress(newViewProps.onClusterPress.value);
+    newViewProps.onClusterPress.isDirty = false;
   }
   // onMarkerDragStart: optional
   if (newViewProps.onMarkerDragStart.isDirty) {

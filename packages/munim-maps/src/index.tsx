@@ -43,8 +43,13 @@ import type {
   MunimMapViewProps,
   UserTrackingMode,
   FeatureVisibility,
+  SelectionAccessory,
 } from './specs/MunimMapView.nitro'
 import type {
+  CalloutAccessoryEvent,
+  ClusterPressEvent,
+  MapItem,
+  MarkerCollisionMode,
   LineCap,
   MapAddress,
   MapFeatureEvent,
@@ -57,11 +62,15 @@ import type {
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
 import {
+  toNativeClusterStyle,
   toNativeCircle,
   toNativeMarker,
   toNativePolygon,
   toNativePolyline,
   toNativeTileOverlay,
+  type CalloutAccessory,
+  type MapClusterStyle,
+  type MarkerDisplayPriority,
   type MapCircle,
   type MapMarker,
   type MapPolygon,
@@ -542,6 +551,8 @@ export interface MunimMapViewProperties {
   polygons?: MapPolygon[]
   circles?: MapCircle[]
   tileOverlays?: MapTileOverlay[]
+  /** How clusters of markers (`clusteringId`) look. Default MapKit's. */
+  clusterStyles?: MapClusterStyle[]
   // Look
   mapStyle?: MapStyle
   elevation?: MapElevation
@@ -608,6 +619,14 @@ export interface MunimMapViewProperties {
   selectableMapFeatures?: (
     'pointsOfInterest' | 'territories' | 'physicalFeatures'
   )[]
+  /**
+   * What tapping a place on Apple's map shows, iOS 18+: Apple's place card
+   * as a `'callout'` (`'calloutCompact'`, `'calloutFull'`), a `'sheet'`, or
+   * whichever suits (`'automatic'`), or an `'openInMaps'` button. Default
+   * `'none'` (handle `onMapFeaturePress` yourself). Needs
+   * `selectableMapFeatures`.
+   */
+  selectionAccessory?: SelectionAccessory
   // Events
   onModelPress?: (id: string) => void
   onCameraChange?: (camera: MapCamera) => void
@@ -618,6 +637,13 @@ export interface MunimMapViewProperties {
   onMarkerPress?: (id: string) => void
   onMarkerDeselect?: (id: string) => void
   onCalloutPress?: (id: string) => void
+  /** A callout's left or right accessory was tapped. */
+  onCalloutAccessoryPress?: (event: CalloutAccessoryEvent) => void
+  /**
+   * A cluster was tapped. `markerIds` lists its markers, comma-separated
+   * (`fitToMarkers(event.markerIds, …)` zooms in on them).
+   */
+  onClusterPress?: (event: ClusterPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
@@ -672,6 +698,11 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const onMarkerPress = useCallbackProp(props.onMarkerPress)
     const onMarkerDeselect = useCallbackProp(props.onMarkerDeselect)
     const onCalloutPress = useCallbackProp(props.onCalloutPress)
+    const onCalloutAccessoryPress = useCallbackProp(
+      props.onCalloutAccessoryPress
+    )
+    const onClusterPress = useCallbackProp(props.onClusterPress)
+    const clusterStyles = useMapped(props.clusterStyles, toNativeClusterStyle)
     const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
     const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
     const onUserLocationChange = useCallbackProp(props.onUserLocationChange)
@@ -715,6 +746,8 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         polygons={polygons}
         circles={circles}
         tileOverlays={tileOverlays}
+        clusterStyles={clusterStyles}
+        selectionAccessory={props.selectionAccessory ?? 'none'}
         compassVisibility={
           props.compassVisibility ??
           (props.showsCompass === false ? 'hidden' : 'adaptive')
@@ -750,6 +783,8 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onMarkerPress={onMarkerPress}
         onMarkerDeselect={onMarkerDeselect}
         onCalloutPress={onCalloutPress}
+        onCalloutAccessoryPress={onCalloutAccessoryPress}
+        onClusterPress={onClusterPress}
         onMarkerDragStart={onMarkerDragStart}
         onMarkerDragEnd={onMarkerDragEnd}
         onUserLocationChange={onUserLocationChange}
@@ -778,6 +813,14 @@ export {
   toNativeTileOverlay,
 }
 export type {
+  CalloutAccessory,
+  CalloutAccessoryEvent,
+  ClusterPressEvent,
+  MapClusterStyle,
+  MapItem,
+  MarkerCollisionMode,
+  MarkerDisplayPriority,
+  SelectionAccessory,
   EdgeInsets,
   LineCap,
   MapAddress,

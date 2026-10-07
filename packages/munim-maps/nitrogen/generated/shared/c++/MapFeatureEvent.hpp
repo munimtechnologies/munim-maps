@@ -44,10 +44,11 @@ namespace margelo::nitro::munimmaps {
     double longitude     SWIFT_PRIVATE;
     std::string kind     SWIFT_PRIVATE;
     std::string category     SWIFT_PRIVATE;
+    std::string id     SWIFT_PRIVATE;
 
   public:
     MapFeatureEvent() = default;
-    explicit MapFeatureEvent(std::string title, double latitude, double longitude, std::string kind, std::string category): title(title), latitude(latitude), longitude(longitude), kind(kind), category(category) {}
+    explicit MapFeatureEvent(std::string title, double latitude, double longitude, std::string kind, std::string category, std::string id): title(title), latitude(latitude), longitude(longitude), kind(kind), category(category), id(id) {}
 
   public:
     friend bool operator==(const MapFeatureEvent& lhs, const MapFeatureEvent& rhs) = default;
@@ -67,7 +68,8 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "latitude"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "longitude"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "kind"))),
-        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "category")))
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "category"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "id")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::MapFeatureEvent& arg) {
@@ -77,6 +79,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "longitude"), JSIConverter<double>::toJSI(runtime, arg.longitude));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "kind"), JSIConverter<std::string>::toJSI(runtime, arg.kind));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "category"), JSIConverter<std::string>::toJSI(runtime, arg.category));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "id"), JSIConverter<std::string>::toJSI(runtime, arg.id));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -92,6 +95,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "longitude")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "kind")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "category")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "id")))) return false;
       return true;
     }
   };

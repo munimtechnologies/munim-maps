@@ -3,7 +3,7 @@ import type {
   HybridViewMethods,
   HybridViewProps,
 } from 'react-native-nitro-modules'
-import type { FeatureVisibility } from './MunimMapView.nitro'
+import type { FeatureVisibility } from './MapFeatures.nitro'
 
 /**
  * - `compass`: `MKCompassButton`, turns the map back to north when tapped.

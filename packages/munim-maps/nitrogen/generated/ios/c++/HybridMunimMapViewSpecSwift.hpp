@@ -50,6 +50,14 @@ namespace margelo::nitro::munimmaps { enum class MarkerStyle; }
 namespace margelo::nitro::munimmaps { struct MarkerBadge; }
 // Forward declaration of `MarkerBadgePosition` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MarkerBadgePosition; }
+// Forward declaration of `MarkerCollisionMode` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MarkerCollisionMode; }
+// Forward declaration of `FeatureVisibility` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
+// Forward declaration of `NativeCalloutAccessory` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeCalloutAccessory; }
+// Forward declaration of `CalloutAccessoryKind` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class CalloutAccessoryKind; }
 // Forward declaration of `NativePolyline` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativePolyline; }
 // Forward declaration of `LineCap` to properly resolve imports.
@@ -60,16 +68,24 @@ namespace margelo::nitro::munimmaps { struct NativePolygon; }
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeTileOverlay` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
-// Forward declaration of `FeatureVisibility` to properly resolve imports.
-namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
+// Forward declaration of `NativeClusterStyle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeClusterStyle; }
 // Forward declaration of `UserTrackingMode` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 // Forward declaration of `MapRegion` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapRegion; }
 // Forward declaration of `EdgeInsets` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct EdgeInsets; }
+// Forward declaration of `SelectionAccessory` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class SelectionAccessory; }
 // Forward declaration of `MapPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `CalloutAccessoryEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CalloutAccessoryEvent; }
+// Forward declaration of `CalloutAccessorySide` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class CalloutAccessorySide; }
+// Forward declaration of `ClusterPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ClusterPressEvent; }
 // Forward declaration of `MarkerDragEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
@@ -86,6 +102,8 @@ namespace margelo::nitro::munimmaps { struct MapPoint; }
 namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
+// Forward declaration of `MapItem` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapItem; }
 
 #include "NativeMapModel.hpp"
 #include <vector>
@@ -108,18 +126,26 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "MarkerStyle.hpp"
 #include "MarkerBadge.hpp"
 #include "MarkerBadgePosition.hpp"
+#include "MarkerCollisionMode.hpp"
+#include "FeatureVisibility.hpp"
+#include "NativeCalloutAccessory.hpp"
+#include "CalloutAccessoryKind.hpp"
 #include "NativePolyline.hpp"
 #include "LineCap.hpp"
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
-#include "FeatureVisibility.hpp"
+#include "NativeClusterStyle.hpp"
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
+#include "SelectionAccessory.hpp"
 #include <functional>
 #include <optional>
 #include "MapPressEvent.hpp"
+#include "CalloutAccessoryEvent.hpp"
+#include "CalloutAccessorySide.hpp"
+#include "ClusterPressEvent.hpp"
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
@@ -129,6 +155,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "MapPoint.hpp"
 #include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
+#include "MapItem.hpp"
 
 #include "NitroMunimMaps-Swift-Cxx-Umbrella.hpp"
 
@@ -310,6 +337,13 @@ namespace margelo::nitro::munimmaps {
     inline void setTileOverlays(const std::vector<NativeTileOverlay>& tileOverlays) noexcept override {
       _swiftPart.setTileOverlays(tileOverlays);
     }
+    inline std::vector<NativeClusterStyle> getClusterStyles() noexcept override {
+      auto __result = _swiftPart.getClusterStyles();
+      return __result;
+    }
+    inline void setClusterStyles(const std::vector<NativeClusterStyle>& clusterStyles) noexcept override {
+      _swiftPart.setClusterStyles(clusterStyles);
+    }
     inline FeatureVisibility getCompassVisibility() noexcept override {
       auto __result = _swiftPart.getCompassVisibility();
       return static_cast<FeatureVisibility>(__result);
@@ -419,6 +453,13 @@ namespace margelo::nitro::munimmaps {
     inline void setSelectableMapFeatures(const std::string& selectableMapFeatures) noexcept override {
       _swiftPart.setSelectableMapFeatures(selectableMapFeatures);
     }
+    inline SelectionAccessory getSelectionAccessory() noexcept override {
+      auto __result = _swiftPart.getSelectionAccessory();
+      return static_cast<SelectionAccessory>(__result);
+    }
+    inline void setSelectionAccessory(SelectionAccessory selectionAccessory) noexcept override {
+      _swiftPart.setSelectionAccessory(static_cast<int>(selectionAccessory));
+    }
     inline std::optional<std::function<void(const std::string& /* id */)>> getOnModelPress() noexcept override {
       auto __result = _swiftPart.getOnModelPress();
       return __result;
@@ -481,6 +522,20 @@ namespace margelo::nitro::munimmaps {
     }
     inline void setOnCalloutPress(const std::optional<std::function<void(const std::string& /* id */)>>& onCalloutPress) noexcept override {
       _swiftPart.setOnCalloutPress(onCalloutPress);
+    }
+    inline std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>> getOnCalloutAccessoryPress() noexcept override {
+      auto __result = _swiftPart.getOnCalloutAccessoryPress();
+      return __result;
+    }
+    inline void setOnCalloutAccessoryPress(const std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>& onCalloutAccessoryPress) noexcept override {
+      _swiftPart.setOnCalloutAccessoryPress(onCalloutAccessoryPress);
+    }
+    inline std::optional<std::function<void(const ClusterPressEvent& /* event */)>> getOnClusterPress() noexcept override {
+      auto __result = _swiftPart.getOnClusterPress();
+      return __result;
+    }
+    inline void setOnClusterPress(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& onClusterPress) noexcept override {
+      _swiftPart.setOnClusterPress(onClusterPress);
     }
     inline std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragStart() noexcept override {
       auto __result = _swiftPart.getOnMarkerDragStart();
@@ -647,6 +702,14 @@ namespace margelo::nitro::munimmaps {
     }
     inline std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() override {
       auto __result = _swiftPart.measureAlignment();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) override {
+      auto __result = _swiftPart.mapItemForFeature(id);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

@@ -41,6 +41,8 @@ namespace margelo::nitro::munimmaps { struct NativePolygon; }
 namespace margelo::nitro::munimmaps { struct NativeCircle; }
 // Forward declaration of `NativeTileOverlay` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `NativeClusterStyle` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeClusterStyle; }
 // Forward declaration of `FeatureVisibility` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class FeatureVisibility; }
 // Forward declaration of `UserTrackingMode` to properly resolve imports.
@@ -49,8 +51,14 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 namespace margelo::nitro::munimmaps { struct MapRegion; }
 // Forward declaration of `EdgeInsets` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct EdgeInsets; }
+// Forward declaration of `SelectionAccessory` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class SelectionAccessory; }
 // Forward declaration of `MapPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `CalloutAccessoryEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct CalloutAccessoryEvent; }
+// Forward declaration of `ClusterPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ClusterPressEvent; }
 // Forward declaration of `MarkerDragEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
@@ -69,6 +77,8 @@ namespace margelo::nitro::munimmaps { struct MapPoint; }
 namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
+// Forward declaration of `MapItem` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct MapItem; }
 
 #include "NativeMapModel.hpp"
 #include <vector>
@@ -86,13 +96,17 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
+#include "NativeClusterStyle.hpp"
 #include "FeatureVisibility.hpp"
 #include "UserTrackingMode.hpp"
 #include "MapRegion.hpp"
 #include "EdgeInsets.hpp"
+#include "SelectionAccessory.hpp"
 #include <functional>
 #include <optional>
 #include "MapPressEvent.hpp"
+#include "CalloutAccessoryEvent.hpp"
+#include "ClusterPressEvent.hpp"
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
@@ -103,6 +117,7 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 #include "MapPoint.hpp"
 #include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
+#include "MapItem.hpp"
 
 namespace margelo::nitro::munimmaps {
 
@@ -171,6 +186,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setCircles(const std::vector<NativeCircle>& circles) = 0;
       virtual std::vector<NativeTileOverlay> getTileOverlays() = 0;
       virtual void setTileOverlays(const std::vector<NativeTileOverlay>& tileOverlays) = 0;
+      virtual std::vector<NativeClusterStyle> getClusterStyles() = 0;
+      virtual void setClusterStyles(const std::vector<NativeClusterStyle>& clusterStyles) = 0;
       virtual FeatureVisibility getCompassVisibility() = 0;
       virtual void setCompassVisibility(FeatureVisibility compassVisibility) = 0;
       virtual FeatureVisibility getScaleVisibility() = 0;
@@ -205,6 +222,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setMapPadding(const EdgeInsets& mapPadding) = 0;
       virtual std::string getSelectableMapFeatures() = 0;
       virtual void setSelectableMapFeatures(const std::string& selectableMapFeatures) = 0;
+      virtual SelectionAccessory getSelectionAccessory() = 0;
+      virtual void setSelectionAccessory(SelectionAccessory selectionAccessory) = 0;
       virtual std::optional<std::function<void(const std::string& /* id */)>> getOnModelPress() = 0;
       virtual void setOnModelPress(const std::optional<std::function<void(const std::string& /* id */)>>& onModelPress) = 0;
       virtual std::optional<std::function<void(const MapCamera& /* camera */)>> getOnCameraChange() = 0;
@@ -223,6 +242,10 @@ namespace margelo::nitro::munimmaps {
       virtual void setOnMarkerDeselect(const std::optional<std::function<void(const std::string& /* id */)>>& onMarkerDeselect) = 0;
       virtual std::optional<std::function<void(const std::string& /* id */)>> getOnCalloutPress() = 0;
       virtual void setOnCalloutPress(const std::optional<std::function<void(const std::string& /* id */)>>& onCalloutPress) = 0;
+      virtual std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>> getOnCalloutAccessoryPress() = 0;
+      virtual void setOnCalloutAccessoryPress(const std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>& onCalloutAccessoryPress) = 0;
+      virtual std::optional<std::function<void(const ClusterPressEvent& /* event */)>> getOnClusterPress() = 0;
+      virtual void setOnClusterPress(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& onClusterPress) = 0;
       virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragStart() = 0;
       virtual void setOnMarkerDragStart(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragStart) = 0;
       virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragEnd() = 0;
@@ -256,6 +279,7 @@ namespace margelo::nitro::munimmaps {
       virtual std::shared_ptr<Promise<bool>> hasLookAround(const MapCoordinate& coordinate) = 0;
       virtual std::shared_ptr<Promise<bool>> openLookAround(const MapCoordinate& coordinate) = 0;
       virtual std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() = 0;
+      virtual std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) = 0;
 
     protected:
       // Hybrid Setup

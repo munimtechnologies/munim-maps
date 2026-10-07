@@ -105,6 +105,22 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const CalloutAccessoryEvent& /* event */)>
+  Func_void_CalloutAccessoryEvent create_Func_void_CalloutAccessoryEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_CalloutAccessoryEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const CalloutAccessoryEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const ClusterPressEvent& /* event */)>
+  Func_void_ClusterPressEvent create_Func_void_ClusterPressEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_ClusterPressEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const ClusterPressEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
   // pragma MARK: std::function<void(const MarkerDragEvent& /* event */)>
   Func_void_MarkerDragEvent create_Func_void_MarkerDragEvent(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroMunimMaps::Func_void_MarkerDragEvent::fromUnsafe(swiftClosureWrapper);
@@ -165,6 +181,14 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   Func_void_MapAddress create_Func_void_MapAddress(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroMunimMaps::Func_void_MapAddress::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](const MapAddress& result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const MapItem& /* result */)>
+  Func_void_MapItem create_Func_void_MapItem(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_MapItem::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const MapItem& result) mutable -> void {
       swiftClosure.call(result);
     };
   }

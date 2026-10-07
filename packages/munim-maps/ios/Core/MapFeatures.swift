@@ -206,6 +206,10 @@ final class MapFeatureController {
   private var overlayKeys: [String: String] = [:]
   private var photos: [String: UIImage] = [:]
   private var loadingPhotos: Set<String> = []
+  /// Cluster looks by clustering id.
+  var clusterStyles: [String: MunimClusterStyle] = [:] {
+    didSet { refreshClusters() }
+  }
   var onError: ((String) -> Void)?
 
   init(mapView: MKMapView) {
@@ -264,9 +268,59 @@ final class MapFeatureController {
 
   private func refreshViews(using uri: String) {
     guard let mapView else { return }
-    for annotation in annotations.values where annotation.marker.imageUri == uri {
+    for annotation in annotations.values
+    where annotation.marker.imageUri == uri
+      || annotation.marker.leftCalloutAccessory.imageUri == uri
+      || annotation.marker.rightCalloutAccessory.imageUri == uri
+    {
       if let view = mapView.view(for: annotation) { configure(view, for: annotation) }
     }
+  }
+
+  private func refreshClusters() {
+    guard let mapView else { return }
+    for case let cluster as MKClusterAnnotation in mapView.annotations {
+      if let view = mapView.view(for: cluster) as? MKMarkerAnnotationView { configureCluster(view, cluster) }
+    }
+  }
+
+  static let clusterReuse = "munim-cluster"
+
+  /// The view for a cluster with a style, or nil for MapKit's default.
+  func clusterView(for cluster: MKClusterAnnotation, in mapView: MKMapView) -> MKAnnotationView? {
+    guard let style = style(for: cluster) else { return nil }
+    let view = mapView.dequeueReusableAnnotationView(withIdentifier: Self.clusterReuse) as? MKMarkerAnnotationView
+      ?? MKMarkerAnnotationView(annotation: cluster, reuseIdentifier: Self.clusterReuse)
+    view.annotation = cluster
+    configureCluster(view, cluster, style: style)
+    return view
+  }
+
+  func clusteringId(of cluster: MKClusterAnnotation) -> String {
+    cluster.memberAnnotations.lazy.compactMap { ($0 as? MunimAnnotation)?.marker.clusteringId }.first ?? ""
+  }
+
+  private func style(for cluster: MKClusterAnnotation) -> MunimClusterStyle? {
+    clusterStyles[clusteringId(of: cluster)]
+  }
+
+  private func configureCluster(_ view: MKMarkerAnnotationView, _ cluster: MKClusterAnnotation,
+                                style given: MunimClusterStyle? = nil) {
+    guard let style = given ?? self.style(for: cluster) else { return }
+    let count = "\(cluster.memberAnnotations.count)"
+    func fill(_ text: String) -> String { text.replacingOccurrences(of: "{count}", with: count) }
+    view.markerTintColor = UIColor(mapModelHex: style.color)
+    view.glyphTintColor = UIColor(mapModelHex: style.glyphColor)
+    if !style.glyphSymbol.isEmpty, let symbol = UIImage(systemName: style.glyphSymbol) {
+      view.glyphImage = symbol
+      view.glyphText = nil
+    } else {
+      view.glyphImage = nil
+      view.glyphText = style.glyph.isEmpty ? count : fill(style.glyph)
+    }
+    if !style.title.isEmpty { cluster.title = fill(style.title) }
+    if !style.subtitle.isEmpty { cluster.subtitle = fill(style.subtitle) }
+    view.displayPriority = MKFeatureDisplayPriority(rawValue: Float(min(1000, max(0, style.displayPriority))))
   }
 
   static let pinReuse = "munim-pin"
@@ -297,32 +351,122 @@ final class MapFeatureController {
     let m = annotation.marker
     let color = UIColor(mapModelHex: m.color)
     view.canShowCallout = m.calloutEnabled && annotation.title != nil
-    if view.canShowCallout, view.rightCalloutAccessoryView == nil {
-      view.rightCalloutAccessoryView = UIButton(type: .detailDisclosure)
+    if view.canShowCallout {
+      view.leftCalloutAccessoryView = accessoryView(m.leftCalloutAccessory, tag: Self.leftAccessoryTag)
+      view.rightCalloutAccessoryView = accessoryView(m.rightCalloutAccessory, tag: Self.rightAccessoryTag)
+      view.detailCalloutAccessoryView = m.calloutDetail.isEmpty ? nil : detailLabel(m.calloutDetail)
+    } else {
+      view.leftCalloutAccessoryView = nil
+      view.rightCalloutAccessoryView = nil
+      view.detailCalloutAccessoryView = nil
     }
     view.isDraggable = m.draggable
     view.alpha = CGFloat(min(1, max(0, m.opacity)))
     view.isHidden = !m.visible
     view.clusteringIdentifier = m.clusteringId.isEmpty ? nil : m.clusteringId
     view.zPriority = MKAnnotationViewZPriority(rawValue: Float(min(1000, max(0, 500 + m.zIndex))))
-    view.displayPriority = .required
+    view.displayPriority = MKFeatureDisplayPriority(rawValue: Float(min(1000, max(0, m.displayPriority))))
+    switch m.collisionMode {
+    case .rectangle: view.collisionMode = .rectangle
+    case .circle: view.collisionMode = .circle
+    case .none: view.collisionMode = .none
+    }
     switch m.style {
     case .pin:
       (view as? MKPinAnnotationView)?.pinTintColor = color ?? .systemRed
     case .marker:
       if let marker = view as? MKMarkerAnnotationView {
         marker.markerTintColor = color
-        marker.glyphText = m.glyph.isEmpty ? nil : m.glyph
+        marker.glyphTintColor = UIColor(mapModelHex: m.glyphColor)
+        if !m.glyphSymbol.isEmpty, let symbol = UIImage(systemName: m.glyphSymbol) {
+          marker.glyphImage = symbol
+          marker.glyphText = nil
+        } else {
+          marker.glyphImage = nil
+          marker.glyphText = m.glyph.isEmpty ? nil : m.glyph
+        }
+        marker.selectedGlyphImage = m.selectedGlyphSymbol.isEmpty ? nil : UIImage(systemName: m.selectedGlyphSymbol)
+        marker.titleVisibility = m.titleVisibility.mapKit
+        marker.subtitleVisibility = m.subtitleVisibility.mapKit
+        marker.animatesWhenAdded = m.animatesWhenAdded
       }
     default:
       let scale = view.window?.screen.scale ?? UIScreen.main.scale
-      view.image = MarkerImages.image(for: m, photo: photos[m.imageUri], scale: scale)
+      if let snapshot = viewImages[m.id] {
+        view.image = snapshot
+      } else {
+        view.image = MarkerImages.image(for: m, photo: photos[m.imageUri], scale: scale)
+      }
       if let image = view.image {
         // MapKit centres the image on the coordinate; move it to the anchor.
         view.centerOffset = CGPoint(
           x: (0.5 - CGFloat(m.anchorX)) * image.size.width,
           y: (0.5 - CGFloat(m.anchorY)) * image.size.height)
       }
+    }
+  }
+
+  // MARK: Callouts
+
+  static let leftAccessoryTag = 7_101
+  static let rightAccessoryTag = 7_102
+
+  private func accessoryView(_ accessory: MunimCalloutAccessory, tag: Int) -> UIView? {
+    let tint = UIColor(mapModelHex: accessory.color)
+    let made: UIView?
+    switch accessory.kind {
+    case .none: made = nil
+    case .detail: made = UIButton(type: .detailDisclosure)
+    case .info: made = UIButton(type: .infoLight)
+    case .button:
+      let button = UIButton(type: .system)
+      if !accessory.symbol.isEmpty, let symbol = UIImage(systemName: accessory.symbol) {
+        button.setImage(symbol, for: .normal)
+      }
+      if !accessory.text.isEmpty { button.setTitle(accessory.text, for: .normal) }
+      button.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+      button.sizeToFit()
+      button.frame.size = CGSize(width: max(32, button.frame.width + 8), height: max(32, button.frame.height))
+      made = button
+    case .image:
+      var image: UIImage?
+      if !accessory.symbol.isEmpty {
+        image = UIImage(systemName: accessory.symbol)
+      } else if !accessory.imageUri.isEmpty {
+        image = photos[accessory.imageUri]
+        if image == nil { loadPhoto(accessory.imageUri) }
+      }
+      let imageView = UIImageView(image: image)
+      imageView.contentMode = .scaleAspectFill
+      imageView.clipsToBounds = true
+      imageView.layer.cornerRadius = accessory.symbol.isEmpty ? 6 : 0
+      imageView.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
+      if !accessory.symbol.isEmpty { imageView.contentMode = .scaleAspectFit }
+      made = imageView
+    }
+    if let tint { made?.tintColor = tint }
+    made?.tag = tag
+    return made
+  }
+
+  private func detailLabel(_ text: String) -> UILabel {
+    let label = UILabel()
+    label.text = text
+    label.numberOfLines = 0
+    label.font = .preferredFont(forTextStyle: .subheadline)
+    label.textColor = .secondaryLabel
+    return label
+  }
+
+  // MARK: View markers
+
+  /// Snapshots of React Native views (`MarkerView`), by marker id.
+  private(set) var viewImages: [String: UIImage] = [:]
+
+  func setViewImage(_ image: UIImage?, for id: String) {
+    viewImages[id] = image
+    if let annotation = annotations[id], let view = mapView?.view(for: annotation) {
+      configure(view, for: annotation)
     }
   }
 

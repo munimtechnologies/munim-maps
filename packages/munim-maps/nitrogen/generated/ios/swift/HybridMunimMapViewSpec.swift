@@ -30,6 +30,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var polygons: [NativePolygon] { get set }
   var circles: [NativeCircle] { get set }
   var tileOverlays: [NativeTileOverlay] { get set }
+  var clusterStyles: [NativeClusterStyle] { get set }
   var compassVisibility: FeatureVisibility { get set }
   var scaleVisibility: FeatureVisibility { get set }
   var showsUserTrackingButton: Bool { get set }
@@ -47,6 +48,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var cameraBoundary: MapRegion { get set }
   var mapPadding: EdgeInsets { get set }
   var selectableMapFeatures: String { get set }
+  var selectionAccessory: SelectionAccessory { get set }
   var onModelPress: ((_ id: String) -> Void)? { get set }
   var onCameraChange: ((_ camera: MapCamera) -> Void)? { get set }
   var onCameraMove: ((_ camera: MapCamera) -> Void)? { get set }
@@ -56,6 +58,8 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var onMarkerPress: ((_ id: String) -> Void)? { get set }
   var onMarkerDeselect: ((_ id: String) -> Void)? { get set }
   var onCalloutPress: ((_ id: String) -> Void)? { get set }
+  var onCalloutAccessoryPress: ((_ event: CalloutAccessoryEvent) -> Void)? { get set }
+  var onClusterPress: ((_ event: ClusterPressEvent) -> Void)? { get set }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)? { get set }
@@ -82,6 +86,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   func hasLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
   func openLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
   func measureAlignment() throws -> Promise<MapAlignmentReport>
+  func mapItemForFeature(id: String) throws -> Promise<MapItem>
 }
 
 public extension HybridMunimMapViewSpec_protocol {

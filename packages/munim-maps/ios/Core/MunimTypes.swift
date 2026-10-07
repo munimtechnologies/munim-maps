@@ -368,6 +368,61 @@ public struct MunimMarkerBadge: Sendable {
   }
 }
 
+/// A button or picture at one end of a marker's callout.
+@_expose(!Cxx)
+public struct MunimCalloutAccessory: Sendable {
+  @_expose(!Cxx)
+  public enum Kind: String, Sendable { case none, detail, info, button, image }
+
+  public var kind: Kind
+  public var text: String
+  /// SF Symbol name.
+  public var symbol: String
+  public var imageUri: String
+  public var color: String
+
+  public init(kind: Kind = .none, text: String = "", symbol: String = "", imageUri: String = "", color: String = "") {
+    self.kind = kind
+    self.text = text
+    self.symbol = symbol
+    self.imageUri = imageUri
+    self.color = color
+  }
+
+  public static let none = MunimCalloutAccessory()
+}
+
+/// The look of a cluster of markers that share a `clusteringId`.
+@_expose(!Cxx)
+public struct MunimClusterStyle: Sendable {
+  public var clusteringId: String
+  public var color: String
+  public var glyphColor: String
+  /// Text in the balloon; `{count}` is the number of markers. Empty shows the count.
+  public var glyph: String
+  /// SF Symbol in the balloon instead of text.
+  public var glyphSymbol: String
+  /// `{count}` is the number of markers.
+  public var title: String
+  public var subtitle: String
+  public var displayPriority: Double
+
+  public init(clusteringId: String, color: String = "", glyphColor: String = "", glyph: String = "",
+              glyphSymbol: String = "", title: String = "", subtitle: String = "", displayPriority: Double = 1000) {
+    self.clusteringId = clusteringId
+    self.color = color
+    self.glyphColor = glyphColor
+    self.glyph = glyph
+    self.glyphSymbol = glyphSymbol
+    self.title = title
+    self.subtitle = subtitle
+    self.displayPriority = displayPriority
+  }
+}
+
+@_expose(!Cxx)
+public enum MunimCollisionMode: String, Sendable { case rectangle, circle, none }
+
 @_expose(!Cxx)
 public struct MunimMarker: Sendable {
   public var id: String
@@ -391,6 +446,21 @@ public struct MunimMarker: Sendable {
   public var calloutEnabled: Bool
   public var opacity: Double
   public var visible: Bool
+  /// 0...1000: MapKit hides lower ones first where markers overlap.
+  public var displayPriority: Double = 1000
+  public var collisionMode: MunimCollisionMode = .rectangle
+  /// `marker` style: when the title and subtitle show under the balloon.
+  public var titleVisibility: MunimFeatureVisibility = .adaptive
+  public var subtitleVisibility: MunimFeatureVisibility = .adaptive
+  /// `marker` style: SF Symbols in the balloon, and while selected.
+  public var glyphSymbol = ""
+  public var selectedGlyphSymbol = ""
+  public var glyphColor = ""
+  public var animatesWhenAdded = false
+  public var leftCalloutAccessory = MunimCalloutAccessory.none
+  public var rightCalloutAccessory = MunimCalloutAccessory(kind: .detail)
+  /// Several lines of text in the callout, in place of the subtitle.
+  public var calloutDetail = ""
 
   public init(
     id: String,

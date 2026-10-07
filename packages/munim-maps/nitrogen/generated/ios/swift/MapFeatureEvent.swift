@@ -18,8 +18,8 @@ public extension MapFeatureEvent {
   /**
    * Create a new instance of `MapFeatureEvent`.
    */
-  init(title: String, latitude: Double, longitude: Double, kind: String, category: String) {
-    self.init(std.string(title), latitude, longitude, std.string(kind), std.string(category))
+  init(title: String, latitude: Double, longitude: Double, kind: String, category: String, id: String) {
+    self.init(std.string(title), latitude, longitude, std.string(kind), std.string(category), std.string(id))
   }
 
   @inline(__always)
@@ -45,5 +45,10 @@ public extension MapFeatureEvent {
   @inline(__always)
   var category: String {
     return String(self.__category)
+  }
+  
+  @inline(__always)
+  var id: String {
+    return String(self.__id)
   }
 }
