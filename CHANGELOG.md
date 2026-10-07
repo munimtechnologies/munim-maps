@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+munim-maps is becoming one API over five map engines (MapKit, Google Maps, Mapbox, MapLibre and Cesium) on iOS and Android. This is the foundation; the engines other than MapKit (iOS) and MapLibre (Android) are coming in this release. See [docs/providers.md](docs/providers.md).
+
+### Added
+
+- `provider` on `MunimMapView`: `'mapkit'` (default on iOS), `'google'`, `'mapbox'`, `'maplibre'` (default on Android without Google) or `'cesium'`, with `styleUrl` and per-engine options in `google`, `mapbox`, `maplibre`, `cesium` and `mapkit` props. Engines that are not built in show a placeholder and report `onError`.
+- `configureMunimMaps({ googleMapsApiKey, mapboxAccessToken, cesiumIonToken, maplibreStyleUrl, mapboxStyleUrl, defaultProvider })`, `availableProviders()`, `installedProviders()`, `isProviderAvailable()` and `MAP_PROVIDERS`.
+- Expo config plugin (`"plugins": [["munim-maps", { "providers": [...], ...keys }]]`): turns engines on (CocoaPods subspecs through `Podfile.properties.json`, Gradle properties) and writes their keys into Info.plist, the manifest and strings.xml.
+- Opt-in engines: `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS (the default install is still MapKit only), `munimMaps.google`, `mapbox`, `maplibre` and `cesium` Gradle properties on Android.
+- **Android**: `MunimMapView` and `MapModelLayer` are Kotlin Nitro views. `MunimMapView` draws MapLibre Native with OpenFreeMap (no key) and GLB / glTF models through a Filament 3D layer driven by the same camera model as iOS (position, altitude, heading, scale, `screenSize`, `tint`, spin, `motion`, `onModelPress`, `measureAlignment`), with the camera API, regions, conversions, gestures and map events.
+- The vehicle catalogue as GLB (`packages/munim-maps/vehicles/glb`, 20 MB): `munim-maps/vehicles` gives USDZ on iOS and GLB on Android, and `munim-maps/vehicles-glb` gives GLB everywhere. `make-vehicles.swift` writes both.
+- Swift: the `MunimMapEngine` protocol, `MunimMapContainerView`, `MunimMapEngines`, `MunimMapsConfiguration`, and `MapCameraSource` / `MapCameraState`, so `MunimModelLayer.attach(to:)` can draw over any engine's map.
+- Example: an engine picker (`munimmapsexample://providers/<provider>`, the start screen on Android) showing the same models on each engine with the 3D layer's measured alignment; development keys are read at build time from `example/.env.local` or `~/.config/munim-maps/keys.env`.
+
+### Changed
+
+- The MapKit map and its features moved to `ios/Engines/MapKit/` behind `MunimMapEngine`; the 3D renderer now reads only the camera state, not `MKMapView`. Behaviour is unchanged (the on-device self-test still passes 47 of 47).
+
 ## [0.4.0] - 2026-10-06
 
 ### Added
