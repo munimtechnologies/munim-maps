@@ -69,7 +69,7 @@ Pod::Spec.new do |s|
 
   s.subspec "Mapbox" do |ss|
     ss.source_files = "ios/Engines/Mapbox/**/*.swift"
-    ss.dependency "MapboxMaps", ">= 11.0"
+    ss.dependency "MapboxMaps", "~> 11.32"
   end
 
   s.subspec "MapLibre" do |ss|
