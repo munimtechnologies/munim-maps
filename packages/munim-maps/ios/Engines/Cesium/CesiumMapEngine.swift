@@ -268,7 +268,43 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
 
   // MARK: 2D content
 
-  var markers: [MunimMarker] = [] { didSet { set("markers", markers) } }
+  var markers: [MunimMarker] = [] { didSet { sendMarkers() } }
+
+  /// `MarkerView`s: the React Native view rendered to a PNG, drawn as an image marker.
+  private var viewMarkers: [String: MunimMarker] = [:]
+  private var viewMarkerOrder: [String] = []
+
+  private func sendMarkers() {
+    set("markers", markers + viewMarkerOrder.compactMap { viewMarkers[$0] })
+  }
+
+  private func viewMarker(_ marker: MunimMarker, image: UIImage?) -> MunimMarker {
+    var m = marker
+    m.style = .image
+    if let data = image?.pngData() {
+      m.imageUri = "data:image/png;base64," + data.base64EncodedString()
+      m.imageSize = Double(max(image!.size.width, image!.size.height))
+    }
+    return m
+  }
+
+  func setViewMarker(_ marker: MunimMarker, image: UIImage?) {
+    if viewMarkers[marker.id] == nil { viewMarkerOrder.append(marker.id) }
+    viewMarkers[marker.id] = viewMarker(marker, image: image)
+    sendMarkers()
+  }
+
+  func setViewMarkerImage(_ image: UIImage?, id: String) {
+    guard let marker = viewMarkers[id] else { return }
+    viewMarkers[id] = viewMarker(marker, image: image)
+    sendMarkers()
+  }
+
+  func removeViewMarker(_ id: String) {
+    viewMarkers[id] = nil
+    viewMarkerOrder.removeAll { $0 == id }
+    sendMarkers()
+  }
   var polylines: [MunimPolyline] = [] { didSet { set("polylines", polylines) } }
   var polygons: [MunimPolygon] = [] { didSet { set("polygons", polygons) } }
   var circles: [MunimCircle] = [] { didSet { set("circles", circles) } }
