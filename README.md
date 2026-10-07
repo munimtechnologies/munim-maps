@@ -680,29 +680,29 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`) and 
 
 ## Platform Support Matrix
 
-A column per engine and platform. ✅ works (checked on a device) · 🟡 partly (see the notes) · 🔨 built, not yet checked on a device · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
+A column per engine and platform. ✅ works (checked on a device; Android on an arm64 Google Play emulator, API 35) · 🟡 partly (see the notes) · 🔨 built, not yet checked on a device · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
 
 | Capability | MapKit iOS | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | Cesium iOS | Cesium Android | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `MunimMapView` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | MapLibre: OpenFreeMap, no key; its own options, commands and events in [MapLibre (open maps)](#maplibre-open-maps). |
+| `MunimMapView` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | MapLibre: OpenFreeMap, no key; its own options, commands and events in [MapLibre (open maps)](#maplibre-open-maps). |
 | `MapModelLayer` over `react-native-maps` | ✅ | — | 🔨 | — | — | — | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
 | `MapModelLayer` over `expo-maps` | ✅ | — | — | — | — | — | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
-| GLB / glTF models | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
+| GLB / glTF models | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
 | USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ | — | ✅ | — | ✅ | — | ✅ native layer | — | SceneKit / Model I/O, iOS only. |
-| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |  |
-| Models drawn by the engine (`modelRendering`) | — | — | 🔨 3D map | ✅ | 🔨 | — | — | ✅ | ✅ | Mapbox: its model layer; Cesium: entities; Google: the photorealistic 3D map (Android). Elsewhere munim-maps' 3D layer draws them. |
-| Vehicle catalogue | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | The separate `munim-maps-vehicles` package (57 models): from jsDelivr (cached on the device) or bundled per model; munim-maps picks USDZ or GLB per engine. |
-| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
+| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |  |
+| Models drawn by the engine (`modelRendering`) | — | — | 🔨 3D map | ✅ | ✅ | — | — | ✅ | ✅ | Mapbox: its model layer; Cesium: entities; Google: the photorealistic 3D map (Android). Elsewhere munim-maps' 3D layer draws them. |
+| Vehicle catalogue | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | The separate `munim-maps-vehicles` package (57 models): from jsDelivr (cached on the device) or bundled per model; munim-maps picks USDZ or GLB per engine. |
+| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ | ✅ | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
 | Globe | ✅ | — | — | ✅ | 🔨 | — | — | ✅ | ✅ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. MapLibre Native has no globe (MapLibre GL JS only). |
 | Hidden behind buildings | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
-| Terrain height | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
-| Camera API, regions, conversions, gestures | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
-| Map events | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
-| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | `MarkerView` on Android draws its views into an image marker (Mapbox: a view annotation). |
-| Continuous marker drag (`onMarkerDrag`) | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | 🔨 | 🔨 | Between `onMarkerDragStart` and `onMarkerDragEnd`. |
-| react-native-maps' region API | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion`. |
-| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |  |
-| User location and tracking (follow, follow with heading) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Terrain height | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| Camera API, regions, conversions, gestures | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
+| Map events | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
+| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `MarkerView` on Android draws its views into an image marker (Mapbox: a view annotation). |
+| Continuous marker drag (`onMarkerDrag`) | 🔨 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🔨 | ✅ | Between `onMarkerDragStart` and `onMarkerDragEnd`. |
+| react-native-maps' region API | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion`. |
+| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |  |
+| User location and tracking (follow, follow with heading) | ✅ | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
 | Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 | 🔨 | 🟡 | 🔨 | ✅ | ✅ | ✅ | ✅ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. Mapbox: compass, scale bar and a tracking button, no 2D/3D button. |
 | Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | — | — | — | — | `selectionAccessory`. |
 | Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | 🟡 `googleMapsServices` | 🟡 `googleMapsServices` | 🟡 `MapboxServices` | 🟡 `MapboxServices` | 🟡 `openMapsServices` | 🟡 `openMapsServices` | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS; the Google, Mapbox and OpenStreetMap web services work with any engine. |

@@ -76,6 +76,15 @@ munim-maps is one API over five map engines (MapKit, Google Maps, Mapbox, MapLib
 
 - The MapKit map and its features moved to `ios/Engines/MapKit/` behind `MunimMapEngine`; the 3D renderer now reads only the camera state, not `MKMapView`. Behaviour is unchanged (the on-device self-test still passes 47 of 47).
 - `decodePolyline` is one implementation (Google's services and the OpenStreetMap services share it).
+- Cesium draws at most 2 device pixels per CSS pixel (it drew 2 x the device resolution: 5.25 pixels per CSS pixel on a 420 dpi phone, 4 x the pixels on an iPad).
+
+### Fixed
+
+Found running every engine's checks on Android:
+
+- Google: apps no longer stop when a Google map is created on devices with older Google Play services (`org.apache.http.legacy`, not required, in the library manifest); `hasLookAround` / `streetView.hasCoverage` work (the probe panorama was never started).
+- Mapbox: clustered markers, `MarkerView` (added twice before its first layout; plain layout params in Mapbox's FrameLayout) and callouts no longer crash; `setViewport({ state: 'overview' })` no longer throws `IllegalAccessError`; `getNativeModels` exists on Android; overlay taps ignore off-screen projections; a location override set before following starts moves the follow camera.
+- MapLibre: `getFeatureState`, `setFeatureState`, `removeFeatureState` and the offscreen `snapshot` command answer JSON.
 
 ## [0.4.0] - 2026-10-06
 
