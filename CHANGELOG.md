@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-06
+
 ### Added
 
 - Terrain height. MapKit does not expose it, so munim-maps reads the free public Terrarium elevation tiles on AWS (zoom 14, bilinear, cached in memory and on disk, one request per tile at a time):
