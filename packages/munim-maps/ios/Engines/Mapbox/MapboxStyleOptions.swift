@@ -502,7 +502,8 @@ extension MapboxMapEngine {
         style.layers[id] = nil
       }
     }
-    style.layerOrder.removeAll { style.layers[$0] == nil }
+    let remaining = style.layers
+    style.layerOrder.removeAll { remaining[$0] == nil }
 
     // Sources.
     for id in style.sources.keys where wantedSources[id] == nil || rebuildSources.contains(id) {

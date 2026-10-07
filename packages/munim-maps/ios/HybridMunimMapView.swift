@@ -146,7 +146,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     }
   }
 
-  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = models.map(\.core) } }
+  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = map.overlayModels(models.map(\.core)) } }
   var zones: [NativeMapZone] = [] { didSet { map.modelLayer.zones = zones.map(\.core) } }
   var paths: [NativeMapPath] = [] { didSet { map.modelLayer.paths = paths.map(\.core) } }
   var occlusion: MapOcclusion = .none { didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings } }

@@ -24,6 +24,7 @@ import com.margelo.nitro.munimmaps.MapStyle
 import com.margelo.nitro.munimmaps.MarkerDragEvent
 import com.margelo.nitro.munimmaps.NativeCircle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
+import com.margelo.nitro.munimmaps.NativeMapModel
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -143,6 +144,12 @@ interface MunimMapEngine {
    */
   fun setViewMarker(marker: NativeMarker, image: Bitmap?) { reportUnsupported("MarkerView") }
   fun setViewMarkerImage(image: Bitmap?, id: String) {}
+  /**
+   * The models the host gives the map. The engine draws the ones it can
+   * itself (Mapbox's model layer) and returns the rest for [modelLayer].
+   * The default returns them all.
+   */
+  fun overlayModels(models: Array<NativeMapModel>): Array<NativeMapModel> = models
   fun removeViewMarker(id: String) {}
 
   // Look

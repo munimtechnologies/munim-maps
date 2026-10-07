@@ -545,32 +545,43 @@ extension MapboxMapEngine {
     }
   }
 
-  /// The topmost tappable shape at a point, hit-tested on screen.
+  /// The topmost tappable shape at a point. Tested on the ground around
+  /// the tapped coordinate (Mapbox reports off-screen vertices as -1, -1),
+  /// with a line tolerance in points converted to metres at that spot.
   func overlayHit(at point: CGPoint) -> (id: String, kind: String)? {
     let tappable: [String: Bool] = Dictionary(uniqueKeysWithValues:
       content.polylines.map { ("polyline:" + $0.id, $0.tappable) }
         + content.polygons.map { ("polygon:" + $0.id, $0.tappable) }
         + content.circles.map { ("circle:" + $0.id, $0.tappable) })
+    let c = mapboxMap.coordinate(for: point)
+    guard CLLocationCoordinate2DIsValid(c) else { return nil }
+    let tap = MKMapPoint(c)
+    // Metres per point near the tap, measured on the map itself.
+    let side = mapboxMap.coordinate(for: CGPoint(x: point.x + 10, y: point.y))
+    let metersPerPoint = MKMapPoint(side).distance(to: tap) / 10
+    func ground(_ ring: [CLLocationCoordinate2D]) -> [CGPoint] {
+      ring.map { let m = MKMapPoint($0); return CGPoint(x: m.x, y: m.y) }
+    }
+    let tapPoint = CGPoint(x: tap.x, y: tap.y)
+    let mapPointsPerMeter = 1 / MKMetersPerMapPointAtLatitude(c.latitude)
     for shape in content.shapes.reversed() where tappable["\(shape.kind):\(shape.id)"] == true {
       switch shape.kind {
       case "polyline":
         guard let line = content.polylines.first(where: { $0.id == shape.id }) else { continue }
-        let points = (line.geodesic ? MapboxGeometry.geodesic(line.coordinates) : line.coordinates).map(mapboxMap.point(for:))
-        let tolerance = max(12, line.strokeWidth / 2 + 6)
-        if zip(points, points.dropFirst()).contains(where: { MapboxGeometry.distance(point, $0, $1) <= tolerance }) {
+        let points = ground(line.geodesic ? MapboxGeometry.geodesic(line.coordinates) : line.coordinates)
+        let tolerance = max(12, line.strokeWidth / 2 + 6) * metersPerPoint * mapPointsPerMeter
+        if zip(points, points.dropFirst()).contains(where: { MapboxGeometry.distance(tapPoint, $0, $1) <= tolerance }) {
           return (shape.id, "polyline")
         }
       case "polygon":
         guard let polygon = content.polygons.first(where: { $0.id == shape.id }) else { continue }
-        let outer = polygon.coordinates.map(mapboxMap.point(for:))
-        if MapboxGeometry.contains(outer, point),
-           !polygon.holes.contains(where: { MapboxGeometry.contains($0.map(mapboxMap.point(for:)), point) }) {
+        if MapboxGeometry.contains(ground(polygon.coordinates), tapPoint),
+           !polygon.holes.contains(where: { MapboxGeometry.contains(ground($0), tapPoint) }) {
           return (shape.id, "polygon")
         }
       case "circle":
         guard let circle = content.circles.first(where: { $0.id == shape.id }) else { continue }
         let center = CLLocation(latitude: circle.latitude, longitude: circle.longitude)
-        let c = mapboxMap.coordinate(for: point)
         if center.distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude)) <= circle.radius {
           return (shape.id, "circle")
         }

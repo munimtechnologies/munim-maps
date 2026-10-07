@@ -51,6 +51,31 @@ const MODELS: MapModel[] = [
   { id: 'balloon', coordinate: { latitude: 41.8826, longitude: -87.6278 }, altitude: 120, source: VEHICLES.balloon, screenSize: 60 },
 ]
 
+// glTF models: drawn by Mapbox's own model layer with modelRendering 'auto'
+// (the labelled one stays on munim-maps' 3D layer in 'auto').
+const START = Date.now() / 1000
+const NATIVE_MODELS: MapModel[] = [
+  {
+    id: 'glb-bus',
+    coordinate: { latitude: 41.8795, longitude: -87.6283 },
+    source: VEHICLES_GLB['bus-city'],
+    tint: '#FF9500',
+    motion: {
+      keyframes: [
+        { t: 0, coordinate: { latitude: 41.8795, longitude: -87.6283 } },
+        { t: 20, coordinate: { latitude: 41.8860, longitude: -87.6283 } },
+        { t: 40, coordinate: { latitude: 41.8795, longitude: -87.6283 } },
+      ],
+      start: START,
+      loop: true,
+    },
+  },
+  { id: 'glb-taxi', coordinate: { latitude: 41.8815, longitude: -87.6255 }, source: VEHICLES_GLB['car-taxi'], heading: 45, screenSize: 30 },
+  { id: 'glb-jet', coordinate: { latitude: 41.8840, longitude: -87.6240 }, source: VEHICLES_GLB['plane-airliner'], altitude: 150, heading: 270, scale: 1 },
+  { id: 'glb-police', coordinate: { latitude: 41.8808, longitude: -87.6292 }, source: VEHICLES_GLB['car-police'], heading: 0, label: 'Unit 7', stem: true },
+]
+const RENDERING = ['auto', 'native', 'overlay'] as const
+
 const MARKERS: MapMarker[] = [
   { id: 'pin', coordinate: { latitude: 41.8816, longitude: -87.6301 }, style: 'pin', color: '#FF3B30', title: 'Pin', callout: true },
   { id: 'balloon-marker', coordinate: { latitude: 41.8841, longitude: -87.6301 }, style: 'marker', color: '#34C759', glyph: '☕', title: 'Café', subtitle: 'Balloon marker' },
@@ -127,6 +152,29 @@ const SDF_DOT =
 
 type Check = { name: string; ok: boolean; detail: string }
 
+/** Copies a snapshot into Documents, so it can be pulled off the device. */
+function keep(path: string, name: string) {
+  try {
+    const target = new File(Paths.document, name)
+    if (target.exists) target.delete()
+    new File(path.startsWith('file://') ? path : `file://${path}`).copy(target)
+  } catch (error) {
+    console.warn('MUNIM_MAPS_MAPBOX could not keep the snapshot', error)
+  }
+}
+
+/** Documents/munim-maps-mapbox-checks.json, rewritten as checks finish, for pulling off a device. */
+function writeReport(report: object) {
+  try {
+    const file = new File(Paths.document, 'munim-maps-mapbox-checks.json')
+    if (file.exists) file.delete()
+    file.create()
+    file.write(JSON.stringify({ platform: Platform.OS, time: new Date().toISOString(), ...report }, null, 2))
+  } catch (error) {
+    console.warn('MUNIM_MAPS_MAPBOX could not write the report', error)
+  }
+}
+
 export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; onExit?: () => void }) {
   const ref = useRef<MunimMapViewRef | null>(null)
   const [satellite, setSatellite] = useState(false)
@@ -141,6 +189,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
   const [drag, setDrag] = useState('')
   const [dragCount, setDragCount] = useState(0)
   const [ready, setReady] = useState(false)
+  const [rendering, setRendering] = useState(0)
   const events = useRef<Record<string, number>>({})
   const ranAuto = useRef(false)
 
@@ -167,6 +216,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
 
   const mapbox: MapboxMapOptions = useMemo(
     () => ({
+      modelRendering: RENDERING[rendering],
       standard: { lightPreset: PRESETS[preset], show3dObjects: true, showPointOfInterestLabels: true },
       projection: globe ? 'globe' : 'mercator',
       atmosphere: { 'range': [0.8, 8], 'star-intensity': 0.2, 'horizon-blend': 0.1 },
@@ -193,7 +243,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
         { id: 'cluster', type: 'tap', layerId: 'clusters' },
       ],
     }),
-    [preset, globe, terrain, layersOn, layers, glbUri]
+    [preset, globe, terrain, layersOn, layers, glbUri, rendering]
   )
 
   const onProviderEvent = useCallback((event: MapProviderEvent) => {
@@ -211,20 +261,22 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     if (!map || running) return
     setRunning(true)
     const results: Check[] = []
+    writeReport({ finished: false, started: true, results })
     const mb = mapboxMap(map)
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
     async function check(name: string, body: () => Promise<string | boolean>) {
       try {
         const value = await Promise.race([
           body(),
-          new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timed out')), 30_000)),
+          new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timed out')), 20_000)),
         ])
-        const ok = value !== false
+        const ok = value !== false && !(typeof value === 'string' && value.startsWith('FAIL '))
         results.push({ name, ok, detail: typeof value === 'string' ? value : '' })
       } catch (error) {
         results.push({ name, ok: false, detail: String((error as Error)?.message ?? error) })
       }
       setChecks([...results])
+      writeReport({ finished: false, passed: results.filter((r) => r.ok).length, total: results.length, results })
       console.log(`MUNIM_MAPS_MAPBOX check ${results[results.length - 1]!.ok ? 'PASS' : 'FAIL'} ${name} ${results[results.length - 1]!.detail}`)
     }
 
@@ -246,6 +298,8 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       const r = await map.getVisibleRegion()
       return Math.abs(r.latitude - CHICAGO.latitude) < r.latitudeDelta && r.longitudeDelta > 0 ? `${r.latitudeDelta.toFixed(4)}°` : false
     })
+    setRendering(2)
+    await wait(1200)
     for (const [pitch, heading] of [[0, 0], [55, 30], [70, 200]] as const) {
       await map.setCamera({ ...CHICAGO, pitch, heading }, false)
       await wait(900)
@@ -254,8 +308,15 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
         return a.modelsMeasured > 0 && a.maxErrorPoints < 2 ? `max ${a.maxErrorPoints.toFixed(2)} pt over ${a.modelsMeasured}` : false
       })
     }
+    setRendering(0)
     await map.setCamera(CHICAGO, false)
-    await wait(1200)
+    await wait(2500)
+    await check('native glTF models in Mapbox\'s model layer', async () => {
+      const f = await mb.queryRenderedFeatures({ layerIds: ['munim-native-models', 'munim-native-models-sea'] })
+      const ids = [...new Set(f.map((x) => String(x.feature.properties?.id ?? x.feature.id ?? '')))]
+      keep(await map.takeSnapshot(0, 0), 'mapbox-native.png')
+      return ids.length > 0 ? `drawn natively: ${ids.join(', ')}` : 'FAIL none drawn'
+    })
     await check('getCameraState (zoom levels)', async () => {
       const s = await mb.getCameraState()
       return s.zoom > 10 && s.zoom < 20 ? `zoom ${s.zoom.toFixed(2)}` : false
@@ -275,7 +336,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       const sourceIds = (await mb.getSources()).map((s) => s.id)
       const wanted = ['heat', 'clusters', 'block', 'model', 'hillshade']
       const missing = wanted.filter((id) => !layerIds.includes(id))
-      return missing.length === 0 && sourceIds.includes('points') ? `${layerIds.length} layers` : `missing ${missing.join(',')}`
+      return missing.length === 0 && sourceIds.includes('points') ? `${layerIds.length} layers` : `FAIL missing ${missing.join(',')}`
     })
     await check('getStyleJson', async () => ((await mb.getStyleJson()).length > 100 ? 'ok' : false))
     await check('querySourceFeatures (clustered GeoJSON)', async () => {
@@ -283,6 +344,9 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       return f.length > 0 ? `${f.length} features` : false
     })
     let cluster: unknown
+    // The points cluster below zoom 15: step back to see clusters.
+    await map.setCamera({ latitude: 41.892, longitude: -87.625, distance: 12_000, pitch: 0, heading: 0 }, false)
+    await wait(2500)
     await check('queryRenderedFeatures on the clusters layer', async () => {
       const f = await mb.queryRenderedFeatures({ layerIds: ['clusters'] })
       cluster = f[0]?.feature
@@ -295,6 +359,8 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       const children = await mb.getClusterChildren({ sourceId: 'points', cluster: cluster as never })
       return typeof zoom === 'number' && leaves.length > 0 && children.length > 0 ? `zoom ${zoom}, ${leaves.length} leaves` : false
     })
+    await map.setCamera(CHICAGO, false)
+    await wait(2000)
     await check('queryRenderedFeatures (featureset: buildings)', async () => {
       const f = await mb.queryRenderedFeatures({ featureset: { featuresetId: 'buildings', importId: 'basemap' } })
       return f.length > 0 ? `${f.length} buildings` : false
@@ -318,12 +384,19 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       await mb.setStyleImportConfig({ importId: 'basemap', config: { lightPreset: 'dusk' } })
       const c = await mb.getStyleImportConfig({ importId: 'basemap' })
       await mb.setStyleImportConfig({ importId: 'basemap', config: { lightPreset: PRESETS[preset] } })
-      return c.lightPreset === 'dusk' ? 'dusk' : `got ${String(c.lightPreset)}`
+      return c.lightPreset === 'dusk' ? 'dusk' : `FAIL got ${String(c.lightPreset)}`
     })
-    await check('overlayAtPoint (the polygon)', async () => {
-      const p = await map.pointForCoordinate({ latitude: 41.8850, longitude: -87.6210 })
-      const id = await map.overlayAtPoint(p)
-      return id === 'park' ? id : `got "${id}"`
+    await check('overlayAtPoint (the polygon, its hole, a dashed line)', async () => {
+      await map.setCamera({ latitude: 41.8838, longitude: -87.6198, distance: 1500, pitch: 0, heading: 0 }, false)
+      await wait(800)
+      const inside = await map.overlayAtPoint(await map.pointForCoordinate({ latitude: 41.8850, longitude: -87.6210 }))
+      const hole = await map.overlayAtPoint(await map.pointForCoordinate({ latitude: 41.88375, longitude: -87.61975 }))
+      await map.setCamera(CHICAGO, false)
+      await wait(800)
+      const line = await map.overlayAtPoint(await map.pointForCoordinate({ latitude: 41.8808, longitude: -87.63245 }))
+      return inside === 'park' && hole === '' && line === 'dash-4-10'
+        ? 'park, hole empty, dash-4-10'
+        : `FAIL inside "${inside}", hole "${hole}", line "${line}"`
     })
     await check('cameraForCoordinates', async () => {
       const c = await mb.cameraForCoordinates({ coordinates: [{ latitude: 41.87, longitude: -87.64 }, { latitude: 41.89, longitude: -87.61 }], padding: { top: 40, left: 40, bottom: 40, right: 40 } })
@@ -379,7 +452,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       await mb.clearLocationOverride()
       const near = Math.abs(c.latitude - 41.8789) < 0.001 && Math.abs(c.longitude + 87.6359) < 0.001
       const turned = Math.abs(((c2.heading - 120 + 540) % 360) - 180) < 3
-      return near && turned ? `followed, heading ${c2.heading.toFixed(0)}°` : `camera ${c2.latitude.toFixed(4)}, ${c2.longitude.toFixed(4)} heading ${c2.heading.toFixed(0)}`
+      return near && turned ? `followed, heading ${c2.heading.toFixed(0)}°` : `FAIL camera ${c2.latitude.toFixed(4)}, ${c2.longitude.toFixed(4)} heading ${c2.heading.toFixed(0)}`
     })
     await map.setCamera({ ...CHICAGO, distance: 6000 }, false)
     setTerrain(true)
@@ -391,10 +464,12 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     setTerrain(false)
     await check('takeSnapshot (the map view)', async () => {
       const path = await map.takeSnapshot(0, 0)
+      keep(path, 'mapbox-view.png')
       return path.length > 0 ? path.split('/').pop()! : false
     })
     await check('snapshot (Mapbox Snapshotter)', async () => {
       const path = await mb.snapshot({ width: 300, height: 200, camera: { center: { latitude: 41.8826, longitude: -87.6278 }, zoom: 14 } })
+      keep(path, 'mapbox-snapshotter.png')
       return path.length > 0 ? path.split('/').pop()! : false
     })
     await check('addressForCoordinate (Mapbox geocoding)', async () => {
@@ -427,15 +502,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     await map.setCamera(CHICAGO, false)
     const passed = results.filter((r) => r.ok).length
     console.log(`MUNIM_MAPS_MAPBOX checks ${passed}/${results.length}`)
-    try {
-      // Documents/munim-maps-mapbox-checks.json, for pulling off the device.
-      const file = new File(Paths.document, 'munim-maps-mapbox-checks.json')
-      if (file.exists) file.delete()
-      file.create()
-      file.write(JSON.stringify({ platform: Platform.OS, passed, total: results.length, results }, null, 2))
-    } catch (error) {
-      console.warn('MUNIM_MAPS_MAPBOX could not write the report', error)
-    }
+    writeReport({ finished: true, passed, total: results.length, events: events.current, results })
     setStatus(`Checks: ${passed}/${results.length} passed`)
     setRunning(false)
   }, [running, preset])
@@ -443,6 +510,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
   const onMapReady = useCallback(() => {
     setReady(true)
     console.log('MUNIM_MAPS_MAPBOX map ready')
+    writeReport({ finished: false, mapReady: true, results: [] })
     if (props.autoChecks && !ranAuto.current) {
       ranAuto.current = true
       setTimeout(() => void runChecks(), 4000)
@@ -459,7 +527,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
         mapStyle={satellite ? 'hybrid' : 'standard'}
         styleUrl={satellite ? MAPBOX_STYLES.standardSatellite : ''}
         globe={globe}
-        models={MODELS}
+        models={[...MODELS, ...NATIVE_MODELS]}
         lighting="auto"
         markers={MARKERS}
         clusterStyles={[{ clusteringId: 'stops', color: '#0A84FF', glyph: '{count}' }]}
@@ -510,6 +578,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
           <Chip label={`Light: ${PRESETS[preset]}`} onPress={() => setPreset((p) => (p + 1) % PRESETS.length)} />
           <Chip label={globe ? 'Globe' : 'Mercator'} onPress={() => setGlobe((g) => !g)} />
           <Chip label={terrain ? 'Terrain on' : 'Terrain off'} onPress={() => setTerrain((t) => !t)} />
+          <Chip label={`Models: ${RENDERING[rendering]}`} onPress={() => setRendering((r) => (r + 1) % RENDERING.length)} />
           <Chip label={layersOn ? 'Layers on' : 'Layers off'} onPress={() => setLayersOn((l) => !l)} />
           <Chip label={`Track: ${tracking}`} onPress={() => setTracking((t) => (t === 'none' ? 'follow' : t === 'follow' ? 'followWithHeading' : 'none'))} />
           <Chip label="Zoom out" onPress={() => ref.current?.animateCamera({ latitude: 30, longitude: -60, distance: 18_000_000, pitch: 0, heading: 0 }, 2500, 'easeInOut')} />

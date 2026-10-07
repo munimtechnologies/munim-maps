@@ -220,6 +220,10 @@ public protocol MunimMapEngine: AnyObject {
   /// A dragged marker moved (continuously, between drag start and end).
   /// Declare it as a stored property to send it; the default drops it.
   var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get set }
+  /// The models the host gives the map. The engine draws the ones it can
+  /// itself (Mapbox's model layer) and returns the rest for `modelLayer`.
+  /// The default returns them all.
+  func overlayModels(_ models: [MunimModel]) -> [MunimModel]
 }
 
 public extension MunimMapEngine {
@@ -231,6 +235,7 @@ public extension MunimMapEngine {
     completion(.failure(MunimMapEngineError("\(provider.displayName) has no command \"\(command)\"")))
   }
   var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get { nil } set {} }
+  func overlayModels(_ models: [MunimModel]) -> [MunimModel] { models }
 
   /// Reports that this engine cannot do `what` yet.
   func reportUnsupported(_ what: String) {

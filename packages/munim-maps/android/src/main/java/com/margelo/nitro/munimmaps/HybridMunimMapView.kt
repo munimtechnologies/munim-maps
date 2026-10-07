@@ -70,7 +70,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
 
   private fun applyModelLayer(e: MunimMapEngine) {
     val layer = e.modelLayer
-    layer.models = models
+    layer.models = e.overlayModels(models)
     layer.zones = zones
     layer.paths = paths
     layer.buildingOcclusion = occlusion == MapOcclusion.BUILDINGS
@@ -126,7 +126,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setProviderOptions(options(value)) }
 
   override var models: Array<NativeMapModel> = emptyArray()
-    set(value) { field = value; engine?.modelLayer?.models = value }
+    set(value) { field = value; engine?.let { it.modelLayer.models = it.overlayModels(value) } }
   override var zones: Array<NativeMapZone> = emptyArray()
     set(value) { field = value; engine?.modelLayer?.zones = value }
   override var paths: Array<NativeMapPath> = emptyArray()

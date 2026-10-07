@@ -38,6 +38,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   var eventCancelables: [String: AnyCancelable] = [:]
   lazy var cameraSource = MapboxCameraSource(engine: self)
   let content = MapboxContentState()
+  lazy var nativeModels = MapboxNativeModels(engine: self)
   var style = MapboxStyleState()
 
   // MARK: Events
@@ -104,6 +105,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   deinit {
     if let configObserver { NotificationCenter.default.removeObserver(configObserver) }
     flightLink?.invalidate()
+    nativeModels.stop()
   }
 
   private func configurationChanged() {
@@ -155,6 +157,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   private func styleLoaded() {
     applyStyleOptions(reloaded: true)
     reapplyContent()
+    nativeModels.styleReloaded()
     modelLayer.setNeedsRender()
     if !reportedReady {
       reportedReady = true
@@ -164,6 +167,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
 
   private func cameraChanged() {
     modelLayer.setNeedsRender()
+    nativeModels.cameraChanged()
     content.trackingButton.map { _ in updateTrackingButton() }
     onCameraMove?(camera)
   }
@@ -179,6 +183,22 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   private func tapped(_ context: InteractionContext) {
     let point = context.point
     if modelLayer.modelHit(at: point) != nil { return } // models report their own taps
+    if !nativeModels.native.isEmpty {
+      nativeModels.hit(at: point) { [weak self] id in
+        guard let self else { return }
+        if let id {
+          self.modelLayer.onModelPress?(id)
+        } else {
+          self.tappedMap(context)
+        }
+      }
+      return
+    }
+    tappedMap(context)
+  }
+
+  private func tappedMap(_ context: InteractionContext) {
+    let point = context.point
     // View annotations (MarkerViews, callouts) take their own taps.
     let annotationViews = content.viewMarkers.values.map { $0.imageView as UIView } + [content.callout?.view].compactMap { $0 }
     if annotationViews.contains(where: { !$0.isHidden && $0.superview != nil && $0.convert($0.bounds, to: mapView).contains(point) }) {
@@ -209,7 +229,14 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
       loadStyleIfNeeded()
       if mapboxMap.isStyleLoaded { applyStyleOptions(reloaded: false) }
       applyMapOptions()
+      nativeModels.modeChanged()
     }
+  }
+
+  /// glTF models go to Mapbox's model layer (`mapbox.modelRendering`); the
+  /// rest to munim-maps' 3D layer.
+  func overlayModels(_ models: [MunimModel]) -> [MunimModel] {
+    nativeModels.setModels(models)
   }
 
   var mapStyle: MunimMapStyle = .standard { didSet { if oldValue != mapStyle { styleInputsChanged() } } }

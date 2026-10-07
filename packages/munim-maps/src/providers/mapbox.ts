@@ -415,6 +415,24 @@ export interface MapboxMapOptions {
   /** glTF models by id (`model-id` in `model` layers): `{ id: uri }`. */
   models?: Record<string, string>
 
+  /**
+   * Who draws `models`. Mapbox can draw glTF / GLB models itself in a
+   * `model` layer, lit and shadowed by Mapbox and hidden by its 3D buildings
+   * and terrain.
+   * - `auto` (default): models that are only a glTF body (no label, stem,
+   *   effect, lift or animation) are drawn by Mapbox; the rest by
+   *   munim-maps' 3D layer.
+   * - `native`: every glTF model is drawn by Mapbox; labels, stems and
+   *   effects stay on munim-maps' 3D layer.
+   * - `overlay`: everything on munim-maps' 3D layer.
+   * USDZ and built-in shapes, avatars, zones and paths are always drawn by
+   * munim-maps' 3D layer. Natively drawn models follow `heading`, `motion`,
+   * spin, `altitude` (`altitudeReference`), `scale`, `screenSize` and
+   * `tint` (a colour override on the model's `paint*` materials);
+   * `measureAlignment` covers only the 3D layer's models.
+   */
+  modelRendering?: 'auto' | 'native' | 'overlay'
+
   // Camera, gestures, controls
 
   /** Limits for the camera. */
