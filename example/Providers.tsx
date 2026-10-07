@@ -46,14 +46,50 @@ const MODELS: MapModel[] = [
   },
 ]
 
+/** The example's screens, each reachable from the engine picker. */
+export type ExampleScreen =
+  | 'google'
+  | 'mapbox'
+  | 'maplibre'
+  | 'cesium'
+  | 'layer3d'
+  | 'parity'
+  | 'munim'
+  | 'rnmaps'
+  | 'expomaps'
+  | 'terrain'
+  | 'elevation'
+  | 'features'
+  | 'space'
+
+/** Each engine's own screen (every feature group and its checks). */
+const ENGINE_SCREENS: { screen: ExampleScreen; provider: MapProvider; label: string }[] = [
+  { screen: 'parity', provider: 'mapkit', label: 'MapKit' },
+  { screen: 'google', provider: 'google', label: 'Google' },
+  { screen: 'mapbox', provider: 'mapbox', label: 'Mapbox' },
+  { screen: 'maplibre', provider: 'maplibre', label: 'MapLibre' },
+  { screen: 'cesium', provider: 'cesium', label: 'Cesium' },
+]
+
+/** The other examples (iOS: MapKit, react-native-maps and expo-maps). */
+const IOS_SCREENS: { screen: ExampleScreen; label: string }[] = [
+  { screen: 'munim', label: 'Demo' },
+  { screen: 'features', label: 'Features' },
+  { screen: 'terrain', label: 'Terrain' },
+  { screen: 'elevation', label: 'Elevation' },
+  { screen: 'space', label: 'Satellites' },
+  { screen: 'rnmaps', label: 'react-native-maps' },
+  { screen: 'expomaps', label: 'expo-maps' },
+]
+
 export function ProvidersScreen(props: {
   initial?: MapProvider
   topInset: number
   panel: boolean
   /** Back to the other examples (iOS). */
   onExit?: () => void
-  /** The MapLibre screen with every feature (munimmapsexample://maplibre). */
-  onMapLibre?: () => void
+  /** Opens another screen; `layer3d` gets the engine picked here. */
+  onOpen?: (screen: ExampleScreen, provider: MapProvider) => void
 }) {
   const [provider, setProvider] = useState<MapProvider>(props.initial ?? defaultProvider())
   const [errors, setErrors] = useState<string[]>([])
@@ -119,12 +155,29 @@ export function ProvidersScreen(props: {
               <Text style={[styles.chipText, p === provider && styles.chipTextOn]}>{NAMES[p]}</Text>
             </Pressable>
           ))}
-          {provider === 'maplibre' && props.onMapLibre && available.includes('maplibre') ? (
-            <Pressable onPress={props.onMapLibre} style={styles.chip}>
-              <Text style={styles.chipText}>All MapLibre features ›</Text>
-            </Pressable>
-          ) : null}
         </ScrollView>
+        {props.onOpen ? (
+          <ScrollView horizontal contentContainerStyle={styles.row} showsHorizontalScrollIndicator={false}>
+            <Text style={styles.label}>Screens</Text>
+            {ENGINE_SCREENS.filter((e) => available.includes(e.provider)).map((e) => (
+              <Pressable key={e.screen} onPress={() => props.onOpen?.(e.screen, e.provider)} style={styles.chip}>
+                <Text style={styles.chipText}>{e.label} ›</Text>
+              </Pressable>
+            ))}
+            {isAvailable ? (
+              <Pressable onPress={() => props.onOpen?.('layer3d', provider)} style={styles.chip}>
+                <Text style={styles.chipText}>3D layer on {NAMES[provider]} ›</Text>
+              </Pressable>
+            ) : null}
+            {Platform.OS === 'ios'
+              ? IOS_SCREENS.map((e) => (
+                  <Pressable key={e.screen} onPress={() => props.onOpen?.(e.screen, provider)} style={styles.chip}>
+                    <Text style={styles.chipText}>{e.label} ›</Text>
+                  </Pressable>
+                ))
+              : null}
+          </ScrollView>
+        ) : null}
         <Text style={styles.status}>
           {Platform.OS} · built in: {installed.join(', ') || 'none'} · working: {available.join(', ') || 'none'}
         </Text>
@@ -166,6 +219,7 @@ const styles = StyleSheet.create({
   chipText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   chipTextOn: { color: '#111111' },
   status: { color: '#FFFFFF', fontSize: 12 },
+  label: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', alignSelf: 'center' },
   error: { color: '#FFB4A9', fontSize: 11 },
   hidden: { display: 'none' },
 })

@@ -800,18 +800,19 @@ function Example() {
           camera={layer3dCamera}
           occlusion={layer3dOcclusion}
           topInset={insets.top}
+          onExit={() => setMode('providers')}
         />
       ) : mode === 'google' ? (
         <GoogleScreen
           topInset={insets.top}
           autoCheck={googleChecks}
-          onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
+          onExit={() => setMode('providers')}
         />
       ) : mode === 'mapbox' ? (
         <MapboxScreen
           topInset={insets.top}
           autoChecks={mapboxChecks}
-          onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
+          onExit={() => setMode('providers')}
         />
       ) : mode === 'maplibre' ? (
         <MapLibreScreen
@@ -821,14 +822,20 @@ function Example() {
           onExit={() => setMode('providers')}
         />
       ) : mode === 'cesium' ? (
-        <CesiumScreen topInset={insets.top} autoChecks={cesiumChecks} onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')} />
+        <CesiumScreen topInset={insets.top} autoChecks={cesiumChecks} onExit={() => setMode('providers')} />
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
           topInset={insets.top}
           panel={panel}
           onExit={Platform.OS === 'ios' ? () => setMode('munim') : undefined}
-          onMapLibre={() => setMode('maplibre')}
+          onOpen={(screen, engine) => {
+            if (screen === 'layer3d') {
+              setProviderLink(engine)
+              setLayer3dCheck(false)
+            }
+            setMode(screen)
+          }}
         />
       ) : mode === 'parity' ? (
         <ParityScreen
@@ -1024,7 +1031,6 @@ function Example() {
           <Toggle label="expo-maps" on={mode === 'expomaps'} onPress={() => setMode('expomaps')} />
           <Toggle label="MapKit" on={mode === 'parity'} onPress={() => setMode('parity')} />
           <Toggle label="Engines" on={false} onPress={() => setMode('providers')} />
-          <Toggle label="Cesium" on={false} onPress={() => setMode('cesium')} />
           {mode === 'parity' ? (
             <Toggle
               label={`Track: ${trackingMode}`}

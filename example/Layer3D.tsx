@@ -177,6 +177,8 @@ export function Layer3DScreen(props: {
   /** munimmapsexample://layer3d/noocclusion */
   occlusion?: boolean
   topInset: number
+  /** Back to the engine picker. */
+  onExit?: () => void
 }) {
   const provider = props.provider ?? defaultProvider()
   const ref = useRef<MunimMapViewRef | null>(null)
@@ -279,6 +281,11 @@ export function Layer3DScreen(props: {
       />
       <View style={[styles.panel, { top: props.topInset + 8 }]}>
         <View style={styles.row}>
+          {props.onExit ? (
+            <Pressable style={styles.chip} onPress={props.onExit}>
+              <Text style={styles.chipText}>‹ Engines</Text>
+            </Pressable>
+          ) : null}
           <Pressable style={styles.chip} onPress={() => void runChecks()}>
             <Text style={styles.chipText}>Run checks</Text>
           </Pressable>
