@@ -277,6 +277,10 @@ void JHybridMunimMapViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass
     hybridView->setOnError(props->onError.value);
     props->onError.isDirty = false;
   }
+  if (props->onProviderEvent.isDirty) {
+    hybridView->setOnProviderEvent(props->onProviderEvent.value);
+    props->onProviderEvent.isDirty = false;
+  }
 
   // Update hybridRef if it changed
   if (props->hybridRef.isDirty) {

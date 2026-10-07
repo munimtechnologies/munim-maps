@@ -687,6 +687,12 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
+  /**
+   * Events only the active engine has, such as MapLibre's `styleLoaded`,
+   * `idle` or `offlineProgress` (`MapLibreEventName`). `payload` is the
+   * event's data, parsed from JSON.
+   */
+  onProviderEvent?: (event: { name: string; payload: unknown }) => void
   style?: StyleProp<ViewStyle>
   /** `MarkerView`s: React Native views as markers. */
   children?: ReactNode
@@ -750,6 +756,22 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
+    const providerEvent = props.onProviderEvent
+    const onProviderEvent = useMemo(
+      () =>
+        providerEvent
+          ? callback((name: string, payload: string) => {
+              let data: unknown = null
+              try {
+                data = payload ? JSON.parse(payload) : null
+              } catch {
+                data = payload
+              }
+              providerEvent({ name, payload: data })
+            })
+          : undefined,
+      [providerEvent]
+    )
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
@@ -833,6 +855,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
         onError={onError}
+        onProviderEvent={onProviderEvent}
         hybridRef={hybridRef}
       >
         {props.children}
@@ -842,6 +865,19 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
 )
 
 export * from './services'
+export * from './openMapsServices'
+export {
+  maplibreCommands,
+  type MapLibreCommands,
+  type MapLibreEventName,
+  type MapLibreFeature,
+  type MapLibreLayer,
+  type MapLibreOfflinePack,
+  type MapLibreOrnament,
+  type MapLibreSnapshotOptions,
+  type MapLibreSource,
+  type MapLibreStylePreset,
+} from './providers/maplibre'
 export {
   MAP_PROVIDERS,
   availableProviders,

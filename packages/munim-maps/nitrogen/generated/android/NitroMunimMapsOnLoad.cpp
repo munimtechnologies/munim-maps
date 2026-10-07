@@ -31,6 +31,7 @@
 #include "JFunc_void_UserLocationEvent.hpp"
 #include "JFunc_void_UserTrackingMode.hpp"
 #include "JFunc_void_MapFeatureEvent.hpp"
+#include "JFunc_void_std__string_std__string.hpp"
 #include "views/JHybridMunimMapViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
@@ -88,6 +89,7 @@ void registerAllNatives() {
   margelo::nitro::munimmaps::JFunc_void_UserLocationEvent_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_UserTrackingMode_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_MapFeatureEvent_cxx::registerNatives();
+  margelo::nitro::munimmaps::JFunc_void_std__string_std__string_cxx::registerNatives();
   margelo::nitro::munimmaps::views::JHybridMunimMapViewStateUpdater::registerNatives();
 
   // Register Nitro Hybrid Objects

@@ -619,6 +619,13 @@ namespace margelo::nitro::munimmaps {
     inline void setOnError(const std::optional<std::function<void(const std::string& /* message */)>>& onError) noexcept override {
       _swiftPart.setOnError(onError);
     }
+    inline std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>> getOnProviderEvent() noexcept override {
+      auto __result = _swiftPart.getOnProviderEvent();
+      return __result;
+    }
+    inline void setOnProviderEvent(const std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>& onProviderEvent) noexcept override {
+      _swiftPart.setOnProviderEvent(onProviderEvent);
+    }
 
   public:
     // Methods
@@ -758,6 +765,14 @@ namespace margelo::nitro::munimmaps {
     }
     inline std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) override {
       auto __result = _swiftPart.mapItemForFeature(id);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) override {
+      auto __result = _swiftPart.providerCommand(command, argsJson);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

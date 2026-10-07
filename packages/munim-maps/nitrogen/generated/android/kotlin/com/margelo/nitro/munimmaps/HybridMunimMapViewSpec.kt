@@ -531,6 +531,20 @@ abstract class HybridMunimMapViewSpec: HybridView() {
     set(value) {
       onError = value?.let { it }
     }
+  
+  abstract var onProviderEvent: ((name: String, payload: String) -> Unit)?
+  
+  private var onProviderEvent_cxx: Func_void_std__string_std__string?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onProviderEvent?.let { Func_void_std__string_std__string_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onProviderEvent = value?.let { it }
+    }
 
   // Methods
   @DoNotStrip
@@ -612,6 +626,10 @@ abstract class HybridMunimMapViewSpec: HybridView() {
   @DoNotStrip
   @Keep
   abstract fun mapItemForFeature(id: String): Promise<MapItem>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun providerCommand(command: String, argsJson: String): Promise<String>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

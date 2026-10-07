@@ -212,6 +212,7 @@ namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 #include "MapFeatureEvent.hpp"
 #include "JFunc_void_MapFeatureEvent.hpp"
 #include "JMapFeatureEvent.hpp"
+#include "JFunc_void_std__string_std__string.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
 #include "MapPoint.hpp"
@@ -1103,6 +1104,23 @@ namespace margelo::nitro::munimmaps {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_std__string::javaobject> /* onError */)>("setOnError_cxx");
     method(_javaPart, onError.has_value() ? JFunc_void_std__string_cxx::fromCpp(onError.value()) : nullptr);
   }
+  std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>> JHybridMunimMapViewSpec::getOnProviderEvent() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_std__string_std__string::javaobject>()>("getOnProviderEvent_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(const std::string& /* name */, const std::string& /* payload */)> {
+      if (__result->isInstanceOf(JFunc_void_std__string_std__string_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_std__string_std__string_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_std__string_std__string, void(std::string, std::string)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridMunimMapViewSpec::setOnProviderEvent(const std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>& onProviderEvent) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_std__string_std__string::javaobject> /* onProviderEvent */)>("setOnProviderEvent_cxx");
+    method(_javaPart, onProviderEvent.has_value() ? JFunc_void_std__string_std__string_cxx::fromCpp(onProviderEvent.value()) : nullptr);
+  }
 
   // Methods
   void JHybridMunimMapViewSpec::setCamera(const MapCamera& camera, bool animated) {
@@ -1327,6 +1345,22 @@ namespace margelo::nitro::munimmaps {
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
         auto __result = jni::static_ref_cast<JMapItem>(__boxedResult);
         __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<std::string>> JHybridMunimMapViewSpec::providerCommand(const std::string& command, const std::string& argsJson) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* command */, jni::alias_ref<jni::JString> /* argsJson */)>("providerCommand");
+    auto __result = method(_javaPart, jni::make_jstring(command), jni::make_jstring(argsJson));
+    return [&]() {
+      auto __promise = Promise<std::string>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<jni::JString>(__boxedResult);
+        __promise->resolve(__result->toStdString());
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
         jni::JniException __jniError(__throwable);

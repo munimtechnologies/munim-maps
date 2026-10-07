@@ -1319,6 +1319,43 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::function<void(const std::string& /* name */, const std::string& /* payload */)>
+  /**
+   * Specialized version of `std::function<void(const std::string&, const std::string&)>`.
+   */
+  using Func_void_std__string_std__string = std::function<void(const std::string& /* name */, const std::string& /* payload */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::string& / * name * /, const std::string& / * payload * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__string_std__string_Wrapper final {
+  public:
+    explicit Func_void_std__string_std__string_Wrapper(std::function<void(const std::string& /* name */, const std::string& /* payload */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>(std::move(func))) {}
+    inline void call(std::string name, std::string payload) const noexcept {
+      _function->operator()(name, payload);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::string& /* name */, const std::string& /* payload */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__string_std__string create_Func_void_std__string_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__string_std__string_Wrapper wrap_Func_void_std__string_std__string(Func_void_std__string_std__string value) noexcept {
+    return Func_void_std__string_std__string_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const std::string& / * name * /, const std::string& / * payload * /)>>`.
+   */
+  using std__optional_std__function_void_const_std__string_____name_____const_std__string_____payload______ = std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>;
+  inline std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>> create_std__optional_std__function_void_const_std__string_____name_____const_std__string_____payload______(const std::function<void(const std::string& /* name */, const std::string& /* payload */)>& value) noexcept {
+    return std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_std__string_____name_____const_std__string_____payload______(const std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const std::string& /* name */, const std::string& /* payload */)> get_std__optional_std__function_void_const_std__string_____name_____const_std__string_____payload______(const std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
   // pragma MARK: std::vector<CameraKeyframe>
   /**
    * Specialized version of `std::vector<CameraKeyframe>`.

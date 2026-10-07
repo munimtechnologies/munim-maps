@@ -53,6 +53,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
         heading: l.course >= 0 ? l.course : -1, speed: l.speed >= 0 ? l.speed : -1))
     }
     engine.onUserTrackingModeChange = { [weak self] mode in self?.onUserTrackingModeChange?(UserTrackingMode(mode)) }
+    engine.onProviderEvent = { [weak self] name, payload in self?.onProviderEvent?(name, payload) }
     engine.onMapFeaturePress = { [weak self] f in
       self?.onMapFeaturePress?(MapFeatureEvent(
         title: f.title, latitude: f.coordinate.latitude, longitude: f.coordinate.longitude,
@@ -258,6 +259,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?
   var onError: ((_ message: String) -> Void)?
+  var onProviderEvent: ((_ name: String, _ payload: String) -> Void)?
 
   // MARK: Methods
 
@@ -391,6 +393,20 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
       self.map.mapItem(forFeature: id) { result in
         switch result {
         case .success(let item): promise.resolve(withResult: MapItem(item))
+        case .failure(let error): promise.reject(withError: error)
+        }
+      }
+    }
+    return promise
+  }
+
+  func providerCommand(command: String, argsJson: String) throws -> Promise<String> {
+    let promise = Promise<String>()
+    let args = (try? JSONSerialization.jsonObject(with: Data(argsJson.utf8))) as? [String: Any] ?? [:]
+    DispatchQueue.main.async {
+      self.map.providerCommand(command, args: args) { result in
+        switch result {
+        case .success(let json): promise.resolve(withResult: json)
         case .failure(let error): promise.reject(withError: error)
         }
       }

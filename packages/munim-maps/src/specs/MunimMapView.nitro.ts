@@ -207,6 +207,11 @@ export interface MunimMapViewProps extends HybridViewProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
+  /**
+   * An event only one engine has (MapLibre's `styleLoaded`, offline
+   * progress…): its name and a JSON payload. See the engine's docs.
+   */
+  onProviderEvent?: (name: string, payload: string) => void
 }
 
 export interface MunimMapViewMethods extends HybridViewMethods {
@@ -257,6 +262,13 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   overlayAtPoint(point: MapPoint): Promise<string>
   /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
   mapItemForFeature(id: string): Promise<MapItem>
+  /**
+   * Runs a command only the active engine has (MapLibre's
+   * `queryRenderedFeatures`, offline packs…) with JSON arguments; resolves
+   * with a JSON result. Engines reject commands they do not know. Typed
+   * wrappers: `maplibreCommands(ref)`.
+   */
+  providerCommand(command: string, argsJson: string): Promise<string>
 }
 
 export type MunimMapView = HybridView<

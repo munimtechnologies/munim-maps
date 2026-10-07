@@ -272,6 +272,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setOnMapFeaturePress(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& onMapFeaturePress) = 0;
       virtual std::optional<std::function<void(const std::string& /* message */)>> getOnError() = 0;
       virtual void setOnError(const std::optional<std::function<void(const std::string& /* message */)>>& onError) = 0;
+      virtual std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>> getOnProviderEvent() = 0;
+      virtual void setOnProviderEvent(const std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>& onProviderEvent) = 0;
 
     public:
       // Methods
@@ -295,6 +297,7 @@ namespace margelo::nitro::munimmaps {
       virtual std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() = 0;
       virtual std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) = 0;
       virtual std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) = 0;
+      virtual std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) = 0;
 
     protected:
       // Hybrid Setup

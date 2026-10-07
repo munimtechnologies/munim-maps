@@ -111,6 +111,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     override fun onUserTrackingModeChange(mode: UserTrackingMode) { onUserTrackingModeChange?.invoke(mode) }
     override fun onMapFeaturePress(feature: MapFeatureEvent) { onMapFeaturePress?.invoke(feature) }
     override fun onError(message: String) { onError?.invoke(message) }
+    override fun onProviderEvent(name: String, payload: String) { onProviderEvent?.invoke(name, payload) }
   }
 
   // Props
@@ -228,6 +229,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var onUserTrackingModeChange: ((mode: UserTrackingMode) -> Unit)? = null
   override var onMapFeaturePress: ((feature: MapFeatureEvent) -> Unit)? = null
   override var onError: ((message: String) -> Unit)? = null
+  override var onProviderEvent: ((name: String, payload: String) -> Unit)? = null
 
   // Methods (called on the JavaScript thread; the engine runs on the main thread)
 
@@ -312,4 +314,8 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
 
   override fun mapItemForFeature(id: String): Promise<MapItem> =
     Promise.rejected(UnsupportedOperationException("mapItemForFeature is MapKit only"))
+
+  override fun providerCommand(command: String, argsJson: String): Promise<String> = mainPromise { e, p ->
+    e.providerCommand(command, options(argsJson)) { result -> result.fold({ p.resolve(it) }, { p.reject(it) }) }
+  }
 }

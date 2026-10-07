@@ -170,6 +170,8 @@ namespace margelo::nitro::munimmaps {
     void setOnMapFeaturePress(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& onMapFeaturePress) override;
     std::optional<std::function<void(const std::string& /* message */)>> getOnError() override;
     void setOnError(const std::optional<std::function<void(const std::string& /* message */)>>& onError) override;
+    std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>> getOnProviderEvent() override;
+    void setOnProviderEvent(const std::optional<std::function<void(const std::string& /* name */, const std::string& /* payload */)>>& onProviderEvent) override;
 
   public:
     // Methods
@@ -193,6 +195,7 @@ namespace margelo::nitro::munimmaps {
     std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() override;
     std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) override;
     std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) override;
+    std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) override;
 
   private:
     jni::global_ref<JHybridMunimMapViewSpec::JavaPart> _javaPart;

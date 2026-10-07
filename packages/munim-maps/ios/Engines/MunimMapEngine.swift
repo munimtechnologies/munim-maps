@@ -206,9 +206,25 @@ public protocol MunimMapEngine: AnyObject {
   /// The tappable overlay a tap at `point` would hit.
   func overlayHit(at point: CGPoint) -> (id: String, kind: String)?
   func mapItem(forFeature id: String, completion: @escaping (Result<MKMapItem, Error>) -> Void)
+
+  // MARK: Engine-only extras
+
+  /// A command only this engine has (JavaScript `providerCommand`), with
+  /// arguments decoded from JSON; completes with a JSON string. Default:
+  /// fails as unsupported.
+  func providerCommand(_ command: String, args: [String: Any], completion: @escaping (Result<String, Error>) -> Void)
+  /// An event only this engine has: name and JSON payload. Default: none;
+  /// engines that send them declare a stored property.
+  var onProviderEvent: ((String, String) -> Void)? { get set }
 }
 
 public extension MunimMapEngine {
+  func providerCommand(_ command: String, args: [String: Any], completion: @escaping (Result<String, Error>) -> Void) {
+    completion(.failure(MunimMapEngineError("\(provider.displayName) has no command '\(command)'")))
+  }
+
+  var onProviderEvent: ((String, String) -> Void)? { get { nil } set {} }
+
   /// Reports that this engine cannot do `what` yet.
   func reportUnsupported(_ what: String) {
     onError?("\(provider.displayName): \(what) is not supported yet")
