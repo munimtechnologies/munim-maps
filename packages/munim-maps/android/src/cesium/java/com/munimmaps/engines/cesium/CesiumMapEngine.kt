@@ -371,7 +371,15 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   // Props
 
   private var options = JSONObject()
-  private val renderer: String get() = options.optString("modelRenderer", "auto")
+  /** `modelRendering`: `auto` / `native` (Cesium) or `overlay` (the Filament layer); `modelRenderer` is the older name. */
+  private val renderer: String
+    get() = options.optString("modelRendering", "").ifEmpty {
+      when (options.optString("modelRenderer", "auto")) {
+        "cesium" -> "native"
+        "native" -> "overlay"
+        else -> "auto"
+      }
+    }
 
   override fun setStyleUrl(url: String) = set("styleUrl", url)
 
@@ -396,8 +404,8 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
 
   /** Whether Cesium draws the model (glTF, shapes, pictures) or the Filament layer does. */
   private fun cesiumDraws(model: NativeMapModel): Boolean = when (renderer) {
-    "native" -> false
-    "cesium" -> true
+    "overlay" -> false
+    "native" -> true
     else -> !model.occluder
   }
 
@@ -409,14 +417,14 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
 
   override fun setZones(zones: Array<NativeMapZone>) {
     allZones = zones
-    set("zones", if (renderer == "native") emptyArray<NativeMapZone>() else zones)
-    modelLayer.zones = if (renderer == "native") zones else emptyArray()
+    set("zones", if (renderer == "overlay") emptyArray<NativeMapZone>() else zones)
+    modelLayer.zones = if (renderer == "overlay") zones else emptyArray()
   }
 
   override fun setPaths(paths: Array<NativeMapPath>) {
     allPaths = paths
-    set("paths", if (renderer == "native") emptyArray<NativeMapPath>() else paths)
-    modelLayer.paths = if (renderer == "native") paths else emptyArray()
+    set("paths", if (renderer == "overlay") emptyArray<NativeMapPath>() else paths)
+    modelLayer.paths = if (renderer == "overlay") paths else emptyArray()
   }
 
   override fun modelLayerDidChange() {

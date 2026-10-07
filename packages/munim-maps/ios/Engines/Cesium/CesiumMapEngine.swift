@@ -264,7 +264,17 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
     }
   }
 
-  private var renderer: String { (providerOptions["modelRenderer"] as? String) ?? "auto" }
+  /// `modelRendering`: `auto` / `native` (Cesium entities and primitives) or
+  /// `overlay` (munim-maps' native 3D layer over the WebView). The older
+  /// `modelRenderer` (`cesium`, `native`) still works.
+  private var renderer: String {
+    if let mode = providerOptions["modelRendering"] as? String { return mode }
+    switch providerOptions["modelRenderer"] as? String {
+    case "cesium": return "native"
+    case "native": return "overlay"
+    default: return "auto"
+    }
+  }
 
   // MARK: 2D content
 
@@ -320,8 +330,8 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
   /// Whether Cesium draws this model (glTF, shapes, pictures) or the native layer does (USDZ, SCN, OBJ…).
   private func cesiumDraws(_ model: MunimModel) -> Bool {
     switch renderer {
-    case "native": return false
-    case "cesium": return true
+    case "overlay": return false
+    case "native": return true
     default:
       if model.occluder { return false }
       if !model.imageUri.isEmpty || model.uri.isEmpty { return true }
@@ -339,14 +349,14 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
 
   func setZones(_ zones: [MunimZone]) {
     allZones = zones
-    set("zones", renderer == "native" ? [] : zones)
-    modelLayer.zones = renderer == "native" ? zones : []
+    set("zones", renderer == "overlay" ? [] : zones)
+    modelLayer.zones = renderer == "overlay" ? zones : []
   }
 
   func setPaths(_ paths: [MunimPath]) {
     allPaths = paths
-    set("paths", renderer == "native" ? [] : paths)
-    modelLayer.paths = renderer == "native" ? paths : []
+    set("paths", renderer == "overlay" ? [] : paths)
+    modelLayer.paths = renderer == "overlay" ? paths : []
   }
 
   func modelLayerDidChange() {

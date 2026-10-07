@@ -50,7 +50,7 @@ function models(native: boolean): MapModel[] {
     { id: 'tower', coordinate: { latitude: 41.8838, longitude: -87.6295 }, shape: 'cylinder', size: { width: 20, height: 60 }, color: '#FF9500', label: 'Shape' },
     { id: 'friend', coordinate: { latitude: 41.8812, longitude: -87.6258 }, altitude: 30, image: require('./assets/avatar-a.png'), badge: '8F', stem: true, label: 'Friend', imageBorder: { color: '#34C759' } },
     { id: 'smoke', coordinate: { latitude: 41.8846, longitude: -87.6245 }, effect: 'smoke', size: { width: 30, height: 60 } },
-    // USDZ on iOS: drawn by the native 3D layer on Cesium's camera (modelRenderer 'auto').
+    // USDZ on iOS: drawn by the native 3D layer on Cesium's camera (modelRendering 'auto').
     ...(Platform.OS === 'ios' || native ? [{ id: 'native-sedan', coordinate: { latitude: 41.8826, longitude: -87.6278 }, source: VEHICLES['car-sedan'], heading: 30, screenSize: 30 } satisfies MapModel] : []),
   ]
 }
@@ -122,7 +122,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
   const [look, setLook] = useState(false)
   const [widgets, setWidgets] = useState(false)
   const [data, setData] = useState(true)
-  const [renderer, setRenderer] = useState<'auto' | 'native'>('auto')
+  const [renderer, setRenderer] = useState<'auto' | 'overlay'>('auto')
   const [overlay, setOverlay] = useState(false)
   const [dark, setDark] = useState(false)
   const [panel, setPanel] = useState(true)
@@ -140,7 +140,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
     () => ({
       sceneMode,
       imagery,
-      modelRenderer: renderer,
+      modelRendering: renderer,
       allowEvaluate: true,
       widgets: widgets ? { timeline: true, animation: true } : undefined,
       clock: { startTime: '2026-10-07T00:00:00Z', stopTime: '2026-10-08T00:00:00Z', currentTime: '2026-10-07T00:00:00Z', multiplier: 60, shouldAnimate: true },
@@ -310,8 +310,8 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
       const a = await map.addressForCoordinate(CAMERA)
       return [a.formatted.length > 0, a.formatted]
     })
-    await attempt('measureAlignment (native 3D layer)', async () => {
-      setRenderer('native')
+    await attempt('measureAlignment (overlay 3D layer)', async () => {
+      setRenderer('overlay')
       await wait(3000)
       const reports = []
       for (const cam of [CAMERA, { ...CAMERA, pitch: 0, heading: 0, distance: 600 }, { ...CAMERA, pitch: 65, heading: 200, distance: 2500 }]) {
@@ -353,7 +353,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
         style={StyleSheet.absoluteFill}
         initialCamera={CAMERA}
         cesium={cesium}
-        models={useMemo(() => models(renderer === 'native'), [renderer])}
+        models={useMemo(() => models(renderer === 'overlay'), [renderer])}
         zones={ZONES}
         paths={PATHS}
         markers={MARKERS}
@@ -412,7 +412,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
           {button('Data', () => setData((v) => !v), data)}
           {button('Timeline', () => setWidgets((v) => !v), widgets)}
           {button('Hillshade', () => setOverlay((v) => !v), overlay)}
-          {button(`3D: ${renderer}`, () => setRenderer((r) => (r === 'auto' ? 'native' : 'auto')), renderer === 'native')}
+          {button(`3D: ${renderer}`, () => setRenderer((r) => (r === 'auto' ? 'overlay' : 'auto')), renderer === 'overlay')}
           {button('Fly', () => void c().flyTo({ destination: { latitude: 48.8584, longitude: 2.2945, height: 1500 }, orientation: { heading: 0, pitch: -35 }, duration: 6 }))}
           {button('Home', () => ref.current?.setCamera(CAMERA, true))}
           {button('Orbit', () => void c().orbit({ degreesPerSecond: 12 }))}

@@ -628,13 +628,20 @@ export interface CesiumMapOptions {
 
   // munim models
   /**
-   * Who draws `models`, `zones` and `paths`: `auto` (default) lets Cesium
-   * draw glTF / GLB, shapes and pictures (hidden by terrain and buildings)
-   * and munim-maps' native 3D layer draw other files (USDZ, SCN, OBJ on
-   * iOS); `cesium` draws everything in Cesium (other files are skipped);
-   * `native` draws everything on the native layer over the WebView, exactly
-   * as on MapKit.
+   * Who draws `models`, `zones` and `paths`:
+   * - `auto` (default): Cesium draws them natively (glTF / GLB models as
+   *   Cesium models, shapes, pictures, labels, stems, effects, zones, paths
+   *   as entities and primitives, hidden by terrain and 3D Tiles); only files
+   *   Cesium cannot read (USDZ, SCN, OBJ on iOS) and occluders go to
+   *   munim-maps' overlay 3D layer.
+   * - `native`: everything in Cesium (files it cannot read are skipped).
+   * - `overlay`: everything on munim-maps' native 3D layer (SceneKit /
+   *   Filament) drawn over the WebView with Cesium's camera, exactly as on
+   *   MapKit; it is not hidden by terrain or 3D Tiles and trails the camera
+   *   by a frame while it moves.
    */
+  modelRendering?: 'auto' | 'native' | 'overlay'
+  /** @deprecated `modelRendering`: `cesium` is `native`, `native` is `overlay`. */
   modelRenderer?: 'auto' | 'cesium' | 'native'
   /** Degrees added to models' heading. Default -90 (Cesium faces glTF models east). */
   modelHeadingOffset?: number
