@@ -73,8 +73,10 @@ Pod::Spec.new do |s|
     ss.source_files = "ios/Engines/Google/**/*.swift"
     # Maps SDK for iOS 10 and Google Maps Utils 7 (clustering, heatmaps,
     # KML, GeoJSON).
-    ss.dependency "GoogleMaps", ">= 10.0"
-    ss.dependency "Google-Maps-iOS-Utils", ">= 7.0"
+    # GoogleMaps 9.4+ with Utils 6.1+ (react-native-maps' Google subspec pins
+    # 9.4.0 / 6.1.0); 10.x with Utils 7 otherwise.
+    ss.dependency "GoogleMaps", ">= 9.4"
+    ss.dependency "Google-Maps-iOS-Utils", ">= 6.1"
   end
 
   s.subspec "Mapbox" do |ss|

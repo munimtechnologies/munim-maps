@@ -34,7 +34,32 @@ const providers = (process.env.MUNIM_MAPS_PROVIDERS ?? keys.MUNIM_MAPS_PROVIDERS
   .map((p) => p.trim())
   .filter(Boolean)
 
-module.exports = ({ config }) => ({
+// react-native-maps registers its Google map component whenever the
+// GoogleMaps pod is in the app (which munim-maps' Google engine adds), so
+// its Google subspec has to be built too, or the app crashes at launch
+// (RCTThirdPartyComponentsProvider: RNMapsGoogleMapView missing).
+function withReactNativeMapsGoogle(config) {
+  if (!providers.includes('google')) return config
+  let plugins
+  try {
+    plugins = require('expo/config-plugins')
+  } catch {
+    plugins = require('@expo/config-plugins')
+  }
+  return plugins.withPodfile(config, (c) => {
+    const line =
+      "  pod 'react-native-maps/Google', :path => File.dirname(`node --print \"require.resolve('react-native-maps/package.json')\"`)"
+    if (!c.modResults.contents.includes("react-native-maps/Google")) {
+      c.modResults.contents = c.modResults.contents.replace(
+        /(\n\s*use_expo_modules!\n)/,
+        `$1${line}\n`
+      )
+    }
+    return c
+  })
+}
+
+module.exports = ({ config }) => withReactNativeMapsGoogle({
   ...config,
   // The Google screen's web-service check (Places, Geocoding, Routes) needs
   // the key in JavaScript; it is only in local builds, never committed.

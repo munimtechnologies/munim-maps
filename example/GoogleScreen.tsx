@@ -389,7 +389,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
     await check('googleGeometry (JavaScript)', async () => {
       const d = googleGeometry.computeDistanceBetween({ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 })
       const path = googleGeometry.decodePath(googleGeometry.encodePath(ROUTE))
-      return Math.abs(d - 111_319) < 50 && path.length === 3 ? `${d.toFixed(0)} m per degree` : false
+      return Math.abs(d - 111_195) < 50 && path.length === 3 ? `${d.toFixed(0)} m per degree` : false
     })
     const key = (Constants.expoConfig?.extra as { googleMapsApiKey?: string } | undefined)?.googleMapsApiKey
     await check('Places / Geocoding / Routes (web services, needs the APIs on the key)', async () => {

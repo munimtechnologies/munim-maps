@@ -154,7 +154,7 @@ extension GoogleMapEngine {
   /// `streetView.open`: finds a panorama (`latitude` / `longitude` with
   /// `radius` and `source: 'outdoor'`, or `panoramaId`) and shows it.
   func openStreetView(_ args: GoogleJSON, completion: @escaping (Result<Any, Error>) -> Void) {
-    let service = GMSPanoramaService()
+    let service = panoramaService
     let found: GMSPanoramaCallback = { [weak self] panorama, error in
       DispatchQueue.main.async {
         guard let self else { return }

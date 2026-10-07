@@ -147,7 +147,7 @@ extension GoogleMapEngine {
     case "hasCoverage":
       guard let coordinate = args.coordinate else { return fail("hasCoverage needs latitude and longitude") }
       let source: GMSPanoramaSource = args["source"].string == "outdoor" ? .outside : .default
-      GMSPanoramaService().requestPanoramaNearCoordinate(
+      panoramaService.requestPanoramaNearCoordinate(
         coordinate, radius: UInt(max(1, args["radius"].double(50))), source: source
       ) { panorama, _ in
         DispatchQueue.main.async { done(panorama.map(GoogleStreetView.info) ?? NSNull()) }

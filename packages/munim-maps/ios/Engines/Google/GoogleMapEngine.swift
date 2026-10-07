@@ -202,8 +202,10 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   var geoJsonSources: [String: String] = [:]
   var featureLayerIds: [String: String] = [:]
 
-  // Street View (GoogleStreetView.swift)
+  // Street View (GoogleStreetView.swift). The service is kept: Google drops
+  // the callback when it is released mid-request.
   var streetView: GoogleStreetView?
+  lazy var panoramaService = GMSPanoramaService()
 
   // Flights
   private var flight: (keyframes: [MunimCameraKeyframe], start: Double, loop: Bool)?
@@ -401,7 +403,10 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
     mapView.overrideUserInterfaceStyle = colorScheme
     mapView.isBuildingsEnabled = showsBuildings
     mapView.isTrafficEnabled = showsTraffic
-    mapView.isTransitEnabled = o["transitEnabled"].bool(false)
+    // Transit lines are GoogleMaps 10+ (react-native-maps pins 9.4).
+    if mapView.responds(to: NSSelectorFromString("setTransitEnabled:")) {
+      mapView.setValue(o["transitEnabled"].bool(false), forKey: "transitEnabled")
+    }
     mapView.isIndoorEnabled = o["indoorEnabled"].bool(false)
     mapView.isMyLocationEnabled = showsUserLocation || userTrackingMode != .none
     if let background = o["backgroundColor"].color { mapView.backgroundColor = background }
@@ -576,6 +581,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
       return
     }
     endTrackingForCameraMove()
+    if flight == nil { emit("cameraMoveStarted", ["reason": "developerAnimation"]) }
     flight = (keyframes.sorted { $0.t < $1.t }, start, loop)
     if flightLink == nil {
       let link = CADisplayLink(target: GoogleFlightTarget(self), selector: #selector(GoogleFlightTarget.tick))
@@ -804,7 +810,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
 
   /// Street View is Google's Look Around.
   public func hasLookAround(at coordinate: CLLocationCoordinate2D, completion: @escaping (Bool) -> Void) {
-    GMSPanoramaService().requestPanoramaNearCoordinate(coordinate) { panorama, _ in
+    panoramaService.requestPanoramaNearCoordinate(coordinate) { panorama, _ in
       completion(panorama != nil)
     }
   }
