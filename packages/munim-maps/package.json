@@ -147,7 +147,8 @@
     "vehicles.js",
     "vehicles.android.js",
     "vehicles-glb.js",
-    "cesium/"
+    "cesium/",
+    "android/build/"
   ],
   "prettier": {
     "quoteProps": "consistent",
