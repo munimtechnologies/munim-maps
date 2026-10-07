@@ -64,6 +64,7 @@
     "onUserTrackingModeChange": true,
     "onMapFeaturePress": true,
     "onError": true,
+    "onProviderEvent": true,
     "hybridRef": true
   }
 }

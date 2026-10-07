@@ -207,6 +207,18 @@ export interface MunimMapViewProps extends HybridViewProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
+  /**
+   * An event only one engine has (Cesium's `pick`, `tilesetLoaded`…):
+   * `name` and its data as JSON. See the engine's docs.
+   */
+  onProviderEvent?: (event: ProviderEvent) => void
+}
+
+/** An engine-specific event: its name and JSON data. */
+export interface ProviderEvent {
+  name: string
+  /** JSON. */
+  data: string
 }
 
 export interface MunimMapViewMethods extends HybridViewMethods {
@@ -257,6 +269,13 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   overlayAtPoint(point: MapPoint): Promise<string>
   /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
   mapItemForFeature(id: string): Promise<MapItem>
+  /**
+   * Runs a method only one engine has (such as Cesium's `flyTo`, `pick` or
+   * `loadDataSource`) with JSON arguments, and resolves with its JSON
+   * result. Rejects on engines without it. Typed wrappers live with each
+   * engine (`cesiumCommands(ref)`).
+   */
+  providerCommand(command: string, argsJson: string): Promise<string>
 }
 
 export type MunimMapView = HybridView<

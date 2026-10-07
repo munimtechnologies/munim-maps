@@ -100,6 +100,8 @@ namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 // Forward declaration of `MapFeatureEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `ProviderEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ProviderEvent; }
 // Forward declaration of `MapCameraEasing` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
 // Forward declaration of `CameraKeyframe` to properly resolve imports.
@@ -161,6 +163,7 @@ namespace margelo::nitro::munimmaps { struct MapItem; }
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
+#include "ProviderEvent.hpp"
 #include "MapCameraEasing.hpp"
 #include "CameraKeyframe.hpp"
 #include <NitroModules/Promise.hpp>
@@ -619,6 +622,13 @@ namespace margelo::nitro::munimmaps {
     inline void setOnError(const std::optional<std::function<void(const std::string& /* message */)>>& onError) noexcept override {
       _swiftPart.setOnError(onError);
     }
+    inline std::optional<std::function<void(const ProviderEvent& /* event */)>> getOnProviderEvent() noexcept override {
+      auto __result = _swiftPart.getOnProviderEvent();
+      return __result;
+    }
+    inline void setOnProviderEvent(const std::optional<std::function<void(const ProviderEvent& /* event */)>>& onProviderEvent) noexcept override {
+      _swiftPart.setOnProviderEvent(onProviderEvent);
+    }
 
   public:
     // Methods
@@ -758,6 +768,14 @@ namespace margelo::nitro::munimmaps {
     }
     inline std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) override {
       auto __result = _swiftPart.mapItemForFeature(id);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) override {
+      auto __result = _swiftPart.providerCommand(command, argsJson);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

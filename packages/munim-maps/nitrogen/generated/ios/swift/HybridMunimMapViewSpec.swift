@@ -70,6 +70,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)? { get set }
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)? { get set }
   var onError: ((_ message: String) -> Void)? { get set }
+  var onProviderEvent: ((_ event: ProviderEvent) -> Void)? { get set }
 
   // Methods
   func setCamera(camera: MapCamera, animated: Bool) throws -> Void
@@ -92,6 +93,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   func measureAlignment() throws -> Promise<MapAlignmentReport>
   func overlayAtPoint(point: MapPoint) throws -> Promise<String>
   func mapItemForFeature(id: String) throws -> Promise<MapItem>
+  func providerCommand(command: String, argsJson: String) throws -> Promise<String>
 }
 
 public extension HybridMunimMapViewSpec_protocol {

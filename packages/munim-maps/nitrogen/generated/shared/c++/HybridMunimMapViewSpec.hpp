@@ -69,6 +69,8 @@ namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 // Forward declaration of `MapFeatureEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `ProviderEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ProviderEvent; }
 // Forward declaration of `MapCameraEasing` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class MapCameraEasing; }
 // Forward declaration of `CameraKeyframe` to properly resolve imports.
@@ -116,6 +118,7 @@ namespace margelo::nitro::munimmaps { struct MapItem; }
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
+#include "ProviderEvent.hpp"
 #include "MapCameraEasing.hpp"
 #include "CameraKeyframe.hpp"
 #include <NitroModules/Promise.hpp>
@@ -272,6 +275,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setOnMapFeaturePress(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& onMapFeaturePress) = 0;
       virtual std::optional<std::function<void(const std::string& /* message */)>> getOnError() = 0;
       virtual void setOnError(const std::optional<std::function<void(const std::string& /* message */)>>& onError) = 0;
+      virtual std::optional<std::function<void(const ProviderEvent& /* event */)>> getOnProviderEvent() = 0;
+      virtual void setOnProviderEvent(const std::optional<std::function<void(const ProviderEvent& /* event */)>>& onProviderEvent) = 0;
 
     public:
       // Methods
@@ -295,6 +300,7 @@ namespace margelo::nitro::munimmaps {
       virtual std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() = 0;
       virtual std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) = 0;
       virtual std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) = 0;
+      virtual std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) = 0;
 
     protected:
       // Hybrid Setup

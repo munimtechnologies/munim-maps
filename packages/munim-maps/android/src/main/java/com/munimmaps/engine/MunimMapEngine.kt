@@ -23,6 +23,9 @@ import com.margelo.nitro.munimmaps.MapStyle
 import com.margelo.nitro.munimmaps.MarkerDragEvent
 import com.margelo.nitro.munimmaps.NativeCircle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
+import com.margelo.nitro.munimmaps.NativeMapModel
+import com.margelo.nitro.munimmaps.NativeMapPath
+import com.margelo.nitro.munimmaps.NativeMapZone
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -59,6 +62,8 @@ interface MunimMapEngineListener {
   fun onUserTrackingModeChange(mode: UserTrackingMode) {}
   fun onMapFeaturePress(feature: MapFeatureEvent) {}
   fun onError(message: String) {}
+  /** An event only this engine has: a name and JSON data (`onProviderEvent`). */
+  fun onProviderEvent(name: String, data: String) {}
 }
 
 /** How the registry makes one engine (one per provider source set). */
@@ -186,6 +191,23 @@ interface MunimMapEngine {
   fun measureAlignment(): MapAlignmentReport = modelLayer.measureAlignment()
   /** Id of the tappable overlay a tap at `point` (points) would hit, or empty. */
   fun overlayAtPoint(point: MapPoint): String = ""
+
+  // 3D content and engine-only extras
+
+  /** Models, zones and paths; the default hands them to [modelLayer] (Cesium draws most itself). */
+  fun setModels(models: Array<NativeMapModel>) { modelLayer.models = models }
+  fun setZones(zones: Array<NativeMapZone>) { modelLayer.zones = zones }
+  fun setPaths(paths: Array<NativeMapPath>) { modelLayer.paths = paths }
+  /** The host changed [modelLayer]'s lighting, occlusion, terrain or distance settings. */
+  fun modelLayerDidChange() {}
+  /** The 2D/3D button (`pitchButtonVisibility`). */
+  fun setPitchButtonVisibility(visibility: FeatureVisibility) {}
+  /** Tappable places on the base map (`selectableMapFeatures`, comma-separated). */
+  fun setSelectableMapFeatures(features: String) {}
+  /** A method only this engine has, with JSON arguments; completes with a JSON result. */
+  fun providerCommand(command: String, args: String, completion: (Result<String>) -> Unit) {
+    completion(Result.failure(UnsupportedOperationException("${provider.displayName} has no command \"$command\"")))
+  }
 }
 
 /** The name people know it by, for messages. */

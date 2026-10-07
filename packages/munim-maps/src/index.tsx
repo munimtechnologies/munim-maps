@@ -44,6 +44,7 @@ import type {
   UserTrackingMode,
   FeatureVisibility,
   SelectionAccessory,
+  ProviderEvent,
 } from './specs/MunimMapView.nitro'
 import type {
   CalloutAccessoryEvent,
@@ -687,6 +688,12 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
+  /**
+   * Events only the active engine has, such as Cesium's `pick` or
+   * `tilesetLoaded`: `name` and JSON `data` (`parseCesiumEvent` reads
+   * Cesium's).
+   */
+  onProviderEvent?: (event: ProviderEvent) => void
   style?: StyleProp<ViewStyle>
   /** `MarkerView`s: React Native views as markers. */
   children?: ReactNode
@@ -750,6 +757,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
+    const onProviderEvent = useCallbackProp(props.onProviderEvent)
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
@@ -833,6 +841,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
         onError={onError}
+        onProviderEvent={onProviderEvent}
         hybridRef={hybridRef}
       >
         {props.children}
@@ -858,6 +867,7 @@ export {
   type MunimMapsConfiguration,
   type ProviderOptionProps,
 } from './providers'
+export * from './providers/cesium'
 export { MarkerView, type MarkerViewProperties } from './MarkerView'
 export {
   LookAroundView,
@@ -910,6 +920,7 @@ export type {
   UserLocationEvent,
   UserTrackingMode,
   FeatureVisibility,
+  ProviderEvent,
   MapAlignmentReport,
   MapAltitudeReference,
   MapCoordinate,

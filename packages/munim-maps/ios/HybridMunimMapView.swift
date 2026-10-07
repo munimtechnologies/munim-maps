@@ -53,6 +53,9 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
         heading: l.course >= 0 ? l.course : -1, speed: l.speed >= 0 ? l.speed : -1))
     }
     engine.onUserTrackingModeChange = { [weak self] mode in self?.onUserTrackingModeChange?(UserTrackingMode(mode)) }
+    engine.onProviderEvent = { [weak self] name, data in
+      self?.onProviderEvent?(ProviderEvent(name: name, data: data))
+    }
     engine.onMapFeaturePress = { [weak self] f in
       self?.onMapFeaturePress?(MapFeatureEvent(
         title: f.title, latitude: f.coordinate.latitude, longitude: f.coordinate.longitude,
@@ -128,14 +131,18 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     }
   }
 
-  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = models.map(\.core) } }
-  var zones: [NativeMapZone] = [] { didSet { map.modelLayer.zones = zones.map(\.core) } }
-  var paths: [NativeMapPath] = [] { didSet { map.modelLayer.paths = paths.map(\.core) } }
-  var occlusion: MapOcclusion = .none { didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings } }
-  var buildingTilesUrl = "" { didSet { map.modelLayer.buildingTilesURL = buildingTilesUrl } }
-  var followTerrain = false { didSet { map.modelLayer.followsTerrain = followTerrain } }
-  var lighting: MapModelLighting = .auto { didSet { map.modelLayer.lighting = lighting.core } }
-  var maxCameraDistance: Double = 50_000 { didSet { map.modelLayer.maxCameraDistance = maxCameraDistance } }
+  var models: [NativeMapModel] = [] { didSet { map.setModels(models.map(\.core)) } }
+  var zones: [NativeMapZone] = [] { didSet { map.setZones(zones.map(\.core)) } }
+  var paths: [NativeMapPath] = [] { didSet { map.setPaths(paths.map(\.core)) } }
+  var occlusion: MapOcclusion = .none {
+    didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings; map.modelLayerDidChange() }
+  }
+  var buildingTilesUrl = "" { didSet { map.modelLayer.buildingTilesURL = buildingTilesUrl; map.modelLayerDidChange() } }
+  var followTerrain = false { didSet { map.modelLayer.followsTerrain = followTerrain; map.modelLayerDidChange() } }
+  var lighting: MapModelLighting = .auto { didSet { map.modelLayer.lighting = lighting.core; map.modelLayerDidChange() } }
+  var maxCameraDistance: Double = 50_000 {
+    didSet { map.modelLayer.maxCameraDistance = maxCameraDistance; map.modelLayerDidChange() }
+  }
 
   var markers: [NativeMarker] = [] { didSet { map.markers = markers.map(\.core) } }
   var polylines: [NativePolyline] = [] { didSet { map.polylines = polylines.map(\.core) } }
@@ -258,6 +265,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?
   var onError: ((_ message: String) -> Void)?
+  var onProviderEvent: ((_ event: ProviderEvent) -> Void)?
 
   // MARK: Methods
 
@@ -391,6 +399,19 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
       self.map.mapItem(forFeature: id) { result in
         switch result {
         case .success(let item): promise.resolve(withResult: MapItem(item))
+        case .failure(let error): promise.reject(withError: error)
+        }
+      }
+    }
+    return promise
+  }
+
+  func providerCommand(command: String, argsJson: String) throws -> Promise<String> {
+    let promise = Promise<String>()
+    DispatchQueue.main.async {
+      self.map.providerCommand(command, argsJSON: argsJson) { result in
+        switch result {
+        case .success(let json): promise.resolve(withResult: json)
         case .failure(let error): promise.reject(withError: error)
         }
       }

@@ -66,13 +66,12 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     e.setCameraBoundary(boundary())
     e.setMapPadding(mapPadding)
     e.setOverlayPressEnabled(onOverlayPress != null)
+    e.setPitchButtonVisibility(pitchButtonVisibility)
+    e.setSelectableMapFeatures(selectableMapFeatures)
   }
 
   private fun applyModelLayer(e: MunimMapEngine) {
     val layer = e.modelLayer
-    layer.models = models
-    layer.zones = zones
-    layer.paths = paths
     layer.buildingOcclusion = occlusion == MapOcclusion.BUILDINGS
     layer.buildingTilesUrl = buildingTilesUrl
     layer.followsTerrain = followTerrain
@@ -80,6 +79,10 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     layer.maxCameraDistance = maxCameraDistance
     layer.onModelPress = { id -> onModelPress?.invoke(id) }
     layer.onError = { message -> onError?.invoke(message) }
+    e.modelLayerDidChange()
+    e.setModels(models)
+    e.setZones(zones)
+    e.setPaths(paths)
   }
 
   private fun options(json: String): JSONObject = try {
@@ -111,6 +114,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     override fun onUserTrackingModeChange(mode: UserTrackingMode) { onUserTrackingModeChange?.invoke(mode) }
     override fun onMapFeaturePress(feature: MapFeatureEvent) { onMapFeaturePress?.invoke(feature) }
     override fun onError(message: String) { onError?.invoke(message) }
+    override fun onProviderEvent(name: String, data: String) { onProviderEvent?.invoke(ProviderEvent(name, data)) }
   }
 
   // Props
@@ -122,21 +126,21 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setProviderOptions(options(value)) }
 
   override var models: Array<NativeMapModel> = emptyArray()
-    set(value) { field = value; engine?.modelLayer?.models = value }
+    set(value) { field = value; engine?.setModels(value) }
   override var zones: Array<NativeMapZone> = emptyArray()
-    set(value) { field = value; engine?.modelLayer?.zones = value }
+    set(value) { field = value; engine?.setZones(value) }
   override var paths: Array<NativeMapPath> = emptyArray()
-    set(value) { field = value; engine?.modelLayer?.paths = value }
+    set(value) { field = value; engine?.setPaths(value) }
   override var occlusion: MapOcclusion = MapOcclusion.NONE
-    set(value) { field = value; engine?.modelLayer?.buildingOcclusion = value == MapOcclusion.BUILDINGS }
+    set(value) { field = value; engine?.modelLayer?.buildingOcclusion = value == MapOcclusion.BUILDINGS; engine?.modelLayerDidChange() }
   override var buildingTilesUrl: String = ""
-    set(value) { field = value; engine?.modelLayer?.buildingTilesUrl = value }
+    set(value) { field = value; engine?.modelLayer?.buildingTilesUrl = value; engine?.modelLayerDidChange() }
   override var followTerrain: Boolean = false
-    set(value) { field = value; engine?.modelLayer?.followsTerrain = value }
+    set(value) { field = value; engine?.modelLayer?.followsTerrain = value; engine?.modelLayerDidChange() }
   override var lighting: MapModelLighting = MapModelLighting.AUTO
-    set(value) { field = value; engine?.modelLayer?.lighting = value }
+    set(value) { field = value; engine?.modelLayer?.lighting = value; engine?.modelLayerDidChange() }
   override var maxCameraDistance: Double = 50_000.0
-    set(value) { field = value; engine?.modelLayer?.maxCameraDistance = value }
+    set(value) { field = value; engine?.modelLayer?.maxCameraDistance = value; engine?.modelLayerDidChange() }
 
   override var initialCamera: MapCamera = MapCamera(0.0, 0.0, 0.0, 0.0, 0.0)
     set(value) { field = value; if (value.distance > 0) engine?.setInitialCamera(value) }
@@ -172,8 +176,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setScaleVisibility(value) }
   override var showsUserTrackingButton: Boolean = false
     set(value) { field = value; engine?.setShowsUserTrackingButton(value) }
-  /** MapKit's 2D/3D button; iOS only. */
+  /** The 2D/3D button (MapKit; Cesium draws one too). */
   override var pitchButtonVisibility: FeatureVisibility = FeatureVisibility.HIDDEN
+    set(value) { field = value; engine?.setPitchButtonVisibility(value) }
   /** Standalone controls are iOS only. */
   override var mapScope: String = ""
   override var showsTraffic: Boolean = false
@@ -198,8 +203,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setCameraBoundary(boundary()) }
   override var mapPadding: EdgeInsets = EdgeInsets(0.0, 0.0, 0.0, 0.0)
     set(value) { field = value; engine?.setMapPadding(value) }
-  /** Tappable places on Apple's map; MapKit only. */
+  /** Tappable places on the base map (MapKit; Cesium: 3D Tiles features). */
   override var selectableMapFeatures: String = ""
+    set(value) { field = value; engine?.setSelectableMapFeatures(value) }
   /** Apple's place cards; MapKit only. */
   override var selectionAccessory: SelectionAccessory = SelectionAccessory.NONE
 
@@ -228,6 +234,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var onUserTrackingModeChange: ((mode: UserTrackingMode) -> Unit)? = null
   override var onMapFeaturePress: ((feature: MapFeatureEvent) -> Unit)? = null
   override var onError: ((message: String) -> Unit)? = null
+  override var onProviderEvent: ((event: ProviderEvent) -> Unit)? = null
 
   // Methods (called on the JavaScript thread; the engine runs on the main thread)
 
@@ -312,4 +319,8 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
 
   override fun mapItemForFeature(id: String): Promise<MapItem> =
     Promise.rejected(UnsupportedOperationException("mapItemForFeature is MapKit only"))
+
+  override fun providerCommand(command: String, argsJson: String): Promise<String> = mainPromise { e, p ->
+    e.providerCommand(command, argsJson) { result -> result.fold({ p.resolve(it) }, { p.reject(it) }) }
+  }
 }

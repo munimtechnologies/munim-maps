@@ -77,8 +77,12 @@ Pod::Spec.new do |s|
     ss.dependency "MapLibre", ">= 6.0"
   end
 
+  # CesiumJS (Apache-2.0, pinned in cesium/munim-cesium/Cesium/VERSION) runs
+  # offline from this resource bundle in a WKWebView the engine owns.
   s.subspec "Cesium" do |ss|
     ss.source_files = "ios/Engines/Cesium/**/*.swift"
+    ss.frameworks = "WebKit", "CoreLocation"
+    ss.resource_bundles = { "MunimMapsCesium" => ["cesium/munim-cesium"] }
     ss.pod_target_xcconfig = { "SWIFT_ACTIVE_COMPILATION_CONDITIONS" => "$(inherited) MUNIM_MAPS_CESIUM" }
   end
 

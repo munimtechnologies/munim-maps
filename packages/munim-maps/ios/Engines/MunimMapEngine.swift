@@ -206,6 +206,34 @@ public protocol MunimMapEngine: AnyObject {
   /// The tappable overlay a tap at `point` would hit.
   func overlayHit(at point: CGPoint) -> (id: String, kind: String)?
   func mapItem(forFeature id: String, completion: @escaping (Result<MKMapItem, Error>) -> Void)
+
+  // MARK: 3D content and engine-only extras (all have defaults)
+
+  /// Models, zones and paths from the app. The default hands them to
+  /// `modelLayer`; an engine that draws some of them itself (Cesium) takes
+  /// them here.
+  func setModels(_ models: [MunimModel])
+  func setZones(_ zones: [MunimZone])
+  func setPaths(_ paths: [MunimPath])
+  /// The container changed `modelLayer`'s lighting, occlusion, terrain or
+  /// distance settings.
+  func modelLayerDidChange()
+  /// Events only this engine has: a name and JSON data (`onProviderEvent`).
+  var onProviderEvent: ((String, String) -> Void)? { get set }
+  /// A method only this engine has, with JSON arguments; completes with a
+  /// JSON result (`providerCommand`).
+  func providerCommand(_ command: String, argsJSON: String, completion: @escaping (Result<String, Error>) -> Void)
+}
+
+public extension MunimMapEngine {
+  func setModels(_ models: [MunimModel]) { modelLayer.models = models }
+  func setZones(_ zones: [MunimZone]) { modelLayer.zones = zones }
+  func setPaths(_ paths: [MunimPath]) { modelLayer.paths = paths }
+  func modelLayerDidChange() {}
+  var onProviderEvent: ((String, String) -> Void)? { get { nil } set {} }
+  func providerCommand(_ command: String, argsJSON: String, completion: @escaping (Result<String, Error>) -> Void) {
+    completion(.failure(MunimMapEngineError("\(provider.displayName) has no command \"\(command)\"")))
+  }
 }
 
 public extension MunimMapEngine {

@@ -379,6 +379,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setOnError(newViewProps.onError.value);
     newViewProps.onError.isDirty = false;
   }
+  // onProviderEvent: optional
+  if (newViewProps.onProviderEvent.isDirty) {
+    swiftPart.setOnProviderEvent(newViewProps.onProviderEvent.value);
+    newViewProps.onProviderEvent.isDirty = false;
+  }
 
   swiftPart.afterUpdate();
 
