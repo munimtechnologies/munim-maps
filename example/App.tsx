@@ -29,6 +29,7 @@ import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 import { ParityScreen, type ParityHandle } from './Parity'
 import type { MapProvider, UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
+import { Layer3DScreen } from './Layer3D'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -59,7 +60,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -451,6 +452,7 @@ function Example() {
   // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
+  const [layer3dCheck, setLayer3dCheck] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -530,6 +532,16 @@ function Example() {
     ran.current = true
     void Linking.getInitialURL().then((url) => {
       if (url?.includes('nopanel')) setPanel(false)
+      // munimmapsexample://layer3d[/<provider>][/check]: every 3D layer group on one engine.
+      const layer3d = /layer3d(?:\/(\w+))?/.exec(url ?? '')
+      if (layer3d) {
+        setLaunching(false)
+        const engine = layer3d[1] && layer3d[1] !== 'check' ? (layer3d[1] as MapProvider) : undefined
+        setProviderLink(engine)
+        setLayer3dCheck(url?.includes('/check') ?? false)
+        setMode('layer3d')
+        return
+      }
       // munimmapsexample://providers/<provider>: the engine picker.
       const provider = /providers(?:\/(\w+))?/.exec(url ?? '')
       if (provider || Platform.OS === 'android') {
@@ -726,7 +738,9 @@ function Example() {
 
   return (
     <View style={styles.root}>
-      {mode === 'providers' ? (
+      {mode === 'layer3d' ? (
+        <Layer3DScreen provider={providerLink} autoCheck={layer3dCheck} topInset={insets.top} />
+      ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
           topInset={insets.top}
@@ -908,7 +922,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

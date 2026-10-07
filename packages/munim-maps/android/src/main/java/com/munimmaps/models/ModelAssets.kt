@@ -77,8 +77,11 @@ object ModelAssets {
   }
 
   private fun readRaw(context: Context, name: String): ByteArray {
-    val id = context.resources.getIdentifier(name.substringBeforeLast('.'), "raw", context.packageName)
-    if (id == 0) error("No raw resource named $name")
+    // Release builds put `require()`d models in res/raw and pictures in res/drawable-*.
+    val base = name.substringBeforeLast('.')
+    val id = context.resources.getIdentifier(base, "raw", context.packageName).takeIf { it != 0 }
+      ?: context.resources.getIdentifier(base, "drawable", context.packageName)
+    if (id == 0) error("No raw or drawable resource named $name")
     return context.resources.openRawResource(id).use { it.readBytes() }
   }
 }

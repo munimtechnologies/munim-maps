@@ -32,6 +32,7 @@
 #include "JFunc_void_UserTrackingMode.hpp"
 #include "JFunc_void_MapFeatureEvent.hpp"
 #include "views/JHybridMunimMapViewStateUpdater.hpp"
+#include "JHybridMunimTerrainSpec.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
 namespace margelo::nitro::munimmaps {
@@ -56,6 +57,14 @@ struct JHybridMunimMapViewSpecImpl: public jni::JavaClass<JHybridMunimMapViewSpe
     static const auto constructorFn = javaClassStatic()->getConstructor<JHybridMunimMapViewSpecImpl::javaobject()>();
     jni::local_ref<JHybridMunimMapViewSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
     return javaPart->getJHybridMunimMapViewSpec();
+  }
+};
+struct JHybridMunimTerrainSpecImpl: public jni::JavaClass<JHybridMunimTerrainSpecImpl, JHybridMunimTerrainSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/munimmaps/HybridMunimTerrain;";
+  static std::shared_ptr<JHybridMunimTerrainSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridMunimTerrainSpecImpl::javaobject()>();
+    jni::local_ref<JHybridMunimTerrainSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridMunimTerrainSpec();
   }
 };
 struct JHybridMunimMapsConfigSpecImpl: public jni::JavaClass<JHybridMunimMapsConfigSpecImpl, JHybridMunimMapsConfigSpec::JavaPart> {
@@ -89,6 +98,7 @@ void registerAllNatives() {
   margelo::nitro::munimmaps::JFunc_void_UserTrackingMode_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_MapFeatureEvent_cxx::registerNatives();
   margelo::nitro::munimmaps::views::JHybridMunimMapViewStateUpdater::registerNatives();
+  margelo::nitro::munimmaps::JHybridMunimTerrainSpec::CxxPart::registerNatives();
 
   // Register Nitro Hybrid Objects
   HybridObjectRegistry::registerHybridObjectConstructor(
@@ -101,6 +111,12 @@ void registerAllNatives() {
     "MunimMapView",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridMunimMapViewSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MunimTerrain",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridMunimTerrainSpecImpl::create();
     }
   );
   HybridObjectRegistry::registerHybridObjectConstructor(

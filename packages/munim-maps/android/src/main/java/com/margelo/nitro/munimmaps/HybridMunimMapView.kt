@@ -249,10 +249,10 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     return promise
   }
 
-  override fun setCamera(camera: MapCamera, animated: Boolean) = onMain { it.setCamera(camera, animated) }
+  override fun setCamera(camera: MapCamera, animated: Boolean) = onMain { it.stopFlight(); it.setCamera(camera, animated) }
 
   override fun animateCamera(camera: MapCamera, durationMs: Double, easing: MapCameraEasing) =
-    onMain { it.animateCamera(camera, durationMs, easing) }
+    onMain { it.stopFlight(); it.animateCamera(camera, durationMs, easing) }
 
   override fun flyCamera(keyframes: Array<CameraKeyframe>, start: Double, loop: Boolean) =
     onMain { it.flyCamera(keyframes, start, loop) }
@@ -264,7 +264,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     if (camera != null) p.resolve(camera) else p.reject(IllegalStateException("The camera is not known yet"))
   }
 
-  override fun setRegion(region: MapRegion, durationMs: Double) = onMain { it.setRegion(region, durationMs) }
+  override fun setRegion(region: MapRegion, durationMs: Double) = onMain { it.stopFlight(); it.setRegion(region, durationMs) }
 
   override fun getVisibleRegion(): Promise<MapRegion> = mainPromise { e, p ->
     val region = e.getVisibleRegion()
@@ -272,11 +272,11 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   }
 
   override fun fitToCoordinates(coordinates: Array<MapCoordinate>, padding: EdgeInsets, animated: Boolean) =
-    onMain { it.fitToCoordinates(coordinates, padding, animated) }
+    onMain { it.stopFlight(); it.fitToCoordinates(coordinates, padding, animated) }
 
   override fun fitToMarkers(ids: String, padding: EdgeInsets, animated: Boolean) {
     val wanted = ids.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-    onMain { it.fitToMarkers(wanted, padding, animated) }
+    onMain { it.stopFlight(); it.fitToMarkers(wanted, padding, animated) }
   }
 
   override fun pointForCoordinate(coordinate: MapCoordinate): Promise<MapPoint> = mainPromise { e, p ->

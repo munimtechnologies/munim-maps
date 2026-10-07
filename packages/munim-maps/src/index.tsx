@@ -400,13 +400,13 @@ let terrain: MunimTerrain | undefined
  * terrain munim-maps uses for `altitudeReference: 'sea'`. From the free
  * public Terrarium elevation tiles on AWS (about 7-10 m per sample, cached
  * on the device). Negative under the sea (the sea floor) and in places below
- * sea level. Rejects if a tile cannot be downloaded, and on Android.
+ * sea level. Rejects if a tile cannot be downloaded.
  */
 export function groundElevation(
   coordinates: { latitude: number; longitude: number }[]
 ): Promise<number[]> {
   if (!isSupported) {
-    return Promise.reject(new Error('munim-maps: groundElevation is iOS only'))
+    return Promise.reject(new Error('munim-maps: groundElevation needs iOS or Android'))
   }
   terrain ??= NitroModules.createHybridObject<MunimTerrain>('MunimTerrain')
   return terrain.groundElevation(

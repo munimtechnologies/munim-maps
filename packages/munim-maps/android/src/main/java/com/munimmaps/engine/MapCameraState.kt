@@ -115,6 +115,20 @@ data class MapCameraState(
     return toScene(up, center)
   }
 
+  /**
+   * The local axes at a coordinate (x east, y up, z south) in the scene, as
+   * a row-major 3x3 whose columns are those axes: identity on the flat map.
+   */
+  fun localOrientation(latitude: Double, longitude: Double): DoubleArray {
+    if (!globe) return doubleArrayOf(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+    val center = enu(this.latitude, this.longitude)
+    val frame = enu(latitude, longitude)
+    val east = toScene(frame[0], center)
+    val up = toScene(frame[2], center)
+    val south = toScene(doubleArrayOf(-frame[1][0], -frame[1][1], -frame[1][2]), center)
+    return doubleArrayOf(east[0], up[0], south[0], east[1], up[1], south[1], east[2], up[2], south[2])
+  }
+
   /** Pixel position and depth of a scene position; null when behind the camera. */
   fun project(p: DoubleArray): DoubleArray? {
     val r = rotation
