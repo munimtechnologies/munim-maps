@@ -611,7 +611,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     SCNTransaction.flush()
 
     var errors: [Double] = []
-    var targets: [CGPoint] = []
+    var targets: [CGRect] = []
     for entry in entries.values where entry.model.visible {
       let coordinate = CLLocationCoordinate2D(
         latitude: entry.model.latitude, longitude: entry.model.longitude)
@@ -626,15 +626,19 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       guard mapView.bounds.insetBy(dx: 4, dy: 4).contains(ours) else { continue }
       let theirs = mapView.convert(coordinate, toPointTo: mapView)
       errors.append(Double(hypot(ours.x - theirs.x, ours.y - theirs.y)))
-      if let middle = entry.middlePoint(in: snapshot) { targets.append(middle) }
+      if let rect = entry.screenRect(in: snapshot) { targets.append(rect) }
     }
 
+    // A model counts as drawn when any of its pixels is on screen. Checking
+    // one point (its middle) missed see-through models such as lattice
+    // towers, whose middle can fall between the beams.
     var visible = 0
     if let sceneRenderer, !targets.isEmpty {
       let size = snapshot.mapSize
       let image = sceneRenderer.snapshot(
         atTime: CACurrentMediaTime(), with: size, antialiasingMode: .none)
-      for target in targets where image.mapModelAlpha(at: target) > 0.5 {
+      let screen = CGRect(origin: .zero, size: size)
+      for target in targets where image.mapModelHasPixels(in: target.intersection(screen)) {
         visible += 1
       }
     }
@@ -1063,12 +1067,20 @@ private final class Entry {
     stemDot.simdScale = SIMD3(dot, 0.05, dot)
   }
 
-  /// Screen point halfway up the model.
-  func middlePoint(in snapshot: MapCameraSnapshot) -> CGPoint? {
-    guard content != nil else { return nil }
-    let base = root.simdPosition
-    let middle = base + root.simdOrientation.act(SIMD3(0, contentHeight * currentScale / 2, 0))
-    return snapshot.project(middle)?.point
+  /// The screen rectangle covering the model's bounding box.
+  func screenRect(in snapshot: MapCameraSnapshot) -> CGRect? {
+    guard let content, let bounds = MapModelNodes.subtreeBounds(content), !root.isHidden else { return nil }
+    var rect = CGRect.null
+    for i in 0..<8 {
+      let corner = SIMD3<Float>(
+        i & 1 == 0 ? bounds.0.x : bounds.1.x,
+        i & 2 == 0 ? bounds.0.y : bounds.1.y,
+        i & 4 == 0 ? bounds.0.z : bounds.1.z)
+      let world = body.simdConvertPosition(corner, to: nil)
+      guard let projected = snapshot.project(world), projected.depth > 0 else { continue }
+      rect = rect.union(CGRect(origin: projected.point, size: .zero))
+    }
+    return rect.isNull ? nil : rect.insetBy(dx: -1, dy: -1)
   }
 
   /// Depth of the model if `point` falls on it.
@@ -1086,21 +1098,26 @@ private final class Entry {
 }
 
 private extension UIImage {
-  /// Alpha (0...1) of the pixel at `point`, in points.
-  func mapModelAlpha(at point: CGPoint) -> CGFloat {
-    guard let cgImage else { return 0 }
-    let x = Int(point.x * scale)
-    let y = Int(point.y * scale)
-    guard x >= 0, y >= 0, x < cgImage.width, y < cgImage.height else { return 0 }
-    var pixel = [UInt8](repeating: 0, count: 4)
+  /// Whether any pixel in `rect` (in points) is mostly opaque.
+  func mapModelHasPixels(in rect: CGRect) -> Bool {
+    guard let cgImage, !rect.isNull, rect.width >= 1, rect.height >= 1 else { return false }
+    let pixels = CGRect(x: rect.minX * scale, y: rect.minY * scale, width: rect.width * scale,
+                        height: rect.height * scale).integral
+    guard let cropped = cgImage.cropping(to: pixels) else { return false }
+    let width = cropped.width
+    let height = cropped.height
+    var data = [UInt8](repeating: 0, count: width * height * 4)
     guard let context = CGContext(
-      data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
-      space: CGColorSpaceCreateDeviceRGB(),
-      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-    else { return 0 }
-    context.translateBy(x: CGFloat(-x), y: CGFloat(y - cgImage.height + 1))
-    context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-    return CGFloat(pixel[3]) / 255
+      data: &data, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { return false }
+    context.draw(cropped, in: CGRect(x: 0, y: 0, width: width, height: height))
+    var index = 3
+    while index < data.count {
+      if data[index] > 127 { return true }
+      index += 4
+    }
+    return false
   }
 }
 

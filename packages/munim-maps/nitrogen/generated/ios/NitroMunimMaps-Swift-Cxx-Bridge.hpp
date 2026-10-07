@@ -30,6 +30,8 @@ namespace margelo::nitro::munimmaps { class HybridMapControlSpec; }
 namespace margelo::nitro::munimmaps { class HybridMapModelLayerSpec; }
 // Forward declaration of `HybridMapServicesSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMapServicesSpec; }
+// Forward declaration of `HybridMarkerViewSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMarkerViewSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
 // Forward declaration of `HybridMunimTerrainSpec` to properly resolve imports.
@@ -124,6 +126,8 @@ namespace NitroMunimMaps { class HybridMapControlSpec_cxx; }
 namespace NitroMunimMaps { class HybridMapModelLayerSpec_cxx; }
 // Forward declaration of `HybridMapServicesSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMapServicesSpec_cxx; }
+// Forward declaration of `HybridMarkerViewSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMarkerViewSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 // Forward declaration of `HybridMunimTerrainSpec_cxx` to properly resolve imports.
@@ -143,6 +147,7 @@ namespace NitroMunimMaps { class HybridSearchCompleterSpec_cxx; }
 #include "HybridMapControlSpec.hpp"
 #include "HybridMapModelLayerSpec.hpp"
 #include "HybridMapServicesSpec.hpp"
+#include "HybridMarkerViewSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
 #include "HybridSearchCompleterSpec.hpp"
@@ -837,6 +842,18 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     vector.reserve(size);
     return vector;
   }
+  
+  // pragma MARK: std::shared_ptr<HybridMarkerViewSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridMarkerViewSpec>`.
+   */
+  using std__shared_ptr_HybridMarkerViewSpec_ = std::shared_ptr<HybridMarkerViewSpec>;
+  std::shared_ptr<HybridMarkerViewSpec> create_std__shared_ptr_HybridMarkerViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridMarkerViewSpec_(std__shared_ptr_HybridMarkerViewSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridMarkerViewSpec>
+  using std__weak_ptr_HybridMarkerViewSpec_ = std::weak_ptr<HybridMarkerViewSpec>;
+  inline std__weak_ptr_HybridMarkerViewSpec_ weakify_std__shared_ptr_HybridMarkerViewSpec_(const std::shared_ptr<HybridMarkerViewSpec>& strong) noexcept { return strong; }
   
   // pragma MARK: std::vector<NativeMarker>
   /**

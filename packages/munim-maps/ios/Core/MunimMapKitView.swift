@@ -132,7 +132,37 @@ public final class MunimMapKitView: UIView {
     set { modelLayer.maxCameraDistance = newValue }
   }
 
-  public var markers: [MunimMarker] = [] { didSet { features.setMarkers(markers) } }
+  public var markers: [MunimMarker] = [] { didSet { syncMarkers() } }
+
+  /// Markers drawn from views (React Native `MarkerView`), by id.
+  private var viewMarkers: [String: MunimMarker] = [:]
+
+  /// Adds or updates a marker whose picture is `image` (a snapshot of a
+  /// view). Its `style` is treated as `.image`.
+  public func setViewMarker(_ marker: MunimMarker, image: UIImage?) {
+    var marker = marker
+    marker.style = .image
+    marker.imageUri = ""
+    viewMarkers[marker.id] = marker
+    features.setViewImage(image, for: marker.id)
+    syncMarkers()
+  }
+
+  /// Updates only the picture of a view marker.
+  public func setViewMarkerImage(_ image: UIImage?, id: String) {
+    guard viewMarkers[id] != nil else { return }
+    features.setViewImage(image, for: id)
+  }
+
+  public func removeViewMarker(_ id: String) {
+    guard viewMarkers.removeValue(forKey: id) != nil else { return }
+    features.setViewImage(nil, for: id)
+    syncMarkers()
+  }
+
+  private func syncMarkers() {
+    features.setMarkers(viewMarkers.isEmpty ? markers : markers + viewMarkers.values)
+  }
   public var polylines: [MunimPolyline] = [] { didSet { features.setPolylines(polylines) } }
   public var polygons: [MunimPolygon] = [] { didSet { features.setPolygons(polygons) } }
   public var circles: [MunimCircle] = [] { didSet { features.setCircles(circles) } }
@@ -395,6 +425,7 @@ public final class MunimMapKitView: UIView {
 
   public func setCamera(_ camera: MunimCamera, animated: Bool) {
     stopFlight()
+    endTrackingForCameraMove()
     mapView.setCamera(Self.mapKitCamera(camera), animated: animated)
     modelLayer.setNeedsRender()
   }
@@ -429,6 +460,7 @@ public final class MunimMapKitView: UIView {
       if let only = keyframes.first { setCamera(only.camera, animated: false) }
       return
     }
+    endTrackingForCameraMove()
     flight = (keyframes.sorted { $0.t < $1.t }, start, loop)
     if flightLink == nil {
       let link = CADisplayLink(target: FlightTarget(self), selector: #selector(FlightTarget.tick))
@@ -486,6 +518,7 @@ public final class MunimMapKitView: UIView {
 
   /// Moves to a region over `duration` seconds (0 jumps).
   @nonobjc public func setRegion(_ region: MKCoordinateRegion, duration: TimeInterval) {
+    endTrackingForCameraMove()
     if duration <= 0 {
       mapView.setRegion(region, animated: false)
     } else {
@@ -495,12 +528,14 @@ public final class MunimMapKitView: UIView {
 
   @nonobjc public func fit(coordinates: [CLLocationCoordinate2D], padding: UIEdgeInsets = .zero, animated: Bool = true) {
     guard let rect = MapFeatureController.boundingRect(coordinates.map { MKMapPoint($0) }) else { return }
+    endTrackingForCameraMove()
     mapView.setVisibleMapRect(rect, edgePadding: padding, animated: animated)
   }
 
   /// Frames the markers with these ids (all markers when empty).
   public func fitMarkers(_ ids: Set<String> = [], padding: UIEdgeInsets = .zero, animated: Bool = true) {
     guard let rect = features.mapRect(forMarkers: ids) else { return }
+    endTrackingForCameraMove()
     mapView.setVisibleMapRect(rect, edgePadding: padding, animated: animated)
   }
 
@@ -667,6 +702,14 @@ public final class MunimMapKitView: UIView {
       let size = scale.intrinsicContentSize
       scale.frame = CGRect(x: left, y: top, width: max(size.width, min(200, bounds.width / 2)), height: size.height)
     }
+  }
+
+  /// Moving the camera from code ends user tracking, as a pan does (MapKit
+  /// would otherwise keep following and pull the camera back), and reports
+  /// it through `onUserTrackingModeChange`.
+  private func endTrackingForCameraMove() {
+    guard mapView.userTrackingMode != .none else { return }
+    mapView.setUserTrackingMode(.none, animated: false)
   }
 
   private func applyTrackingMode() {

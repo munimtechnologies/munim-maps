@@ -12,6 +12,7 @@
 #include "HybridMapControlSpecSwift.hpp"
 #include "HybridMapModelLayerSpecSwift.hpp"
 #include "HybridMapServicesSpecSwift.hpp"
+#include "HybridMarkerViewSpecSwift.hpp"
 #include "HybridMunimMapViewSpecSwift.hpp"
 #include "HybridMunimTerrainSpecSwift.hpp"
 #include "HybridSearchCompleterSpecSwift.hpp"
@@ -169,6 +170,22 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     }
     #endif
     NitroMunimMaps::HybridMapServicesSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridMarkerViewSpec>
+  std::shared_ptr<HybridMarkerViewSpec> create_std__shared_ptr_HybridMarkerViewSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    NitroMunimMaps::HybridMarkerViewSpec_cxx swiftPart = NitroMunimMaps::HybridMarkerViewSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::munimmaps::HybridMarkerViewSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridMarkerViewSpec_(std__shared_ptr_HybridMarkerViewSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::munimmaps::HybridMarkerViewSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::munimmaps::HybridMarkerViewSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridMarkerViewSpec\" is not implemented in Swift!");
+    }
+    #endif
+    NitroMunimMaps::HybridMarkerViewSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
     return swiftPart.toUnsafe();
   }
   

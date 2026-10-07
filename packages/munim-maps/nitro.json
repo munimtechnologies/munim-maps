@@ -48,6 +48,12 @@
         "language": "swift",
         "implementationClassName": "HybridLookAroundView"
       }
+    },
+    "MarkerView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMarkerView"
+      }
     }
   },
   "ignorePaths": [

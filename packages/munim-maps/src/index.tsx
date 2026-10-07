@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo, type ReactNode } from 'react'
 import {
   Platform,
   StyleSheet,
@@ -667,6 +667,8 @@ export interface MunimMapViewProperties {
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
   style?: StyleProp<ViewStyle>
+  /** `MarkerView`s: React Native views as markers. */
+  children?: ReactNode
 }
 
 const NO_REGION: MapRegion = {
@@ -804,12 +806,15 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onMapFeaturePress={onMapFeaturePress}
         onError={onError}
         hybridRef={hybridRef}
-      />
+      >
+        {props.children}
+      </NativeMunimMapView>
     )
   }
 )
 
 export * from './services'
+export { MarkerView, type MarkerViewProperties } from './MarkerView'
 export {
   LookAroundView,
   type LookAroundViewProperties,
