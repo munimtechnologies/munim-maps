@@ -64,45 +64,45 @@ configureMunimMaps({
 
 ## Feature matrix
 
-✅ works · 🟡 partly (see note) · ⏳ coming in this release · — does not apply. MapKit is iOS only; Android's 3D layer is Filament, iOS's is SceneKit, and both read the same camera state from every engine.
+✅ works · 🔨 built and compiled, not yet checked on a device · 🟡 partly (see note) · ⏳ coming in this release · — does not apply. MapKit is iOS only; Android's 3D layer is Filament, iOS's is SceneKit, and both read the same camera state from every engine.
 
 | Feature | MapKit iOS | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | Cesium iOS | Cesium Android |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Map on screen | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ `styleUrl` | ⏳ | ⏳ |
-| Dark mode (`colorScheme`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Globe (`globe`) | ✅ | — | — | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ always a globe | ⏳ |
-| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `flyCamera` / `stopFlight` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `pointForCoordinate`, `coordinateForPoint` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Gestures on/off | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Camera limits, boundary, `mapPadding` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `MarkerView` (React Native views as markers) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Polylines, polygons, circles | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Gradient / animated polylines, overlay taps | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Tile overlays | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| User location, tracking modes | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Compass, scale, tracking button | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Points of interest filter, traffic | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Tappable places (`onMapFeaturePress`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| Map on screen | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ `styleUrl` | ⏳ | ⏳ |
+| Dark mode (`colorScheme`) | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Globe (`globe`) | ✅ | — | — | ✅ | 🔨 | ⏳ | ⏳ | ⏳ always a globe | ⏳ |
+| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| `flyCamera` / `stopFlight` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| `pointForCoordinate`, `coordinateForPoint` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| Gestures on/off | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| Camera limits, boundary, `mapPadding` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| `MarkerView` (React Native views as markers) | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Polylines, polygons, circles | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Gradient / animated polylines, overlay taps | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Tile overlays | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| User location, tracking modes | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Compass, scale, tracking button | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Points of interest filter, traffic | ✅ | ⏳ | ⏳ | 🟡 POI labels all or none; traffic ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Tappable places (`onMapFeaturePress`) | ✅ | ⏳ | ⏳ | ✅ Standard featuresets | — `selectableMapFeatures` is not passed to Android engines; use `mapbox.interactions` | ⏳ | ⏳ | ⏳ | ⏳ |
 | Place cards (`selectionAccessory`), Look Around | ✅ | — | — | — | — | — | — | — | — |
-| `takeSnapshot`, `addressForCoordinate` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| 3D models: GLB / glTF | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| 3D models: USDZ, USD, SCN, OBJ… | ✅ | ⏳ | — | ⏳ | — | ⏳ | — | ⏳ | — |
-| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Effects (exhaust, smoke, contrail), occluders | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Zones, paths | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `occlusion="buildings"` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `onModelPress` | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ | ✅ | ⏳ | ⏳ |
-| `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | ⏳ | ⏳ react-native-maps | ⏳ | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
+| `takeSnapshot`, `addressForCoordinate` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| 3D models: GLB / glTF | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| 3D models: USDZ, USD, SCN, OBJ… | ✅ | ⏳ | — | ✅ | — | ⏳ | — | ⏳ | — |
+| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Effects (exhaust, smoke, contrail), occluders | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Zones, paths | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| `occlusion="buildings"` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
+| `onModelPress` | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ⏳ | ⏳ | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | ⏳ | ⏳ react-native-maps | — | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
 | MapKit services (search, directions, geocoding) | ✅ | — | — | — | — | — | — | — | — |
 
 ## Architecture
@@ -201,54 +201,54 @@ Every capability of the SDKs' public surface (iOS `MapboxMaps` and Android `com.
 
 | Capability | munim-maps API | iOS | Android | Note |
 | --- | --- | --- | --- | --- |
-| Map view, token, lifecycle | `provider="mapbox"`, `configureMunimMaps({ mapboxAccessToken })` | ✅ | ⏳ | Missing token → `onError`. |
-| Styles: Standard, Standard Satellite, Streets, Outdoors, Light, Dark, Satellite, Satellite Streets, Navigation | `styleUrl` + `MAPBOX_STYLES`; `mapStyle` (`standard`/`muted` → Standard, `hybrid`/`imagery` → Standard Satellite) | ✅ | ⏳ | |
-| Custom style URL / JSON | `styleUrl`, `mapbox.styleJson` | ✅ | ⏳ | |
-| Standard config (light presets day/dawn/dusk/night, theme default/faded/monochrome/custom, 3D objects/buildings/trees/landmarks/facades, POI/transit/place/road labels, pedestrian roads, landmark icons, admin boundaries, fonts, density…) | `mapbox.standard`, `mapbox.lightPreset`; `colorScheme` → preset, `showsBuildings` → `show3dObjects`, `pointsOfInterest: 'none'` → labels off | ✅ | ⏳ | Unknown keys pass through. |
-| Style imports (add/update/move/remove, config, schema) | `mapbox.imports`, `mapbox.importConfig`; `getStyleImports`, `getStyleImportSchema`, `getStyleImportConfig`, `setStyleImportConfig` | ✅ | ⏳ | |
-| Colour themes (LUT) | `mapbox.colorTheme` | ✅ | ⏳ | Experimental in the SDK. |
-| Globe / Mercator projection | `globe`, `mapbox.projection` | ✅ | ⏳ | |
-| Atmosphere / fog | `mapbox.atmosphere` | ✅ | ⏳ | |
-| Terrain (raster-dem, exaggeration) | `mapbox.terrain`, `terrainExaggeration`; on for `hybrid`/`imagery` + `elevation="realistic"`; `getElevation` | ✅ | ⏳ | |
-| Lights (flat, ambient + directional) | `mapbox.lights` | ✅ | ⏳ | |
-| Snow, rain | `mapbox.snow`, `mapbox.rain` | ✅ | ⏳ | Experimental in the SDK. |
-| Sources: vector, raster, raster-dem, raster-array, GeoJSON (clustering, cluster properties, line metrics), image, model, batched-model | `mapbox.sources` (style-spec JSON) | ✅ | ⏳ | |
-| GeoJSON partial updates | `updateGeoJSONSource`, `add/update/removeGeoJSONSourceFeatures` | ✅ | ⏳ | |
+| Map view, token, lifecycle | `provider="mapbox"`, `configureMunimMaps({ mapboxAccessToken })` | ✅ | 🔨 | Missing token → `onError`. |
+| Styles: Standard, Standard Satellite, Streets, Outdoors, Light, Dark, Satellite, Satellite Streets, Navigation | `styleUrl` + `MAPBOX_STYLES`; `mapStyle` (`standard`/`muted` → Standard, `hybrid`/`imagery` → Standard Satellite) | ✅ | 🔨 | |
+| Custom style URL / JSON | `styleUrl`, `mapbox.styleJson` | ✅ | 🔨 | |
+| Standard config (light presets day/dawn/dusk/night, theme default/faded/monochrome/custom, 3D objects/buildings/trees/landmarks/facades, POI/transit/place/road labels, pedestrian roads, landmark icons, admin boundaries, fonts, density…) | `mapbox.standard`, `mapbox.lightPreset`; `colorScheme` → preset, `showsBuildings` → `show3dObjects`, `pointsOfInterest: 'none'` → labels off | ✅ | 🔨 | Unknown keys pass through. |
+| Style imports (add/update/move/remove, config, schema) | `mapbox.imports`, `mapbox.importConfig`; `getStyleImports`, `getStyleImportSchema`, `getStyleImportConfig`, `setStyleImportConfig` | ✅ | 🔨 | |
+| Colour themes (LUT) | `mapbox.colorTheme` | ✅ | 🔨 | Experimental in the SDK. |
+| Globe / Mercator projection | `globe`, `mapbox.projection` | ✅ | 🔨 | |
+| Atmosphere / fog | `mapbox.atmosphere` | ✅ | 🔨 | |
+| Terrain (raster-dem, exaggeration) | `mapbox.terrain`, `terrainExaggeration`; on for `hybrid`/`imagery` + `elevation="realistic"`; `getElevation` | ✅ | 🔨 | |
+| Lights (flat, ambient + directional) | `mapbox.lights` | ✅ | 🔨 | |
+| Snow, rain | `mapbox.snow`, `mapbox.rain` | ✅ | 🔨 | Experimental in the SDK. |
+| Sources: vector, raster, raster-dem, raster-array, GeoJSON (clustering, cluster properties, line metrics), image, model, batched-model | `mapbox.sources` (style-spec JSON) | ✅ | 🔨 | |
+| GeoJSON partial updates | `updateGeoJSONSource`, `add/update/removeGeoJSONSourceFeatures` | ✅ | 🔨 | |
 | Video source | — | — | — | Not in the mobile SDKs (GL JS only). |
 | Custom geometry / custom raster sources (tiles produced in code) | — | — | — | Need native per-tile callbacks; use a GeoJSON source or a `{z}/{x}/{y}` URL instead. |
-| Layers: fill, line (dash, gradient, trim, pattern), symbol, circle, heatmap, fill-extrusion, raster, raster-particle, hillshade, background, sky, model, location-indicator, slot, clip, building | `mapbox.layers` (style-spec JSON incl. `slot`, positions `beforeId`/`aboveId`/`index`) | ✅ | ⏳ | |
-| Expressions, feature state in paint | style-spec JSON; `setFeatureState`, `getFeatureState`, `removeFeatureState`, `resetFeatureStates` (by source or featureset) | ✅ | ⏳ | |
-| Runtime styling | `setLayerProperties`, `getLayerProperties`, `setSourceProperties`, `getSourceProperties`, `moveLayer`, `getLayers`, `getSources`, `getSlots`, `getStyleJson` | ✅ | ⏳ | |
+| Layers: fill, line (dash, gradient, trim, pattern), symbol, circle, heatmap, fill-extrusion, raster, raster-particle, hillshade, background, sky, model, location-indicator, slot, clip, building | `mapbox.layers` (style-spec JSON incl. `slot`, positions `beforeId`/`aboveId`/`index`) | ✅ | 🔨 | |
+| Expressions, feature state in paint | style-spec JSON; `setFeatureState`, `getFeatureState`, `removeFeatureState`, `resetFeatureStates` (by source or featureset) | ✅ | 🔨 | |
+| Runtime styling | `setLayerProperties`, `getLayerProperties`, `setSourceProperties`, `getSourceProperties`, `moveLayer`, `getLayers`, `getSources`, `getSlots`, `getStyleJson` | ✅ | 🔨 | |
 | Persistent layers | — | — | — | munim-maps re-adds its layers after every style load, which covers it. |
 | Custom (Metal / OpenGL) layers | — | — | — | munim-maps' own 3D layer is the native drawing hook. |
-| Images (SDF, stretch, content, scale) | `mapbox.images` | ✅ | ⏳ | `http(s)`, `file`, `data:` and bundled URIs. |
-| glTF models for `model` layers | `mapbox.models` | ✅ | ⏳ | `munim-maps/vehicles-glb` works. |
-| Queries | `queryRenderedFeatures` (point, box, viewport; layers, filter, featureset), `querySourceFeatures` | ✅ | ⏳ | |
-| Cluster expansion | `getClusterExpansionZoom`, `getClusterLeaves`, `getClusterChildren` | ✅ | ⏳ | |
-| Featuresets and interactions (Standard POIs, buildings, place labels, landmarks; layers) with feature state | `mapbox.interactions` → `onProviderEvent('interaction')`; `selectableMapFeatures` → `onMapFeaturePress`; `getFeaturesets` | ✅ | ⏳ | Hover is not a mobile gesture. |
-| Point annotations (images, text, drag, clustering) | `markers` (all six styles), `clusteringId`, `clusterStyles`, `onClusterPress`, `draggable`, `onMarkerDrag*` | ✅ | ⏳ | One manager per clustering id. |
-| Polyline / polygon / circle annotations | `polylines`, `polygons`, `circles` (as GeoJSON layers in Standard's slots) | ✅ | ⏳ | Layers rather than annotation managers, so gradients, trims and dashes per shape work. |
-| View annotations (anchors, overlap, priority, dragging) | `MarkerView`; callouts (`callout`, accessories) | ✅ | ⏳ | Draggable `MarkerView` uses Mapbox's view annotation drag. |
-| Camera (set, ease, fly, cancel, bounds, padding, anchors) | shared camera API; `getCameraState`, `setCamera`, `easeTo`, `flyTo`, `cancelCameraAnimations`, `cameraForCoordinates`, `getBounds`, `getCameraBounds`, `getStyleDefaultCamera`; `mapbox.cameraBounds`; `cameraDistanceRange`, `cameraBoundary`, `mapPadding` | ✅ | ⏳ | |
-| Free camera | `getFreeCamera`, `setFreeCamera` | ✅ | ⏳ | |
-| Gestures (pan, pinch, rotate, pitch, double tap / touch, quick zoom, pan mode, deceleration, focal point) | `zoomEnabled`… + `mapbox.gestures` | ✅ | ⏳ | |
-| Ornaments: compass, scale bar, logo, attribution | `compassVisibility`, `scaleVisibility` + `mapbox.ornaments` | ✅ | ⏳ | Logo and attribution stay visible (Mapbox's terms). |
+| Images (SDF, stretch, content, scale) | `mapbox.images` | ✅ | 🔨 | `http(s)`, `file`, `data:` and bundled URIs. |
+| glTF models for `model` layers | `mapbox.models` | ✅ | 🔨 | `munim-maps/vehicles-glb` works. |
+| Queries | `queryRenderedFeatures` (point, box, viewport; layers, filter, featureset), `querySourceFeatures` | ✅ | 🔨 | |
+| Cluster expansion | `getClusterExpansionZoom`, `getClusterLeaves`, `getClusterChildren` | ✅ | 🔨 | |
+| Featuresets and interactions (Standard POIs, buildings, place labels, landmarks; layers) with feature state | `mapbox.interactions` → `onProviderEvent('interaction')`; `selectableMapFeatures` → `onMapFeaturePress`; `getFeaturesets` | ✅ | 🔨 | Hover is not a mobile gesture. |
+| Point annotations (images, text, drag, clustering) | `markers` (all six styles), `clusteringId`, `clusterStyles`, `onClusterPress`, `draggable`, `onMarkerDrag*` | ✅ | 🔨 | One manager per clustering id. |
+| Polyline / polygon / circle annotations | `polylines`, `polygons`, `circles` (as GeoJSON layers in Standard's slots) | ✅ | 🔨 | Layers rather than annotation managers, so gradients, trims and dashes per shape work. |
+| View annotations (anchors, overlap, priority, dragging) | `MarkerView`; callouts (`callout`, accessories) | ✅ | 🔨 | Draggable `MarkerView` uses Mapbox's view annotation drag. |
+| Camera (set, ease, fly, cancel, bounds, padding, anchors) | shared camera API; `getCameraState`, `setCamera`, `easeTo`, `flyTo`, `cancelCameraAnimations`, `cameraForCoordinates`, `getBounds`, `getCameraBounds`, `getStyleDefaultCamera`; `mapbox.cameraBounds`; `cameraDistanceRange`, `cameraBoundary`, `mapPadding` | ✅ | 🔨 | |
+| Free camera | `getFreeCamera`, `setFreeCamera` | ✅ | 🔨 | |
+| Gestures (pan, pinch, rotate, pitch, double tap / touch, quick zoom, pan mode, deceleration, focal point) | `zoomEnabled`… + `mapbox.gestures` | ✅ | 🔨 | |
+| Ornaments: compass, scale bar, logo, attribution | `compassVisibility`, `scaleVisibility` + `mapbox.ornaments` | ✅ | 🔨 | Logo and attribution stay visible (Mapbox's terms). |
 | Indoor selector | — | — | — | Restricted Mapbox indoor data. |
-| Location puck 2D / 3D, bearing heading / course, pulsing, accuracy ring | `showsUserLocation` + `mapbox.puck`; `onUserLocationChange` | ✅ | ⏳ | |
-| Custom location data | `setLocationOverride`, `clearLocationOverride` | ✅ | ⏳ | |
-| Viewport: follow puck, overview, idle, transitions, status | `userTrackingMode` (`follow`, `followWithHeading`), `showsUserTrackingButton`, `setViewport`; `onProviderEvent('viewportStatus')` | ✅ | ⏳ | Panning away drops to `none` + `onUserTrackingModeChange`. |
-| Map events | `mapbox.events`: `mapLoaded`, `mapIdle`, `mapLoadingError`, `styleLoaded`, `styleDataLoaded`, `styleImageMissing`, `styleImageRemoveUnused`, `sourceDataLoaded`, `sourceAdded`, `sourceRemoved`, `cameraChanged`, `renderFrameStarted`, `renderFrameFinished`, `resourceRequest` | ✅ | ⏳ | Plus the shared `onMapReady`, `onCameraMove`, `onCameraChange`, `onPress`, `onLongPress`. |
-| Snapshots | `takeSnapshot` (the view), `snapshot` (Mapbox `Snapshotter`, any style / camera / size) | ✅ | ⏳ | |
-| Offline: style packs, tile regions, estimates, metadata, quota, offline switch, clear data | `MapboxOffline` | ✅ | ⏳ | |
-| Map options (constrain mode, viewport mode, north orientation, prefetch, tile cache, frame rate, style transition) | `mapbox.rendering` | ✅ | ⏳ | |
-| Debug overlays | `mapbox.debug` | 🟡 | ⏳ | iOS has no wireframe options. |
-| Performance statistics | `collectPerformanceStatistics` | ✅ | ⏳ | |
-| Tile cover | `tileCover` | ✅ | ⏳ | |
+| Location puck 2D / 3D, bearing heading / course, pulsing, accuracy ring | `showsUserLocation` + `mapbox.puck`; `onUserLocationChange` | ✅ | 🔨 | |
+| Custom location data | `setLocationOverride`, `clearLocationOverride` | ✅ | 🔨 | |
+| Viewport: follow puck, overview, idle, transitions, status | `userTrackingMode` (`follow`, `followWithHeading`), `showsUserTrackingButton`, `setViewport`; `onProviderEvent('viewportStatus')` | ✅ | 🔨 | Panning away drops to `none` + `onUserTrackingModeChange`. |
+| Map events | `mapbox.events`: `mapLoaded`, `mapIdle`, `mapLoadingError`, `styleLoaded`, `styleDataLoaded`, `styleImageMissing`, `styleImageRemoveUnused`, `sourceDataLoaded`, `sourceAdded`, `sourceRemoved`, `cameraChanged`, `renderFrameStarted`, `renderFrameFinished`, `resourceRequest` | ✅ | 🔨 | Plus the shared `onMapReady`, `onCameraMove`, `onCameraChange`, `onPress`, `onLongPress`. |
+| Snapshots | `takeSnapshot` (the view), `snapshot` (Mapbox `Snapshotter`, any style / camera / size) | ✅ | 🔨 | |
+| Offline: style packs, tile regions, estimates, metadata, quota, offline switch, clear data | `MapboxOffline` | ✅ | 🔨 | |
+| Map options (constrain mode, viewport mode, north orientation, prefetch, tile cache, frame rate, style transition) | `mapbox.rendering` | ✅ | 🔨 | |
+| Debug overlays | `mapbox.debug` | 🟡 | 🔨 | iOS has no wireframe options; Android has all. |
+| Performance statistics | `collectPerformanceStatistics` | ✅ | 🔨 | |
+| Tile cover | `tileCover` | ✅ | 🔨 | |
 | Map recorder / player | — | — | — | Experimental SDK debugging tool. |
 | SwiftUI `Map`, Jetpack Compose `MapboxMap` | — | — | — | munim-maps wraps the UIKit / Android View API. |
 | Search SDK, Navigation SDK | `MapboxServices` (web APIs) | ✅ JS | ✅ JS | Separate SDKs with their own licences; the web APIs cover search and routes. |
-| Reverse geocoding | `addressForCoordinate` (Geocoding v6) | ✅ | ⏳ | |
-| munim 3D layer (models, avatars, paths, zones, effects) | `models`, `zones`, `paths`, `measureAlignment` | ✅ | ⏳ | |
-| Native models (Mapbox `model` source + layers) | `mapbox.modelRendering` (`auto` default, `native`, `overlay`): glTF bodies with position, altitude / sea level, heading, spin, `motion`, `scale`, `screenSize`, `tint` (material overrides on `paint*`), `onModelPress` | ✅ | ⏳ | Avatars, labels, stems, effects, occluders, USDZ / built-in shapes, zones and paths stay on the 3D layer. |
+| Reverse geocoding | `addressForCoordinate` (Geocoding v6) | ✅ | 🔨 | |
+| munim 3D layer (models, avatars, paths, zones, effects) | `models`, `zones`, `paths`, `measureAlignment` | ✅ | 🔨 | |
+| Native models (Mapbox `model` source + layers) | `mapbox.modelRendering` (`auto` default, `native`, `overlay`): glTF bodies with position, altitude / sea level, heading, spin, `motion`, `scale`, `screenSize`, `tint` (material overrides on `paint*`), `onModelPress` | ✅ | 🔨 | Avatars, labels, stems, effects, occluders, USDZ / built-in shapes, zones and paths stay on the 3D layer. |
 
 Testing: `munimmapsexample://mapbox` (example/MapboxScreen.tsx) shows every group; **Run checks** or `munimmapsexample://mapbox/checks` runs the checks (`MUNIM_MAPS_MAPBOX check …` in the log). Fast iOS compile loop: build the `MapboxMaps` pod scheme once (`xcodebuild -scheme MapboxMaps -configuration Release -destination generic/platform=iOS`) and typecheck `ios/Core`, `ios/Engines/*.swift`, `ios/Engines/MapKit` and `ios/Engines/Mapbox` against it with `swiftc -typecheck -I <products>/MapboxMaps -Xcc -fmodule-map-file=<products>/MapboxMaps/MapboxMaps.modulemap -F <products>/XCFrameworkIntermediates/{MapboxCoreMaps,MapboxCommon,Turf}`.

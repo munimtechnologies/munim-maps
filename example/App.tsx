@@ -452,7 +452,7 @@ function Example() {
   // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
-  const [mapboxChecks, setMapboxChecks] = useState(false)
+  const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -534,7 +534,7 @@ function Example() {
     const openMapbox = (url: string | null) => {
       if (!url || !/:\/\/mapbox/.test(url)) return false
       setLaunching(false)
-      setMapboxChecks(url.includes('checks'))
+      setMapboxChecks(url.includes('checks') ? true : url.includes('native') ? 'native' : false)
       setMode('mapbox')
       return true
     }

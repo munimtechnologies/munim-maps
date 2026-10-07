@@ -57,21 +57,25 @@ const START = Date.now() / 1000
 const NATIVE_MODELS: MapModel[] = [
   {
     id: 'glb-bus',
-    coordinate: { latitude: 41.8795, longitude: -87.6283 },
+    coordinate: { latitude: 41.8795, longitude: -87.62775 },
     source: VEHICLES_GLB['bus-city'],
     tint: '#FF9500',
     motion: {
       keyframes: [
-        { t: 0, coordinate: { latitude: 41.8795, longitude: -87.6283 } },
-        { t: 20, coordinate: { latitude: 41.8860, longitude: -87.6283 } },
-        { t: 40, coordinate: { latitude: 41.8795, longitude: -87.6283 } },
+        { t: 0, coordinate: { latitude: 41.8795, longitude: -87.62775 } },
+        { t: 20, coordinate: { latitude: 41.8860, longitude: -87.62775 } },
+        { t: 40, coordinate: { latitude: 41.8795, longitude: -87.62775 } },
       ],
       start: START,
       loop: true,
     },
   },
-  { id: 'glb-taxi', coordinate: { latitude: 41.8815, longitude: -87.6255 }, source: VEHICLES_GLB['car-taxi'], heading: 45, screenSize: 30 },
-  { id: 'glb-jet', coordinate: { latitude: 41.8840, longitude: -87.6240 }, source: VEHICLES_GLB['plane-airliner'], altitude: 150, heading: 270, scale: 1 },
+  // On Millennium Park's lawn, out in the open.
+  { id: 'glb-taxi', coordinate: { latitude: 41.8828, longitude: -87.6216 }, source: VEHICLES_GLB['car-taxi'], heading: 45, screenSize: 30 },
+  { id: 'glb-truck', coordinate: { latitude: 41.8823, longitude: -87.6216 }, source: VEHICLES_GLB['truck-fire'], heading: 90, tint: '#34C759' },
+  { id: 'glb-bus-still', coordinate: { latitude: 41.8826, longitude: -87.6222 }, source: VEHICLES_GLB['bus-city'], heading: 0, tint: '#FF9500' },
+  { id: 'glb-taxi-spin', coordinate: { latitude: 41.8831, longitude: -87.6221 }, source: VEHICLES_GLB['car-taxi'], spinDegreesPerSecond: 30 },
+  { id: 'glb-jet', coordinate: { latitude: 41.8834, longitude: -87.6212 }, source: VEHICLES_GLB['plane-airliner'], altitude: 120, heading: 270, scale: 1 },
   { id: 'glb-police', coordinate: { latitude: 41.8808, longitude: -87.6292 }, source: VEHICLES_GLB['car-police'], heading: 0, label: 'Unit 7', stem: true },
 ]
 const RENDERING = ['auto', 'native', 'overlay'] as const
@@ -175,7 +179,12 @@ function writeReport(report: object) {
   }
 }
 
-export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; onExit?: () => void }) {
+export function MapboxScreen(props: {
+  topInset: number
+  /** Run the checks when the map is ready: all of them, or only the native-model check. */
+  autoChecks?: boolean | 'native'
+  onExit?: () => void
+}) {
   const ref = useRef<MunimMapViewRef | null>(null)
   const [satellite, setSatellite] = useState(false)
   const [preset, setPreset] = useState(0)
@@ -191,6 +200,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
   const [ready, setReady] = useState(false)
   const [rendering, setRendering] = useState(0)
   const events = useRef<Record<string, number>>({})
+  const errors = useRef<string[]>([])
   const ranAuto = useRef(false)
 
   const glbUri = useMemo(
@@ -253,10 +263,11 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       setStatus(`Tapped ${event.data?.id}: ${name}`)
     } else if (event.name === 'mapLoadingError') {
       setStatus(`Mapbox error: ${event.data?.message}`)
+      if (errors.current.length < 40) errors.current.push(`mapLoadingError ${event.data?.type}: ${event.data?.message}`)
     }
   }, [])
 
-  const runChecks = useCallback(async () => {
+  const runChecks = useCallback(async (only?: 'native') => {
     const map = ref.current
     if (!map || running) return
     setRunning(true)
@@ -276,7 +287,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
         results.push({ name, ok: false, detail: String((error as Error)?.message ?? error) })
       }
       setChecks([...results])
-      writeReport({ finished: false, passed: results.filter((r) => r.ok).length, total: results.length, results })
+      writeReport({ finished: false, passed: results.filter((r) => r.ok).length, total: results.length, results, errors: errors.current })
       console.log(`MUNIM_MAPS_MAPBOX check ${results[results.length - 1]!.ok ? 'PASS' : 'FAIL'} ${name} ${results[results.length - 1]!.detail}`)
     }
 
@@ -298,9 +309,9 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
       const r = await map.getVisibleRegion()
       return Math.abs(r.latitude - CHICAGO.latitude) < r.latitudeDelta && r.longitudeDelta > 0 ? `${r.latitudeDelta.toFixed(4)}°` : false
     })
-    setRendering(2)
+    if (!only) setRendering(2)
     await wait(1200)
-    for (const [pitch, heading] of [[0, 0], [55, 30], [70, 200]] as const) {
+    for (const [pitch, heading] of only ? [] : ([[0, 0], [55, 30], [70, 200]] as const)) {
       await map.setCamera({ ...CHICAGO, pitch, heading }, false)
       await wait(900)
       await check(`3D layer alignment (pitch ${pitch}, heading ${heading})`, async () => {
@@ -312,11 +323,35 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     await map.setCamera(CHICAGO, false)
     await wait(2500)
     await check('native glTF models in Mapbox\'s model layer', async () => {
-      const f = await mb.queryRenderedFeatures({ layerIds: ['munim-native-models', 'munim-native-models-sea'] })
+      const f = await mb.queryRenderedFeatures({ layerIds: ['munim-native-models', 'munim-native-models-sea', 'munim-native-moving', 'munim-native-moving-sea', 'munim-native-animated', 'munim-native-animated-sea'] })
       const ids = [...new Set(f.map((x) => String(x.feature.properties?.id ?? x.feature.id ?? '')))]
       keep(await map.takeSnapshot(0, 0), 'mapbox-native.png')
-      return ids.length > 0 ? `drawn natively: ${ids.join(', ')}` : 'FAIL none drawn'
+      const state = await mb.getNativeModels()
+      return ids.length > 0
+        ? `drawn natively: ${ids.join(', ')} (overlay: ${state.overlay.join(', ')})`
+        : `FAIL none drawn: ${JSON.stringify(state).slice(0, 1500)}`
     })
+    if (only) {
+      // Close-ups to check heading, size and tint by eye.
+      // Where the moving bus is now, as the engine places it.
+      const positions = ((await mb.getNativeModels()) as { positions?: Record<string, number[]> }).positions ?? {}
+      const bus = positions['glb-bus'] ?? [41.8826, -87.6283]
+      await map.setCamera({ latitude: bus[0]!, longitude: bus[1]!, distance: 250, pitch: 0, heading: 0 }, false)
+      await wait(500)
+      keep(await map.takeSnapshot(0, 0), 'mapbox-native-bus.png')
+      await map.setCamera({ latitude: 41.8828, longitude: -87.6214, distance: 300, pitch: 55, heading: 0 }, false)
+      await wait(3000)
+      keep(await map.takeSnapshot(0, 0), 'mapbox-native-taxi.png')
+      // The fire truck faces east (heading 90): its cab should point right.
+      await map.setCamera({ latitude: 41.8827, longitude: -87.6218, distance: 180, pitch: 0, heading: 0 }, false)
+      await wait(3000)
+      keep(await map.takeSnapshot(0, 0), 'mapbox-native-truck.png')
+      await map.setCamera(CHICAGO, false)
+      const passedNative = results.filter((r) => r.ok).length
+      writeReport({ finished: true, passed: passedNative, total: results.length, errors: errors.current, results })
+      setRunning(false)
+      return
+    }
     await check('getCameraState (zoom levels)', async () => {
       const s = await mb.getCameraState()
       return s.zoom > 10 && s.zoom < 20 ? `zoom ${s.zoom.toFixed(2)}` : false
@@ -497,12 +532,13 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     remove()
     await check('Mapbox events reach onProviderEvent', async () => {
       const e = events.current
-      return (e.mapIdle ?? 0) > 0 && (e.sourceDataLoaded ?? 0) > 0 ? JSON.stringify(e) : false
+      // Moving native models keep the map drawing, so it may never be idle.
+      return (e.mapLoaded ?? 0) > 0 && (e.styleLoaded ?? 0) > 0 && (e.sourceDataLoaded ?? 0) > 0 ? JSON.stringify(e) : false
     })
     await map.setCamera(CHICAGO, false)
     const passed = results.filter((r) => r.ok).length
     console.log(`MUNIM_MAPS_MAPBOX checks ${passed}/${results.length}`)
-    writeReport({ finished: true, passed, total: results.length, events: events.current, results })
+    writeReport({ finished: true, passed, total: results.length, events: events.current, errors: errors.current, results })
     setStatus(`Checks: ${passed}/${results.length} passed`)
     setRunning(false)
   }, [running, preset])
@@ -513,7 +549,7 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     writeReport({ finished: false, mapReady: true, results: [] })
     if (props.autoChecks && !ranAuto.current) {
       ranAuto.current = true
-      setTimeout(() => void runChecks(), 4000)
+      setTimeout(() => void runChecks(props.autoChecks === 'native' ? 'native' : undefined), 4000)
     }
   }, [props.autoChecks, runChecks])
 
@@ -553,7 +589,10 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
           setDrag(`${e.id} ${e.latitude.toFixed(5)}, ${e.longitude.toFixed(5)}`)
         }}
         onMarkerDragEnd={(e) => setDrag(`end ${e.id} ${e.latitude.toFixed(5)}`)}
-        onError={(message) => console.log(`MUNIM_MAPS_MAPBOX error ${message}`)}
+        onError={(message) => {
+          console.log(`MUNIM_MAPS_MAPBOX error ${message}`)
+          if (errors.current.length < 40) errors.current.push(message)
+        }}
       >
         <MarkerView id="avatar" coordinate={{ latitude: 41.8838, longitude: -87.6290 }} anchor={{ x: 0.5, y: 1 }}>
           <View style={styles.avatarWrap}>
