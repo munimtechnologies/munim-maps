@@ -58,6 +58,11 @@ export type VehicleName =
   | 'van-ambulance'
   | 'van-delivery'
 
-/** Bundled asset ids, to pass as a model's `source`. */
+/**
+ * Bundled asset ids, to pass as a model's `source`: USDZ files on iOS and
+ * glTF binaries (.glb) on Android (`vehicles.android.js`), so each platform
+ * bundles only its own format. For glTF on every platform, use
+ * `VEHICLES_GLB` from 'munim-maps/vehicles-glb'.
+ */
 export const VEHICLES: Record<VehicleName, number>
 export const VEHICLE_NAMES: VehicleName[]

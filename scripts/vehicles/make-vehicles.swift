@@ -5600,12 +5600,312 @@ func fixMaterialCounts(_ node: SCNNode) {
   }
 }
 
+// MARK: glTF export
+// The same node tree as the USDZ, written as a binary glTF (.glb) for
+// Android (Filament), Mapbox and Cesium. World transforms are baked into one
+// mesh with one primitive per material; material names are kept, so `tint`
+// still finds `paint…`. glTF models face +Z (munim-maps' glTF loader turns
+// them 180° to face north), so the model is turned 180° about Y on the way out.
+
+/// Things the glTF export could not carry over, printed once at the end.
+var glbNotes: [String: Set<String>] = [:]
+func glbNote(_ what: String, _ model: String) { glbNotes[what, default: []].insert(model) }
+
+/// glTF colour factors are linear sRGB. They are matched to how the USDZ
+/// looks on iOS rather than to the hex values: SceneKit's USD export writes
+/// the sRGB components unconverted into UsdPreviewSurface (whose colours are
+/// linear), and SceneKit reads them back as linear Display P3. So the same
+/// numbers are taken as linear Display P3 and converted to linear sRGB.
+let usdLinearP3 = CGColorSpace(name: CGColorSpace.linearDisplayP3)!
+let gltfLinearSRGB = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
+
+func asShownOnIOS(_ r: Double, _ g: Double, _ b: Double) -> [Double] {
+  let p3 = CGColor(colorSpace: usdLinearP3, components: [CGFloat(r), CGFloat(g), CGFloat(b), 1])!
+  let c = p3.converted(to: gltfLinearSRGB, intent: .defaultIntent, options: nil)!.components!
+  return (0..<3).map { Double(c[$0]) }
+}
+
+/// A material property's colour as linear RGBA (see `asShownOnIOS`).
+func linearRGBA(_ p: SCNMaterialProperty, _ model: String) -> [Double]? {
+  guard let contents = p.contents else { return nil }
+  var color: NSColor?
+  if let c = contents as? NSColor {
+    color = c
+  } else if CFGetTypeID(contents as CFTypeRef) == CGColor.typeID {
+    color = NSColor(cgColor: contents as! CGColor)
+  } else if let n = contents as? NSNumber {
+    color = NSColor(srgbRed: CGFloat(n.doubleValue), green: CGFloat(n.doubleValue), blue: CGFloat(n.doubleValue), alpha: 1)
+  }
+  guard let s = color?.usingColorSpace(.sRGB) else {
+    glbNote("material property with \(type(of: contents)) contents (texture?) dropped", model)
+    return nil
+  }
+  let k = Double(p.intensity)
+  return asShownOnIOS(Double(s.redComponent), Double(s.greenComponent), Double(s.blueComponent)).map { $0 * k }
+    + [Double(s.alphaComponent)]
+}
+
+/// A scalar material property (metalness, roughness).
+func scalar(_ p: SCNMaterialProperty, _ fallback: Double, _ model: String) -> Double {
+  guard let contents = p.contents else { return fallback }
+  if let n = contents as? NSNumber { return n.doubleValue * Double(p.intensity) }
+  if let c = (contents as? NSColor)?.usingColorSpace(.genericGray) { return Double(c.whiteComponent) * Double(p.intensity) }
+  glbNote("scalar property with \(type(of: contents)) contents (texture?) dropped", model)
+  return fallback
+}
+
+func rounded6(_ v: Double) -> Double { (min(1, max(0, v)) * 1e6).rounded() / 1e6 }
+
+func gltfMaterial(_ m: SCNMaterial, _ model: String) -> [String: Any] {
+  var base = linearRGBA(m.diffuse, model) ?? [1, 1, 1, 1]
+  base[3] *= Double(m.transparency)
+  // Display P3 colours outside sRGB are clamped to its gamut.
+  if let worst = base[0..<3].map({ max($0 - 1, -$0) }).max(), worst > 0.02 {
+    glbNote("base colour outside sRGB clamped (\(m.name ?? "?"))", model)
+  }
+  let pbr = m.lightingModel == .physicallyBased
+  if !pbr { glbNote("non-PBR lighting model \(m.lightingModel.rawValue) mapped to metallic 0 / roughness 0.5", model) }
+  var out: [String: Any] = [
+    "pbrMetallicRoughness": [
+      "baseColorFactor": base.map(rounded6),
+      "metallicFactor": rounded6(pbr ? scalar(m.metalness, 0, model) : 0),
+      "roughnessFactor": rounded6(pbr ? scalar(m.roughness, 0.5, model) : 0.5),
+    ] as [String: Any],
+  ]
+  if let name = m.name { out["name"] = name }
+  if let e = linearRGBA(m.emission, model), e[0] + e[1] + e[2] > 0 {
+    // Saturated lamps leave sRGB's range; the excess goes in the strength.
+    let peak = max(1, e[0], e[1], e[2])
+    out["emissiveFactor"] = e[0..<3].map { rounded6($0 / peak) }
+    if peak > 1 {
+      out["extensions"] = ["KHR_materials_emissive_strength": ["emissiveStrength": (peak * 1e4).rounded() / 1e4]]
+    }
+  }
+  if base[3] < 1 { out["alphaMode"] = "BLEND" }
+  if m.isDoubleSided { out["doubleSided"] = true }
+  for (label, p) in [("normal", m.normal), ("ambientOcclusion", m.ambientOcclusion), ("selfIllumination", m.selfIllumination),
+                     ("transparent", m.transparent), ("displacement", m.displacement)] {
+    // Plain colours here are SceneKit's defaults; only images would matter.
+    if let c = p.contents, !(c is NSColor), !(c is NSNumber), CFGetTypeID(c as CFTypeRef) != CGColor.typeID {
+      glbNote("material \(label) map (\(type(of: c))) dropped", model)
+    }
+  }
+  return out
+}
+
+/// Bit-exact vertex identity, for welding duplicates.
+struct GLBVertex: Hashable { var p: SIMD3<UInt32>; var n: SIMD3<UInt32> }
+
+final class GLBPrimitive {
+  var positions: [V3] = []
+  var normals: [V3] = []
+  var indices: [UInt32] = []
+  var lookup: [GLBVertex: UInt32] = [:]
+
+  func vertex(_ p: V3, _ n: V3) -> UInt32 {
+    let key = GLBVertex(p: p.bitPattern, n: n.bitPattern)
+    if let i = lookup[key] { return i }
+    let i = UInt32(positions.count)
+    positions.append(p); normals.append(n); lookup[key] = i
+    return i
+  }
+}
+
+extension SIMD3 where Scalar == Float {
+  var bitPattern: SIMD3<UInt32> { SIMD3<UInt32>(x.bitPattern, y.bitPattern, z.bitPattern) }
+}
+
+/// An element's triangles as index triples, whatever its primitive type.
+func elementTriangles(_ e: SCNGeometryElement, _ model: String) -> [(UInt32, UInt32, UInt32)] {
+  func index(_ raw: UnsafeRawBufferPointer, _ i: Int) -> UInt32 {
+    switch e.bytesPerIndex {
+    case 1: return UInt32(raw.load(fromByteOffset: i, as: UInt8.self))
+    case 2: return UInt32(raw.loadUnaligned(fromByteOffset: i * 2, as: UInt16.self))
+    default: return raw.loadUnaligned(fromByteOffset: i * 4, as: UInt32.self)
+    }
+  }
+  var out: [(UInt32, UInt32, UInt32)] = []
+  e.data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+    switch e.primitiveType {
+    case .triangles:
+      for t in 0..<e.primitiveCount { out.append((index(raw, t * 3), index(raw, t * 3 + 1), index(raw, t * 3 + 2))) }
+    case .triangleStrip:
+      for t in 0..<e.primitiveCount {
+        let a = index(raw, t), b = index(raw, t + 1), c = index(raw, t + 2)
+        out.append(t % 2 == 0 ? (a, b, c) : (b, a, c))
+      }
+    case .polygon:
+      // Vertex counts per polygon first, then the indices; fan-triangulated.
+      var cursor = e.primitiveCount
+      for f in 0..<e.primitiveCount {
+        let n = Int(index(raw, f))
+        for k in 1..<max(1, n - 1) { out.append((index(raw, cursor), index(raw, cursor + k), index(raw, cursor + k + 1))) }
+        cursor += n
+      }
+    default:
+      glbNote("line/point elements skipped", model)
+    }
+  }
+  return out
+}
+
+/// Every float component of an SCNGeometrySource as 3-vectors.
+func sourceVectors(_ s: SCNGeometrySource) -> [V3] {
+  var out: [V3] = []
+  out.reserveCapacity(s.vectorCount)
+  s.data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+    for i in 0..<s.vectorCount {
+      let o = s.dataOffset + i * s.dataStride
+      var v = V3(0, 0, 0)
+      for c in 0..<min(3, s.componentsPerVector) {
+        let at = o + c * s.bytesPerComponent
+        v[c] = s.bytesPerComponent == 8 ? Float(raw.loadUnaligned(fromByteOffset: at, as: Double.self))
+                                        : raw.loadUnaligned(fromByteOffset: at, as: Float.self)
+      }
+      out.append(v)
+    }
+  }
+  return out
+}
+
+func writeGLB(_ root: SCNNode, _ name: String, to url: URL) {
+  // glTF's front is +Z; munim-maps models face -Z. A 180° turn about Y keeps
+  // the handedness (and so the winding).
+  let turn = V3(-1, 1, -1)
+  var materials: [[String: Any]] = []
+  var materialSlot: [String: Int] = [:]
+  var primitives: [Int: GLBPrimitive] = [:]
+  var order: [Int] = []
+
+  root.enumerateHierarchy { node, _ in
+    if !node.animationKeys.isEmpty || node.hasActions { glbNote("animations/actions skipped", name) }
+    var hidden = false
+    var up: SCNNode? = node
+    while let n = up {
+      if n.isHidden { hidden = true }
+      if n.opacity < 1 { glbNote("node opacity ignored", name) }
+      up = n.parent
+    }
+    guard !hidden, let g = node.geometry, let vs = g.sources(for: .vertex).first else { return }
+    let positions = sourceVectors(vs)
+    var normals: [V3]
+    if let ns = g.sources(for: .normal).first { normals = sourceVectors(ns) } else {
+      glbNote("geometry without normals (computed)", name)
+      normals = []
+    }
+    let t = node.simdWorldTransform
+    let rot = simd_float3x3(V3(t.columns.0.x, t.columns.0.y, t.columns.0.z),
+                            V3(t.columns.1.x, t.columns.1.y, t.columns.1.z),
+                            V3(t.columns.2.x, t.columns.2.y, t.columns.2.z))
+    let normalMatrix = rot.inverse.transpose
+    let mirrored = rot.determinant < 0
+    let world = positions.map { p -> V3 in
+      let w = t * SIMD4<Float>(p.x, p.y, p.z, 1)
+      return V3(w.x, w.y, w.z) * turn
+    }
+    var worldNormals = normals.map { n -> V3 in
+      let w = normalMatrix * n
+      return simd_length(w) > 1e-6 ? simd_normalize(w) * turn : V3(0, 1, 0)
+    }
+    let materialsOfGeometry = g.materials.isEmpty ? [black] : g.materials
+    for e in 0..<g.elementCount {
+      let m = materialsOfGeometry[e % materialsOfGeometry.count]
+      let info = gltfMaterial(m, name)
+      let key = String(data: try! JSONSerialization.data(withJSONObject: info, options: .sortedKeys), encoding: .utf8)!
+      let slot: Int
+      if let s = materialSlot[key] { slot = s } else {
+        slot = materials.count; materialSlot[key] = slot; materials.append(info)
+      }
+      if primitives[slot] == nil { primitives[slot] = GLBPrimitive(); order.append(slot) }
+      let prim = primitives[slot]!
+      var triangles = elementTriangles(g.element(at: e), name)
+      if mirrored { triangles = triangles.map { ($0.0, $0.2, $0.1) } }
+      if worldNormals.count != world.count {
+        // No usable normals: area-weighted vertex normals from these faces.
+        worldNormals = Array(repeating: V3(0, 0, 0), count: world.count)
+        for (a, b, c) in triangles {
+          let n = simd_cross(world[Int(b)] - world[Int(a)], world[Int(c)] - world[Int(a)])
+          for i in [a, b, c] { worldNormals[Int(i)] += n }
+        }
+        worldNormals = worldNormals.map { simd_length($0) > 1e-12 ? simd_normalize($0) : V3(0, 1, 0) }
+      }
+      for (a, b, c) in triangles {
+        let ia = prim.vertex(world[Int(a)], worldNormals[Int(a)])
+        let ib = prim.vertex(world[Int(b)], worldNormals[Int(b)])
+        let ic = prim.vertex(world[Int(c)], worldNormals[Int(c)])
+        if ia == ib || ib == ic || ia == ic { continue }
+        prim.indices += [ia, ib, ic]
+      }
+    }
+  }
+
+  // One buffer: positions, normals, then indices (each view 4-byte aligned).
+  var positionBytes = Data(), normalBytes = Data(), indexBytes = Data()
+  var accessors: [[String: Any]] = []
+  var meshPrimitives: [[String: Any]] = []
+  func append<T>(_ values: [T], to data: inout Data) {
+    values.withUnsafeBufferPointer { data.append(Data(buffer: $0)) }
+  }
+  for slot in order {
+    let prim = primitives[slot]!
+    guard !prim.indices.isEmpty else { continue }
+    var lo = V3(repeating: .infinity), hi = V3(repeating: -.infinity)
+    for p in prim.positions { lo = simd_min(lo, p); hi = simd_max(hi, p) }
+    let count = prim.positions.count
+    accessors.append(["bufferView": 0, "byteOffset": positionBytes.count, "componentType": 5126, "count": count, "type": "VEC3",
+                      "min": [lo.x, lo.y, lo.z].map(Double.init), "max": [hi.x, hi.y, hi.z].map(Double.init)])
+    append(prim.positions.flatMap { [$0.x, $0.y, $0.z] }, to: &positionBytes)
+    accessors.append(["bufferView": 1, "byteOffset": normalBytes.count, "componentType": 5126, "count": count, "type": "VEC3"])
+    append(prim.normals.flatMap { [$0.x, $0.y, $0.z] }, to: &normalBytes)
+    // uint16 when every index fits below the primitive-restart value.
+    let small = count <= 65535
+    accessors.append(["bufferView": 2, "byteOffset": indexBytes.count, "componentType": small ? 5123 : 5125,
+                      "count": prim.indices.count, "type": "SCALAR"])
+    if small { append(prim.indices.map { UInt16($0) }, to: &indexBytes) } else { append(prim.indices, to: &indexBytes) }
+    while indexBytes.count % 4 != 0 { indexBytes.append(0) }
+    let base = accessors.count - 3
+    meshPrimitives.append(["attributes": ["POSITION": base, "NORMAL": base + 1], "indices": base + 2, "material": slot, "mode": 4])
+  }
+  let views: [[String: Any]] = [
+    ["buffer": 0, "byteOffset": 0, "byteLength": positionBytes.count, "byteStride": 12, "target": 34962],
+    ["buffer": 0, "byteOffset": positionBytes.count, "byteLength": normalBytes.count, "byteStride": 12, "target": 34962],
+    ["buffer": 0, "byteOffset": positionBytes.count + normalBytes.count, "byteLength": indexBytes.count, "target": 34963],
+  ]
+  let bin = positionBytes + normalBytes + indexBytes
+  var json: [String: Any] = [
+    "asset": ["version": "2.0", "generator": "munim-maps scripts/vehicles/make-vehicles.swift"],
+    "scene": 0,
+    "scenes": [["name": name, "nodes": [0]]],
+    "nodes": [["name": name, "mesh": 0]],
+    "meshes": [["name": name, "primitives": meshPrimitives]],
+    "materials": materials,
+    "accessors": accessors,
+    "bufferViews": views,
+    "buffers": [["byteLength": bin.count]],
+  ]
+  if materials.contains(where: { $0["extensions"] != nil }) { json["extensionsUsed"] = ["KHR_materials_emissive_strength"] }
+  var jsonBytes = try! JSONSerialization.data(withJSONObject: json, options: [.sortedKeys, .withoutEscapingSlashes])
+  while jsonBytes.count % 4 != 0 { jsonBytes.append(0x20) }
+  var binBytes = bin
+  while binBytes.count % 4 != 0 { binBytes.append(0) }
+  var glb = Data()
+  func u32(_ v: Int) { withUnsafeBytes(of: UInt32(v).littleEndian) { glb.append(contentsOf: $0) } }
+  u32(0x4654_6C67); u32(2); u32(12 + 8 + jsonBytes.count + 8 + binBytes.count)
+  u32(jsonBytes.count); u32(0x4E4F_534A); glb.append(jsonBytes)
+  u32(binBytes.count); u32(0x004E_4942); glb.append(binBytes)
+  do { try glb.write(to: url) } catch { fatalError("\(name).glb: \(error)") }
+}
+
+/// Optional second argument: where to write the .glb copies.
+let glbDirectory: String? = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : nil
+
 func save(_ node: SCNNode, _ name: String) {
   fixMaterialCounts(node)
   let scene = SCNScene()
   scene.rootNode.addChildNode(node)
   let url = URL(fileURLWithPath: CommandLine.arguments[1] + "/\(name).usdz")
   if !scene.write(to: url, options: nil, delegate: nil, progressHandler: nil) { fatalError(name) }
+  if let glbDirectory { writeGLB(node, name, to: URL(fileURLWithPath: glbDirectory + "/\(name).glb")) }
 }
 
 save(car(sedan, body: 0x2E6FD8), "car-sedan")
@@ -5669,3 +5969,6 @@ print("satellites ok")
 save(starbaseTower(), "starbase-tower")
 save(starbaseMount(), "starbase-mount")
 print("starbase ok")
+for (what, models) in glbNotes.sorted(by: { $0.key < $1.key }) {
+  print("glb note: \(what): \(models.sorted().joined(separator: ", "))")
+}
