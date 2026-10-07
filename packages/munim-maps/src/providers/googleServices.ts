@@ -554,12 +554,13 @@ export function decodePolyline(
       let result = 0
       let shift = 0
       let byte: number
+      // Five-bit chunks, low first; arithmetic keeps it exact past 32 bits.
       do {
         byte = encoded.charCodeAt(index++) - 63
-        result |= (byte & 0x1f) << shift
+        result += (byte % 32) * 2 ** shift
         shift += 5
-      } while (byte >= 0x20 && index < encoded.length)
-      const delta = result & 1 ? ~(result >> 1) : result >> 1
+      } while (byte >= 32 && index < encoded.length)
+      const delta = result % 2 === 1 ? -(result + 1) / 2 : result / 2
       if (which === 0) lat += delta
       else lng += delta
     }

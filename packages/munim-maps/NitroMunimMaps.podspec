@@ -86,7 +86,7 @@ Pod::Spec.new do |s|
 
   s.subspec "MapLibre" do |ss|
     ss.source_files = "ios/Engines/MapLibre/**/*.swift"
-    ss.dependency "MapLibre", ">= 6.0"
+    ss.dependency "MapLibre", ">= 6.30"
   end
 
   s.subspec "Cesium" do |ss|

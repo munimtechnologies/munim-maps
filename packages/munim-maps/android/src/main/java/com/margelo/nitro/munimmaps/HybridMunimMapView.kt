@@ -66,6 +66,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     e.setCameraBoundary(boundary())
     e.setMapPadding(mapPadding)
     e.setOverlayPressEnabled(onOverlayPress != null)
+    e.setSelectableMapFeatures(selectableMapFeatures)
   }
 
   private fun applyModelLayer(e: MunimMapEngine) {
@@ -202,8 +203,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setCameraBoundary(boundary()) }
   override var mapPadding: EdgeInsets = EdgeInsets(0.0, 0.0, 0.0, 0.0)
     set(value) { field = value; engine?.setMapPadding(value) }
-  /** Tappable places on Apple's map; MapKit only. */
+  /** Tappable places on the base map (`onMapFeaturePress`). */
   override var selectableMapFeatures: String = ""
+    set(value) { field = value; engine?.setSelectableMapFeatures(value) }
   /** Apple's place cards; MapKit only. */
   override var selectionAccessory: SelectionAccessory = SelectionAccessory.NONE
 

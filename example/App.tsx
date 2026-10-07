@@ -32,6 +32,7 @@ import { ProvidersScreen } from './Providers'
 import { Layer3DScreen } from './Layer3D'
 import { GoogleScreen } from './GoogleScreen'
 import { MapboxScreen } from './MapboxScreen'
+import { MapLibreScreen } from './MapLibre'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -62,7 +63,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'google' | 'mapbox'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'google' | 'mapbox' | 'maplibre'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -459,6 +460,7 @@ function Example() {
   const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
   const [googleChecks, setGoogleChecks] = useState(false)
   const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
+  const [mapLibreCheck, setMapLibreCheck] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -576,6 +578,13 @@ function Example() {
         setLaunching(false)
         setGoogleChecks(url?.includes('checks') ?? false)
         setMode('google')
+        return
+      }
+      // munimmapsexample://maplibre(/check): every MapLibre feature (and its checks).
+      if (url && /:\/\/maplibre/.test(url)) {
+        setLaunching(false)
+        setMapLibreCheck(url.includes('check'))
+        setMode('maplibre')
         return
       }
       // munimmapsexample://providers/<provider>: the engine picker.
@@ -795,12 +804,20 @@ function Example() {
           autoChecks={mapboxChecks}
           onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
         />
+      ) : mode === 'maplibre' ? (
+        <MapLibreScreen
+          topInset={insets.top}
+          panel={panel}
+          autoCheck={mapLibreCheck}
+          onExit={() => setMode('providers')}
+        />
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
           topInset={insets.top}
           panel={panel}
           onExit={Platform.OS === 'ios' ? () => setMode('munim') : undefined}
+          onMapLibre={() => setMode('maplibre')}
         />
       ) : mode === 'parity' ? (
         <ParityScreen
@@ -977,7 +994,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode === 'google' || mode === 'mapbox') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode === 'google' || mode === 'mapbox' || mode === 'maplibre') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

@@ -896,6 +896,19 @@ const offscreenChildren = {
 
 export * from './services'
 export * from './providers/mapbox'
+export * from './openMapsServices'
+export {
+  maplibreCommands,
+  type MapLibreCommands,
+  type MapLibreEventName,
+  type MapLibreFeature,
+  type MapLibreLayer,
+  type MapLibreOfflinePack,
+  type MapLibreOrnament,
+  type MapLibreSnapshotOptions,
+  type MapLibreSource,
+  type MapLibreStylePreset,
+} from './providers/maplibre'
 export {
   MAP_PROVIDERS,
   addProviderEventListener,

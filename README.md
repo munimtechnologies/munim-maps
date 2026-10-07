@@ -158,7 +158,7 @@ layer.onModelPress = { id in print(id) }
 | Apple MapKit | `'mapkit'` | ✅ Built in, the default | — | None |
 | Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` (Maps SDK 10 + Utils) | ✅ `munimMaps.google=true` (Maps SDK 20 + maps-utils), the default when on | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ✅ `NitroMunimMaps/Mapbox` (SDK 11.32) | 🔨 `munimMaps.mapbox=true`: built, device check pending | Mapbox public token |
-| MapLibre (open maps) | `'maplibre'` | ⏳ Coming in this release | ✅ Built in, the default (map, camera, events, GLB models) | None (OpenStreetMap data from OpenFreeMap) |
+| MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec | ✅ Built in, the default without Google | None (OpenStreetMap data from OpenFreeMap) |
 | Cesium | `'cesium'` | ⏳ Coming in this release | ⏳ Coming in this release | Cesium ion token |
 
 ```tsx
@@ -282,6 +282,46 @@ await MapboxOffline.loadTileRegion({ id: 'loop', bounds, minZoom: 10, maxZoom: 1
 - Mapbox's own glTF `model` layer is also yours to use directly: `mapbox={{ models: { bus: uri }, layers: [{ type: 'model', … }] }}`.
 
 Caveats: Mapbox's terms keep the logo and attribution on the map. Models on munim-maps' 3D layer are drawn over the map (Mapbox does not share its depth buffer), so Mapbox's 3D buildings do not hide them unless `occlusion="buildings"`; natively drawn models are hidden properly. On iOS the debug wireframes are not offered by the SDK. The full checklist is in [docs/providers.md](docs/providers.md#mapbox-checklist).
+
+### MapLibre (open maps)
+
+MapLibre Native draws any [MapLibre style](https://maplibre.org/maplibre-style-spec/); the default is [OpenFreeMap](https://openfreemap.org)'s Liberty style: OpenStreetMap data, free, no key, no account. On iOS add `"maplibre"` to the config plugin's `providers` (or `pod 'NitroMunimMaps/MapLibre'`); on Android it is built in.
+
+```tsx
+import { MunimMapView, maplibreCommands } from 'munim-maps'
+
+<MunimMapView
+  ref={ref}
+  provider="maplibre"
+  initialCamera={camera}
+  markers={markers}                       // pins, balloons, avatars, labels, dots, clusters, callouts, dragging
+  polylines={routes}                      // gradients, dashes, geodesic, partial strokes
+  models={vehicles}                       // the 3D layer, on MapLibre's camera
+  maplibre={{
+    style: 'liberty',                     // 'bright' | 'positron' | 'dark' | 'fiord' | 'demotiles' | 'maptiler-…' | 'stadia-…' (with apiKey)
+    hillshade: true,                      // shaded relief from keyless AWS Terrain Tiles
+    sources: { stops: { type: 'geojson', data: stopsGeoJSON, cluster: true } },
+    layers: [{ id: 'stops', type: 'circle', source: 'stops', paint: { 'circle-radius': ['step', ['get', 'point_count'], 6, 10, 12] } }],
+    labelLanguage: 'en',
+    ornaments: { scaleBar: { visible: true, position: 'bottomLeft' } },
+  }}
+  onProviderEvent={({ name, data }) => {}}  // styleLoaded, idle, offlineProgress…
+/>
+
+const maplibre = maplibreCommands(ref.current)
+await maplibre.queryRenderedFeatures({ point: { x, y }, layers: ['stops'] })
+await maplibre.setFeatureState({ source: 'stops', id: 7, state: { selected: true } })
+await maplibre.offlineCreatePack({ name: 'Loop', bounds: { south, west, north, east }, minZoom: 10, maxZoom: 16 })
+```
+
+- **The whole style spec**: sources (vector, raster, raster-dem, GeoJSON with clustering, image, `pmtiles://`, MLT) and all ten layer types with expressions and filters, written exactly as in a style JSON, at load (`maplibre.sources`, `layers`, `images`, `light`) or at runtime (`addSource`, `addLayer`, `setPaintProperty`, `setLayoutProperty`, `setFilter`, `moveLayer`, `setFeatureState`…). `styleJson` takes a whole style.
+- **Commands** (`maplibreCommands(ref)`): feature queries, cluster leaves and expansion zoom, `flyTo`, `resetNorth`, an offscreen snapshotter, offline packs with progress events, the ambient cache, database merges.
+- **Markers and shapes** are GeoJSON sources with style layers, so they sit in MapLibre's own layer stack, cluster natively and come back after a style change; munim-maps draws the callouts and the drag.
+- **Services**: `addressForCoordinate` and `openMapsServices` (Nominatim, Photon, OSRM, Valhalla). The public servers are for light use only (Nominatim: one request a second); set your own endpoints with `configureOpenMapsServices` and `maplibre.nominatimUrl` before shipping.
+- **Not in MapLibre Native**: globe projection and 3D terrain (MapLibre GL JS only; `globe` reports an error and the map stays flat), traffic (no data in OpenStreetMap), Apple's place cards and Look Around. Satellite imagery needs your own tiles (`maplibre.satelliteTilesUrl`) or a keyed style.
+- **Attribution**: OpenStreetMap's licence asks for it, so the attribution button stays on unless you move or hide it (`maplibre.ornaments.attribution`).
+
+Every MapLibre option, command and event, with what is left out and why, is in the [MapLibre checklist](docs/providers.md#maplibre-engine-checklist-open-maps).
 
 ## Table of contents
 
@@ -580,23 +620,23 @@ Columns are engines; two marks are iOS / Android. ✅ works · 🟡 partly (see 
 
 | Capability | MapKit (iOS) | Google | Mapbox | MapLibre | Cesium | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `MunimMapView` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | Android draws MapLibre (OpenFreeMap) today; see [Map Providers](#️-map-providers). |
+| `MunimMapView` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | MapLibre: OpenFreeMap, no key; its own options, commands and events in [MapLibre (open maps)](#maplibre-open-maps). |
 | `MapModelLayer` over `react-native-maps` | ✅ | — / 🟡 | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
 | `MapModelLayer` over `expo-maps` | ✅ | — / — | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
-| GLB / glTF models | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
-| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ / — | ✅ / — | ⏳ / — | ⏳ / — | SceneKit / Model I/O, iOS only. |
-| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ |  |
-| Vehicle catalogue | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
-| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ / ⏳ | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
-| Globe | ✅ | — / — | ✅ / 🔨 | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
+| GLB / glTF models | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
+| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ / — | ✅ / — | ✅ / — | ⏳ / — | SceneKit / Model I/O, iOS only. |
+| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ |  |
+| Vehicle catalogue | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
+| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ / ⏳ | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
+| Globe | ✅ | — / — | ✅ / 🔨 | — / — | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. MapLibre Native has no globe (MapLibre GL JS only). |
 | Hidden behind buildings | ✅ | ✅ / ⏳ | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
 | Terrain height | ✅ | ✅ / ⏳ | ✅ / 🔨 | ⏳ / ⏳ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
-| Camera API, regions, conversions, gestures | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
-| Map events | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
-| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| User location and tracking (follow, follow with heading) | ✅ | ✅ / 🟡 | ✅ / 🔨 | ⏳ / ⏳ | ⏳ / ⏳ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
-| Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 / 🟡 | 🟡 / 🔨 | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. Mapbox: compass, scale bar and a tracking button, no 2D/3D button. |
+| Camera API, regions, conversions, gestures | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
+| Map events | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
+| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / 🟡 | ⏳ / ⏳ | `MarkerView` is iOS only for now (no Android view yet). |
+| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ |  |
+| User location and tracking (follow, follow with heading) | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ⏳ / ⏳ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 / 🟡 | 🟡 / 🔨 | ✅ / ✅ | ⏳ / ⏳ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. Mapbox: compass, scale bar and a tracking button, no 2D/3D button. |
 | Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | `selectionAccessory`. |
 | Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | 🟡 `googleMapsServices` / 🟡 `googleMapsServices` | — | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS. |
 | Look Around view and snapshots | ✅ iOS 16+ | 🟡 Street View / 🟡 Street View | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |

@@ -165,6 +165,8 @@ interface MunimMapEngine {
   fun setShowsTraffic(shows: Boolean) {}
   /** `all`, `none`, or comma-separated categories. */
   fun setPointsOfInterest(filter: String) {}
+  /** Places on the base map that can be tapped (`onMapFeaturePress`), comma-separated. */
+  fun setSelectableMapFeatures(features: String) {}
 
   // Controls
 

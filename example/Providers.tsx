@@ -52,6 +52,8 @@ export function ProvidersScreen(props: {
   panel: boolean
   /** Back to the other examples (iOS). */
   onExit?: () => void
+  /** The MapLibre screen with every feature (munimmapsexample://maplibre). */
+  onMapLibre?: () => void
 }) {
   const [provider, setProvider] = useState<MapProvider>(props.initial ?? defaultProvider())
   const [errors, setErrors] = useState<string[]>([])
@@ -117,6 +119,11 @@ export function ProvidersScreen(props: {
               <Text style={[styles.chipText, p === provider && styles.chipTextOn]}>{NAMES[p]}</Text>
             </Pressable>
           ))}
+          {provider === 'maplibre' && props.onMapLibre && available.includes('maplibre') ? (
+            <Pressable onPress={props.onMapLibre} style={styles.chip}>
+              <Text style={styles.chipText}>All MapLibre features ›</Text>
+            </Pressable>
+          ) : null}
         </ScrollView>
         <Text style={styles.status}>
           {Platform.OS} · built in: {installed.join(', ') || 'none'} · working: {available.join(', ') || 'none'}

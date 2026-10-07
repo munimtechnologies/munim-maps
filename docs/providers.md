@@ -68,40 +68,40 @@ configureMunimMaps({
 
 | Feature | MapKit iOS | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | Cesium iOS | Cesium Android |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Map on screen | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ✅ map types, JSON styles, `styleUrl` = JSON style | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ `styleUrl` | ⏳ | ⏳ |
-| Dark mode (`colorScheme`) | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Globe (`globe`) | ✅ | — | — | ✅ | 🔨 | ⏳ | ⏳ | ⏳ always a globe | ⏳ |
-| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| `flyCamera` / `stopFlight` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | 🟡 built, not yet device-checked | ⏳ | ⏳ |
-| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| `pointForCoordinate`, `coordinateForPoint` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Gestures on/off | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Camera limits, boundary, `mapPadding` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ✅ Utils | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| `MarkerView` (React Native views as markers) | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Polylines, polygons, circles | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Gradient / animated polylines, overlay taps | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Tile overlays | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| User location, tracking modes | ✅ | 🟡 tracking by munim-maps | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Compass, scale, tracking button | ✅ | 🟡 compass, my-location button; no scale | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Points of interest filter, traffic | ✅ | ✅ | 🟡 built; phone test pending | 🟡 POI labels all or none; traffic ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| Tappable places (`onMapFeaturePress`) | ✅ | ✅ POIs (place IDs) | 🟡 built; phone test pending | ✅ Standard featuresets | — `selectableMapFeatures` is not passed to Android engines; use `mapbox.interactions` | ⏳ | ⏳ | ⏳ | ⏳ |
+| Map on screen | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ✅ map types, JSON styles, `styleUrl` = JSON style | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ `styleUrl` | ⏳ | ⏳ |
+| Dark mode (`colorScheme`) | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🟡 built; phone test pending | ✅ | 🔨 | 🟡 buildings, no 3D terrain | 🟡 buildings, no 3D terrain | ⏳ | ⏳ |
+| Globe (`globe`) | ✅ | — | — | ✅ | 🔨 | — (not in MapLibre Native) | — | ⏳ always a globe | ⏳ |
+| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| `flyCamera` / `stopFlight` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ⏳ | ⏳ |
+| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| `pointForCoordinate`, `coordinateForPoint` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Gestures on/off | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Camera limits, boundary, `mapPadding` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ✅ Utils | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| `MarkerView` (React Native views as markers) | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | — no Android `MarkerView` yet | ⏳ | ⏳ |
+| Polylines, polygons, circles | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| Gradient / animated polylines, overlay taps | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| Tile overlays | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| User location, tracking modes | ✅ | 🟡 tracking by munim-maps | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| Compass, scale, tracking button | ✅ | 🟡 compass, my-location button; no scale | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| Points of interest filter, traffic | ✅ | ✅ | 🟡 built; phone test pending | 🟡 POI labels all or none; traffic ✅ | 🔨 | 🟡 POIs, no traffic data | 🟡 POIs, no traffic data | ⏳ | ⏳ |
+| Tappable places (`onMapFeaturePress`) | ✅ | ✅ POIs (place IDs) | 🟡 built; phone test pending | ✅ Standard featuresets | — `selectableMapFeatures` is not passed to Android engines; use `mapbox.interactions` | ✅ | 🔨 | ⏳ | ⏳ |
 | Place cards (`selectionAccessory`), Look Around | ✅ | 🟡 Street View for Look Around | 🟡 Street View for Look Around; phone test pending | — | — | — | — | — | — |
-| `takeSnapshot`, `addressForCoordinate` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ⏳ | ⏳ | ⏳ |
-| 3D models: GLB / glTF | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| 3D models: USDZ, USD, SCN, OBJ… | ✅ | ✅ | — | ✅ | — | ⏳ | — | ⏳ | — |
-| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Effects (exhaust, smoke, contrail), occluders | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Zones, paths | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| `occlusion="buildings"` | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ✅ sea level (Google 2D has no terrain) | ⏳ Android 3D layer | ✅ | 🔨 | ⏳ | 🟡 built, not yet device-checked | ⏳ | ⏳ |
-| `onModelPress` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
-| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ✅ ≤ 1.7 pt (iPad) | 🟡 built; phone test pending | ✅ | 🔨 | ⏳ | ✅ | ⏳ | ⏳ |
+| `takeSnapshot`, `addressForCoordinate` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ⏳ | ⏳ |
+| 3D models: GLB / glTF | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| 3D models: USDZ, USD, SCN, OBJ… | ✅ | ✅ | — | ✅ | — | ✅ | — | ⏳ | — |
+| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Effects (exhaust, smoke, contrail), occluders | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Zones, paths | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| `occlusion="buildings"` | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ✅ sea level (Google 2D has no terrain) | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ⏳ | ⏳ |
+| `onModelPress` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
+| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ✅ ≤ 1.7 pt (iPad) | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ⏳ | ⏳ |
 | `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | — | 🟡 react-native-maps (Google `MapView` adapter); phone test pending | — | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
 | MapKit services (search, directions, geocoding) | ✅ | — | — | — | — | — | — | — | — |
 
@@ -391,3 +391,161 @@ Every capability of the SDKs' public surface (iOS `MapboxMaps` and Android `com.
 | Native models (Mapbox `model` source + layers) | `mapbox.modelRendering` (`auto` default, `native`, `overlay`): glTF bodies with position, altitude / sea level, heading, spin, `motion`, `scale`, `screenSize`, `tint` (material overrides on `paint*`), `onModelPress` | ✅ | 🔨 | Avatars, labels, stems, effects, occluders, USDZ / built-in shapes, zones and paths stay on the 3D layer. |
 
 Testing: `munimmapsexample://mapbox` (example/MapboxScreen.tsx) shows every group; **Run checks** or `munimmapsexample://mapbox/checks` runs the checks (`MUNIM_MAPS_MAPBOX check …` in the log). Fast iOS compile loop: build the `MapboxMaps` pod scheme once (`xcodebuild -scheme MapboxMaps -configuration Release -destination generic/platform=iOS`) and typecheck `ios/Core`, `ios/Engines/*.swift`, `ios/Engines/MapKit` and `ios/Engines/Mapbox` against it with `swiftc -typecheck -I <products>/MapboxMaps -Xcc -fmodule-map-file=<products>/MapboxMaps/MapboxMaps.modulemap -F <products>/XCFrameworkIntermediates/{MapboxCoreMaps,MapboxCommon,Turf}`.
+
+## MapLibre engine checklist (open maps)
+
+Every capability in the public surface of MapLibre Native for iOS (6.30, the newest on CocoaPods: the `MLN…` headers) and Android (13.6.1: `org.maplibre.android…`), mapped to the munim-maps API. Status per platform: ✅ done · 🔨 built (compiles, in the example), on-device check pending · 🟡 partly (note) · ❌ left out (reason given). iOS was checked on an iPad Air (M3) with the example's 27 MapLibre checks (27/27); the Android phone was disconnected for this round, so Android rows are 🔨. Shared rows are the props, events and methods every engine has; MapLibre-only ones are `maplibre={{…}}` options (`MapLibreMapOptions`), commands (`maplibreCommands(ref)`, which call `ref.providerCommand(name, json)`) and events (`onProviderEvent`).
+
+### Map and style
+
+| SDK capability | iOS | Android | munim-maps API | iOS | Android |
+| --- | --- | --- | --- | --- | --- |
+| Map view, lifecycle | `MLNMapView` | `MapView` + `onStart…onDestroy` | `provider="maplibre"` | ✅ | 🔨 |
+| Style from URL | `styleURL` | `setStyle(String)` | `styleUrl` | ✅ | 🔨 |
+| Style from JSON | `styleJSON` | `Style.Builder().fromJson` | `maplibre.styleJson` (string or object) | ✅ | 🔨 |
+| OpenFreeMap styles, no key | — | — | `maplibre.style`: `liberty` (default), `bright`, `positron`, `dark`, `fiord` | ✅ | 🔨 |
+| Keyed providers | `MLNSettings.apiKey`, `MLNTileServerOptions`, `useWellKnownTileServer` | `MapLibre.getInstance(ctx, key, WellKnownTileServer)`, `TileServerOptions` | `maplibre.style`: `maptiler-*`, `stadia-*` with `maplibre.apiKey` (the style URL carries the key) | ✅ | 🔨 |
+| Predefined styles | `MLNStyle.predefinedStyles`, `MLNDefaultStyle` | `Style.getPredefinedStyles`, `DefaultStyle` | `maplibre.style: 'demotiles'` (the SDKs' own list is MapLibre's demo tiles) | ✅ | 🔨 |
+| `mapStyle` standard / muted | — | — | `standard` → Liberty, `muted` → Positron | ✅ | 🔨 |
+| `mapStyle` hybrid / imagery | raster source | raster source | needs `maplibre.satelliteTilesUrl` (there is no keyless satellite imagery); `hybrid` keeps roads and labels over it | ✅ | 🔨 |
+| Dark mode | — | — | `colorScheme="dark"` → `maplibre.darkStyle` (default OpenFreeMap Dark) | ✅ | 🔨 |
+| Reload style | `reloadStyle:` | `setStyle` again | command `reloadStyle` | ✅ | 🔨 |
+| Style switching at runtime | `styleURL =` | `setStyle` | change `styleUrl` / `maplibre.style`; markers, shapes and runtime layers come back on the new style | ✅ | 🔨 |
+| Style transition | `MLNStyle.transition` | `Style.setTransition` | `maplibre.transition { duration, delay }` (ms) | ✅ | 🔨 |
+| Placement transitions | `performsPlacementTransitions` | no API | `maplibre.placementTransitions` | ✅ | ❌ no Android API |
+| Light | `MLNLight` | `Style.getLight()` | `maplibre.light` (style-spec `light`) | ✅ | 🔨 |
+| Label language | `localizeLabelsIntoLocale:` | no API | `maplibre.labelLanguage` (rewrites `text-field` to `name:<lang>` with a fallback, on both) | ✅ | 🔨 |
+| Local CJK glyphs | `MLNIdeographicFontFamilyName` (Info.plist) | `MapLibreMapOptions.localIdeographFontFamily` | Android: `maplibre.localIdeographFontFamily`; iOS: the Info.plist key | ❌ Info.plist only | 🔨 |
+| Globe projection | not in MapLibre Native (GL JS only) | not in MapLibre Native | `globe` / `maplibre.projection: 'globe'` report "not supported" | ❌ SDK has none | ❌ SDK has none |
+| 3D terrain | not in MapLibre Native | not in MapLibre Native | `elevation="realistic"` stays flat; hillshade and color relief instead | ❌ SDK has none | ❌ SDK has none |
+| 3D buildings | `fill-extrusion` layers | same | `showsBuildings` toggles the style's building layers | ✅ | 🔨 |
+| Points of interest | style `poi` layers | same | `pointsOfInterest` (`all`, `none`, OpenMapTiles `class` names) | ✅ | 🔨 |
+| Traffic | no traffic data in OpenStreetMap | same | `showsTraffic` reports unsupported | ❌ no data | ❌ no data |
+
+### Runtime styling (the whole style spec)
+
+| SDK capability | iOS | Android | munim-maps API | iOS | Android |
+| --- | --- | --- | --- | --- | --- |
+| Sources: vector, raster, raster-dem, geojson, image | `MLNVectorTileSource`, `MLNRasterTileSource`, `MLNRasterDEMSource`, `MLNShapeSource`, `MLNImageSource` | `VectorSource`, `RasterSource`, `RasterDemSource`, `GeoJsonSource`, `ImageSource` | `maplibre.sources` (style-spec source objects); commands `addSource`, `removeSource` | ✅ | 🔨 |
+| Tile templates, TileJSON, scheme, bounds, zoom range, attribution, tile size, DEM encoding | `MLNTileSourceOption…` | `TileSet` | the style-spec keys (`tiles`, `url`, `scheme`, `bounds`, `minzoom`, `maxzoom`, `tileSize`, `encoding`, `attribution`) | ✅ | 🔨 |
+| PMTiles | `pmtiles://` URLs | same | `url: 'pmtiles://https://…'` | ✅ | 🔨 |
+| MapLibre Tiles (MLT) | `encoding: 'mlt'` | same | the source's `encoding` | ✅ | 🔨 |
+| GeoJSON: cluster, clusterRadius, clusterMaxZoom, lineMetrics, tolerance, buffer, maxzoom | `MLNShapeSourceOption…` | `GeoJsonOptions` | geojson source keys | ✅ | 🔨 |
+| GeoJSON `clusterProperties` | `MLNShapeSourceOptionClusterProperties` | no API | ❌ Android has no API; left out on both so a map means the same everywhere | ❌ | ❌ |
+| Update GeoJSON | `MLNShapeSource.shape`, `URL` | `setGeoJson`, `setUri` | command `setGeoJson`, or new `maplibre.sources` | ✅ | 🔨 |
+| Computed / custom geometry sources | `MLNComputedShapeSource` | `CustomGeometrySource`, `CustomVectorSource` | ❌ they call native code for every tile; GeoJSON or a tile server covers the same ground | ❌ | ❌ |
+| Source tuning (prefetch delta, volatile, overscale, update interval) | no API | `Source.setPrefetchZoomDelta`… | ❌ Android only and rarely needed; `maplibre.rendering.prefetchZoomDelta` covers the map | ❌ | ❌ |
+| Layers: fill, line, symbol, circle, heatmap, fill-extrusion, raster, hillshade, color-relief, background | `MLN…StyleLayer` | `…Layer` | `maplibre.layers` (style-spec layers + `beforeId`); commands `addLayer`, `removeLayer`, `moveLayer` | ✅ | 🔨 |
+| Paint and layout properties, expressions | KVC with `NSExpression(mlnJSONObject:)` | `PaintPropertyValue`, `LayoutPropertyValue` | style-spec JSON as is; commands `setPaintProperty`, `setLayoutProperty` | ✅ | 🔨 |
+| Filters | `predicate` (`NSPredicate(mlnJSONObject:)`) | `setFilter(Expression)` | the layer's `filter`; command `setFilter` | ✅ | 🔨 |
+| Layer zoom range, visibility, source layer | `minimumZoomLevel`, `isVisible`, `sourceLayerIdentifier` | `setMinZoom`, `visibility` | `minzoom`, `maxzoom`, `layout.visibility`, `source-layer`; command `setLayerZoomRange` | ✅ | 🔨 |
+| Style images (icons, patterns, SDF) | `setImage:forName:` (template images for SDF) | `addImage(id, bitmap, sdf)` | `maplibre.images { name: uri \| { uri, sdf } }`; commands `addImage`, `removeImage` | ✅ | 🔨 |
+| Missing images | `didFailToLoadImage:` | `OnStyleImageMissingListener` | event `styleImageMissing` | ✅ | 🔨 |
+| Feature state | `MLNShapeSource` / `MLNVectorTileSource` `setFeatureState…` | `setFeatureState`, `getFeatureState`, `removeFeatureState` | commands `setFeatureState`, `getFeatureState`, `removeFeatureState` | ✅ | 🔨 |
+| Hillshade from public elevation data | `MLNRasterDEMSource` + `MLNHillshadeStyleLayer` | `RasterDemSource` + `HillshadeLayer` | `maplibre.hillshade` (`true` or options; AWS Terrain Tiles, keyless) | ✅ | 🔨 |
+| Color relief | `MLNColorReliefStyleLayer` | `ColorReliefLayer` | `maplibre.colorRelief` | ✅ | 🔨 |
+| Custom native layers | `MLNCustomStyleLayer`, `MLNPluginLayer` | `CustomLayer` | ❌ native drawing code, not data; munim-maps' 3D layer covers models | ❌ | ❌ |
+| Style out | `MLNStyle.styleJSON` | `Style.getJson` | command `getStyle` (layer ids, source ids, style JSON) | ✅ | 🔨 |
+
+### Camera, gestures, ornaments
+
+| SDK capability | iOS | Android | munim-maps API | iOS | Android |
+| --- | --- | --- | --- | --- | --- |
+| Camera get / set / animate | `camera`, `setCamera:withDuration:animationTimingFunction:` | `cameraPosition`, `moveCamera`, `easeCamera` | `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | 🔨 |
+| Fly-to (zoom-out arc) | `flyToCamera:withDuration:…` | `animateCamera` | command `flyTo { camera, durationMs }` | ✅ | 🔨 |
+| Keyframed flights | — | — | `flyCamera`, `stopFlight` (munim-maps' frame clock) | ✅ | 🔨 |
+| Regions and fitting | `setVisibleCoordinateBounds:edgePadding:`, `cameraThatFitsCoordinateBounds:` | `newLatLngBounds`, `getCameraForLatLngBounds` | `setRegion`, `getVisibleRegion`, `fitToCoordinates`, `fitToMarkers` | ✅ | 🔨 |
+| Projection | `convertPoint:…`, `convertCoordinate:…`, `metersPerPointAtLatitude:` | `Projection` | `pointForCoordinate`, `coordinateForPoint`; command `metersPerPoint` | ✅ | 🔨 |
+| Padding | `contentInset` | `setPadding` | `mapPadding` | ✅ | 🔨 |
+| Zoom and pitch limits | `minimumZoomLevel`, `maximumZoomLevel`, `minimumPitch`, `maximumPitch` | `setMin/MaxZoomPreference`, `setMin/MaxPitchPreference` | `cameraDistanceRange`; `maplibre.camera { minZoom, maxZoom, minPitch, maxPitch }` | ✅ | 🔨 |
+| Camera bounds | `maximumScreenBounds` | `setLatLngBoundsForCameraTarget` | `cameraBoundary` | ✅ | 🔨 |
+| Camera roll | `MLNMapCamera.roll` | `CameraPosition.roll` | `maplibre.camera.roll` | ✅ | 🔨 |
+| Field of view | fixed 36.87° | `CameraPosition.fov` | read for the 3D layer | ✅ | 🔨 |
+| Reset north / position | `resetNorth`, `resetPosition` | `resetNorth` | commands `resetNorth`, `resetPosition` | ✅ | 🔨 |
+| Gestures on/off | `zoomEnabled`, `scrollEnabled`, `rotateEnabled`, `pitchEnabled` | `UiSettings` | `zoomEnabled`, `scrollEnabled`, `rotateEnabled`, `pitchEnabled` | ✅ | 🔨 |
+| Gesture tuning | `quickZoomReversed`, `panScrollingMode`, `toleranceForSnappingToNorth`, `decelerationRate`, `anchorRotateOrZoomGesturesToCenterCoordinate`, `hapticFeedbackEnabled` | `UiSettings`: double tap, quick zoom, fling / scale / rotate velocity, horizontal scroll, `disableRotateWhenScaling`, `increaseRotateThresholdWhenScaling` | `maplibre.gestures { … }` (each key on the platforms that have it) | ✅ | 🔨 |
+| Compass | `showsCompassView`, `compassView.compassVisibility`, position, margins | `UiSettings.compass…` (gravity, margins, fade when facing north) | `compassVisibility`; `maplibre.ornaments.compass { position, margin }` | ✅ | 🔨 |
+| Scale bar | `showsScale`, `scaleBarPosition`, margins, `scaleBarUsesMetricSystem` | none in the SDK | `scaleVisibility` (Android: munim-maps draws one); `maplibre.ornaments.scaleBar { position, margin, metric }` | ✅ | 🔨 |
+| Logo, attribution | `showsLogoView`, `showsAttributionButton`, positions, margins | `UiSettings.logo…`, `attribution…` | `maplibre.ornaments.logo`, `.attribution` (attribution stays on by default, as OpenStreetMap's licence asks) | ✅ | 🔨 |
+| Rendering | `preferredFramesPerSecond`, `prefetchesTiles`, `tileCacheEnabled`, `tileLod…`, `frustumOffset`, `debugMask`, `enableRenderingStatsView:` | `setMaximumFps`, `setPrefetchZoomDelta`, `setTileCacheEnabled`, `setTileLod…`, `setFrustumOffset`, `setDebugActive`, `enableRenderingStatsView` | `maplibre.rendering { maxFps, prefetchTiles, prefetchZoomDelta, tileCache, tileLodScale, tileLodMinRadius, tileLodPitchThreshold, tileLodZoomShift, frustumOffset, debug, renderingStats }` | ✅ | 🔨 |
+| Surface options | — | `MapLibreMapOptions` texture mode, translucency, `pixelRatio`, `foregroundLoadColor`; Vulkan / OpenGL AAR flavours | `maplibre.pixelRatio`, `maplibre.foregroundLoadColor`; texture mode stays off (the 3D layer is its own view); the backend is the AAR flavour | — | 🔨 |
+| Action journal | `MLNActionJournalOptions` | `MapLibreMapOptions.actionJournal…` | ❌ diagnostics for MapLibre's own developers | ❌ | ❌ |
+
+### Markers and shapes
+
+munim-maps draws markers and shapes on MapLibre as GeoJSON sources with style layers, not the SDKs' annotation views, so clustering, collision and ordering work the same on both platforms. They stand in for the SDKs' annotation classes (`MLNPointAnnotation`, `MLNAnnotationView`, `MLNAnnotationImage`, `MLNCalloutView`, `MLNPolyline`, `MLNPolygon`; Android's deprecated `Marker`, `Polyline`, `Polygon`, `InfoWindow`).
+
+| Capability | munim-maps API | iOS | Android |
+| --- | --- | --- | --- |
+| Point markers: pin, balloon with glyph, image, avatar with badges, label, dot | `markers` (`style`) | ✅ | 🔨 |
+| Anchor, z order, opacity, visibility, collision, display priority | `anchorX/Y`, `zIndex`, `opacity`, `visible`, `collisionMode`, `displayPriority` (symbol sort key, allow-overlap) | ✅ | 🔨 |
+| Callouts with title, subtitle, accessories | `calloutEnabled`, `onCalloutPress`, `onCalloutAccessoryPress` (munim-maps' callout view) | ✅ | 🔨 |
+| Select / deselect | `selectMarker`, `deselectMarker`, `onMarkerPress`, `onMarkerDeselect` | ✅ | 🔨 |
+| Dragging | `draggable`, `onMarkerDragStart`, `onMarkerDragEnd` (long press, then drag) | ✅ | 🔨 |
+| Clustering | `clusteringId`, `clusterStyles`, `onClusterPress` (GeoJSON clustering per `clusteringId`) | ✅ | 🔨 |
+| React Native views as markers | `MarkerView` (drawn as an image marker) | ✅ | ❌ `MarkerView` has no Android view yet (shared code) |
+| Polylines: colour, width, dashes, caps, joins, geodesic, gradient, partial stroke | `polylines` (`line-gradient`; geodesic lines densified; `strokeStart` / `strokeEnd` cut the line) | ✅ | 🔨 |
+| Polygons with holes, circles | `polygons`, `circles` (geodesic rings) | ✅ | 🔨 |
+| Overlay level | `level`: `aboveRoads` (below the first label layer) or `aboveLabels` | ✅ | 🔨 |
+| Overlay taps | `onOverlayPress`, `overlayAtPoint` | ✅ | 🔨 |
+| Tile overlays | `tileOverlays` (raster source and layer; `replacesMap` hides the style's layers) | ✅ | 🔨 |
+
+### User location
+
+| SDK capability | iOS | Android | munim-maps API | iOS | Android |
+| --- | --- | --- | --- | --- | --- |
+| Show location | `showsUserLocation` | `LocationComponent` | `showsUserLocation` | ✅ | 🔨 |
+| Tracking modes | `MLNUserTrackingMode` none, follow, followWithHeading, followWithCourse | `CameraMode` NONE, TRACKING, TRACKING_COMPASS, TRACKING_GPS; `RenderMode` NORMAL, COMPASS, GPS | `userTrackingMode`, `onUserTrackingModeChange`; `maplibre.location.course` follows the course instead of the heading | ✅ | 🔨 |
+| Location updates | `didUpdateUserLocation:` | `LocationEngine` callbacks | `onUserLocationChange` | ✅ | 🔨 |
+| Puck look | `MLNUserLocationAnnotationViewStyle`, `showsUserHeadingIndicator`, `userLocationVerticalAlignment` | `LocationComponentOptions` (colours, accuracy ring, pulse, bearing) | `maplibre.location { puckColor, accuracyColor, pulse, pulseColor, showsHeading, verticalAlignment, renderMode }` | ✅ | 🔨 |
+| Tracking button | — | — | `showsUserTrackingButton` (munim-maps' button) | ✅ | 🔨 |
+| Custom location sources | `MLNLocationManager` | `LocationEngine` | ❌ app code; munim-maps uses the platform's location services | ❌ | ❌ |
+
+### Queries, snapshots, offline, network
+
+| SDK capability | iOS | Android | munim-maps API | iOS | Android |
+| --- | --- | --- | --- | --- | --- |
+| Rendered features at a point or in a box, by layer and filter | `visibleFeaturesAtPoint:inStyleLayersWithIdentifiers:predicate:` | `queryRenderedFeatures` | command `queryRenderedFeatures { point \| box, layers, filter }` → GeoJSON | ✅ | 🔨 |
+| Source features | `MLNVectorTileSource.featuresInSourceLayersWithIdentifiers:predicate:`, `MLNShapeSource.featuresMatchingPredicate:` | `querySourceFeatures` | command `querySourceFeatures { source, sourceLayers, filter }` | ✅ | 🔨 |
+| Cluster leaves, children, expansion zoom | `MLNShapeSource.leavesOfCluster:…`, `childrenOfCluster:`, `zoomLevelForExpandingCluster:` | `getClusterLeaves`, `getClusterChildren`, `getClusterExpansionZoom` | commands of the same names | ✅ | 🔨 |
+| Tapping base-map places | `visibleFeaturesAtPoint:` | `queryRenderedFeatures` | `onMapFeaturePress`, `selectableMapFeatures` (OpenMapTiles `poi`, `place`, `water_name`, `mountain_peak`) | ✅ | 🔨 |
+| Snapshot of the view | — | `MapLibreMap.snapshot` | `takeSnapshot` | ✅ | 🔨 |
+| Snapshotter (offscreen; any style, camera, size) | `MLNMapSnapshotter` | `MapSnapshotter` | command `snapshot { width, height, styleUrl, camera, showsLogo }` | ✅ | 🔨 |
+| Offline packs: create (tile pyramid or shape), list, resume, suspend, delete, invalidate, progress, metadata | `MLNOfflineStorage`, `MLNOfflinePack`, `MLNTilePyramidOfflineRegion`, `MLNShapeOfflineRegion` | `OfflineManager`, `OfflineRegion`, `OfflineTilePyramidRegionDefinition`, `OfflineGeometryRegionDefinition` | commands `offlineCreatePack`, `offlineListPacks`, `offlineResumePack`, `offlineSuspendPack`, `offlineDeletePack`, `offlineInvalidatePack`; events `offlineProgress`, `offlineError` | ✅ | 🔨 |
+| Ambient cache | `setMaximumAmbientCacheSize:`, `clearAmbientCache…`, `invalidateAmbientCache…`, `resetDatabase…` | the same names | commands `offlineSetAmbientCacheSize`, `offlineClearAmbientCache`, `offlineInvalidateAmbientCache`, `offlineResetDatabase` | ✅ | 🔨 |
+| Side-loading a database | `addContentsOfFile:` | `mergeOfflineRegions` | command `offlineMergeDatabase { path }` | ✅ | 🔨 |
+| Preloading single resources | `preloadData:forURL:…`, `putResourceWithUrl:` | `putResourceWithUrl` | ❌ tile pyramids and database merges cover offline use | ❌ | ❌ |
+| Tile count limit | `setMaximumAllowedMapboxTiles:` | `setOfflineMapboxTileCountLimit` | ❌ applies to Mapbox-hosted tiles only | ❌ | ❌ |
+| Connectivity | no API | `MapLibre.setConnected` | command `setConnected` | ❌ no iOS API | 🔨 |
+| HTTP headers | `MLNNetworkConfiguration.sessionConfiguration` | `HttpRequestUtil.setOkHttpClient` | `maplibre.httpHeaders` | ✅ | 🔨 |
+| Logging | `MLNLoggingConfiguration` | `Logger.setVerbosity` | `maplibre.logLevel` | ✅ | 🔨 |
+
+### Events
+
+| SDK callback | munim-maps | iOS | Android |
+| --- | --- | --- | --- |
+| Map loaded, style loaded, load failed | `onMapReady`; `onProviderEvent` `styleLoaded`, `mapLoadFailed` | ✅ | 🔨 |
+| Region will change (with reason), is changing, did change | `onCameraMove`, `onCameraChange`; `onProviderEvent` `cameraMoveStarted { reason }` | ✅ | 🔨 |
+| Idle, map fully rendered | `onProviderEvent` `idle`, `renderedMap { fullyRendered }` | ✅ | 🔨 |
+| Source changed | `onProviderEvent` `sourceChanged` | ✅ | 🔨 |
+| Render errors | `onProviderEvent` `renderError` | ✅ | 🔨 |
+| Sprite, glyph, tile and shader events | ❌ MapLibre's own diagnostics | ❌ | ❌ |
+| Taps, long presses | `onPress`, `onLongPress` | ✅ | 🔨 |
+| Annotation select / drag / callout | the marker events above | ✅ | 🔨 |
+| User location, tracking mode | `onUserLocationChange`, `onUserTrackingModeChange` | ✅ | 🔨 |
+| Camera change veto (`shouldChangeFromCamera:toCamera:`) | ❌ a synchronous native veto; `cameraBoundary` and the limits cover it | ❌ | ❌ |
+
+### Services (OpenStreetMap, no key)
+
+`addressForCoordinate` and `openMapsServices` (exported by `munim-maps`) use [Nominatim](https://nominatim.org) (reverse and forward geocoding), [Photon](https://photon.komoot.io) (search as you type) and [OSRM](https://project-osrm.org) or [Valhalla](https://valhalla.github.io/valhalla/) (routing), each with a configurable endpoint. The public servers are for light use only: Nominatim allows one request a second with an identifying User-Agent and no bulk geocoding; the OSRM demo server is for testing. Point the endpoints at your own server or a hosted one in production.
+
+| Service | munim-maps API | iOS | Android |
+| --- | --- | --- | --- |
+| Reverse geocoding | `addressForCoordinate`, `openMapsServices.reverseGeocode` | ✅ | 🔨 |
+| Forward geocoding / search | `openMapsServices.geocode`, `openMapsServices.search` (Photon) | ✅ | 🔨 |
+| Routing | `openMapsServices.route` (OSRM or Valhalla) | ✅ | 🔨 |
+
+### Left out on purpose
+
+- Coordinate, distance, clock and compass direction formatters (`MLNCoordinateFormatter`…): Foundation formatters, not map features; JavaScript has `Intl`.
+- Android plugins (annotation, offline, localization, scale bar, building, markerview): separate artifacts whose features munim-maps implements itself (markers, offline, label language, scale bar, buildings, `MarkerView`).
