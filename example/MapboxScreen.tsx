@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { File, Paths } from 'expo-file-system'
 import {
   Image,
   Platform,
@@ -426,6 +427,15 @@ export function MapboxScreen(props: { topInset: number; autoChecks?: boolean; on
     await map.setCamera(CHICAGO, false)
     const passed = results.filter((r) => r.ok).length
     console.log(`MUNIM_MAPS_MAPBOX checks ${passed}/${results.length}`)
+    try {
+      // Documents/munim-maps-mapbox-checks.json, for pulling off the device.
+      const file = new File(Paths.document, 'munim-maps-mapbox-checks.json')
+      if (file.exists) file.delete()
+      file.create()
+      file.write(JSON.stringify({ platform: Platform.OS, passed, total: results.length, results }, null, 2))
+    } catch (error) {
+      console.warn('MUNIM_MAPS_MAPBOX could not write the report', error)
+    }
     setStatus(`Checks: ${passed}/${results.length} passed`)
     setRunning(false)
   }, [running, preset])
