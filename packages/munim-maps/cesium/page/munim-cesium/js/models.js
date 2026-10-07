@@ -82,6 +82,44 @@
     return out.buffer
   }
 
+  /**
+   * The model's height in metres from its glTF POSITION bounds (glTF is
+   * Y-up), so `screenSize` means the same on Cesium as on the other engines:
+   * the model's height on screen in points. Undefined when it can't be read.
+   */
+  const heights = new Map() // uri -> Promise<number | undefined>
+  function gltfHeight(uri) {
+    if (!heights.has(uri)) {
+      heights.set(
+        uri,
+        fetchFile(uri)
+          .then((buffer) => {
+            let gltf
+            if (isGlb(buffer)) {
+              const jsonLength = new DataView(buffer).getUint32(12, true)
+              gltf = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 20, jsonLength)))
+            } else {
+              gltf = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer)))
+            }
+            let min = Infinity
+            let max = -Infinity
+            for (const mesh of gltf.meshes || []) {
+              for (const primitive of mesh.primitives || []) {
+                const accessor = (gltf.accessors || [])[primitive.attributes && primitive.attributes.POSITION]
+                if (accessor && accessor.min && accessor.max) {
+                  min = Math.min(min, accessor.min[1])
+                  max = Math.max(max, accessor.max[1])
+                }
+              }
+            }
+            return max > min ? max - min : undefined
+          })
+          .catch(() => undefined)
+      )
+    }
+    return heights.get(uri)
+  }
+
   /** A URL for the model's file, tinted if asked. */
   function modelUrl(uri, tint) {
     if (!tint) {
@@ -335,6 +373,17 @@
       })
     } else if (spec.uri) {
       const tint = spec.tintColor || ''
+      if (!/^data:/i.test(spec.uri)) {
+        gltfHeight(spec.uri).then((h) => {
+          if (rt.cancelled || !h) return
+          rt.gltfHeight = h
+          if (rt.loaded) {
+            rt.height = h
+            update(rt, Date.now() / 1000, true)
+            M.requestRender()
+          }
+        })
+      }
       modelUrl(spec.uri, tint)
         .then((url) =>
           C.Model.fromGltfAsync({
@@ -359,7 +408,7 @@
             rt.loaded = true
             const sphere = model.boundingSphere
             rt.radius = sphere ? sphere.radius / Math.max(1e-6, model.scale) : rt.radius
-            rt.height = rt.radius * 1.2
+            rt.height = rt.gltfHeight || rt.radius * 1.2
             if (spec.playAnimations !== false && model.activeAnimations) model.activeAnimations.addAll({ loop: C.ModelAnimationLoop.REPEAT })
             update(rt, Date.now() / 1000, true)
             M.requestRender()
@@ -492,7 +541,9 @@
     let scale = M.num(spec.scale, 1)
     const screenSize = M.num(spec.screenSize, 0)
     if (screenSize > 0 && !spec.imageUri) {
-      const size = Math.max(0.01, (rt.loaded ? rt.radius * 2 : rt.height) || 1)
+      // Height, like the other engines (the bounding sphere's diameter made
+      // long models such as cars and buses several times too small).
+      const size = Math.max(0.01, (rt.loaded ? rt.gltfHeight || rt.radius * 2 : rt.height) || 1)
       scale = (screenSize * mpp) / size
     }
     rt.currentScale = scale
