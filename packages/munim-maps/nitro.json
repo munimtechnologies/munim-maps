@@ -37,6 +37,10 @@
       "ios": {
         "language": "swift",
         "implementationClassName": "HybridMunimTerrain"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMunimTerrain"
       }
     },
     "MapControl": {

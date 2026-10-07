@@ -53,6 +53,7 @@ target_sources(
   ../nitrogen/generated/android/c++/JHybridMunimMapsConfigSpec.cpp
   ../nitrogen/generated/android/c++/JHybridMunimMapViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridMunimMapViewStateUpdater.cpp
+  ../nitrogen/generated/android/c++/JHybridMunimTerrainSpec.cpp
 )
 
 # From node_modules/react-native/ReactAndroid/cmake-utils/folly-flags.cmake

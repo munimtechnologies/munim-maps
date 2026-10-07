@@ -158,8 +158,15 @@ interface MunimMapEngine {
   fun animateCamera(camera: MapCamera, durationMs: Double, easing: MapCameraEasing) {
     setCamera(camera, durationMs > 0)
   }
-  fun flyCamera(keyframes: Array<CameraKeyframe>, start: Double, loop: Boolean) { reportUnsupported("flyCamera") }
-  fun stopFlight() {}
+  /**
+   * Flies through camera keyframes. The default steps them on the 3D
+   * layer's frame clock with [setCamera] (not animated), so every engine
+   * that can set its camera can fly, in step with the models.
+   */
+  fun flyCamera(keyframes: Array<CameraKeyframe>, start: Double, loop: Boolean) {
+    modelLayer.flyCamera(keyframes, start, loop) { setCamera(it, false) }
+  }
+  fun stopFlight() { modelLayer.stopFlight() }
   fun getVisibleRegion(): MapRegion? = null
   fun setRegion(region: MapRegion, durationMs: Double) { reportUnsupported("setRegion") }
   fun fitToCoordinates(coordinates: Array<MapCoordinate>, padding: EdgeInsets, animated: Boolean) {
