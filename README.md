@@ -159,7 +159,7 @@ layer.onModelPress = { id in print(id) }
 | Google Maps | `'google'` | ⏳ Coming in this release | ⏳ Coming in this release | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ⏳ Coming in this release | ⏳ Coming in this release | Mapbox public token |
 | MapLibre (open maps) | `'maplibre'` | ⏳ Coming in this release | ✅ Built in, the default (map, camera, events, GLB models) | None (OpenStreetMap data from OpenFreeMap) |
-| Cesium | `'cesium'` | ⏳ Coming in this release | ⏳ Coming in this release | Cesium ion token |
+| Cesium | `'cesium'` | ✅ Opt-in (CesiumJS in a WKWebView) | ✅ Opt-in (CesiumJS in a WebView) | None (OpenStreetMap, ellipsoid); a Cesium ion token adds terrain, imagery, buildings |
 
 ```tsx
 import { MunimMapView, configureMunimMaps } from 'munim-maps'
@@ -176,6 +176,50 @@ Pick engines and keys with the Expo config plugin:
 ```
 
 Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
+
+### Cesium
+
+`provider="cesium"` draws a 3D globe with [CesiumJS](https://cesium.com/platform/cesiumjs/) 1.146 (Apache-2.0), bundled with munim-maps and running offline in a WebView the engine owns (`WKWebView` / `android.webkit.WebView`; no `react-native-webview`). Without a key it shows OpenStreetMap imagery on a smooth globe; a [Cesium ion](https://ion.cesium.com) token adds Cesium World Terrain, Bing imagery, Cesium OSM Buildings and every ion asset.
+
+Setup: `"providers": ["cesium"]` in the config plugin (and `"cesiumIonToken": "…"` if you have one), or the `NitroMunimMaps/Cesium` subspec and `munimMaps.cesium=true` without Expo. On iOS use the GLB catalogue for models Cesium draws (`munim-maps/vehicles-glb`); USDZ models still work, drawn by munim-maps' native 3D layer on Cesium's camera.
+
+```tsx
+import { MunimMapView, cesiumCommands, parseCesiumEvent } from 'munim-maps'
+import { VEHICLES_GLB } from 'munim-maps/vehicles-glb'
+
+<MunimMapView
+  ref={ref}
+  provider="cesium"
+  initialCamera={{ latitude: 41.88, longitude: -87.63, distance: 1100, pitch: 55, heading: 30 }}
+  models={[{ id: 'bus', coordinate, source: VEHICLES_GLB['bus-city'], tint: '#0A84FF', screenSize: 40 }]}
+  markers={markers}
+  cesium={{
+    sceneMode: '3d',                       // '2d', 'columbus'
+    imagery: 'aerial',                     // or { type: 'wms', url, layers }, imageryLayers: [...]
+    terrain: 'world',                      // ion token; 'ellipsoid' without
+    photorealistic: true,                  // Google Photorealistic 3D Tiles (ion or a Map Tiles API key)
+    tilesets: [{ url: 'https://…/tileset.json', style: { color: "color('white', 0.8)" } }],
+    entities: czmlPackets,                 // every Cesium entity type, time-dynamic
+    dataSources: [{ type: 'geojson', url: 'https://…/parks.geojson', options: { clampToGround: true } }],
+    clock: { multiplier: 60, shouldAnimate: true },
+    shadows: true,
+    globe: { enableLighting: true },
+    widgets: { timeline: true, animation: true },
+  }}
+  onProviderEvent={(e) => {
+    const event = parseCesiumEvent(e)
+    if (event.name === 'pick') console.log(event.data.kind, event.data.properties)
+  }}
+/>
+
+const cesium = cesiumCommands(ref.current)
+await cesium.flyTo({ destination: { latitude: 48.8584, longitude: 2.2945, height: 1500 }, orientation: { pitch: -35 } })
+const { meters } = await cesium.measureDistance({ points })
+const heights = await cesium.sampleHeights({ points, includeTiles: true })
+await cesium.loadDataSource({ type: 'kml', url: 'https://…/tour.kml', flyTo: true })
+```
+
+Everything CesiumJS offers is reachable: imagery and terrain providers, 3D Tiles (OSM Buildings, Google Photorealistic, I3S, voxels, vector tiles, iTwin, Gaussian splats), CZML / GeoJSON / KML / GPX, the clock and timeline, scene modes, lighting, atmosphere, shadows, fog, clouds, post-processing, picking, measuring, terrain heights, particle systems, panoramas, screenshots and the Viewer widgets, and `cesium.evaluate({ script })` (with `allowEvaluate`) for anything else. The checklist, with what is left out and why, is in [docs/providers.md](docs/providers.md#cesium-engine). Caveats: WebGL in a WebView is heavier than a native SDK; Cesium renders on demand to save battery; data attributions stay on screen.
 
 ## Table of contents
 
@@ -474,23 +518,23 @@ Columns are engines; two marks are iOS / Android. ✅ works · ⏳ coming in thi
 
 | Capability | MapKit (iOS) | Google | Mapbox | MapLibre | Cesium | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `MunimMapView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android draws MapLibre (OpenFreeMap) today; see [Map Providers](#️-map-providers). |
+| `MunimMapView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ✅ / ✅ | Android draws MapLibre (OpenFreeMap) today; see [Map Providers](#️-map-providers). |
 | `MapModelLayer` over `react-native-maps` | ✅ | ⏳ / ⏳ | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
 | `MapModelLayer` over `expo-maps` | ✅ | ⏳ / ⏳ | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
-| GLB / glTF models | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
-| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ⏳ / — | ⏳ / — | ⏳ / — | ⏳ / — | SceneKit / Model I/O, iOS only. |
-| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ |  |
-| Vehicle catalogue | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
-| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| Globe | ✅ | — | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
-| Hidden behind buildings | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
-| Terrain height | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
-| Camera API, regions, conversions, gestures | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
-| Map events | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
-| Markers, clustering, callouts, `MarkerView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
-| User location and tracking (follow, follow with heading) | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
-| Compass, scale, tracking and 2D/3D buttons | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. |
+| GLB / glTF models | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ✅ / ✅ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
+| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ⏳ / — | ⏳ / — | ⏳ / — | ✅ native layer / — | SceneKit / Model I/O, iOS only. |
+| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ✅ / ✅ |  |
+| Vehicle catalogue | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ✅ / ✅ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
+| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ |  |
+| Globe | ✅ | — | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
+| Hidden behind buildings | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
+| Terrain height | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| Camera API, regions, conversions, gestures | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ✅ / ✅ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
+| Map events | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ✅ / ✅ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
+| Markers, clustering, callouts, `MarkerView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ | Cesium: `MarkerView` is iOS only. |
+| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ |  |
+| User location and tracking (follow, follow with heading) | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Compass, scale, tracking and 2D/3D buttons | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ✅ / ✅ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. |
 | Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | `selectionAccessory`. |
 | Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | — | — | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS. |
 | Look Around view and snapshots | ✅ iOS 16+ | — | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |
