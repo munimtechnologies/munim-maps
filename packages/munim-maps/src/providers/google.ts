@@ -42,9 +42,7 @@ export interface GoogleMarkerOptions {
   advanced?: boolean
   /** Advanced markers: how it gives way to others. Default from `displayPriority` / `collisionMode`. */
   collisionBehavior?:
-    | 'required'
-    | 'requiredAndHidesOptional'
-    | 'optionalAndHidesLowerPriority'
+    'required' | 'requiredAndHidesOptional' | 'optionalAndHidesLowerPriority'
   /** Google's pin (`style: 'pin' | 'marker'`): colours and glyph. */
   pin?: {
     background?: GoogleColor
@@ -345,25 +343,53 @@ export type GoogleMapEvent =
   | { name: 'cameraMoveCanceled'; data: {} }
   | {
       name: 'poiClick'
-      data: { placeId: string; name: string; latitude: number; longitude: number }
+      data: {
+        placeId: string
+        name: string
+        latitude: number
+        longitude: number
+      }
     }
-  | { name: 'infoWindowPress' | 'infoWindowLongPress' | 'infoWindowClose'; data: { id: string } }
-  | { name: 'markerDrag'; data: { id: string; latitude: number; longitude: number } }
+  | {
+      name: 'infoWindowPress' | 'infoWindowLongPress' | 'infoWindowClose'
+      data: { id: string }
+    }
+  | {
+      name: 'markerDrag'
+      data: { id: string; latitude: number; longitude: number }
+    }
   | {
       name: 'clusterPress'
-      data: { clusteringId: string; markerIds: string[]; latitude: number; longitude: number }
+      data: {
+        clusteringId: string
+        markerIds: string[]
+        latitude: number
+        longitude: number
+      }
     }
   | { name: 'myLocationButtonPress'; data: {} }
   | { name: 'myLocationPress'; data: { latitude: number; longitude: number } }
-  | { name: 'tilesRenderingStarted' | 'tilesRenderingFinished' | 'snapshotReady'; data: {} }
+  | {
+      name: 'tilesRenderingStarted' | 'tilesRenderingFinished' | 'snapshotReady'
+      data: {}
+    }
   | {
       name: 'mapCapabilitiesChanged'
-      data: { advancedMarkers: boolean; dataDrivenStyling: boolean; spritePolylines?: boolean }
+      data: {
+        advancedMarkers: boolean
+        dataDrivenStyling: boolean
+        spritePolylines?: boolean
+      }
     }
   | { name: 'indoorBuildingFocused'; data: GoogleIndoorBuilding | {} }
   | {
       name: 'indoorLevelActivated'
-      data: { name: string; shortName: string; index: number; building: GoogleIndoorBuilding | {} }
+      data: {
+        name: string
+        shortName: string
+        index: number
+        building: GoogleIndoorBuilding | {}
+      }
     }
   | {
       name: 'featureClick'
@@ -381,21 +407,44 @@ export type GoogleMapEvent =
     }
   | { name: 'groundOverlayPress'; data: { id: string } }
   | { name: 'kmlLayerLoaded'; data: { id: string; placemarks: number } }
-  | { name: 'kmlFeaturePress'; data: { layerId: string; title: string; snippet: string } }
+  | {
+      name: 'kmlFeaturePress'
+      data: { layerId: string; title: string; snippet: string }
+    }
   | { name: 'geoJsonLayerLoaded'; data: { id: string; features: number } }
   | {
       name: 'geoJsonFeaturePress'
-      data: { layerId: string; featureId: string; properties: Record<string, unknown> }
+      data: {
+        layerId: string
+        featureId: string
+        properties: Record<string, unknown>
+      }
     }
-  | { name: 'streetViewOpen' | 'streetViewChange'; data: GoogleStreetViewLocation }
+  | {
+      name: 'streetViewOpen' | 'streetViewChange'
+      data: GoogleStreetViewLocation
+    }
   | { name: 'streetViewCamera'; data: GoogleStreetViewCamera }
-  | { name: 'streetViewTap'; data: { x: number; y: number; heading: number; pitch: number } }
+  | {
+      name: 'streetViewTap'
+      data: { x: number; y: number; heading: number; pitch: number }
+    }
   | { name: 'streetViewMarkerPress'; data: { id: string } }
-  | { name: 'streetViewError'; data: { message: string; latitude?: number; longitude?: number; panoramaId?: string } }
+  | {
+      name: 'streetViewError'
+      data: {
+        message: string
+        latitude?: number
+        longitude?: number
+        panoramaId?: string
+      }
+    }
   | { name: 'streetViewClose'; data: {} }
 
 /** Narrows an `onProviderEvent` event to Google's, or undefined. */
-export function googleEvent(event: MapProviderEvent): GoogleMapEvent | undefined {
+export function googleEvent(
+  event: MapProviderEvent
+): GoogleMapEvent | undefined {
   return event.provider === 'google'
     ? ({ name: event.name, data: event.data ?? {} } as GoogleMapEvent)
     : undefined
@@ -444,7 +493,8 @@ export interface GoogleStreetViewOptions {
   /** A close button (default true). */
   closeButton?: boolean
   /** Turn all gestures on / off, or each one. */
-  gestures?: boolean | { orientation?: boolean; zoom?: boolean; navigation?: boolean }
+  gestures?:
+    boolean | { orientation?: boolean; zoom?: boolean; navigation?: boolean }
   navigationLinksHidden?: boolean
   streetNamesHidden?: boolean
   /** iOS: show the map's markers in the panorama. */
@@ -467,22 +517,29 @@ export function googleMap(map: ProviderCommandTarget) {
     /** Google's camera in its own units. */
     getCameraPosition: () => call<GoogleCameraPosition>('getCameraPosition'),
     /** Jumps; fields left out keep their value. */
-    moveCamera: (camera: Partial<GoogleCameraPosition>) => call('moveCamera', camera),
+    moveCamera: (camera: Partial<GoogleCameraPosition>) =>
+      call('moveCamera', camera),
     /** Google's own animation, over `durationMs` (its default length when 0). */
     animateCamera: (camera: Partial<GoogleCameraPosition>, durationMs = 0) =>
       call('animateCamera', { ...camera, duration: durationMs }),
     zoomIn: (durationMs = 0) => call('zoomIn', { duration: durationMs }),
     zoomOut: (durationMs = 0) => call('zoomOut', { duration: durationMs }),
-    zoomTo: (zoom: number, durationMs = 0) => call('zoomTo', { zoom, duration: durationMs }),
+    zoomTo: (zoom: number, durationMs = 0) =>
+      call('zoomTo', { zoom, duration: durationMs }),
     /** Around the screen point `focus` when given. */
-    zoomBy: (amount: number, focus?: { x: number; y: number }, durationMs = 0) =>
-      call('zoomBy', { amount, ...focus, duration: durationMs }),
+    zoomBy: (
+      amount: number,
+      focus?: { x: number; y: number },
+      durationMs = 0
+    ) => call('zoomBy', { amount, ...focus, duration: durationMs }),
     /** Pans by points. */
     scrollBy: (x: number, y: number, durationMs = 0) =>
       call('scrollBy', { x, y, duration: durationMs }),
     fitBounds: (
       bounds: GoogleLatLngBounds,
-      padding: number | { top?: number; left?: number; bottom?: number; right?: number } = 0,
+      padding:
+        | number
+        | { top?: number; left?: number; bottom?: number; right?: number } = 0,
       durationMs = 0
     ) => call('fitBounds', { ...bounds, padding, duration: durationMs }),
     stopAnimation: () => call('stopAnimation'),
@@ -494,9 +551,11 @@ export function googleMap(map: ProviderCommandTarget) {
     containsCoordinate: (coordinate: MapCoordinate) =>
       call<boolean>('containsCoordinate', coordinate),
     getMapCapabilities: () =>
-      call<{ advancedMarkers: boolean; dataDrivenStyling: boolean; spritePolylines?: boolean }>(
-        'getMapCapabilities'
-      ),
+      call<{
+        advancedMarkers: boolean
+        dataDrivenStyling: boolean
+        spritePolylines?: boolean
+      }>('getMapCapabilities'),
     getMyLocation: () =>
       call<{
         latitude: number
@@ -506,20 +565,26 @@ export function googleMap(map: ProviderCommandTarget) {
         heading: number
         speed: number
       } | null>('getMyLocation'),
-    getIndoorBuilding: () => call<GoogleIndoorBuilding | {}>('getIndoorBuilding'),
+    getIndoorBuilding: () =>
+      call<GoogleIndoorBuilding | {}>('getIndoorBuilding'),
     /** By index in the focused building's levels, or by `name` / `shortName`. */
     setIndoorLevel: (level: number | { name?: string; shortName?: string }) =>
-      call('setIndoorLevel', typeof level === 'number' ? { index: level } : level),
+      call(
+        'setIndoorLevel',
+        typeof level === 'number' ? { index: level } : level
+      ),
     showInfoWindow: (id: string) => call('showInfoWindow', { id }),
     hideInfoWindow: (id: string) => call('hideInfoWindow', { id }),
     /** Reloads a tile overlay's or heatmap's tiles (all when no id). */
     clearTileCache: (id?: string) => call('clearTileCache', id ? { id } : {}),
     /** The SDK's version (and its open-source licences when asked). */
     sdkInfo: (licenses = false) =>
-      call<{ platform: string; version: string; longVersion?: string; openSourceLicenseInfo: string }>(
-        'sdkInfo',
-        { licenses }
-      ),
+      call<{
+        platform: string
+        version: string
+        longVersion?: string
+        openSourceLicenseInfo: string
+      }>('sdkInfo', { licenses }),
     /** How munim-maps reads Google's camera for the 3D layer. */
     cameraDiagnostics: () => call<Record<string, unknown>>('cameraDiagnostics'),
     streetView: {
@@ -531,24 +596,40 @@ export function googleMap(map: ProviderCommandTarget) {
       hasCoverage: (
         coordinate: MapCoordinate,
         options: { radius?: number; source?: 'default' | 'outdoor' } = {}
-      ) => call<GoogleStreetViewLocation | null>('streetView.hasCoverage', { ...coordinate, ...options }),
+      ) =>
+        call<GoogleStreetViewLocation | null>('streetView.hasCoverage', {
+          ...coordinate,
+          ...options,
+        }),
       setCamera: (camera: Partial<GoogleStreetViewCamera>, durationMs = 0) =>
         call('streetView.setCamera', { ...camera, duration: durationMs }),
       getCamera: () => call<GoogleStreetViewCamera>('streetView.getCamera'),
-      getLocation: () => call<GoogleStreetViewLocation>('streetView.getLocation'),
+      getLocation: () =>
+        call<GoogleStreetViewLocation>('streetView.getLocation'),
       moveTo: (
         target:
           | { panoramaId: string }
-          | (MapCoordinate & { radius?: number; source?: 'default' | 'outdoor' })
+          | (MapCoordinate & {
+              radius?: number
+              source?: 'default' | 'outdoor'
+            })
       ) => call('streetView.moveTo', target),
-      setOptions: (options: Pick<
-        GoogleStreetViewOptions,
-        'gestures' | 'navigationLinksHidden' | 'streetNamesHidden'
-      >) => call('streetView.setOptions', options),
+      setOptions: (
+        options: Pick<
+          GoogleStreetViewOptions,
+          'gestures' | 'navigationLinksHidden' | 'streetNamesHidden'
+        >
+      ) => call('streetView.setOptions', options),
       orientationForPoint: (point: { x: number; y: number }) =>
-        call<{ heading: number; pitch: number }>('streetView.orientationForPoint', point),
+        call<{ heading: number; pitch: number }>(
+          'streetView.orientationForPoint',
+          point
+        ),
       pointForOrientation: (orientation: { heading: number; pitch: number }) =>
-        call<{ x: number; y: number }>('streetView.pointForOrientation', orientation),
+        call<{ x: number; y: number }>(
+          'streetView.pointForOrientation',
+          orientation
+        ),
     },
   }
 }

@@ -17,6 +17,7 @@
  * const { suggestions } = await google.places.autocomplete({ input: 'pizza', origin })
  * ```
  */
+/* eslint-disable no-bitwise -- polyline encoding and UUIDs are bit twiddling */
 import { Platform } from 'react-native'
 import type { MapCoordinate } from '../specs/MapModelLayer.nitro'
 
@@ -74,7 +75,12 @@ export interface GooglePlace {
   businessStatus?: string
   utcOffsetMinutes?: number
   regularOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] }
-  photos?: { name: string; widthPx: number; heightPx: number; authorAttributions?: unknown[] }[]
+  photos?: {
+    name: string
+    widthPx: number
+    heightPx: number
+    authorAttributions?: unknown[]
+  }[]
   viewport?: { low: MapCoordinate; high: MapCoordinate }
   [field: string]: unknown
 }
@@ -84,7 +90,10 @@ export interface GoogleAutocompleteSuggestion {
     placeId: string
     place: string
     text: { text: string }
-    structuredFormat?: { mainText: { text: string }; secondaryText?: { text: string } }
+    structuredFormat?: {
+      mainText: { text: string }
+      secondaryText?: { text: string }
+    }
     types?: string[]
     distanceMeters?: number
   }
@@ -96,7 +105,8 @@ export type GoogleLocationBias =
   | { circle: { center: MapCoordinate; radius: number } }
   | { rectangle: { low: MapCoordinate; high: MapCoordinate } }
 
-export type GoogleTravelMode = 'DRIVE' | 'BICYCLE' | 'WALK' | 'TWO_WHEELER' | 'TRANSIT'
+export type GoogleTravelMode =
+  'DRIVE' | 'BICYCLE' | 'WALK' | 'TWO_WHEELER' | 'TRANSIT'
 
 export interface GoogleWaypoint {
   /** A coordinate, a place ID, or an address. */
@@ -215,15 +225,25 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       )
     }
     // The Geocoding API reports errors in the body with HTTP 200.
-    if (json && typeof json.status === 'string' && json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
-      throw new GoogleServiceError(json.error_message ?? json.status, response.status, json.status)
+    if (
+      json &&
+      typeof json.status === 'string' &&
+      json.status !== 'OK' &&
+      json.status !== 'ZERO_RESULTS'
+    ) {
+      throw new GoogleServiceError(
+        json.error_message ?? json.status,
+        response.status,
+        json.status
+      )
     }
     return json as T
   }
 
   const language = (o: { languageCode?: string }) =>
     o.languageCode ?? options.languageCode
-  const region = (o: { regionCode?: string }) => o.regionCode ?? options.regionCode
+  const region = (o: { regionCode?: string }) =>
+    o.regionCode ?? options.regionCode
 
   const places = {
     /** Suggestions as the user types (Autocomplete (New)). Use one `sessionToken` per typing session. */
@@ -251,7 +271,12 @@ export function googleMapsServices(options: GoogleServicesOptions) {
     /** A place by ID (Place Details (New)), with `fields` (default: the common ones). */
     details: (
       placeId: string,
-      q: { fields?: string[]; sessionToken?: string; languageCode?: string; regionCode?: string } = {}
+      q: {
+        fields?: string[]
+        sessionToken?: string
+        languageCode?: string
+        regionCode?: string
+      } = {}
     ) => {
       const params = new URLSearchParams()
       const lang = language(q)
@@ -262,7 +287,10 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       const query = params.toString()
       return request<GooglePlace>(
         `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${query ? `?${query}` : ''}`,
-        { method: 'GET', fieldMask: (q.fields ?? DEFAULT_PLACE_FIELDS).join(',') }
+        {
+          method: 'GET',
+          fieldMask: (q.fields ?? DEFAULT_PLACE_FIELDS).join(','),
+        }
       )
     },
 
@@ -270,7 +298,9 @@ export function googleMapsServices(options: GoogleServicesOptions) {
     searchText: (q: {
       textQuery: string
       locationBias?: GoogleLocationBias
-      locationRestriction?: { rectangle: { low: MapCoordinate; high: MapCoordinate } }
+      locationRestriction?: {
+        rectangle: { low: MapCoordinate; high: MapCoordinate }
+      }
       includedType?: string
       openNow?: boolean
       minRating?: number
@@ -286,7 +316,9 @@ export function googleMapsServices(options: GoogleServicesOptions) {
         {
           method: 'POST',
           body: { ...body, languageCode: language(q), regionCode: region(q) },
-          fieldMask: (fields ?? DEFAULT_PLACE_FIELDS).map((f) => `places.${f}`).join(','),
+          fieldMask: (fields ?? DEFAULT_PLACE_FIELDS)
+            .map((f) => `places.${f}`)
+            .join(','),
         }
       ).then((r) => r?.places ?? [])
     },
@@ -314,7 +346,9 @@ export function googleMapsServices(options: GoogleServicesOptions) {
             languageCode: language(q),
             regionCode: region(q),
           },
-          fieldMask: (fields ?? DEFAULT_PLACE_FIELDS).map((f) => `places.${f}`).join(','),
+          fieldMask: (fields ?? DEFAULT_PLACE_FIELDS)
+            .map((f) => `places.${f}`)
+            .join(','),
         }
       ).then((r) => r?.places ?? [])
     },
@@ -346,21 +380,36 @@ export function googleMapsServices(options: GoogleServicesOptions) {
     place_id: string
     types: string[]
     geometry: { location: { lat: number; lng: number }; location_type: string }
-    address_components: { long_name: string; short_name: string; types: string[] }[]
+    address_components: {
+      long_name: string
+      short_name: string
+      types: string[]
+    }[]
   }
 
   const toGeocode = (r: GeocodeResult) => ({
     formattedAddress: r.formatted_address,
     placeId: r.place_id,
     types: r.types,
-    location: { latitude: r.geometry.location.lat, longitude: r.geometry.location.lng },
+    location: {
+      latitude: r.geometry.location.lat,
+      longitude: r.geometry.location.lng,
+    },
     locationType: r.geometry.location_type,
     components: r.address_components,
   })
 
   const geocoding = {
     /** An address to coordinates (Geocoding API). */
-    geocode: (address: string, q: { bounds?: { low: MapCoordinate; high: MapCoordinate }; components?: string; languageCode?: string; regionCode?: string } = {}) => {
+    geocode: (
+      address: string,
+      q: {
+        bounds?: { low: MapCoordinate; high: MapCoordinate }
+        components?: string
+        languageCode?: string
+        regionCode?: string
+      } = {}
+    ) => {
       const params = new URLSearchParams({ address, key: options.apiKey })
       const lang = language(q)
       const reg = region(q)
@@ -368,7 +417,10 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       if (reg) params.set('region', reg)
       if (q.components) params.set('components', q.components)
       if (q.bounds) {
-        params.set('bounds', `${q.bounds.low.latitude},${q.bounds.low.longitude}|${q.bounds.high.latitude},${q.bounds.high.longitude}`)
+        params.set(
+          'bounds',
+          `${q.bounds.low.latitude},${q.bounds.low.longitude}|${q.bounds.high.latitude},${q.bounds.high.longitude}`
+        )
       }
       return request<{ results: GeocodeResult[] }>(
         `https://maps.googleapis.com/maps/api/geocode/json?${params}`,
@@ -376,14 +428,18 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       ).then((r) => (r?.results ?? []).map(toGeocode))
     },
     /** Coordinates to addresses (Geocoding API). */
-    reverseGeocode: (coordinate: MapCoordinate, q: { resultType?: string[]; languageCode?: string } = {}) => {
+    reverseGeocode: (
+      coordinate: MapCoordinate,
+      q: { resultType?: string[]; languageCode?: string } = {}
+    ) => {
       const params = new URLSearchParams({
         latlng: `${coordinate.latitude},${coordinate.longitude}`,
         key: options.apiKey,
       })
       const lang = language(q)
       if (lang) params.set('language', lang)
-      if (q.resultType?.length) params.set('result_type', q.resultType.join('|'))
+      if (q.resultType?.length)
+        params.set('result_type', q.resultType.join('|'))
       return request<{ results: GeocodeResult[] }>(
         `https://maps.googleapis.com/maps/api/geocode/json?${params}`,
         { method: 'GET' }
@@ -398,9 +454,15 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       destination: GoogleWaypoint | MapCoordinate
       intermediates?: (GoogleWaypoint | MapCoordinate)[]
       travelMode?: GoogleTravelMode
-      routingPreference?: 'TRAFFIC_UNAWARE' | 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL'
+      routingPreference?:
+        'TRAFFIC_UNAWARE' | 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL'
       computeAlternativeRoutes?: boolean
-      routeModifiers?: { avoidTolls?: boolean; avoidHighways?: boolean; avoidFerries?: boolean; avoidIndoor?: boolean }
+      routeModifiers?: {
+        avoidTolls?: boolean
+        avoidHighways?: boolean
+        avoidFerries?: boolean
+        avoidIndoor?: boolean
+      }
       departureTime?: string
       units?: 'METRIC' | 'IMPERIAL'
       fields?: string[]
@@ -408,21 +470,23 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       regionCode?: string
     }) => {
       const { fields, origin, destination, intermediates, ...rest } = q
-      const result = await request<{ routes?: ({ polyline?: { encodedPolyline: string } } & Record<string, unknown>)[] }>(
-        'https://routes.googleapis.com/directions/v2:computeRoutes',
-        {
-          method: 'POST',
-          body: {
-            ...rest,
-            origin: waypoint(origin),
-            destination: waypoint(destination),
-            intermediates: intermediates?.map(waypoint),
-            languageCode: language(q),
-            regionCode: region(q),
-          },
-          fieldMask: (fields ?? DEFAULT_ROUTE_FIELDS).join(','),
-        }
-      )
+      const result = await request<{
+        routes?: ({ polyline?: { encodedPolyline: string } } & Record<
+          string,
+          unknown
+        >)[]
+      }>('https://routes.googleapis.com/directions/v2:computeRoutes', {
+        method: 'POST',
+        body: {
+          ...rest,
+          origin: waypoint(origin),
+          destination: waypoint(destination),
+          intermediates: intermediates?.map(waypoint),
+          languageCode: language(q),
+          regionCode: region(q),
+        },
+        fieldMask: (fields ?? DEFAULT_ROUTE_FIELDS).join(','),
+      })
       return (result?.routes ?? []).map((route) => ({
         ...route,
         coordinates: route.polyline?.encodedPolyline
@@ -436,7 +500,8 @@ export function googleMapsServices(options: GoogleServicesOptions) {
       origins: (GoogleWaypoint | MapCoordinate)[]
       destinations: (GoogleWaypoint | MapCoordinate)[]
       travelMode?: GoogleTravelMode
-      routingPreference?: 'TRAFFIC_UNAWARE' | 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL'
+      routingPreference?:
+        'TRAFFIC_UNAWARE' | 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL'
       fields?: string[]
     }) =>
       request<
@@ -457,7 +522,14 @@ export function googleMapsServices(options: GoogleServicesOptions) {
           routingPreference: q.routingPreference,
         },
         fieldMask: (
-          q.fields ?? ['originIndex', 'destinationIndex', 'distanceMeters', 'duration', 'condition', 'status']
+          q.fields ?? [
+            'originIndex',
+            'destinationIndex',
+            'distanceMeters',
+            'duration',
+            'condition',
+            'status',
+          ]
         ).join(','),
       }).then((r) => r ?? []),
   }
@@ -468,7 +540,10 @@ export function googleMapsServices(options: GoogleServicesOptions) {
 export type GoogleMapsServices = ReturnType<typeof googleMapsServices>
 
 /** Decodes Google's encoded polyline format (precision 5 by default). */
-export function decodePolyline(encoded: string, precision = 5): MapCoordinate[] {
+export function decodePolyline(
+  encoded: string,
+  precision = 5
+): MapCoordinate[] {
   const factor = 10 ** precision
   const out: MapCoordinate[] = []
   let index = 0
@@ -494,7 +569,10 @@ export function decodePolyline(encoded: string, precision = 5): MapCoordinate[] 
 }
 
 /** Encodes coordinates in Google's polyline format. */
-export function encodePolyline(coordinates: MapCoordinate[], precision = 5): string {
+export function encodePolyline(
+  coordinates: MapCoordinate[],
+  precision = 5
+): string {
   const factor = 10 ** precision
   let out = ''
   let lastLat = 0

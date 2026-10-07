@@ -26,11 +26,19 @@ function havDistance(lat1: number, lat2: number, dLng: number) {
 }
 
 function angleBetween(a: MapCoordinate, b: MapCoordinate) {
-  return arcHav(havDistance(rad(a.latitude), rad(b.latitude), rad(a.longitude - b.longitude)))
+  return arcHav(
+    havDistance(
+      rad(a.latitude),
+      rad(b.latitude),
+      rad(a.longitude - b.longitude)
+    )
+  )
 }
 
 function wrap(n: number, min: number, max: number) {
-  return n >= min && n < max ? n : ((((n - min) % (max - min)) + (max - min)) % (max - min)) + min
+  return n >= min && n < max
+    ? n
+    : ((((n - min) % (max - min)) + (max - min)) % (max - min)) + min
 }
 
 export const googleGeometry = {
@@ -46,13 +54,18 @@ export const googleGeometry = {
     const dLng = rad(to.longitude - from.longitude)
     const h = Math.atan2(
       Math.sin(dLng) * Math.cos(lat2),
-      Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+      Math.cos(lat1) * Math.sin(lat2) -
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
     )
     return wrap(deg(h), -180, 180)
   },
 
   /** The point `distance` metres from `from` on `heading`. */
-  computeOffset(from: MapCoordinate, distance: number, heading: number): MapCoordinate {
+  computeOffset(
+    from: MapCoordinate,
+    distance: number,
+    heading: number
+  ): MapCoordinate {
     const d = distance / R
     const h = rad(heading)
     const lat = rad(from.latitude)
@@ -62,12 +75,22 @@ export const googleGeometry = {
     const sinLat = Math.sin(lat)
     const cosLat = Math.cos(lat)
     const sinLat2 = cosD * sinLat + sinD * cosLat * Math.cos(h)
-    const dLng = Math.atan2(sinD * cosLat * Math.sin(h), cosD - sinLat * sinLat2)
-    return { latitude: deg(Math.asin(sinLat2)), longitude: wrap(deg(lng + dLng), -180, 180) }
+    const dLng = Math.atan2(
+      sinD * cosLat * Math.sin(h),
+      cosD - sinLat * sinLat2
+    )
+    return {
+      latitude: deg(Math.asin(sinLat2)),
+      longitude: wrap(deg(lng + dLng), -180, 180),
+    }
   },
 
   /** The point `fraction` of the way from `from` to `to` on the great circle. */
-  interpolate(from: MapCoordinate, to: MapCoordinate, fraction: number): MapCoordinate {
+  interpolate(
+    from: MapCoordinate,
+    to: MapCoordinate,
+    fraction: number
+  ): MapCoordinate {
     const lat1 = rad(from.latitude)
     const lng1 = rad(from.longitude)
     const lat2 = rad(to.latitude)
@@ -82,16 +105,22 @@ export const googleGeometry = {
     }
     const a = Math.sin((1 - fraction) * angle) / sinAngle
     const b = Math.sin(fraction * angle) / sinAngle
-    const x = a * Math.cos(lat1) * Math.cos(lng1) + b * Math.cos(lat2) * Math.cos(lng2)
-    const y = a * Math.cos(lat1) * Math.sin(lng1) + b * Math.cos(lat2) * Math.sin(lng2)
+    const x =
+      a * Math.cos(lat1) * Math.cos(lng1) + b * Math.cos(lat2) * Math.cos(lng2)
+    const y =
+      a * Math.cos(lat1) * Math.sin(lng1) + b * Math.cos(lat2) * Math.sin(lng2)
     const z = a * Math.sin(lat1) + b * Math.sin(lat2)
-    return { latitude: deg(Math.atan2(z, Math.sqrt(x * x + y * y))), longitude: deg(Math.atan2(y, x)) }
+    return {
+      latitude: deg(Math.atan2(z, Math.sqrt(x * x + y * y))),
+      longitude: deg(Math.atan2(y, x)),
+    }
   },
 
   /** Length of a path. */
   computeLength(path: MapCoordinate[]): number {
     let total = 0
-    for (let i = 1; i < path.length; i++) total += angleBetween(path[i - 1]!, path[i]!)
+    for (let i = 1; i < path.length; i++)
+      total += angleBetween(path[i - 1]!, path[i]!)
     return total * R
   },
 
@@ -119,10 +148,9 @@ export const googleGeometry = {
     return Math.abs(googleGeometry.computeSignedArea(path))
   },
 
-  /** Whether a point is inside a polygon (rhumb or geodesic edges, as `PolyUtil.containsLocation`). */
-  containsLocation(point: MapCoordinate, polygon: MapCoordinate[], geodesic = false): boolean {
-    // Ray casting on the Mercator plane; geodesic edges differ only for very long edges.
-    void geodesic
+  /** Whether a point is inside a polygon (rhumb edges; geodesic edges differ only when very long). */
+  containsLocation(point: MapCoordinate, polygon: MapCoordinate[]): boolean {
+    // Ray casting on the Mercator plane.
     const y = Math.log(Math.tan(Math.PI / 4 + rad(point.latitude) / 2))
     const x = rad(point.longitude)
     let inside = false
@@ -135,13 +163,18 @@ export const googleGeometry = {
       let bx = rad(b.longitude)
       if (Math.abs(ax - x) > Math.PI) ax += ax < x ? 2 * Math.PI : -2 * Math.PI
       if (Math.abs(bx - x) > Math.PI) bx += bx < x ? 2 * Math.PI : -2 * Math.PI
-      if (ay > y !== by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax) inside = !inside
+      if (ay > y !== by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax)
+        inside = !inside
     }
     return inside
   },
 
   /** Whether a point is within `tolerance` metres of a path. */
-  isLocationOnPath(point: MapCoordinate, path: MapCoordinate[], tolerance = 0.1): boolean {
+  isLocationOnPath(
+    point: MapCoordinate,
+    path: MapCoordinate[],
+    tolerance = 0.1
+  ): boolean {
     for (let i = 1; i < path.length; i++) {
       const a = path[i - 1]!
       const b = path[i]!
@@ -153,21 +186,36 @@ export const googleGeometry = {
       for (let k = 0; k < 40 && steps > 1; k++) {
         const m1 = lo + (hi - lo) / 3
         const m2 = hi - (hi - lo) / 3
-        const d1 = googleGeometry.computeDistanceBetween(point, googleGeometry.interpolate(a, b, m1))
-        const d2 = googleGeometry.computeDistanceBetween(point, googleGeometry.interpolate(a, b, m2))
+        const d1 = googleGeometry.computeDistanceBetween(
+          point,
+          googleGeometry.interpolate(a, b, m1)
+        )
+        const d2 = googleGeometry.computeDistanceBetween(
+          point,
+          googleGeometry.interpolate(a, b, m2)
+        )
         if (d1 < d2) hi = m2
         else lo = m1
       }
       const closest = googleGeometry.interpolate(a, b, (lo + hi) / 2)
-      if (googleGeometry.computeDistanceBetween(point, closest) <= tolerance) return true
+      if (googleGeometry.computeDistanceBetween(point, closest) <= tolerance)
+        return true
     }
     return false
   },
 
   /** Whether a point is within `tolerance` metres of a polygon's edge. */
-  isLocationOnEdge(point: MapCoordinate, polygon: MapCoordinate[], tolerance = 0.1): boolean {
+  isLocationOnEdge(
+    point: MapCoordinate,
+    polygon: MapCoordinate[],
+    tolerance = 0.1
+  ): boolean {
     if (polygon.length === 0) return false
-    return googleGeometry.isLocationOnPath(point, [...polygon, polygon[0]!], tolerance)
+    return googleGeometry.isLocationOnPath(
+      point,
+      [...polygon, polygon[0]!],
+      tolerance
+    )
   },
 
   encodePath: encodePolyline,

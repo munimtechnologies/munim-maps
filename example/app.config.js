@@ -36,6 +36,9 @@ const providers = (process.env.MUNIM_MAPS_PROVIDERS ?? keys.MUNIM_MAPS_PROVIDERS
 
 module.exports = ({ config }) => ({
   ...config,
+  // The Google screen's web-service check (Places, Geocoding, Routes) needs
+  // the key in JavaScript; it is only in local builds, never committed.
+  extra: { ...(config.extra ?? {}), googleMapsApiKey: keys.GOOGLE_MAPS_API_KEY || undefined },
   plugins: [
     ...(config.plugins ?? []),
     [

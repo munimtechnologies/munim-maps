@@ -1,10 +1,7 @@
 import { Platform } from 'react-native'
 import { NitroModules } from 'react-native-nitro-modules'
 import type { MunimMapsConfig } from '../specs/MunimMapsConfig.nitro'
-import type {
-  MapProvider,
-  ProviderEvent,
-} from '../specs/MunimMapView.nitro'
+import type { MapProvider, ProviderEvent } from '../specs/MunimMapView.nitro'
 import type { CesiumMapOptions } from './cesium'
 import type { GoogleMapOptions } from './google'
 import type { MapboxMapOptions } from './mapbox'

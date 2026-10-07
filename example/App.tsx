@@ -29,6 +29,7 @@ import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 import { ParityScreen, type ParityHandle } from './Parity'
 import type { MapProvider, UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
+import { GoogleScreen } from './GoogleScreen'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -59,7 +60,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'google'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -451,6 +452,7 @@ function Example() {
   // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
+  const [googleChecks, setGoogleChecks] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -530,6 +532,13 @@ function Example() {
     ran.current = true
     void Linking.getInitialURL().then((url) => {
       if (url?.includes('nopanel')) setPanel(false)
+      // munimmapsexample://google(/checks): the Google engine screen.
+      if (/:\/\/google/.test(url ?? '')) {
+        setLaunching(false)
+        setGoogleChecks(url?.includes('checks') ?? false)
+        setMode('google')
+        return
+      }
       // munimmapsexample://providers/<provider>: the engine picker.
       const provider = /providers(?:\/(\w+))?/.exec(url ?? '')
       if (provider || Platform.OS === 'android') {
@@ -726,7 +735,13 @@ function Example() {
 
   return (
     <View style={styles.root}>
-      {mode === 'providers' ? (
+      {mode === 'google' ? (
+        <GoogleScreen
+          topInset={insets.top}
+          autoCheck={googleChecks}
+          onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
+        />
+      ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
           topInset={insets.top}
