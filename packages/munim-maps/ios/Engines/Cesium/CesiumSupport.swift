@@ -157,7 +157,25 @@ final class CesiumSchemeHandler: NSObject, WKURLSchemeHandler {
   }
 
   private func resource(_ uri: String, task: WKURLSchemeTask) {
-    if uri.hasPrefix("http://") || uri.hasPrefix("https://") { return fetch(uri, task: task) }
+    if uri.hasPrefix("http://") || uri.hasPrefix("https://") {
+      // Remote models go through munim-maps' disk cache (Caches/munim-maps),
+      // so they load once and work offline afterwards.
+      let ext = (URL(string: uri)?.pathExtension ?? "").lowercased()
+      guard ["glb", "gltf"].contains(ext) else { return fetch(uri, task: task) }
+      MapModelNodes.resolveLocalURL(uri: uri) { result in
+        guard case .success(let file) = result else {
+          DispatchQueue.main.async { self.fail(task, status: 502) }
+          return
+        }
+        self.queue.async {
+          let data = try? Data(contentsOf: file, options: .mappedIfSafe)
+          DispatchQueue.main.async {
+            if let data { self.finish(task, data: data, mime: Self.mime(for: ext)) } else { self.fail(task, status: 404) }
+          }
+        }
+      }
+      return
+    }
     let path: String
     if uri.hasPrefix("file://") { path = URL(string: uri)?.path ?? "" } else { path = uri }
     let file = URL(fileURLWithPath: path).standardizedFileURL

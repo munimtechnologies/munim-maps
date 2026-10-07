@@ -9,6 +9,7 @@
     "expo-maps": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "munim-maps": "*",
+    "munim-maps-vehicles": "*",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-maps": "1.27.2",

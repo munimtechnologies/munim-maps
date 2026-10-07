@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { File, Paths } from 'expo-file-system'
 import {
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -28,8 +27,17 @@ import {
   type MunimMapViewRef,
   type UserTrackingMode,
 } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
-import { VEHICLES_GLB } from 'munim-maps/vehicles-glb'
+import { VEHICLES as CATALOGUE, type VehicleName } from 'munim-maps-vehicles'
+
+// These checks compare glTF models (drawn by the engine) with USDZ ones
+// (munim-maps' 3D layer on iOS), so they pick formats explicitly: VEHICLES as
+// the platform's own format (USDZ on iOS, GLB on Android), VEHICLES_GLB as GLB.
+const VEHICLES = new Proxy({} as Record<VehicleName, string>, {
+  get: (_, name) => (Platform.OS === 'ios' ? CATALOGUE[name as VehicleName].usdz : CATALOGUE[name as VehicleName].glb),
+})
+const VEHICLES_GLB = new Proxy({} as Record<VehicleName, string>, {
+  get: (_, name) => CATALOGUE[name as VehicleName].glb,
+})
 
 /**
  * Every group of the Mapbox engine on one map: Standard / Standard
@@ -203,10 +211,7 @@ export function MapboxScreen(props: {
   const errors = useRef<string[]>([])
   const ranAuto = useRef(false)
 
-  const glbUri = useMemo(
-    () => Image.resolveAssetSource(VEHICLES_GLB['bus-school'])?.uri ?? '',
-    []
-  )
+  const glbUri = VEHICLES_GLB['bus-school']
 
   const layers: MapboxLayer[] = useMemo(
     () =>

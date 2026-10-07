@@ -110,10 +110,13 @@ export interface MapModel {
   /** Default 1. */
   scale?: number
   /**
-   * A USDZ, USD, SCN or OBJ file: a `require()`d asset, a `file://` path or
-   * an `http(s)://` URL. Leave out to draw `shape` instead.
+   * A GLB / glTF, USDZ, USD, SCN or OBJ file: a `require()`d asset, a
+   * `file://` path or an `http(s)://` URL. A source with both formats
+   * (`{ uri, usdz, glb }`, such as `munim-maps-vehicles`' `VEHICLES`) lets
+   * munim-maps pick: USDZ where SceneKit draws the model on iOS, GLB
+   * elsewhere. Leave out to draw `shape` instead.
    */
-  source?: number | string | { uri: string }
+  source?: MapModelSource
   /** Built-in shape used when there is no `source`. Default `box`. */
   shape?: Exclude<MapModelShape, 'none'>
   /** Shape size in metres. Default 10 x 10 x 10. */
@@ -241,7 +244,20 @@ const NativeMunimMapView = getHostComponent<
 /** True where munim-maps has native code (iOS and Android). */
 export const isSupported = Platform.OS === 'ios' || Platform.OS === 'android'
 
-function resolveUri(source: MapModel['source'] | MapModel['image']): string {
+/**
+ * A model file: a `require()`d asset, a path or URL, or `{ uri }`. With
+ * `usdz` and `glb` too, munim-maps picks the format the engine draws best.
+ */
+export type MapModelSource =
+  number | string | { uri: string; usdz?: string; glb?: string }
+
+/** Which format a two-format model source resolves to. */
+export type ModelFormat = 'usdz' | 'glb'
+
+function resolveUri(
+  source: MapModel['source'] | MapModel['image'],
+  format: ModelFormat = 'glb'
+): string {
   if (source == null) return ''
   if (typeof source === 'string') return source
   if (typeof source === 'number') {
@@ -249,12 +265,33 @@ function resolveUri(source: MapModel['source'] | MapModel['image']): string {
     const { Image } = require('react-native') as typeof import('react-native')
     return Image.resolveAssetSource(source)?.uri ?? ''
   }
-  return source.uri
+  const formats = source as { uri: string; usdz?: string; glb?: string }
+  return (format === 'usdz' ? formats.usdz : formats.glb) ?? source.uri
 }
 
-export function toNativeModel(model: MapModel): NativeMapModel {
+/**
+ * The format two-format model sources resolve to: USDZ where munim-maps'
+ * SceneKit layer draws the models (iOS on MapKit, MapLibre and Google, or
+ * any engine with `modelRendering: 'overlay'`), GLB where the engine draws
+ * glTF itself (Mapbox, Cesium) and on Android (Filament).
+ */
+export function modelFormatFor(
+  provider: MapProvider,
+  modelRendering?: string
+): ModelFormat {
+  if (Platform.OS !== 'ios') return 'glb'
+  if (provider === 'mapbox' || provider === 'cesium') {
+    return modelRendering === 'overlay' ? 'usdz' : 'glb'
+  }
+  return 'usdz'
+}
+
+export function toNativeModel(
+  model: MapModel,
+  format: ModelFormat = Platform.OS === 'ios' ? 'usdz' : 'glb'
+): NativeMapModel {
   const imageUri = resolveUri(model.image)
-  const uri = imageUri ? '' : resolveUri(model.source)
+  const uri = imageUri ? '' : resolveUri(model.source, format)
   return {
     id: model.id,
     latitude: model.coordinate.latitude,
@@ -423,8 +460,14 @@ function useNativePaths(paths: MapPath[] | undefined): NativeMapPath[] {
   return useMemo(() => (paths ?? []).map(toNativePath), [paths])
 }
 
-function useNativeModels(models: MapModel[] | undefined): NativeMapModel[] {
-  return useMemo(() => (models ?? []).map(toNativeModel), [models])
+function useNativeModels(
+  models: MapModel[] | undefined,
+  format: ModelFormat = Platform.OS === 'ios' ? 'usdz' : 'glb'
+): NativeMapModel[] {
+  return useMemo(
+    () => (models ?? []).map((m) => toNativeModel(m, format)),
+    [models, format]
+  )
 }
 
 function useCallbackProp<A extends unknown[]>(
@@ -777,6 +820,22 @@ function cameraForRegion(region: MapRegion): MapCamera {
   }
 }
 
+/** `modelRendering`, from the shared prop or the engine's own options. */
+function modelRenderingFor(
+  provider: MapProvider,
+  props: ProviderOptionProps
+): string | undefined {
+  if (props.modelRendering) return props.modelRendering
+  const options = props[provider] as
+    { modelRendering?: string; modelRenderer?: string } | undefined
+  if (options?.modelRendering) return options.modelRendering
+  // Cesium's older name: `native` meant munim-maps' native (SceneKit) layer.
+  if (provider === 'cesium' && options?.modelRenderer === 'native') {
+    return 'overlay'
+  }
+  return undefined
+}
+
 const WORLD_CAMERA: MapCamera = {
   latitude: 0,
   longitude: 0,
@@ -796,7 +855,11 @@ function useMapped<T, N>(items: T[] | undefined, map: (item: T) => N): N[] {
  */
 export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
   function MunimMapViewComponent(props, ref) {
-    const models = useNativeModels(props.models)
+    const provider = props.provider ?? defaultProvider()
+    const models = useNativeModels(
+      props.models,
+      modelFormatFor(provider, modelRenderingFor(provider, props))
+    )
     const zones = useNativeZones(props.zones)
     const paths = useNativePaths(props.paths)
     const markers = useMapped(props.markers, toNativeMarker)
@@ -935,7 +998,6 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         }),
       [ref]
     )
-    const provider = props.provider ?? defaultProvider()
     if (!isSupported) return null
     // Android's native views cannot hold React children, so `MarkerView`s
     // sit in an off-screen sibling of the map there.

@@ -1,68 +1,9 @@
-/** Every model in `munim-maps/vehicles`. */
-export type VehicleName =
-  | 'balloon'
-  | 'bike-city'
-  | 'bike-mountain'
-  | 'bike-road'
-  | 'boat-jetski'
-  | 'boat-sail'
-  | 'boat-speed'
-  | 'boat-yacht'
-  | 'bus-city'
-  | 'bus-school'
-  | 'car-convertible'
-  | 'car-ev'
-  | 'car-hatchback'
-  | 'car-minivan'
-  | 'car-offroader'
-  | 'car-pickup'
-  | 'car-police'
-  | 'car-sedan'
-  | 'car-sports'
-  | 'car-supercar'
-  | 'car-suv'
-  | 'car-taxi'
-  | 'car-wagon'
-  | 'heli-light'
-  | 'jet-f16'
-  | 'jet-f22'
-  | 'jet-f35'
-  | 'jet-yf23'
-  | 'motorcycle-cruiser'
-  | 'motorcycle-dirt'
-  | 'motorcycle-sport'
-  | 'plane-airliner'
-  | 'plane-jet'
-  | 'plane-prop'
-  | 'plane-widebody'
-  | 'rail-highspeed'
-  | 'rail-tram'
-  | 'rocket-falcon9'
-  | 'rocket-saturnv'
-  | 'rocket-shuttle'
-  | 'rocket-starship'
-  | 'satellite-cubesat'
-  | 'satellite-dragon'
-  | 'satellite-gps'
-  | 'satellite-hubble'
-  | 'satellite-iss'
-  | 'satellite-jwst'
-  | 'satellite-starlink'
-  | 'scooter-kick'
-  | 'scooter-moped'
-  | 'starbase-mount'
-  | 'starbase-tower'
-  | 'truck-box'
-  | 'truck-fire'
-  | 'truck-semi'
-  | 'van-ambulance'
-  | 'van-delivery'
-
 /**
- * Bundled asset ids, to pass as a model's `source`: USDZ files on iOS and
- * glTF binaries (.glb) on Android (`vehicles.android.js`), so each platform
- * bundles only its own format. For glTF on every platform, use
- * `VEHICLES_GLB` from 'munim-maps/vehicles-glb'.
+ * @deprecated The vehicle catalogue moved to the `munim-maps-vehicles`
+ * package in munim-maps 0.5.0: `import { VEHICLES } from
+ * 'munim-maps-vehicles'`. Importing `munim-maps/vehicles` throws.
  */
-export const VEHICLES: Record<VehicleName, number>
-export const VEHICLE_NAMES: VehicleName[]
+export declare const VEHICLES: never
+
+/** @deprecated Use `VehicleName` from `munim-maps-vehicles`. */
+export type VehicleName = never

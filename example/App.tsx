@@ -22,7 +22,7 @@ import {
   type MapModelLighting,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 import { Demo, SHOTS, type Shot } from './Demo'
 import { ORBIT_PATHS, satelliteModels } from './orbits'
 import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
@@ -238,7 +238,7 @@ const ELEVATION_MODELS: MapModel[] = [
 type Rider = {
   id: string
   at: [number, number]
-  vehicle: number
+  vehicle: MapModel['source']
   size: number
   heading: number
   tint?: string

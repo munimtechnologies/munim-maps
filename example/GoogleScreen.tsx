@@ -19,7 +19,7 @@ import {
   type MapProviderEvent,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 /**
  * The Google Maps engine with everything it has: map types, dark mode,

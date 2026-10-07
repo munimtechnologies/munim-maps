@@ -551,6 +551,13 @@ internal class MapboxStyleController(private val engine: MapboxMapEngine) {
   fun modelUri(uri: String, completion: (String?) -> Unit) {
     val scheme = android.net.Uri.parse(uri).scheme?.lowercase()
     when {
+      // Remote files go through munim-maps' disk cache (offline after the
+      // first load); Metro's dev server is read fresh by Mapbox.
+      (scheme == "http" || scheme == "https") && ModelAssets.cacheFile(engine.context, uri) != null ->
+        ModelAssets.load(engine.context, uri) { result ->
+          val file = ModelAssets.cacheFile(engine.context, uri)
+          completion(if (result.isSuccess && file != null && file.isFile) "file://${file.absolutePath}" else uri)
+        }
       scheme == "http" || scheme == "https" || scheme == "file" || scheme == "mapbox" -> completion(uri)
       scheme == "asset" -> completion("asset://" + uri.removePrefix("asset:").trimStart('/'))
       uri.startsWith("/") -> completion("file://$uri")

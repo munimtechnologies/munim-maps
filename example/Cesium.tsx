@@ -18,8 +18,17 @@ import {
   type MapZone,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES_GLB } from 'munim-maps/vehicles-glb'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES as CATALOGUE, type VehicleName } from 'munim-maps-vehicles'
+
+// These checks compare glTF models (drawn by the engine) with USDZ ones
+// (munim-maps' 3D layer on iOS), so they pick formats explicitly: VEHICLES as
+// the platform's own format (USDZ on iOS, GLB on Android), VEHICLES_GLB as GLB.
+const VEHICLES = new Proxy({} as Record<VehicleName, string>, {
+  get: (_, name) => (Platform.OS === 'ios' ? CATALOGUE[name as VehicleName].usdz : CATALOGUE[name as VehicleName].glb),
+})
+const VEHICLES_GLB = new Proxy({} as Record<VehicleName, string>, {
+  get: (_, name) => CATALOGUE[name as VehicleName].glb,
+})
 
 /**
  * The Cesium engine with every group of features: the shared munim-maps

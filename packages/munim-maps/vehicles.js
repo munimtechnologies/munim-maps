@@ -1,64 +1,12 @@
-// Vehicle models built by scripts/vehicles/make-vehicles.swift (paint is
-// recoloured with `tint`). Import from 'munim-maps/vehicles' so apps that do
-// not use them do not bundle them.
-module.exports.VEHICLES = {
-  'balloon': require('./ios/Vehicles/Models/balloon.usdz'),
-  'bike-city': require('./ios/Vehicles/Models/bike-city.usdz'),
-  'bike-mountain': require('./ios/Vehicles/Models/bike-mountain.usdz'),
-  'bike-road': require('./ios/Vehicles/Models/bike-road.usdz'),
-  'boat-jetski': require('./ios/Vehicles/Models/boat-jetski.usdz'),
-  'boat-sail': require('./ios/Vehicles/Models/boat-sail.usdz'),
-  'boat-speed': require('./ios/Vehicles/Models/boat-speed.usdz'),
-  'boat-yacht': require('./ios/Vehicles/Models/boat-yacht.usdz'),
-  'bus-city': require('./ios/Vehicles/Models/bus-city.usdz'),
-  'bus-school': require('./ios/Vehicles/Models/bus-school.usdz'),
-  'car-convertible': require('./ios/Vehicles/Models/car-convertible.usdz'),
-  'car-ev': require('./ios/Vehicles/Models/car-ev.usdz'),
-  'car-hatchback': require('./ios/Vehicles/Models/car-hatchback.usdz'),
-  'car-minivan': require('./ios/Vehicles/Models/car-minivan.usdz'),
-  'car-offroader': require('./ios/Vehicles/Models/car-offroader.usdz'),
-  'car-pickup': require('./ios/Vehicles/Models/car-pickup.usdz'),
-  'car-police': require('./ios/Vehicles/Models/car-police.usdz'),
-  'car-sedan': require('./ios/Vehicles/Models/car-sedan.usdz'),
-  'car-sports': require('./ios/Vehicles/Models/car-sports.usdz'),
-  'car-supercar': require('./ios/Vehicles/Models/car-supercar.usdz'),
-  'car-suv': require('./ios/Vehicles/Models/car-suv.usdz'),
-  'car-taxi': require('./ios/Vehicles/Models/car-taxi.usdz'),
-  'car-wagon': require('./ios/Vehicles/Models/car-wagon.usdz'),
-  'heli-light': require('./ios/Vehicles/Models/heli-light.usdz'),
-  'jet-f16': require('./ios/Vehicles/Models/jet-f16.usdz'),
-  'jet-f22': require('./ios/Vehicles/Models/jet-f22.usdz'),
-  'jet-f35': require('./ios/Vehicles/Models/jet-f35.usdz'),
-  'jet-yf23': require('./ios/Vehicles/Models/jet-yf23.usdz'),
-  'motorcycle-cruiser': require('./ios/Vehicles/Models/motorcycle-cruiser.usdz'),
-  'motorcycle-dirt': require('./ios/Vehicles/Models/motorcycle-dirt.usdz'),
-  'motorcycle-sport': require('./ios/Vehicles/Models/motorcycle-sport.usdz'),
-  'plane-airliner': require('./ios/Vehicles/Models/plane-airliner.usdz'),
-  'plane-jet': require('./ios/Vehicles/Models/plane-jet.usdz'),
-  'plane-prop': require('./ios/Vehicles/Models/plane-prop.usdz'),
-  'plane-widebody': require('./ios/Vehicles/Models/plane-widebody.usdz'),
-  'rail-highspeed': require('./ios/Vehicles/Models/rail-highspeed.usdz'),
-  'rail-tram': require('./ios/Vehicles/Models/rail-tram.usdz'),
-  'rocket-falcon9': require('./ios/Vehicles/Models/rocket-falcon9.usdz'),
-  'rocket-saturnv': require('./ios/Vehicles/Models/rocket-saturnv.usdz'),
-  'rocket-shuttle': require('./ios/Vehicles/Models/rocket-shuttle.usdz'),
-  'rocket-starship': require('./ios/Vehicles/Models/rocket-starship.usdz'),
-  'satellite-cubesat': require('./ios/Vehicles/Models/satellite-cubesat.usdz'),
-  'satellite-dragon': require('./ios/Vehicles/Models/satellite-dragon.usdz'),
-  'satellite-gps': require('./ios/Vehicles/Models/satellite-gps.usdz'),
-  'satellite-hubble': require('./ios/Vehicles/Models/satellite-hubble.usdz'),
-  'satellite-iss': require('./ios/Vehicles/Models/satellite-iss.usdz'),
-  'satellite-jwst': require('./ios/Vehicles/Models/satellite-jwst.usdz'),
-  'satellite-starlink': require('./ios/Vehicles/Models/satellite-starlink.usdz'),
-  'scooter-kick': require('./ios/Vehicles/Models/scooter-kick.usdz'),
-  'scooter-moped': require('./ios/Vehicles/Models/scooter-moped.usdz'),
-  'starbase-mount': require('./ios/Vehicles/Models/starbase-mount.usdz'),
-  'starbase-tower': require('./ios/Vehicles/Models/starbase-tower.usdz'),
-  'truck-box': require('./ios/Vehicles/Models/truck-box.usdz'),
-  'truck-fire': require('./ios/Vehicles/Models/truck-fire.usdz'),
-  'truck-semi': require('./ios/Vehicles/Models/truck-semi.usdz'),
-  'van-ambulance': require('./ios/Vehicles/Models/van-ambulance.usdz'),
-  'van-delivery': require('./ios/Vehicles/Models/van-delivery.usdz'),
-}
-
-module.exports.VEHICLE_NAMES = Object.keys(module.exports.VEHICLES)
+// The vehicle catalogue moved to its own package in munim-maps 0.5.0, so
+// apps that do not use it no longer download 34 MB of models with
+// munim-maps (and apps that do no longer bundle all 57).
+//
+//   npm install munim-maps-vehicles
+//   import { VEHICLES } from 'munim-maps-vehicles'            // from a CDN, cached on device
+//   import carEv from 'munim-maps-vehicles/bundled/car-ev'     // one model inside the app
+//
+// This entry stays only to say so.
+throw new Error(
+  "munim-maps: the vehicle catalogue moved to the munim-maps-vehicles package. Install it (npm install munim-maps-vehicles) and import { VEHICLES } from 'munim-maps-vehicles' (models load from a CDN and are cached on the device), or import a single model into the app with import car from 'munim-maps-vehicles/bundled/car-ev'. See the munim-maps README, Vehicle Catalogue."
+)

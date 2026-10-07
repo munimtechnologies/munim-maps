@@ -12,7 +12,7 @@ import {
   type MapZone,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 /**
  * Every group of the 3D layer on one engine: GLB vehicles (tint, screen

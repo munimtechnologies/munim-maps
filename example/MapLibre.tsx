@@ -18,7 +18,7 @@ import {
   type MapTileOverlay,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 /**
  * The MapLibre engine with every feature group on one map: OpenStreetMap

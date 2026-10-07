@@ -12,7 +12,8 @@ import {
   type MapProvider,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
+import bundledBalloon from 'munim-maps-vehicles/bundled/balloon'
 
 /**
  * The same map, models and camera on every engine: pick MapKit, Google
@@ -41,7 +42,8 @@ const MODELS: MapModel[] = [
     id: 'balloon',
     coordinate: { latitude: 41.8826, longitude: -87.6278 },
     altitude: 120,
-    source: VEHICLES.balloon,
+    // Inside the app (munim-maps-vehicles/bundled), not from the CDN.
+    source: bundledBalloon,
     screenSize: 60,
   },
 ]

@@ -32,6 +32,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run typecheck:example
+      - name: Vehicle catalogue (generated files, API)
+        run: npm run check:vehicles
       - name: Validate Expo prebuild configuration
         run: npx expo config --type prebuild > /dev/null
         working-directory: example

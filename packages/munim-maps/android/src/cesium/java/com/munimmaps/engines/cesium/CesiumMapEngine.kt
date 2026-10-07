@@ -357,17 +357,8 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   private fun readResource(uri: String): ByteArray {
     val parsed = Uri.parse(uri)
     return when (parsed.scheme?.lowercase(Locale.ROOT)) {
-      "http", "https" -> {
-        val connection = URL(uri).openConnection() as HttpURLConnection
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 30_000
-        try {
-          if (connection.responseCode !in 200..299) error("HTTP ${connection.responseCode}")
-          connection.inputStream.use { it.readBytes() }
-        } finally {
-          connection.disconnect()
-        }
-      }
+      // Through munim-maps' disk cache: remote models load once.
+      "http", "https" -> com.munimmaps.models.ModelAssets.readBlocking(app, uri)
       "file" -> File(parsed.path ?: error("bad path")).readBytes()
       "asset" -> app.assets.open(uri.removePrefix("asset:/").trimStart('/')).use { it.readBytes() }
       "android.resource", "res" -> readNamed(parsed.lastPathSegment ?: error("bad resource"))

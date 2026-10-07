@@ -98,12 +98,20 @@ final class MapboxNativeModels {
     updateClock()
   }
 
+  /// Downloaded models: munim-maps' own disk cache (Caches/munim-maps), so
+  /// remote models (`munim-maps-vehicles`) work offline after the first load.
+  private var files: [String: String] = [:]
+
+  /// The URI Mapbox reads: the cached file once there is one.
+  private func local(_ uri: String) -> String { files[uri] ?? uri }
+
   private func loadInfo(_ uri: String) {
     guard !loading.contains(uri) else { return }
     loading.insert(uri)
-    MapboxGLBInfo.load(uri: uri) { [weak self] info in
+    MapboxGLBInfo.load(uri: uri) { [weak self] info, file in
       guard let self else { return }
       self.loading.remove(uri)
+      if let file, uri.hasPrefix("http") { self.files[uri] = file.absoluteString }
       if let info { self.infos[uri] = info }
       // An animated file moves its models back to the 3D layer.
       if info?.hasAnimations == true { self.modeChanged() } else { self.update() }
@@ -209,7 +217,7 @@ final class MapboxNativeModels {
         styleModels.insert(uri)
         let id = Self.styleModelId(uri)
         if map.hasStyleModel(modelId: id) { try? map.removeStyleModel(modelId: id) }
-        try map.addStyleModel(modelId: id, modelUri: uri)
+        try map.addStyleModel(modelId: id, modelUri: local(uri))
       }
       let features = movingFeatures(moving)
       let ids = moving.map(\.id).joined(separator: "|")
@@ -263,7 +271,7 @@ final class MapboxNativeModels {
     for model in models {
       let p = placement(model, now: now, camera: camera)
       var entry: [String: Any] = [
-        "uri": model.uri,
+        "uri": local(model.uri),
         "position": [p.pose.longitude, p.pose.latitude],
         "orientation": [0, 0, p.heading],
         "featureProperties": properties(model, p),
@@ -367,7 +375,7 @@ final class MapboxNativeModels {
     for model in models {
       let p = placement(model, now: now, camera: nil)
       var entry: [String: Any] = [
-        "uri": model.uri,
+        "uri": local(model.uri),
         "position": [p.pose.longitude, p.pose.latitude],
         "orientation": [0, 0, p.heading],
         "featureProperties": properties(model, p),
@@ -457,14 +465,18 @@ struct MapboxGLBInfo {
   var paintMaterials: [String]
   var hasAnimations = false
 
-  static func load(uri: String, completion: @escaping (MapboxGLBInfo?) -> Void) {
+  /// Reads the model (downloading it into munim-maps' cache if remote):
+  /// its info and the local file.
+  static func load(uri: String, completion: @escaping (MapboxGLBInfo?, URL?) -> Void) {
     MapModelNodes.resolveLocalURL(uri: uri) { result in
       DispatchQueue.global(qos: .utility).async {
         var info: MapboxGLBInfo?
+        var file: URL?
         if case .success(let url) = result, let data = try? Data(contentsOf: url) {
           info = parse(data)
+          file = url
         }
-        DispatchQueue.main.async { completion(info) }
+        DispatchQueue.main.async { completion(info, file) }
       }
     }
   }

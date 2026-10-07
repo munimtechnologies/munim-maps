@@ -1,0 +1,49 @@
+{
+  "name": "munim-maps-vehicles",
+  "version": "0.5.0",
+  "description": "The munim-maps vehicle catalogue: 57 tintable 3D models (cars, trucks, buses, bikes, trains, boats, aircraft, rockets, satellites) as USDZ and GLB, loaded from a CDN or bundled one by one",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "react-native": "index.js",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "names.js",
+    "names.d.ts",
+    "bundled",
+    "usdz",
+    "glb",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node ../../scripts/vehicles/write-catalogue.mjs --check && node test.js"
+  },
+  "keywords": [
+    "munim-maps",
+    "react-native",
+    "expo",
+    "maps",
+    "3d-models",
+    "vehicles",
+    "usdz",
+    "glb",
+    "gltf",
+    "munim-technologies"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/munimtechnologies/munim-maps.git",
+    "directory": "packages/munim-maps-vehicles"
+  },
+  "author": "sheehanmunim <support@munimtech.com> (https://github.com/sheehanmunim)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/munimtechnologies/munim-maps/issues"
+  },
+  "homepage": "https://github.com/munimtechnologies/munim-maps#-vehicle-catalogue",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

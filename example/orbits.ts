@@ -1,5 +1,5 @@
 import type { MapModel, MapPath } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 /**
  * Satellites on circular orbits for the globe screen. Time runs fast (one

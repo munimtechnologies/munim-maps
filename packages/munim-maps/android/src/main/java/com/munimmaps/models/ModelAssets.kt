@@ -7,6 +7,7 @@ import android.os.Looper
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 import java.util.concurrent.Executors
 
 /**
@@ -18,6 +19,10 @@ import java.util.concurrent.Executors
  * APK's assets), and bare names, which is how React Native release builds
  * refer to `require()`d files (Android raw resources, such as
  * `node_modules_munimmaps_vehicles_glb_carev`).
+ *
+ * Remote files (other than Metro's dev server) are kept in the app's cache
+ * directory (`munim-maps/`, named by a hash of the URL), so models such as
+ * munim-maps-vehicles' load once and work offline afterwards.
  */
 object ModelAssets {
   private val executor = Executors.newFixedThreadPool(2)
@@ -51,19 +56,48 @@ object ModelAssets {
     }
   }
 
+  /**
+   * Where a remote file is kept, or null for Metro's dev server (its files
+   * change on reload) and other schemes.
+   */
+  fun cacheFile(context: Context, uri: String): File? {
+    val parsed = Uri.parse(uri)
+    val scheme = parsed.scheme?.lowercase()
+    if ((scheme != "http" && scheme != "https") || parsed.port == 8081) return null
+    val digest = MessageDigest.getInstance("SHA-256").digest(uri.toByteArray())
+      .joinToString("") { "%02x".format(it) }
+    val ext = (parsed.lastPathSegment ?: "").substringAfterLast('.', "").lowercase()
+      .takeIf { it.isNotEmpty() && it.length <= 5 } ?: "bin"
+    return File(File(context.applicationContext.cacheDir, "munim-maps"), "$digest.$ext")
+  }
+
+  /** Reads a file on the calling thread (a background one), through the disk cache. */
+  fun readBlocking(context: Context, uri: String): ByteArray = read(context.applicationContext, uri)
+
   private fun read(context: Context, uri: String): ByteArray {
     val parsed = Uri.parse(uri)
     return when (parsed.scheme?.lowercase()) {
       "http", "https" -> {
+        val cached = cacheFile(context, uri)
+        if (cached != null && cached.isFile) return cached.readBytes()
         val connection = URL(uri).openConnection() as HttpURLConnection
         connection.connectTimeout = 15_000
         connection.readTimeout = 30_000
-        try {
+        val bytes = try {
           if (connection.responseCode !in 200..299) error("HTTP ${connection.responseCode} for $uri")
           connection.inputStream.use { it.readBytes() }
         } finally {
           connection.disconnect()
         }
+        if (cached != null) {
+          runCatching {
+            cached.parentFile?.mkdirs()
+            val part = File(cached.path + ".part")
+            part.writeBytes(bytes)
+            part.renameTo(cached)
+          }
+        }
+        bytes
       }
       "file" -> File(parsed.path ?: error("Bad file URI $uri")).readBytes()
       "asset" -> context.assets.open(uri.removePrefix("asset:/").trimStart('/')).use { it.readBytes() }

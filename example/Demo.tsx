@@ -7,7 +7,7 @@ import {
   type MapPath,
   type MunimMapViewRef,
 } from 'munim-maps'
-import { VEHICLES, type VehicleName } from 'munim-maps/vehicles'
+import { VEHICLES, type VehicleName } from 'munim-maps-vehicles'
 import { ORBIT_PATHS, satelliteModels } from './orbits'
 
 /**
