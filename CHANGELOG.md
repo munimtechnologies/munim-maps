@@ -17,6 +17,12 @@ munim-maps is becoming one API over five map engines (MapKit, Google Maps, Mapbo
 - Swift: the `MunimMapEngine` protocol, `MunimMapContainerView`, `MunimMapEngines`, `MunimMapsConfiguration`, and `MapCameraSource` / `MapCameraState`, so `MunimModelLayer.attach(to:)` can draw over any engine's map.
 - Example: an engine picker (`munimmapsexample://providers/<provider>`, the start screen on Android) showing the same models on each engine with the 3D layer's measured alignment; development keys are read at build time from `example/.env.local` or `~/.config/munim-maps/keys.env`.
 
+- **Mapbox engine** (`provider="mapbox"`, Mapbox Maps SDK 11.32 on iOS and Android): Mapbox Standard and Standard Satellite with light presets, themes and the rest of their config, globe, terrain, atmosphere, lights, snow and rain, style imports and colour themes; every style-spec source and layer type, images and glTF models from the declarative `mapbox={{ … }}` options (`MapboxMapOptions`); markers as point annotations with clustering and dragging, shapes and tile overlays as layers in Standard's slots, `MarkerView`s as view annotations; the location puck (2D / 3D, heading, pulsing), follow and follow-with-heading through Mapbox's viewport; featureset taps; Mapbox map events; munim-maps' 3D layer aligned to Mapbox's camera. `mapboxMap(ref)` methods (queries, feature state, clusters, runtime styling, Mapbox's camera, free camera, viewport, `Snapshotter`, elevation, location override, tile cover, statistics), `MapboxOffline` (style packs, tile regions) and `MapboxServices` (Geocoding, Search Box, Directions, Matrix, Isochrone). See the checklist in docs/providers.md.
+- `onMarkerDrag`: a marker's position while it is dragged, between `onMarkerDragStart` and `onMarkerDragEnd` (Mapbox; other engines keep start and end only for now).
+- `MarkerView` on Android: React Native views drawn as markers, like iOS, for engines that support it.
+- Engine-only methods and events: `ref.current.providerCall(method, argsJson)`, `onProviderEvent`, `callMapProvider`, `callProvider` and `addProviderEventListener`.
+- Example: `munimmapsexample://mapbox` shows every Mapbox feature group; **Run checks** (or `munimmapsexample://mapbox/checks`) checks them on the device.
+
 ### Changed
 
 - The MapKit map and its features moved to `ios/Engines/MapKit/` behind `MunimMapEngine`; the 3D renderer now reads only the camera state, not `MKMapView`. Behaviour is unchanged (the on-device self-test still passes 47 of 47).

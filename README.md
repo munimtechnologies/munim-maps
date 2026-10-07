@@ -177,6 +177,64 @@ Pick engines and keys with the Expo config plugin:
 
 Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
 
+Methods and events only one engine has go through `ref.current.providerCall(method, argsJson)` and `onProviderEvent({ name, data })`; each engine wraps them with types (`mapboxMap(ref.current)`).
+
+### Mapbox
+
+Mapbox Maps SDK 11.32 on iOS and Android, with everything the SDK offers: Mapbox Standard and Standard Satellite with light presets and themes, globe, terrain, atmosphere, lights, every layer and source type from the style spec, featureset taps, annotations, view annotations, the location puck, the viewport, snapshots and offline maps, plus munim-maps' 3D models on top.
+
+**Setup.** A public token (`pk.…`) from [your Mapbox account](https://account.mapbox.com/). Both SDKs download without a secret token.
+
+```json
+["munim-maps", { "providers": ["mapbox"], "mapboxAccessToken": "pk.…" }]
+```
+
+Without Expo: `pod 'NitroMunimMaps/Mapbox', :path => '../node_modules/munim-maps'` (pulls `MapboxMaps ~> 11.32`) and `munimMaps.mapbox=true` in `android/gradle.properties` (adds `com.mapbox.maps:android-ndk27`; pin another version with `munimMaps.mapboxVersion`), then `configureMunimMaps({ mapboxAccessToken: 'pk.…' })`.
+
+```tsx
+import { MunimMapView, MAPBOX_STYLES, MarkerView, mapboxMap, MapboxOffline } from 'munim-maps'
+
+<MunimMapView
+  ref={ref}
+  provider="mapbox"
+  styleUrl={MAPBOX_STYLES.standardSatellite}  // or leave empty for Mapbox Standard; mapStyle="hybrid" also picks Satellite
+  initialCamera={{ latitude: 41.8826, longitude: -87.6278, distance: 1400, pitch: 55, heading: 30 }}
+  models={models}                              // munim-maps' 3D layer, aligned to Mapbox's camera
+  markers={markers}                            // point annotations; clusteringId clusters them
+  polylines={[{ id: 'walk', coordinates, dashPattern: [4, 10] }]}
+  showsUserLocation
+  userTrackingMode="followWithHeading"         // Mapbox's follow-puck viewport
+  onMarkerDrag={(e) => console.log(e.latitude, e.longitude)}  // continuous while dragging
+  mapbox={{
+    standard: { lightPreset: 'dusk', show3dObjects: true },
+    projection: 'globe',
+    terrain: { exaggeration: 1.5 },
+    puck: { bearing: 'heading', pulsing: { enabled: true, radius: 'accuracy' } },
+    sources: { stops: { type: 'geojson', data: stops, cluster: true } },
+    layers: [
+      { id: 'stops', type: 'circle', source: 'stops', slot: 'top', paint: { 'circle-color': '#0A84FF', 'circle-radius': 6 } },
+    ],
+    interactions: [{ id: 'poi', type: 'tap', featureset: { featuresetId: 'poi' } }],
+    events: ['mapIdle', 'sourceDataLoaded'],
+  }}
+  onProviderEvent={({ name, data }) => console.log(name, data)}
+>
+  <MarkerView id="me" coordinate={me} anchor={{ x: 0.5, y: 1 }} draggable>
+    <Avatar />                                   {/* a Mapbox view annotation */}
+  </MarkerView>
+</MunimMapView>
+
+const features = await mapboxMap(ref.current).queryRenderedFeatures({ point: { x: 100, y: 200 } })
+await MapboxOffline.loadTileRegion({ id: 'loop', bounds, minZoom: 10, maxZoom: 16 })
+```
+
+- `mapbox={{ … }}` (`MapboxMapOptions`) is declarative: sources, layers, images, models, imports, terrain, lights and the rest are written exactly as in the [Mapbox Style Specification](https://docs.mapbox.com/style-spec/) (kebab-case keys, expressions) and are added, updated and removed as the prop changes. Standard's slots (`bottom`, `middle`, `top`) go in a layer's `slot`.
+- `mapboxMap(ref.current)` (`MapboxMapMethods`): `queryRenderedFeatures`, `querySourceFeatures`, cluster expansion, feature state, partial GeoJSON updates, runtime style edits, style imports, featuresets, Mapbox's camera in zoom levels (`easeTo`, `flyTo`, `cameraForCoordinates`), the free camera, `setViewport`, the `Snapshotter`, `getElevation`, `setLocationOverride` (simulated positions), `tileCover`, performance statistics.
+- `MapboxOffline`: style packs and tile regions with progress (`addListener`). `MapboxServices`: Geocoding, Search Box, Directions, Matrix and Isochrone web APIs with the public token (each request counts against your Mapbox account).
+- Mapbox's own glTF `model` layer works next to munim-maps' models: `mapbox={{ models: { bus: uri }, layers: [{ type: 'model', … }] }}` (use `munim-maps/vehicles-glb` for the catalogue as glTF on iOS).
+
+Caveats: Mapbox's terms keep the logo and attribution on the map. munim-maps' 3D models are drawn over the map (Mapbox does not share its depth buffer), so Mapbox's 3D buildings do not hide them unless `occlusion="buildings"`. On iOS the debug wireframes are not offered by the SDK. The full checklist is in [docs/providers.md](docs/providers.md#mapbox-checklist).
+
 ## Table of contents
 
 - [📦 Installation](#-installation)

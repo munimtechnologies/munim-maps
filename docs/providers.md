@@ -173,3 +173,80 @@ For each engine:
 
 - **iOS**: plain launch of the example runs the MapKit self-test (`Documents/munim-maps-selftest.json`); `munimmapsexample://providers/<provider>` opens the engine picker. A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
 - **Android**: the example starts on the engine picker (MapLibre by default) and logs `MUNIM_MAPS_PROVIDERS … alignment {…}` every 3 s (`adb logcat | grep MUNIM_MAPS`). Build with `./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a` (from `example/android`, after `npx expo prebuild --platform android`) for an arm64 phone or emulator. Phase 1 was checked on an Android 15 phone: MapLibre with the GLB vehicles, 3D layer within 0.41 pt of MapLibre's own projection.
+
+## Engine-only methods and events
+
+Every engine can add methods and events without changing the shared spec:
+
+- `ref.current.providerCall(method, argsJson)` → JSON text, and `onProviderEvent({ name, data })` on `MunimMapView`. JavaScript: `callMapProvider(ref.current, method, args)`; each engine adds typed wrappers next to its options (`mapboxMap(ref.current)`).
+- `callProvider(provider, method, args)` and `addProviderEventListener(provider, listener)` for engine-level methods that need no map (Mapbox's offline downloads), through `MunimMapsConfig`.
+- Native: iOS `MunimMapEngine.providerCall(_:args:completion:)` / `onProviderEvent` and `MunimMapEngineFactory.providerCall(_:args:emit:completion:)`; Android `MunimMapEngine.providerCall(method, args, completion)` / `MunimMapEngineListener.onProviderEvent` and `MunimMapEngineFactory.providerCall(context, …)`. All have defaults (reject / drop), so engines opt in.
+- `onMarkerDrag` (shared): a dragged marker's position while it moves, between `onMarkerDragStart` and `onMarkerDragEnd` (iOS `MunimMapEngine.onMarkerDrag`, Android `MunimMapEngineListener.onMarkerDrag`, defaulted).
+- `MarkerView` on Android: `MunimMapView` keeps its children off screen next to the map (Android's Nitro views cannot hold React children); each `MarkerView` draws its children into a bitmap and calls `MunimMapEngine.setViewMarker` / `setViewMarkerImage` / `removeViewMarker` (defaulted), like iOS.
+
+## Mapbox engine
+
+Mapbox Maps SDK **11.32** on both platforms (`MapboxMaps ~> 11.32` pod; `com.mapbox.maps:android-ndk27:11.32.0`, 16 KB page aligned; both download without a secret token). Needs a public token (`pk.…`): `configureMunimMaps({ mapboxAccessToken })`, the config plugin's `mapboxAccessToken` (Info.plist `MBXAccessToken`, Android `mapbox_access_token` string), never a secret `sk.` token in an app.
+
+- Shared API: everything in the matrix above maps onto Mapbox (details in the checklist).
+- `mapbox={{ … }}` (`MapboxMapOptions`, src/providers/mapbox.ts): declarative style objects written exactly as the [Mapbox Style Specification](https://docs.mapbox.com/style-spec/) and handed to the SDK unchanged (`addLayer(with:)` / `addStyleLayer(Value)`), diffed between renders; map options (gestures, ornaments, puck, camera bounds, rendering, debug); `events` and `interactions`.
+- `mapboxMap(ref.current).<method>(args)` (`MapboxMapMethods`): queries, feature state, cluster expansion, partial GeoJSON updates, runtime style edits, style imports, featuresets, Mapbox's camera in zoom levels, free camera, viewport, snapshots, elevation, location override, statistics.
+- `MapboxOffline`: style packs and tile regions, with progress through `addListener`; `MapboxServices`: Geocoding v6, Search Box, Directions, Matrix, Isochrone over HTTPS with the public token (billed per request by Mapbox beyond the free tier; temporary geocoding results may not be stored, per Mapbox's terms).
+- 3D: munim-maps' layer (SceneKit / Filament) is aligned to Mapbox's camera: 36.87° vertical field of view, 512-point tiles, an off-centre projection when the camera has padding (iOS), globe below zoom 5.5, `drawsTerrain` with terrain on. Mapbox's own glTF `model` layer works too (`models` + a `model` layer); munim-maps' models stay in front of Mapbox's 3D buildings (no shared depth buffer) unless `occlusion="buildings"`.
+
+### Mapbox checklist
+
+Every capability of the SDKs' public surface (iOS `MapboxMaps` and Android `com.mapbox.maps` + plugins + `extension-style`), with its munim-maps API. ✅ done · 🟡 partly (note) · — not offered (reason).
+
+| Capability | munim-maps API | iOS | Android | Note |
+| --- | --- | --- | --- | --- |
+| Map view, token, lifecycle | `provider="mapbox"`, `configureMunimMaps({ mapboxAccessToken })` | ✅ | ⏳ | Missing token → `onError`. |
+| Styles: Standard, Standard Satellite, Streets, Outdoors, Light, Dark, Satellite, Satellite Streets, Navigation | `styleUrl` + `MAPBOX_STYLES`; `mapStyle` (`standard`/`muted` → Standard, `hybrid`/`imagery` → Standard Satellite) | ✅ | ⏳ | |
+| Custom style URL / JSON | `styleUrl`, `mapbox.styleJson` | ✅ | ⏳ | |
+| Standard config (light presets day/dawn/dusk/night, theme default/faded/monochrome/custom, 3D objects/buildings/trees/landmarks/facades, POI/transit/place/road labels, pedestrian roads, landmark icons, admin boundaries, fonts, density…) | `mapbox.standard`, `mapbox.lightPreset`; `colorScheme` → preset, `showsBuildings` → `show3dObjects`, `pointsOfInterest: 'none'` → labels off | ✅ | ⏳ | Unknown keys pass through. |
+| Style imports (add/update/move/remove, config, schema) | `mapbox.imports`, `mapbox.importConfig`; `getStyleImports`, `getStyleImportSchema`, `getStyleImportConfig`, `setStyleImportConfig` | ✅ | ⏳ | |
+| Colour themes (LUT) | `mapbox.colorTheme` | ✅ | ⏳ | Experimental in the SDK. |
+| Globe / Mercator projection | `globe`, `mapbox.projection` | ✅ | ⏳ | |
+| Atmosphere / fog | `mapbox.atmosphere` | ✅ | ⏳ | |
+| Terrain (raster-dem, exaggeration) | `mapbox.terrain`, `terrainExaggeration`; on for `hybrid`/`imagery` + `elevation="realistic"`; `getElevation` | ✅ | ⏳ | |
+| Lights (flat, ambient + directional) | `mapbox.lights` | ✅ | ⏳ | |
+| Snow, rain | `mapbox.snow`, `mapbox.rain` | ✅ | ⏳ | Experimental in the SDK. |
+| Sources: vector, raster, raster-dem, raster-array, GeoJSON (clustering, cluster properties, line metrics), image, model, batched-model | `mapbox.sources` (style-spec JSON) | ✅ | ⏳ | |
+| GeoJSON partial updates | `updateGeoJSONSource`, `add/update/removeGeoJSONSourceFeatures` | ✅ | ⏳ | |
+| Video source | — | — | — | Not in the mobile SDKs (GL JS only). |
+| Custom geometry / custom raster sources (tiles produced in code) | — | — | — | Need native per-tile callbacks; use a GeoJSON source or a `{z}/{x}/{y}` URL instead. |
+| Layers: fill, line (dash, gradient, trim, pattern), symbol, circle, heatmap, fill-extrusion, raster, raster-particle, hillshade, background, sky, model, location-indicator, slot, clip, building | `mapbox.layers` (style-spec JSON incl. `slot`, positions `beforeId`/`aboveId`/`index`) | ✅ | ⏳ | |
+| Expressions, feature state in paint | style-spec JSON; `setFeatureState`, `getFeatureState`, `removeFeatureState`, `resetFeatureStates` (by source or featureset) | ✅ | ⏳ | |
+| Runtime styling | `setLayerProperties`, `getLayerProperties`, `setSourceProperties`, `getSourceProperties`, `moveLayer`, `getLayers`, `getSources`, `getSlots`, `getStyleJson` | ✅ | ⏳ | |
+| Persistent layers | — | — | — | munim-maps re-adds its layers after every style load, which covers it. |
+| Custom (Metal / OpenGL) layers | — | — | — | munim-maps' own 3D layer is the native drawing hook. |
+| Images (SDF, stretch, content, scale) | `mapbox.images` | ✅ | ⏳ | `http(s)`, `file`, `data:` and bundled URIs. |
+| glTF models for `model` layers | `mapbox.models` | ✅ | ⏳ | `munim-maps/vehicles-glb` works. |
+| Queries | `queryRenderedFeatures` (point, box, viewport; layers, filter, featureset), `querySourceFeatures` | ✅ | ⏳ | |
+| Cluster expansion | `getClusterExpansionZoom`, `getClusterLeaves`, `getClusterChildren` | ✅ | ⏳ | |
+| Featuresets and interactions (Standard POIs, buildings, place labels, landmarks; layers) with feature state | `mapbox.interactions` → `onProviderEvent('interaction')`; `selectableMapFeatures` → `onMapFeaturePress`; `getFeaturesets` | ✅ | ⏳ | Hover is not a mobile gesture. |
+| Point annotations (images, text, drag, clustering) | `markers` (all six styles), `clusteringId`, `clusterStyles`, `onClusterPress`, `draggable`, `onMarkerDrag*` | ✅ | ⏳ | One manager per clustering id. |
+| Polyline / polygon / circle annotations | `polylines`, `polygons`, `circles` (as GeoJSON layers in Standard's slots) | ✅ | ⏳ | Layers rather than annotation managers, so gradients, trims and dashes per shape work. |
+| View annotations (anchors, overlap, priority, dragging) | `MarkerView`; callouts (`callout`, accessories) | ✅ | ⏳ | Draggable `MarkerView` uses Mapbox's view annotation drag. |
+| Camera (set, ease, fly, cancel, bounds, padding, anchors) | shared camera API; `getCameraState`, `setCamera`, `easeTo`, `flyTo`, `cancelCameraAnimations`, `cameraForCoordinates`, `getBounds`, `getCameraBounds`, `getStyleDefaultCamera`; `mapbox.cameraBounds`; `cameraDistanceRange`, `cameraBoundary`, `mapPadding` | ✅ | ⏳ | |
+| Free camera | `getFreeCamera`, `setFreeCamera` | ✅ | ⏳ | |
+| Gestures (pan, pinch, rotate, pitch, double tap / touch, quick zoom, pan mode, deceleration, focal point) | `zoomEnabled`… + `mapbox.gestures` | ✅ | ⏳ | |
+| Ornaments: compass, scale bar, logo, attribution | `compassVisibility`, `scaleVisibility` + `mapbox.ornaments` | ✅ | ⏳ | Logo and attribution stay visible (Mapbox's terms). |
+| Indoor selector | — | — | — | Restricted Mapbox indoor data. |
+| Location puck 2D / 3D, bearing heading / course, pulsing, accuracy ring | `showsUserLocation` + `mapbox.puck`; `onUserLocationChange` | ✅ | ⏳ | |
+| Custom location data | `setLocationOverride`, `clearLocationOverride` | ✅ | ⏳ | |
+| Viewport: follow puck, overview, idle, transitions, status | `userTrackingMode` (`follow`, `followWithHeading`), `showsUserTrackingButton`, `setViewport`; `onProviderEvent('viewportStatus')` | ✅ | ⏳ | Panning away drops to `none` + `onUserTrackingModeChange`. |
+| Map events | `mapbox.events`: `mapLoaded`, `mapIdle`, `mapLoadingError`, `styleLoaded`, `styleDataLoaded`, `styleImageMissing`, `styleImageRemoveUnused`, `sourceDataLoaded`, `sourceAdded`, `sourceRemoved`, `cameraChanged`, `renderFrameStarted`, `renderFrameFinished`, `resourceRequest` | ✅ | ⏳ | Plus the shared `onMapReady`, `onCameraMove`, `onCameraChange`, `onPress`, `onLongPress`. |
+| Snapshots | `takeSnapshot` (the view), `snapshot` (Mapbox `Snapshotter`, any style / camera / size) | ✅ | ⏳ | |
+| Offline: style packs, tile regions, estimates, metadata, quota, offline switch, clear data | `MapboxOffline` | ✅ | ⏳ | |
+| Map options (constrain mode, viewport mode, north orientation, prefetch, tile cache, frame rate, style transition) | `mapbox.rendering` | ✅ | ⏳ | |
+| Debug overlays | `mapbox.debug` | 🟡 | ⏳ | iOS has no wireframe options. |
+| Performance statistics | `collectPerformanceStatistics` | ✅ | ⏳ | |
+| Tile cover | `tileCover` | ✅ | ⏳ | |
+| Map recorder / player | — | — | — | Experimental SDK debugging tool. |
+| SwiftUI `Map`, Jetpack Compose `MapboxMap` | — | — | — | munim-maps wraps the UIKit / Android View API. |
+| Search SDK, Navigation SDK | `MapboxServices` (web APIs) | ✅ JS | ✅ JS | Separate SDKs with their own licences; the web APIs cover search and routes. |
+| Reverse geocoding | `addressForCoordinate` (Geocoding v6) | ✅ | ⏳ | |
+| munim 3D layer (models, avatars, paths, zones, effects) | `models`, `zones`, `paths`, `measureAlignment` | ✅ | ⏳ | |
+
+Testing: `munimmapsexample://mapbox` (example/MapboxScreen.tsx) shows every group; **Run checks** or `munimmapsexample://mapbox/checks` runs the checks (`MUNIM_MAPS_MAPBOX check …` in the log). Fast iOS compile loop: build the `MapboxMaps` pod scheme once (`xcodebuild -scheme MapboxMaps -configuration Release -destination generic/platform=iOS`) and typecheck `ios/Core`, `ios/Engines/*.swift`, `ios/Engines/MapKit` and `ios/Engines/Mapbox` against it with `swiftc -typecheck -I <products>/MapboxMaps -Xcc -fmodule-map-file=<products>/MapboxMaps/MapboxMaps.modulemap -F <products>/XCFrameworkIntermediates/{MapboxCoreMaps,MapboxCommon,Turf}`.
