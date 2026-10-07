@@ -82,7 +82,7 @@ object CesiumMapEngineFactory : MunimMapEngineFactory {
  * The Cesium engine on Android: CesiumJS (bundled with munim-maps as
  * assets under `munim-cesium/`, added by `munimMaps.cesium=true`) running in
  * an `android.webkit.WebView` this engine owns. The web half
- * (cesium/munim-cesium/js) draws the map, markers, shapes and the glTF
+ * (cesium/page/munim-cesium/js) draws the map, markers, shapes and the glTF
  * models; this half hosts it, serves its files at
  * `https://appassets.androidplatform.net/` (so it is a secure https origin
  * and tile servers see a referrer), turns props into messages and messages
@@ -285,6 +285,8 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
         if (path == "/resource") {
           val uri = url.getQueryParameter("uri") ?: return notFound()
           response(readResource(uri), mime(uri.substringBefore('?').substringAfterLast('.', "")))
+        } else if (path.startsWith("/Cesium/")) {
+          cesiumJs(path.removePrefix("/Cesium/"))
         } else {
           val asset = "munim-cesium" + (if (path == "/") "/index.html" else path)
           response(app.assets.open(asset).use { it.readBytes() }, mime(asset.substringAfterLast('.', "")))
@@ -316,6 +318,36 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     val encoding = if (mime.startsWith("text/") || mime == "application/json") "utf-8" else null
     return WebResourceResponse(mime.substringBefore(';'), encoding, 200, "OK",
       mapOf("Access-Control-Allow-Origin" to "*", "Cache-Control" to "no-cache"), ByteArrayInputStream(bytes))
+  }
+
+  /**
+   * CesiumJS: from the APK when bundled (`munimMaps.cesiumBundled=true`),
+   * otherwise from jsDelivr at the pinned version (or the manifest's
+   * `munimmaps.cesium_base_url`), kept in the cache directory after the first
+   * load. The page stays same-origin and works offline afterwards.
+   */
+  private fun cesiumJs(relative: String): WebResourceResponse {
+    if (relative.isEmpty() || relative.split('/').contains("..")) return notFound()
+    val mime = mime(relative.substringAfterLast('.', ""))
+    if (bundledCesium(app)) return response(app.assets.open("munim-cesium/Cesium/$relative").use { it.readBytes() }, mime)
+    val cached = File(app.cacheDir, "munim-maps-cesium/$CESIUM_VERSION/$relative")
+    if (cached.isFile) return response(cached.readBytes(), mime)
+    val connection = URL(cesiumBaseUrl(app) + relative).openConnection() as HttpURLConnection
+    connection.connectTimeout = 15_000
+    connection.readTimeout = 60_000
+    val bytes = try {
+      if (connection.responseCode !in 200..299) return notFound()
+      connection.inputStream.use { it.readBytes() }
+    } finally {
+      connection.disconnect()
+    }
+    runCatching {
+      cached.parentFile?.mkdirs()
+      val part = File(cached.path + ".part")
+      part.writeBytes(bytes)
+      part.renameTo(cached)
+    }
+    return response(bytes, mime)
   }
 
   private fun notFound() = WebResourceResponse("text/plain", "utf-8", 404, "Not Found",
@@ -683,5 +715,29 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   companion object {
     private const val HOST = "appassets.androidplatform.net"
     private const val ORIGIN = "https://$HOST"
+
+    /** The CesiumJS version the page is written for (and the bundled copy is). */
+    const val CESIUM_VERSION = "1.146.0"
+
+    @Volatile private var bundled: Boolean? = null
+    @Volatile private var baseUrl: String? = null
+
+    /** Whether the APK has CesiumJS (`munimMaps.cesiumBundled=true`). */
+    private fun bundledCesium(context: android.content.Context): Boolean =
+      bundled ?: (runCatching { context.assets.list("munim-cesium/Cesium")?.isNotEmpty() == true }.getOrDefault(false))
+        .also { bundled = it }
+
+    /** jsDelivr at the pinned version, or the manifest's `munimmaps.cesium_base_url`. */
+    private fun cesiumBaseUrl(context: android.content.Context): String = baseUrl ?: run {
+      val custom = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+          .metaData?.getString("munimmaps.cesium_base_url")
+      }.getOrNull()
+      val url = if (!custom.isNullOrEmpty()) (if (custom.endsWith("/")) custom else "$custom/")
+        else "https://cdn.jsdelivr.net/npm/cesium@$CESIUM_VERSION/Build/Cesium/"
+      baseUrl = url
+      url
+    }
   }
 }

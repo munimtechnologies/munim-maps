@@ -49,6 +49,10 @@ def munimMapsProvider(name, defaultValue) {
   return value == null ? defaultValue : value.toString().trim().toBoolean()
 }
 
+// munimMaps.cesiumBundled=true: CesiumJS in the APK (offline from the first
+// launch, 13 MB) instead of from jsDelivr.
+def munimMapsCesiumBundled = (project.findProperty("munimMaps.cesiumBundled") ?: "false").toString().toBoolean()
+
 def munimMapsProviders = [
   google  : munimMapsProvider("google", false),
   mapbox  : munimMapsProvider("mapbox", false),
@@ -164,8 +168,13 @@ android {
         if (enabled) java.srcDirs += ["src/${name}/java"]
       }
       if (munimMapsGoogle3d) java.srcDirs += ["src/google3d/java"]
-      // Cesium: the bundled CesiumJS page, as assets under munim-cesium/.
-      if (munimMapsProviders.cesium) assets.srcDirs += ["../cesium"]
+      // Cesium: the engine's page as assets under munim-cesium/. CesiumJS
+      // itself comes from jsDelivr (cached on disk) unless
+      // munimMaps.cesiumBundled=true puts it in the APK (13 MB).
+      if (munimMapsProviders.cesium) {
+        assets.srcDirs += ["../cesium/page"]
+        if (munimMapsCesiumBundled) assets.srcDirs += ["../cesium/cesiumjs"]
+      }
       if (isNewArchitectureEnabled()) {
         java.srcDirs += [
           // React Codegen files

@@ -8,6 +8,7 @@
 //     "googleMapsApiKey": "…" | { "ios": "…", "android": "…" },
 //     "mapboxAccessToken": "pk.…",
 //     "cesiumIonToken": "…",
+//     "cesium": { "bundled": true },               // CesiumJS in the app (13 MB) instead of from jsDelivr
 //     "googleMaps3d": true                         // Android: Google's photorealistic 3D SDK
 //   }]
 //
@@ -77,6 +78,11 @@ function providersFor(options, platform) {
   return [...new Set(all)].filter((p) => p !== 'mapkit')
 }
 
+/** `cesium: { bundled: true }`: CesiumJS in the app instead of from jsDelivr. */
+function cesiumBundled(options, providers) {
+  return providers.includes('cesium') && options.cesium?.bundled === true
+}
+
 function keyFor(value, platform) {
   if (value == null) return undefined
   if (typeof value === 'string') return value
@@ -105,6 +111,11 @@ function withMunimMapsIos(config, options) {
       c.modResults['munimMaps.providers'] = providers.join(',')
     } else {
       delete c.modResults['munimMaps.providers']
+    }
+    if (cesiumBundled(options, providers)) {
+      c.modResults['munimMaps.cesiumBundled'] = 'true'
+    } else {
+      delete c.modResults['munimMaps.cesiumBundled']
     }
     return c
   })
@@ -146,6 +157,19 @@ function withMunimMapsAndroid(config, options) {
       props.push({
         type: 'property',
         key: 'munimMaps.googleMaps3d',
+        value: 'true',
+      })
+    }
+    // CesiumJS in the APK (cesium: { bundled: true }).
+    const indexCesium = props.findIndex(
+      (item) =>
+        item.type === 'property' && item.key === 'munimMaps.cesiumBundled'
+    )
+    if (indexCesium >= 0) props.splice(indexCesium, 1)
+    if (cesiumBundled(options, providers)) {
+      props.push({
+        type: 'property',
+        key: 'munimMaps.cesiumBundled',
         value: 'true',
       })
     }

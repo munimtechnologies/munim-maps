@@ -29,6 +29,24 @@ munim_maps_providers = lambda do
   (list || "").split(",").map { |p| p.strip.downcase }.select { |p| munim_maps_subspecs.key?(p) }.uniq
 end
 
+# CesiumJS loads from a pinned CDN by default. Bundle it in the app (13 MB,
+# offline from the first launch) with MUNIM_MAPS_CESIUM_BUNDLED=1 or
+# "munimMaps.cesiumBundled": "true" in ios/Podfile.properties.json (the Expo
+# config plugin's `cesium: { bundled: true }` writes it).
+munim_maps_cesium_bundled = lambda do
+  value = ENV["MUNIM_MAPS_CESIUM_BUNDLED"]
+  if value.nil?
+    begin
+      root = Pod::Config.instance.installation_root
+      properties = File.join(root.to_s, "Podfile.properties.json")
+      value = JSON.parse(File.read(properties))["munimMaps.cesiumBundled"] if File.exist?(properties)
+    rescue StandardError
+      value = nil
+    end
+  end
+  ["1", "true", "yes"].include?(value.to_s.strip.downcase)
+end
+
 Pod::Spec.new do |s|
   s.name         = "NitroMunimMaps"
   s.version      = package["version"]
@@ -89,12 +107,16 @@ Pod::Spec.new do |s|
     ss.dependency "MapLibre", ">= 6.30"
   end
 
-  # CesiumJS (Apache-2.0, pinned in cesium/munim-cesium/Cesium/VERSION) runs
-  # offline from this resource bundle in a WKWebView the engine owns.
+  # The engine's page (cesium/page/munim-cesium) runs in a WKWebView the
+  # engine owns. CesiumJS (Apache-2.0, pinned in CesiumMapEngine) comes from
+  # jsDelivr through the engine's URL handler and is cached on disk, or from
+  # this resource bundle when bundled (cesium/cesiumjs, 13 MB).
   s.subspec "Cesium" do |ss|
     ss.source_files = "ios/Engines/Cesium/**/*.swift"
     ss.frameworks = "WebKit", "CoreLocation"
-    ss.resource_bundles = { "MunimMapsCesium" => ["cesium/munim-cesium"] }
+    cesium_resources = ["cesium/page/munim-cesium"]
+    cesium_resources << "cesium/cesiumjs/munim-cesium/Cesium" if munim_maps_cesium_bundled.call
+    ss.resource_bundles = { "MunimMapsCesium" => cesium_resources }
     ss.pod_target_xcconfig = { "SWIFT_ACTIVE_COMPILATION_CONDITIONS" => "$(inherited) MUNIM_MAPS_CESIUM" }
   end
 

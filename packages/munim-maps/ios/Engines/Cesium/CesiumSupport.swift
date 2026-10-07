@@ -10,7 +10,10 @@ import simd
 // getters (point <-> coordinate) without a round trip to JavaScript.
 
 /// Serves `munim-cesium://app/…` to the engine's WKWebView:
-/// - `/…` the bundled page and CesiumJS (`MunimMapsCesium.bundle/munim-cesium`),
+/// - `/…` the engine's page (`MunimMapsCesium.bundle/munim-cesium`),
+/// - `/Cesium/…` CesiumJS: bundled (`MUNIM_MAPS_CESIUM_BUNDLED`), or from
+///   jsDelivr at the pinned version, kept on disk after the first load (so
+///   the page stays same-origin and works offline afterwards),
 /// - `/resource?uri=…` the app's files (`file://`, paths, Metro's `http://`),
 /// - `/tile/<host>/<path>` https tiles fetched with an identifying
 ///   User-Agent (OpenStreetMap's tile policy asks apps to identify
@@ -71,6 +74,7 @@ final class CesiumSchemeHandler: NSObject, WKURLSchemeHandler {
     }
     guard let root = Self.root else { return fail(task, status: 404) }
     let relative = path.hasPrefix("/") ? String(path.dropFirst()) : path
+    if relative.hasPrefix("Cesium/") { return cesiumJS(String(relative.dropFirst("Cesium/".count)), task: task) }
     let file = root.appendingPathComponent(relative.isEmpty ? "index.html" : relative).standardizedFileURL
     guard file.path.hasPrefix(root.standardizedFileURL.path) else { return fail(task, status: 403) }
     queue.async {
@@ -83,6 +87,73 @@ final class CesiumSchemeHandler: NSObject, WKURLSchemeHandler {
 
   func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {
     active.remove(ObjectIdentifier(task))
+  }
+
+  // MARK: CesiumJS
+
+  /// The CesiumJS version the page is written for (and the bundled copy is).
+  static let cesiumVersion = "1.146.0"
+
+  /// Where CesiumJS comes from when it is not bundled: jsDelivr at the pinned
+  /// version, or Info.plist `MunimMapsCesiumBaseURL` (a self-hosted
+  /// `Build/Cesium/` folder of the same version).
+  static let cesiumBaseURL: URL = {
+    if let custom = Bundle.main.object(forInfoDictionaryKey: "MunimMapsCesiumBaseURL") as? String, !custom.isEmpty,
+       let url = URL(string: custom.hasSuffix("/") ? custom : custom + "/")
+    {
+      return url
+    }
+    return URL(string: "https://cdn.jsdelivr.net/npm/cesium@\(CesiumSchemeHandler.cesiumVersion)/Build/Cesium/")!
+  }()
+
+  /// The bundled CesiumJS folder, if the app bundles it.
+  static let bundledCesium: URL? = {
+    guard let root = CesiumSchemeHandler.root else { return nil }
+    for folder in [root.appendingPathComponent("Cesium"), root.deletingLastPathComponent().appendingPathComponent("Cesium")]
+    where FileManager.default.fileExists(atPath: folder.appendingPathComponent("Cesium.js").path) {
+      return folder
+    }
+    return nil
+  }()
+
+  /// Downloaded CesiumJS files, by version (Caches, so iOS may reclaim them).
+  static let cesiumCache: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("munim-maps-cesium", isDirectory: true)
+    .appendingPathComponent(CesiumSchemeHandler.cesiumVersion, isDirectory: true)
+
+  private func cesiumJS(_ relative: String, task: WKURLSchemeTask) {
+    guard !relative.isEmpty, !relative.split(separator: "/").contains("..") else { return fail(task, status: 403) }
+    let mime = Self.mime(for: (relative as NSString).pathExtension)
+    if let bundled = Self.bundledCesium {
+      let file = bundled.appendingPathComponent(relative)
+      queue.async {
+        let data = try? Data(contentsOf: file, options: .mappedIfSafe)
+        DispatchQueue.main.async {
+          if let data { self.finish(task, data: data, mime: mime) } else { self.fail(task, status: 404) }
+        }
+      }
+      return
+    }
+    let cached = Self.cesiumCache.appendingPathComponent(relative)
+    queue.async {
+      if let data = try? Data(contentsOf: cached, options: .mappedIfSafe) {
+        DispatchQueue.main.async { self.finish(task, data: data, mime: mime) }
+        return
+      }
+      let url = Self.cesiumBaseURL.appendingPathComponent(relative)
+      var request = URLRequest(url: url)
+      request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+      Self.session.dataTask(with: request) { data, response, _ in
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 502
+        if let data, (200..<300).contains(status) {
+          try? FileManager.default.createDirectory(at: cached.deletingLastPathComponent(), withIntermediateDirectories: true)
+          try? data.write(to: cached, options: .atomic)
+          DispatchQueue.main.async { self.finish(task, data: data, mime: mime) }
+        } else {
+          DispatchQueue.main.async { self.fail(task, status: status) }
+        }
+      }.resume()
+    }
   }
 
   private func resource(_ uri: String, task: WKURLSchemeTask) {
