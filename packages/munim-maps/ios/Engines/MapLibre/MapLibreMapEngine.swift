@@ -52,6 +52,8 @@ final class MapLibreMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults, M
   var onOverlayPress: ((String, String, CLLocationCoordinate2D) -> Void)?
   var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
+  /// Each move while a marker is dragged (for a shared `onMarkerDrag` event).
+  var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)?
   var onUserLocationChange: ((CLLocation) -> Void)?
   var onMapFeaturePress: ((MunimMapFeature) -> Void)?
   var onUserTrackingModeChange: ((MKUserTrackingMode) -> Void)?
@@ -114,6 +116,7 @@ final class MapLibreMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults, M
     features.onClusterPress = { [weak self] in self?.onClusterPress?($0, $1, $2) }
     features.onMarkerDragStart = { [weak self] in self?.onMarkerDragStart?($0, $1) }
     features.onMarkerDragEnd = { [weak self] in self?.onMarkerDragEnd?($0, $1) }
+    features.onMarkerDrag = { [weak self] in self?.onMarkerDrag?($0, $1) }
   }
 
   private func event(_ name: String, _ payload: [String: Any] = [:]) {

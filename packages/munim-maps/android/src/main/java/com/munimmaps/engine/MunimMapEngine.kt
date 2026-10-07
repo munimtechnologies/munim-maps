@@ -55,6 +55,8 @@ interface MunimMapEngineListener {
   fun onOverlayPress(event: OverlayPressEvent) {}
   fun onMarkerDragStart(event: MarkerDragEvent) {}
   fun onMarkerDragEnd(event: MarkerDragEvent) {}
+  /** While a marker is dragged, each time it moves. */
+  fun onMarkerDrag(event: MarkerDragEvent) {}
   fun onUserLocationChange(location: UserLocationEvent) {}
   fun onUserTrackingModeChange(mode: UserTrackingMode) {}
   fun onMapFeaturePress(feature: MapFeatureEvent) {}
@@ -133,6 +135,8 @@ interface MunimMapEngine {
   fun setShowsTraffic(shows: Boolean) {}
   /** `all`, `none`, or comma-separated categories. */
   fun setPointsOfInterest(filter: String) {}
+  /** Places on the base map that can be tapped (`onMapFeaturePress`), comma-separated. */
+  fun setSelectableMapFeatures(features: String) {}
 
   // Controls
 

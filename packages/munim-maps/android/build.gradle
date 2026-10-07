@@ -191,6 +191,8 @@ dependencies {
 
   if (munimMapsProviders.maplibre) {
     implementation "org.maplibre.gl:android-sdk:${munimMapsVersions.maplibre}"
+    // MapLibre ships OkHttp at runtime; `maplibre.httpHeaders` hands it a client.
+    compileOnly "com.squareup.okhttp3:okhttp:4.12.0"
   }
   if (munimMapsProviders.google) {
     implementation "com.google.android.gms:play-services-maps:${munimMapsVersions.googleMaps}"

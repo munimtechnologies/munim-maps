@@ -26,6 +26,8 @@ final class MapLibreFeatures {
   var onOverlayPress: ((String, String, CLLocationCoordinate2D) -> Void)?
   var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
+  /// Each move while dragging.
+  var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)?
 
   private(set) var markers: [MunimMarker] = []
   private var markerIds: [String: MunimMarker] = [:]
@@ -380,6 +382,7 @@ final class MapLibreFeatures {
       guard let id = dragging else { return false }
       let coordinate = mapView.convert(CGPoint(x: point.x, y: point.y - 30), toCoordinateFrom: mapView)
       move(id, to: coordinate)
+      onMarkerDrag?(id, coordinate)
       return true
     case .ended, .cancelled, .failed:
       guard let id = dragging else { return false }
