@@ -66,6 +66,8 @@
 
 Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit map with models built in, and **`MapModelLayer`** draws over any MapKit map on screen, such as `react-native-maps` on iOS. See [Use Your Own Map](#️-use-your-own-map).
 
+**One API, five map engines** (in progress for this release): `MunimMapView` takes a `provider`: Apple **MapKit**, **Google Maps**, **Mapbox**, **MapLibre** (open maps: OpenStreetMap data, no key) or **Cesium**, on iOS and Android, with the same props, models and events. See [Map Providers](#️-map-providers).
+
 **Fully compatible with Expo!** Works with Expo managed (prebuild) and bare workflows.
 
 **Built with React Native's Nitro modules architecture** for high performance and reliability.
@@ -82,7 +84,7 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 **Not using React Native?** The same map and 3D layer are a Swift package for UIKit and SwiftUI apps; see [Swift Package Manager](#swift-package-manager).
 
-**Note**: iOS only for now. On Android both components render nothing; see [Platform Support Matrix](#platform-support-matrix).
+**Note**: Android is new and in progress: `MunimMapView` draws MapLibre with GLB models today, the other engines are coming in this release. See the [Platform Support Matrix](#platform-support-matrix).
 
 ## 📦 Installation
 
@@ -147,9 +149,38 @@ layer.onModelPress = { id in print(id) }
 
 `MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…). Ground heights are `try await MunimTerrain.shared.groundElevations(for: coordinates)`.
 
+## 🗺️ Map Providers
+
+`MunimMapView` draws with the engine in `provider`. MapKit is built in on iOS and MapLibre on Android; the others are opt-in at build time, so an app only ships the SDKs it uses. Full details, the per-engine feature matrix and the engine interfaces are in [docs/providers.md](docs/providers.md).
+
+| Provider | `provider=` | iOS | Android | Key |
+| --- | --- | --- | --- | --- |
+| Apple MapKit | `'mapkit'` | ✅ Built in, the default | — | None |
+| Google Maps | `'google'` | ⏳ Coming in this release | ⏳ Coming in this release | Google Maps SDK key |
+| Mapbox | `'mapbox'` | ⏳ Coming in this release | ⏳ Coming in this release | Mapbox public token |
+| MapLibre (open maps) | `'maplibre'` | ⏳ Coming in this release | ✅ Built in, the default (map, camera, events, GLB models) | None (OpenStreetMap data from OpenFreeMap) |
+| Cesium | `'cesium'` | ⏳ Coming in this release | ⏳ Coming in this release | Cesium ion token |
+
+```tsx
+import { MunimMapView, configureMunimMaps } from 'munim-maps'
+
+configureMunimMaps({ mapboxAccessToken: 'pk.…', cesiumIonToken: '…' }) // or the config plugin
+
+<MunimMapView provider="maplibre" styleUrl="https://tiles.openfreemap.org/styles/liberty" initialCamera={camera} models={models} />
+```
+
+Pick engines and keys with the Expo config plugin:
+
+```json
+["munim-maps", { "providers": ["google", "mapbox"], "googleMapsApiKey": "…", "mapboxAccessToken": "pk.…" }]
+```
+
+Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
+
 ## Table of contents
 
 - [📦 Installation](#-installation)
+- [🗺️ Map Providers](#️-map-providers)
 - [📚 Documentation](#-documentation)
 - [🚀 Features](#-features)
 - [🗺️ Use Your Own Map](#️-use-your-own-map)
@@ -439,30 +470,31 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`) and 
 
 ## Platform Support Matrix
 
-| Capability | iOS | Android | Notes |
-| --- | --- | --- | --- |
-| `MunimMapView` | ✅ | ❌ | MapKit. Android renders nothing for now. |
-| `MapModelLayer` over `react-native-maps` | ✅ | ❌ | iOS `react-native-maps` uses MapKit. On Android, Mapbox's own `ModelLayer` draws glTF models natively. |
-| `MapModelLayer` over `expo-maps` | ✅ | ❌ | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
-| USDZ / USD / SCN models | ✅ | ❌ | OBJ through Model I/O. |
-| Avatars, labels, stems, zones | ✅ | ❌ | |
-| Vehicle catalogue | ✅ | ❌ | `munim-maps/vehicles` (57 models). |
-| Globe on the standard map | ✅ | ❌ | Uses a private MapKit switch; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). |
-| Models and paths on the globe | ✅ | ❌ | Also on `hybrid` / `imagery` with realistic elevation, which are globes by default. |
-| Hidden behind buildings | ✅ | ❌ | `occlusion="buildings"`: OpenStreetMap footprints and heights. MapKit's own 3D landmarks are not shared, so heights can differ slightly from what you see. |
-| glTF / GLB, OBJ, PLY, STL models | ✅ | ❌ | See [Bring Your Own Model](#-bring-your-own-model). |
-| Terrain height | ✅ | ❌ | MapKit does not expose it, so heights come from public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
-| User tracking (follow, follow with heading) | ✅ | ❌ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
-| Compass, scale, tracking and 2D/3D buttons | ✅ | ❌ | Built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`). Tracking button built in from iOS 17 (a standalone `MKUserTrackingButton` before), 2D/3D button iOS 17+. |
-| Place cards for tapped places | ✅ iOS 18+ | ❌ | `selectionAccessory`. |
-| React Native views as markers | ✅ | ❌ | `MarkerView`: drawn into a native marker. |
-| Gradient polylines, overlay taps, overlay levels | ✅ | ❌ | |
-| Search, autocomplete, points of interest | ✅ | ❌ | `MKLocalSearch`, `MKLocalSearchCompleter`, `MKLocalPointsOfInterestRequest`. Physical features and `regionRequired` need iOS 18. |
-| Directions and travel times | ✅ | ❌ | `MKDirections`. MapKit gives transit only as travel times (`eta`). |
-| Geocoding | ✅ | ❌ | iOS 26 `MKGeocodingRequest` / `MKReverseGeocodingRequest`, `CLGeocoder` before. |
-| Places by id | ✅ iOS 18+ | ❌ | `mapItem(id)`. |
-| Look Around view and snapshots | ✅ iOS 16+ | ❌ | `LookAroundView`, `lookAroundSnapshot()`. |
-| Map images without a view | ✅ | ❌ | `mapSnapshot()` (`MKMapSnapshotter`). |
+Columns are engines; two marks are iOS / Android. ✅ works · ⏳ coming in this release · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
+
+| Capability | MapKit (iOS) | Google | Mapbox | MapLibre | Cesium | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| `MunimMapView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android draws MapLibre (OpenFreeMap) today; see [Map Providers](#️-map-providers). |
+| `MapModelLayer` over `react-native-maps` | ✅ | ⏳ / ⏳ | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
+| `MapModelLayer` over `expo-maps` | ✅ | ⏳ / ⏳ | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
+| GLB / glTF models | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
+| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ⏳ / — | ⏳ / — | ⏳ / — | ⏳ / — | SceneKit / Model I/O, iOS only. |
+| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ |  |
+| Vehicle catalogue | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
+| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
+| Globe | ✅ | — | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. |
+| Hidden behind buildings | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
+| Terrain height | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| Camera API, regions, conversions, gestures | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
+| Map events | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ✅ | ⏳ / ⏳ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
+| Markers, clustering, callouts, `MarkerView` | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
+| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ |  |
+| User location and tracking (follow, follow with heading) | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Compass, scale, tracking and 2D/3D buttons | ✅ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | ⏳ / ⏳ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. |
+| Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | `selectionAccessory`. |
+| Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | — | — | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS. |
+| Look Around view and snapshots | ✅ iOS 16+ | — | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |
+| Map images without a view | ✅ | — | — | — | — | `mapSnapshot()` (`MKMapSnapshotter`). |
 
 ### MapKit coverage
 
@@ -1100,16 +1132,18 @@ Apps built with Xcode 27 must adopt the scene lifecycle or they crash at launch 
 
 ### Example
 
-`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), the self-test and the lag test.
+`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), the self-test and the lag test, and an engine picker with the same models on every map engine (`munimmapsexample://providers/maplibre`; Android starts there).
 
 ```bash
 npm install
-cd example && npx expo run:ios --device
+cd example && npx expo run:ios --device     # or: npx expo run:android
 ```
+
+Development keys for Google Maps, Mapbox and Cesium are read at build time from `example/.env.local` or `~/.config/munim-maps/keys.env` (`GOOGLE_MAPS_API_KEY`, `MAPBOX_ACCESS_TOKEN`, `CESIUM_ION_TOKEN`), and `MUNIM_MAPS_PROVIDERS=google,mapbox` picks the engines to build in; neither is committed.
 
 ## 🛣️ Roadmap
 
-- **Android on MapLibre**: the open-source map engine (OpenStreetMap data, no API key), with the same 3D layer.
+- **Every engine, every feature, both platforms**: Google Maps, Mapbox, MapLibre and Cesium on iOS and Android, with everything each engine offers, behind the same `MunimMapView` (in progress for this release; status in [docs/providers.md](docs/providers.md#feature-matrix)).
 
 ## 👏 Contributing
 

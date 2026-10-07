@@ -245,5 +245,5 @@ export interface MapModelLayerMethods extends HybridViewMethods {
 export type MapModelLayer = HybridView<
   MapModelLayerProps,
   MapModelLayerMethods,
-  { ios: 'swift' }
+  { ios: 'swift'; android: 'kotlin' }
 >

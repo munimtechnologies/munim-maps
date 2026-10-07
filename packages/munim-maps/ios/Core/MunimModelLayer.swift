@@ -1,7 +1,8 @@
 import MapKit
 import UIKit
 
-/// Draws 3D models, zones and paths over an `MKMapView` you already have.
+/// Draws 3D models, zones and paths over an `MKMapView` you already have,
+/// or over any engine's map through its `MapCameraSource` (`attach(to:)`).
 ///
 /// ```swift
 /// let layer = MunimModelLayer()
@@ -148,6 +149,15 @@ public final class MunimModelLayer: NSObject {
     renderer.updateFrameLoop()
     reportAttached(true)
     keepMapStyle()
+  }
+
+  /// Draws over any engine's map: Google Maps, Mapbox, MapLibre or Cesium
+  /// engines hand in their `MapCameraSource`. Put `view` over the engine's
+  /// map view first. The source is held weakly.
+  public func attach(to source: MapCameraSource) {
+    renderer.attach(to: source)
+    renderer.updateFrameLoop()
+    reportAttached(true)
   }
 
   public func detach() {

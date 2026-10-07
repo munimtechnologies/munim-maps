@@ -10,6 +10,9 @@ import NitroModules
 /// See ``HybridMunimMapViewSpec``
 public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   // Properties
+  var provider: MapProvider { get set }
+  var styleUrl: String { get set }
+  var providerOptions: String { get set }
   var models: [NativeMapModel] { get set }
   var zones: [NativeMapZone] { get set }
   var paths: [NativeMapPath] { get set }

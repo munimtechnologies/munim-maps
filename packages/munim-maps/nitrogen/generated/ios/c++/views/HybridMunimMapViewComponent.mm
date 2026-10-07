@@ -79,6 +79,21 @@ using namespace margelo::nitro::munimmaps::views;
   // 2. Update each prop individually
   swiftPart.beforeUpdate();
 
+  // provider: enum
+  if (newViewProps.provider.isDirty) {
+    swiftPart.setProvider(static_cast<int>(newViewProps.provider.value));
+    newViewProps.provider.isDirty = false;
+  }
+  // styleUrl: string
+  if (newViewProps.styleUrl.isDirty) {
+    swiftPart.setStyleUrl(newViewProps.styleUrl.value);
+    newViewProps.styleUrl.isDirty = false;
+  }
+  // providerOptions: string
+  if (newViewProps.providerOptions.isDirty) {
+    swiftPart.setProviderOptions(newViewProps.providerOptions.value);
+    newViewProps.providerOptions.isDirty = false;
+  }
   // models: array
   if (newViewProps.models.isDirty) {
     swiftPart.setModels(newViewProps.models.value);

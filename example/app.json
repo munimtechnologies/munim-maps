@@ -28,6 +28,14 @@
     ],
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "android": {
+      "package": "com.munimtech.munimmapsexample",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
     }
   }
 }

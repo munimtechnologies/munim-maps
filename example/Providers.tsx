@@ -1,0 +1,164 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  MAP_PROVIDERS,
+  MunimMapView,
+  availableProviders,
+  defaultProvider,
+  installedProviders,
+  type MapAlignmentReport,
+  type MapCamera,
+  type MapModel,
+  type MapProvider,
+  type MunimMapViewRef,
+} from 'munim-maps'
+import { VEHICLES } from 'munim-maps/vehicles'
+
+/**
+ * The same map, models and camera on every engine: pick MapKit, Google
+ * Maps, Mapbox, MapLibre or Cesium. Engines that are not built into this
+ * app (or not implemented yet) show munim-maps' placeholder. The status line
+ * shows how far the 3D layer is from where the engine draws the same points
+ * (`measureAlignment`). munimmapsexample://providers/<provider>
+ */
+
+const NAMES: Record<MapProvider, string> = {
+  mapkit: 'MapKit',
+  google: 'Google',
+  mapbox: 'Mapbox',
+  maplibre: 'MapLibre',
+  cesium: 'Cesium',
+}
+
+// Chicago's Loop, pitched, with vehicles (USDZ on iOS, GLB on Android).
+const CAMERA: MapCamera = { latitude: 41.8826, longitude: -87.6278, distance: 900, pitch: 55, heading: 30 }
+const MODELS: MapModel[] = [
+  { id: 'bus', coordinate: { latitude: 41.8829, longitude: -87.6279 }, source: VEHICLES['bus-city'], heading: 0, tint: '#0A84FF', screenSize: 26 },
+  { id: 'taxi', coordinate: { latitude: 41.8822, longitude: -87.6271 }, source: VEHICLES['car-taxi'], heading: 90, screenSize: 22 },
+  { id: 'police', coordinate: { latitude: 41.8833, longitude: -87.6268 }, source: VEHICLES['car-police'], heading: 180, screenSize: 22 },
+  { id: 'sports', coordinate: { latitude: 41.8819, longitude: -87.6285 }, source: VEHICLES['car-sports'], heading: 270, tint: '#FF3B30', screenSize: 22 },
+  {
+    id: 'balloon',
+    coordinate: { latitude: 41.8826, longitude: -87.6278 },
+    altitude: 120,
+    source: VEHICLES.balloon,
+    screenSize: 60,
+  },
+]
+
+export function ProvidersScreen(props: {
+  initial?: MapProvider
+  topInset: number
+  panel: boolean
+  /** Back to the other examples (iOS). */
+  onExit?: () => void
+}) {
+  const [provider, setProvider] = useState<MapProvider>(props.initial ?? defaultProvider())
+  const [errors, setErrors] = useState<string[]>([])
+  const [alignment, setAlignment] = useState<MapAlignmentReport | null>(null)
+  const [pressed, setPressed] = useState('')
+  const ref = useRef<MunimMapViewRef | null>(null)
+  const available = useMemo(() => availableProviders(), [])
+  const installed = useMemo(() => installedProviders(), [])
+
+  // A deep link can arrive after the screen is up (Android starts here).
+  useEffect(() => {
+    if (props.initial) setProvider(props.initial)
+  }, [props.initial])
+
+  useEffect(() => {
+    setErrors([])
+    setAlignment(null)
+    const timer = setInterval(() => {
+      ref.current
+        ?.measureAlignment()
+        .then((report) => {
+          setAlignment(report)
+          console.log(
+            `MUNIM_MAPS_PROVIDERS ${provider} alignment ${JSON.stringify(report)}`
+          )
+        })
+        .catch(() => {})
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [provider])
+
+  const isAvailable = available.includes(provider)
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <MunimMapView
+        key={provider}
+        ref={ref}
+        provider={provider}
+        style={StyleSheet.absoluteFill}
+        initialCamera={CAMERA}
+        models={MODELS}
+        lighting="day"
+        onModelPress={setPressed}
+        onMapReady={() => console.log(`MUNIM_MAPS_PROVIDERS ${provider} map ready`)}
+        onError={(message) => {
+          console.log(`MUNIM_MAPS_PROVIDERS ${provider} error ${message}`)
+          setErrors((list) => (list.includes(message) ? list : [...list, message].slice(-4)))
+        }}
+      />
+      <View style={[styles.panel, { top: props.topInset + 8 }, !props.panel && styles.hidden]}>
+        <ScrollView horizontal contentContainerStyle={styles.row} showsHorizontalScrollIndicator={false}>
+          {props.onExit ? (
+            <Pressable onPress={props.onExit} style={styles.chip}>
+              <Text style={styles.chipText}>‹ Examples</Text>
+            </Pressable>
+          ) : null}
+          {MAP_PROVIDERS.map((p) => (
+            <Pressable
+              key={p}
+              onPress={() => setProvider(p)}
+              style={[styles.chip, p === provider && styles.chipOn, !available.includes(p) && styles.chipOff]}
+            >
+              <Text style={[styles.chipText, p === provider && styles.chipTextOn]}>{NAMES[p]}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Text style={styles.status}>
+          {Platform.OS} · built in: {installed.join(', ') || 'none'} · working: {available.join(', ') || 'none'}
+        </Text>
+        {!isAvailable ? (
+          <Text style={styles.status}>
+            {NAMES[provider]} is {installed.includes(provider) ? 'built in but not implemented yet' : 'not built into this app'}: the map shows munim-maps' placeholder.
+          </Text>
+        ) : null}
+        {alignment && alignment.modelsMeasured > 0 ? (
+          <Text style={styles.status}>
+            3D layer vs map: max {alignment.maxErrorPoints.toFixed(2)} pt, mean {alignment.meanErrorPoints.toFixed(2)} pt over {alignment.modelsMeasured} models · fov {alignment.fieldOfViewDegrees.toFixed(1)}°
+          </Text>
+        ) : null}
+        {pressed ? <Text style={styles.status}>Tapped: {pressed}</Text> : null}
+        {errors.map((e) => (
+          <Text key={e} style={styles.error} numberOfLines={2}>
+            {e}
+          </Text>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  panel: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    padding: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(20,20,24,0.72)',
+    gap: 6,
+  },
+  row: { flexDirection: 'row', gap: 8 },
+  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },
+  chipOn: { backgroundColor: '#FFFFFF' },
+  chipOff: { opacity: 0.55 },
+  chipText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  chipTextOn: { color: '#111111' },
+  status: { color: '#FFFFFF', fontSize: 12 },
+  error: { color: '#FFB4A9', fontSize: 11 },
+  hidden: { display: 'none' },
+})

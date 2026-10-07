@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Map tiles, styles and model files are loaded over the network. -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-feature android:glEsVersion="0x00030000" android:required="false" />
+</manifest>

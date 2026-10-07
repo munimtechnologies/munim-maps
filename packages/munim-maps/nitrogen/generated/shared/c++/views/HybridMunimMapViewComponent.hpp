@@ -16,12 +16,13 @@
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
 
+#include "MapProvider.hpp"
+#include <string>
 #include "NativeMapModel.hpp"
 #include <vector>
 #include "NativeMapZone.hpp"
 #include "NativeMapPath.hpp"
 #include "MapOcclusion.hpp"
-#include <string>
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -70,6 +71,9 @@ namespace margelo::nitro::munimmaps::views {
                             const react::RawProps& rawProps);
 
   public:
+    CachedProp<MapProvider> provider;
+    CachedProp<std::string> styleUrl;
+    CachedProp<std::string> providerOptions;
     CachedProp<std::vector<NativeMapModel>> models;
     CachedProp<std::vector<NativeMapZone>> zones;
     CachedProp<std::vector<NativeMapPath>> paths;

@@ -38,6 +38,8 @@ namespace margelo::nitro::munimmaps { class HybridMapServicesSpec; }
 namespace margelo::nitro::munimmaps { class HybridMarkerViewSpec; }
 // Forward declaration of `HybridMunimMapViewSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
+// Forward declaration of `HybridMunimMapsConfigSpec` to properly resolve imports.
+namespace margelo::nitro::munimmaps { class HybridMunimMapsConfigSpec; }
 // Forward declaration of `HybridMunimTerrainSpec` to properly resolve imports.
 namespace margelo::nitro::munimmaps { class HybridMunimTerrainSpec; }
 // Forward declaration of `HybridSearchCompleterSpec` to properly resolve imports.
@@ -84,6 +86,8 @@ namespace margelo::nitro::munimmaps { struct MapPathPoint; }
 namespace margelo::nitro::munimmaps { struct MapPoint; }
 // Forward declaration of `MapPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPressEvent; }
+// Forward declaration of `MapProvider` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapProvider; }
 // Forward declaration of `MapRegion` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapRegion; }
 // Forward declaration of `MapScaleAlignment` to properly resolve imports.
@@ -116,6 +120,8 @@ namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 namespace margelo::nitro::munimmaps { struct NativeMapPath; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapZone; }
+// Forward declaration of `NativeMapsConfiguration` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct NativeMapsConfiguration; }
 // Forward declaration of `NativeMarker` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMarker; }
 // Forward declaration of `NativeOpenInMapsOptions` to properly resolve imports.
@@ -169,6 +175,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "HybridMapServicesSpec.hpp"
 #include "HybridMarkerViewSpec.hpp"
 #include "HybridMunimMapViewSpec.hpp"
+#include "HybridMunimMapsConfigSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
 #include "HybridSearchCompleterSpec.hpp"
 #include "LineCap.hpp"
@@ -192,6 +199,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "MapPathPoint.hpp"
 #include "MapPoint.hpp"
 #include "MapPressEvent.hpp"
+#include "MapProvider.hpp"
 #include "MapRegion.hpp"
 #include "MapScaleAlignment.hpp"
 #include "MapStyle.hpp"
@@ -208,6 +216,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "NativeMapModel.hpp"
 #include "NativeMapPath.hpp"
 #include "NativeMapZone.hpp"
+#include "NativeMapsConfiguration.hpp"
 #include "NativeMarker.hpp"
 #include "NativeOpenInMapsOptions.hpp"
 #include "NativePointsOfInterestRequest.hpp"
@@ -257,6 +266,8 @@ namespace NitroMunimMaps { class HybridMapServicesSpec_cxx; }
 namespace NitroMunimMaps { class HybridMarkerViewSpec_cxx; }
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
+// Forward declaration of `HybridMunimMapsConfigSpec_cxx` to properly resolve imports.
+namespace NitroMunimMaps { class HybridMunimMapsConfigSpec_cxx; }
 // Forward declaration of `HybridMunimTerrainSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 // Forward declaration of `HybridSearchCompleterSpec_cxx` to properly resolve imports.

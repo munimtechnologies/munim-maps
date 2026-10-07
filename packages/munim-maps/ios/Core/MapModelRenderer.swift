@@ -36,7 +36,11 @@ final class MapModelHostView: UIView {
   }
 }
 
-/// Draws 3D models over an `MKMapView`, matching its camera.
+/// Draws 3D models over a map, matching its camera.
+///
+/// The map can be any engine's: the renderer only reads `MapCameraState`
+/// from a `MapCameraSource` (MapKit's is `MapKitCameraSource`) and never
+/// looks at the engine's view beyond its frame and taps.
 ///
 /// The models are rendered by SceneKit into a Metal layer that lies exactly
 /// over the map. The SceneKit camera is rebuilt from the map's camera at the
@@ -61,7 +65,14 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     didSet { setNeedsRender() }
   }
 
-  private(set) weak var mapView: MKMapView?
+  /// Where the camera comes from. Held weakly: an engine usually owns the
+  /// layer that owns this renderer.
+  private(set) weak var source: MapCameraSource?
+  /// Keeps a source the renderer made itself (`attach(to: MKMapView)`).
+  private var ownedSource: MapCameraSource?
+
+  /// The MapKit map, when the source is one.
+  var mapView: MKMapView? { (source as? MapKitCameraSource)?.mapView }
 
   private let metalLayer = CAMetalLayer()
   private let device: MTLDevice?
@@ -85,8 +96,8 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   private var tapRecognizer: UITapGestureRecognizer?
   private var displayLink: CADisplayLink?
   private var commitObserver: CFRunLoopObserver?
-  private var lastRendered: MapCameraSnapshot?
-  private var lastSnapshot: MapCameraSnapshot?
+  private var lastRendered: MapCameraState?
+  private var lastSnapshot: MapCameraState?
   private var needsRender = true
   private var animationsActive = false
   private var colorTexture: MTLTexture?
@@ -150,7 +161,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
     // A little inside the real radius so models on the ground never sink
     // into it, and finely divided so the edge of the Earth stays true.
-    let sphere = SCNSphere(radius: CGFloat(MapCameraSnapshot.earthRadius * 0.9995))
+    let sphere = SCNSphere(radius: CGFloat(MapCameraState.earthRadius * 0.9995))
     sphere.segmentCount = 192
     let occluderMaterial = SCNMaterial()
     occluderMaterial.colorBufferWriteMask = []
@@ -195,19 +206,28 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   // MARK: Attaching
 
-  var isAttached: Bool { mapView != nil }
+  var isAttached: Bool { source?.cameraView != nil }
 
   func attach(to mapView: MKMapView) {
     if self.mapView === mapView { return }
-    detach()
-    self.mapView = mapView
+    let source = MapKitCameraSource(mapView: mapView)
+    attach(to: source)
+    ownedSource = source
+  }
 
-    let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-    tap.cancelsTouchesInView = false
-    tap.delaysTouchesEnded = false
-    tap.delegate = self
-    mapView.addGestureRecognizer(tap)
-    tapRecognizer = tap
+  func attach(to source: MapCameraSource) {
+    if self.source === source { return }
+    detach()
+    self.source = source
+
+    if let view = source.cameraView {
+      let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+      tap.cancelsTouchesInView = false
+      tap.delaysTouchesEnded = false
+      tap.delegate = self
+      view.addGestureRecognizer(tap)
+      tapRecognizer = tap
+    }
 
     if device == nil || sceneRenderer == nil {
       onError?("Metal is not available on this device, so munim-maps cannot draw models")
@@ -222,7 +242,8 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       tapRecognizer.view?.removeGestureRecognizer(tapRecognizer)
     }
     tapRecognizer = nil
-    mapView = nil
+    source = nil
+    ownedSource = nil
     stopFrameLoop()
     clearDrawable()
   }
@@ -230,7 +251,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   /// Starts or stops the per-frame work depending on whether there is
   /// anything on screen to keep in step with.
   func updateFrameLoop() {
-    if mapView != nil, hostView.window != nil {
+    if source != nil, hostView.window != nil {
       startFrameLoop()
       setNeedsRender()
     } else {
@@ -358,26 +379,12 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       || pathEntries.values.contains { $0.path.altitudeReference == .sea }
   }
 
-  /// Whether MapKit is drawing real 3D terrain. Satellite imagery (`hybrid`,
-  /// `imagery`) with realistic elevation raises the ground to its height;
-  /// the standard style stays flat with shading, even when realistic.
-  static func drawsTerrain(_ mapView: MKMapView) -> Bool {
-    if #available(iOS 16.0, *) {
-      switch mapView.preferredConfiguration {
-      case let hybrid as MKHybridMapConfiguration: return hybrid.elevationStyle == .realistic
-      case let imagery as MKImageryMapConfiguration: return imagery.elevationStyle == .realistic
-      default: break
-      }
-    }
-    return mapView.mapType == .hybridFlyover || mapView.mapType == .satelliteFlyover
-  }
-
   /// How the ground is drawn this frame.
-  private func terrainFrame(for snapshot: MapCameraSnapshot) -> TerrainFrame {
-    guard usesTerrain, let mapView, Self.drawsTerrain(mapView) else {
+  private func terrainFrame(for snapshot: MapCameraState) -> TerrainFrame {
+    guard usesTerrain, snapshot.drawsTerrain else {
       return TerrainFrame(drawn: false, centerGround: nil, follow: followsTerrain)
     }
-    // MapKit draws 3D terrain around a camera centred on the ground at the
+    // Engines draw 3D terrain around a camera centred on the ground at the
     // centre coordinate, so the scene's ground plane is at that height.
     if let ground = Self.groundHeight(latitude: snapshot.latitude, longitude: snapshot.longitude) {
       lastCenterGround = ground
@@ -402,7 +409,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   // MARK: Rendering
 
   private func renderIfNeeded() {
-    guard let mapView, hostView.window != nil, !hostView.isHidden else { return }
+    guard let source, let view = source.cameraView, hostView.window != nil, !hostView.isHidden else { return }
     beforeFrame?()
     // Nothing to draw: skip reading the camera, but clear what was drawn.
     if entries.isEmpty && zoneEntries.isEmpty && pathEntries.isEmpty {
@@ -410,13 +417,10 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       if lastRendered != nil { clearDrawable() }
       return
     }
-    guard let snapshot = MapCameraSnapshot.read(
-      from: mapView, previousFocalLength: lastSnapshot?.focalLength ?? 0,
-      globe: MapGlobe.isShowingGlobe(mapView))
-    else { return }
+    guard let snapshot = source.cameraState(previous: lastSnapshot) else { return }
     lastSnapshot = snapshot
 
-    let night = resolveNight(for: mapView)
+    let night = resolveNight(for: snapshot)
     if night != nightLighting {
       applyLighting(night: night)
       needsRender = true
@@ -425,10 +429,10 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     if !needsRender, snapshot == lastRendered { return }
     needsRender = false
     lastRendered = snapshot
-    render(snapshot, mapView: mapView)
+    render(snapshot, mapView: view)
   }
 
-  private func render(_ snapshot: MapCameraSnapshot, mapView: MKMapView) {
+  private func render(_ snapshot: MapCameraState, mapView: UIView) {
     guard let device, let commandQueue, let sceneRenderer else { return }
 
     let scale = hostView.window?.screen.scale ?? UIScreen.main.scale
@@ -519,15 +523,15 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   }
 
   /// Moves the camera and every model to match `snapshot`.
-  private func updateScene(for snapshot: MapCameraSnapshot) {
+  private func updateScene(for snapshot: MapCameraState) {
     cameraNode.simdTransform = snapshot.cameraTransform
     cameraNode.camera?.zNear = Double(snapshot.nearPlane)
     cameraNode.camera?.zFar = Double(snapshot.farPlane)
     cameraNode.camera?.projectionTransform = SCNMatrix4(snapshot.projection)
 
-    if let mapView { buildings.update(for: snapshot, mapView: mapView) }
+    if buildings.enabled { buildings.update(for: snapshot, region: source?.visibleRegion()) }
     earthOccluder.isHidden = !snapshot.globe
-    earthOccluder.simdPosition = SIMD3(0, -Float(MapCameraSnapshot.earthRadius), 0)
+    earthOccluder.simdPosition = SIMD3(0, -Float(MapCameraState.earthRadius), 0)
 
     let tooFar = snapshot.distance > maxCameraDistance
     modelsRoot.isHidden = tooFar
@@ -547,11 +551,11 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
     }
   }
 
-  private func resolveNight(for mapView: MKMapView) -> Bool {
+  private func resolveNight(for snapshot: MapCameraState) -> Bool {
     switch lighting {
     case .day: return false
     case .night: return true
-    case .auto: return mapView.traitCollection.userInterfaceStyle == .dark
+    case .auto: return snapshot.darkAppearance
     }
   }
 
@@ -569,8 +573,8 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
   // MARK: Taps
 
   @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
-    guard recognizer.state == .ended, let mapView else { return }
-    if let id = modelHit(at: recognizer.location(in: mapView)) { onModelPress?(id) }
+    guard recognizer.state == .ended, let view = source?.cameraView else { return }
+    if let id = modelHit(at: recognizer.location(in: view)) { onModelPress?(id) }
   }
 
   /// The id of the nearest model under `point` (in the map's coordinates).
@@ -591,16 +595,14 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
 
   // MARK: Measuring
 
-  /// Compares where each model's ground point is drawn with where MapKit
-  /// draws the same coordinate, and checks the rendered pixels.
+  /// Compares where each model's ground point is drawn with where the
+  /// engine draws the same coordinate, and checks the rendered pixels.
   func measureAlignment() -> MunimAlignmentReport {
-    guard let mapView,
-          let snapshot = MapCameraSnapshot.read(
-            from: mapView, previousFocalLength: lastSnapshot?.focalLength ?? 0,
-            globe: MapGlobe.isShowingGlobe(mapView))
+    guard let source, let mapView = source.cameraView,
+          let snapshot = source.cameraState(previous: lastSnapshot)
     else {
       return MunimAlignmentReport(
-        attached: mapView != nil, modelsMeasured: 0, maxErrorPoints: -1,
+        attached: source?.cameraView != nil, modelsMeasured: 0, maxErrorPoints: -1,
         meanErrorPoints: -1, modelsVisibleInRender: 0, cameraDistance: 0,
         cameraPitch: 0, cameraHeading: 0, fieldOfViewDegrees: 0)
     }
@@ -624,7 +626,7 @@ final class MapModelRenderer: NSObject, UIGestureRecognizerDelegate {
       }
       guard let ours = snapshot.project(ground)?.point else { continue }
       guard mapView.bounds.insetBy(dx: 4, dy: 4).contains(ours) else { continue }
-      let theirs = mapView.convert(coordinate, toPointTo: mapView)
+      guard let theirs = source.screenPoint(for: coordinate) else { continue }
       errors.append(Double(hypot(ours.x - theirs.x, ours.y - theirs.y)))
       if let rect = entry.screenRect(in: snapshot) { targets.append(rect) }
     }
@@ -960,7 +962,7 @@ private final class Entry {
     }
   }
 
-  func place(in snapshot: MapCameraSnapshot, terrain: TerrainFrame) {
+  func place(in snapshot: MapCameraState, terrain: TerrainFrame) {
     let pose = model.pose(at: Date().timeIntervalSince1970)
     // Metres above the ground, and where the ground is in the scene.
     var altitude = pose.altitude
@@ -1018,7 +1020,7 @@ private final class Entry {
   }
 
   /// Puts the label 22 points tall, 4 points above the top of the model.
-  private func placeLabel(in snapshot: MapCameraSnapshot, base: SIMD3<Float>, up: SIMD3<Float>) {
+  private func placeLabel(in snapshot: MapCameraState, base: SIMD3<Float>, up: SIMD3<Float>) {
     guard labelNode != nil, model.visible else { return }
     let top = base + up * ((content == nil ? 0 : contentHeight) * currentScale)
     let depth = max(1, snapshot.project(top)?.depth ?? Float(snapshot.distance))
@@ -1047,7 +1049,7 @@ private final class Entry {
   }
 
   /// Keeps the stem about 2 points wide and the dot about 8 points across.
-  private func placeStem(in snapshot: MapCameraSnapshot, top: SIMD3<Float>, ground: SIMD3<Float>, up: SIMD3<Float>) {
+  private func placeStem(in snapshot: MapCameraState, top: SIMD3<Float>, ground: SIMD3<Float>, up: SIMD3<Float>) {
     let show = model.visible && model.stem && currentAltitude > 0.5
     stem.isHidden = !show
     stemDot.isHidden = !show
@@ -1068,7 +1070,7 @@ private final class Entry {
   }
 
   /// The screen rectangle covering the model's bounding box.
-  func screenRect(in snapshot: MapCameraSnapshot) -> CGRect? {
+  func screenRect(in snapshot: MapCameraState) -> CGRect? {
     guard let content, let bounds = MapModelNodes.subtreeBounds(content), !root.isHidden else { return nil }
     var rect = CGRect.null
     for i in 0..<8 {
@@ -1084,7 +1086,7 @@ private final class Entry {
   }
 
   /// Depth of the model if `point` falls on it.
-  func hitTest(_ point: CGPoint, in snapshot: MapCameraSnapshot) -> Float? {
+  func hitTest(_ point: CGPoint, in snapshot: MapCameraState) -> Float? {
     guard model.visible, !waitingForGround, content != nil else { return nil }
     let base = root.simdPosition
     let center = base + root.simdOrientation.act(SIMD3(0, contentHeight * currentScale / 2, 0))
@@ -1171,7 +1173,7 @@ private final class PathEntry {
 
   private var color: UIColor { UIColor(mapModelHex: path.color) ?? .white }
 
-  func place(in snapshot: MapCameraSnapshot, terrain: TerrainFrame) {
+  func place(in snapshot: MapCameraState, terrain: TerrainFrame) {
     let count = path.coordinates.count
     guard path.visible, count >= 2 else {
       node.geometry = nil
@@ -1258,7 +1260,7 @@ private final class ZoneEntry {
 
   /// With `followsTerrain` on 3D terrain the wall stands on the ground at
   /// its first point.
-  func place(in snapshot: MapCameraSnapshot, terrain: TerrainFrame) {
+  func place(in snapshot: MapCameraState, terrain: TerrainFrame) {
     guard zone.visible, node.geometry != nil else { return }
     var level = 0.0
     if terrain.lifts(.ground) {

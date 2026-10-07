@@ -17,11 +17,19 @@
       "ios": {
         "language": "swift",
         "implementationClassName": "HybridMapModelLayer"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMapModelLayer"
       }
     },
     "MunimMapView": {
       "ios": {
         "language": "swift",
+        "implementationClassName": "HybridMunimMapView"
+      },
+      "android": {
+        "language": "kotlin",
         "implementationClassName": "HybridMunimMapView"
       }
     },
@@ -53,6 +61,16 @@
       "ios": {
         "language": "swift",
         "implementationClassName": "HybridMarkerView"
+      }
+    },
+    "MunimMapsConfig": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMunimMapsConfig"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMunimMapsConfig"
       }
     }
   },

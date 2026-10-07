@@ -13,6 +13,8 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
+// Forward declaration of `MapProvider` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapProvider; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `NativeMapZone` to properly resolve imports.
@@ -82,12 +84,13 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 // Forward declaration of `MapItem` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapItem; }
 
+#include "MapProvider.hpp"
+#include <string>
 #include "NativeMapModel.hpp"
 #include <vector>
 #include "NativeMapZone.hpp"
 #include "NativeMapPath.hpp"
 #include "MapOcclusion.hpp"
-#include <string>
 #include "MapCamera.hpp"
 #include "MapStyle.hpp"
 #include "MapElevation.hpp"
@@ -149,6 +152,12 @@ namespace margelo::nitro::munimmaps {
 
     public:
       // Properties
+      virtual MapProvider getProvider() = 0;
+      virtual void setProvider(MapProvider provider) = 0;
+      virtual std::string getStyleUrl() = 0;
+      virtual void setStyleUrl(const std::string& styleUrl) = 0;
+      virtual std::string getProviderOptions() = 0;
+      virtual void setProviderOptions(const std::string& providerOptions) = 0;
       virtual std::vector<NativeMapModel> getModels() = 0;
       virtual void setModels(const std::vector<NativeMapModel>& models) = 0;
       virtual std::vector<NativeMapZone> getZones() = 0;

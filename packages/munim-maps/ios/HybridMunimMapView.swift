@@ -2,65 +2,140 @@ import MapKit
 import NitroModules
 import UIKit
 
-/// React Native `MunimMapView`: forwards props, events and methods to the
-/// core `MunimMapKitView`.
+/// React Native `MunimMapView`: a `MunimMapContainerView` showing the engine
+/// in `provider`, with props, events and methods forwarded to it
+/// (`MunimMapEngine`). 3D props go straight to the engine's model layer.
+/// When `provider` changes, the engine is replaced and every prop applied
+/// to the new one.
 final class HybridMunimMapView: HybridMunimMapViewSpec {
-  private let map = MunimMapKitView(frame: .zero)
-  var view: UIView { map }
+  private let container = MunimMapContainerView(provider: .mapkit)
+  private var map: MunimMapEngine { container.engine }
+  var view: UIView { container }
 
   override init() {
     super.init()
-    map.onModelPress = { [weak self] id in self?.onModelPress?(id) }
-    map.onError = { [weak self] message in self?.onError?(message) }
-    map.onMapReady = { [weak self] in self?.onMapReady?() }
-    map.onCameraChange = { [weak self] camera in self?.onCameraChange?(camera.nitro) }
-    map.onCameraMove = { [weak self] camera in self?.onCameraMove?(camera.nitro) }
-    map.onPress = { [weak self] c, p in
+    wire(container.engine)
+  }
+
+  /// Sends the engine's events to JavaScript.
+  private func wire(_ engine: MunimMapEngine) {
+    engine.onError = { [weak self] message in self?.onError?(message) }
+    engine.modelLayer.onModelPress = { [weak self] id in self?.onModelPress?(id) }
+    engine.onMapReady = { [weak self] in self?.onMapReady?() }
+    engine.onCameraChange = { [weak self] camera in self?.onCameraChange?(camera.nitro) }
+    engine.onCameraMove = { [weak self] camera in self?.onCameraMove?(camera.nitro) }
+    engine.onPress = { [weak self] c, p in
       self?.onPress?(MapPressEvent(latitude: c.latitude, longitude: c.longitude, x: Double(p.x), y: Double(p.y)))
     }
-    map.onLongPress = { [weak self] c, p in
+    engine.onLongPress = { [weak self] c, p in
       self?.onLongPress?(MapPressEvent(latitude: c.latitude, longitude: c.longitude, x: Double(p.x), y: Double(p.y)))
     }
-    map.onMarkerPress = { [weak self] id in self?.onMarkerPress?(id) }
-    map.onMarkerDeselect = { [weak self] id in self?.onMarkerDeselect?(id) }
-    map.onCalloutPress = { [weak self] id in self?.onCalloutPress?(id) }
-    map.onCalloutAccessoryPress = { [weak self] id, side in
+    engine.onMarkerPress = { [weak self] id in self?.onMarkerPress?(id) }
+    engine.onMarkerDeselect = { [weak self] id in self?.onMarkerDeselect?(id) }
+    engine.onCalloutPress = { [weak self] id in self?.onCalloutPress?(id) }
+    engine.onCalloutAccessoryPress = { [weak self] id, side in
       self?.onCalloutAccessoryPress?(CalloutAccessoryEvent(id: id, side: side == "left" ? .left : .right))
     }
-    map.onClusterPress = { [weak self] clusteringId, ids, c in
+    engine.onClusterPress = { [weak self] clusteringId, ids, c in
       self?.onClusterPress?(ClusterPressEvent(
         clusteringId: clusteringId, markerIds: ids.joined(separator: ","), latitude: c.latitude, longitude: c.longitude))
     }
-    map.onMarkerDragStart = { [weak self] id, c in
+    engine.onMarkerDragStart = { [weak self] id, c in
       self?.onMarkerDragStart?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
     }
-    map.onMarkerDragEnd = { [weak self] id, c in
+    engine.onMarkerDragEnd = { [weak self] id, c in
       self?.onMarkerDragEnd?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
     }
-    map.onUserLocationChange = { [weak self] l in
+    engine.onUserLocationChange = { [weak self] l in
       self?.onUserLocationChange?(UserLocationEvent(
         latitude: l.coordinate.latitude, longitude: l.coordinate.longitude, altitude: l.altitude,
         horizontalAccuracy: l.horizontalAccuracy, verticalAccuracy: l.verticalAccuracy,
         heading: l.course >= 0 ? l.course : -1, speed: l.speed >= 0 ? l.speed : -1))
     }
-    map.onUserTrackingModeChange = { [weak self] mode in self?.onUserTrackingModeChange?(UserTrackingMode(mode)) }
-    map.onMapFeaturePress = { [weak self] f in
+    engine.onUserTrackingModeChange = { [weak self] mode in self?.onUserTrackingModeChange?(UserTrackingMode(mode)) }
+    engine.onMapFeaturePress = { [weak self] f in
       self?.onMapFeaturePress?(MapFeatureEvent(
         title: f.title, latitude: f.coordinate.latitude, longitude: f.coordinate.longitude,
         kind: f.kind, category: f.category, id: f.id))
     }
   }
 
+  /// Sets every prop again, on a new engine (`again` runs the observers).
+  private func applyAll() {
+    styleUrl = again(styleUrl)
+    providerOptions = again(providerOptions)
+    initialCamera = again(initialCamera)
+    models = again(models)
+    zones = again(zones)
+    paths = again(paths)
+    occlusion = again(occlusion)
+    buildingTilesUrl = again(buildingTilesUrl)
+    followTerrain = again(followTerrain)
+    lighting = again(lighting)
+    maxCameraDistance = again(maxCameraDistance)
+    markers = again(markers)
+    polylines = again(polylines)
+    polygons = again(polygons)
+    circles = again(circles)
+    tileOverlays = again(tileOverlays)
+    clusterStyles = again(clusterStyles)
+    selectionAccessory = again(selectionAccessory)
+    mapStyle = again(mapStyle)
+    elevation = again(elevation)
+    globe = again(globe)
+    colorScheme = again(colorScheme)
+    showsBuildings = again(showsBuildings)
+    showsUserLocation = again(showsUserLocation)
+    compassVisibility = again(compassVisibility)
+    scaleVisibility = again(scaleVisibility)
+    showsUserTrackingButton = again(showsUserTrackingButton)
+    pitchButtonVisibility = again(pitchButtonVisibility)
+    mapScope = again(mapScope)
+    showsTraffic = again(showsTraffic)
+    pointsOfInterest = again(pointsOfInterest)
+    userTrackingMode = again(userTrackingMode)
+    zoomEnabled = again(zoomEnabled)
+    scrollEnabled = again(scrollEnabled)
+    rotateEnabled = again(rotateEnabled)
+    pitchEnabled = again(pitchEnabled)
+    applyDistanceRange()
+    cameraBoundary = again(cameraBoundary)
+    mapPadding = again(mapPadding)
+    selectableMapFeatures = again(selectableMapFeatures)
+    onOverlayPress = again(onOverlayPress)
+  }
+
   // MARK: Props
 
-  var models: [NativeMapModel] = [] { didSet { map.models = models.map(\.core) } }
-  var zones: [NativeMapZone] = [] { didSet { map.zones = zones.map(\.core) } }
-  var paths: [NativeMapPath] = [] { didSet { map.paths = paths.map(\.core) } }
-  var occlusion: MapOcclusion = .none { didSet { map.buildingOcclusion = occlusion == .buildings } }
-  var buildingTilesUrl = "" { didSet { map.buildingTilesURL = buildingTilesUrl } }
-  var followTerrain = false { didSet { map.followsTerrain = followTerrain } }
-  var lighting: MapModelLighting = .auto { didSet { map.lighting = lighting.core } }
-  var maxCameraDistance: Double = 50_000 { didSet { map.maxCameraDistance = maxCameraDistance } }
+  /// The value as is: assigning it to its property runs `didSet` again.
+  private func again<T>(_ value: T) -> T { value }
+
+  var provider: MapProvider = .mapkit {
+    didSet {
+      let wanted = MunimMapProvider(rawValue: provider.stringValue) ?? .mapkit
+      guard let engine = container.setProvider(wanted) else { return }
+      wire(engine)
+      applyAll()
+    }
+  }
+
+  var styleUrl = "" { didSet { map.styleURL = styleUrl } }
+
+  var providerOptions = "{}" {
+    didSet {
+      let data = Data(providerOptions.utf8)
+      map.providerOptions = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+    }
+  }
+
+  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = models.map(\.core) } }
+  var zones: [NativeMapZone] = [] { didSet { map.modelLayer.zones = zones.map(\.core) } }
+  var paths: [NativeMapPath] = [] { didSet { map.modelLayer.paths = paths.map(\.core) } }
+  var occlusion: MapOcclusion = .none { didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings } }
+  var buildingTilesUrl = "" { didSet { map.modelLayer.buildingTilesURL = buildingTilesUrl } }
+  var followTerrain = false { didSet { map.modelLayer.followsTerrain = followTerrain } }
+  var lighting: MapModelLighting = .auto { didSet { map.modelLayer.lighting = lighting.core } }
+  var maxCameraDistance: Double = 50_000 { didSet { map.modelLayer.maxCameraDistance = maxCameraDistance } }
 
   var markers: [NativeMarker] = [] { didSet { map.markers = markers.map(\.core) } }
   var polylines: [NativePolyline] = [] { didSet { map.polylines = polylines.map(\.core) } }

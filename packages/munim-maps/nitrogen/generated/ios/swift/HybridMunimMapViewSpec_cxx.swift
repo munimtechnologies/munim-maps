@@ -121,6 +121,39 @@ open class HybridMunimMapViewSpec_cxx {
   }
 
   // Properties
+  public final var provider: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.provider.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.provider = margelo.nitro.munimmaps.MapProvider(rawValue: newValue)!
+    }
+  }
+  
+  public final var styleUrl: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.styleUrl)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.styleUrl = String(newValue)
+    }
+  }
+  
+  public final var providerOptions: std.string {
+    @inline(__always)
+    get {
+      return std.string(self.__implementation.providerOptions)
+    }
+    @inline(__always)
+    set {
+      self.__implementation.providerOptions = String(newValue)
+    }
+  }
+  
   public final var models: bridge.std__vector_NativeMapModel_ {
     @inline(__always)
     get {

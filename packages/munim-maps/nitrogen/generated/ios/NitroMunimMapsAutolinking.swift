@@ -95,4 +95,16 @@ public final class NitroMunimMapsAutolinking {
   public static func isMarkerViewRecyclable() -> Bool {
     return HybridMarkerView.self is any RecyclableView.Type
   }
+  
+  public static func createMunimMapsConfig() -> bridge.std__shared_ptr_HybridMunimMapsConfigSpec_ {
+    let hybridObject = HybridMunimMapsConfig()
+    return { () -> bridge.std__shared_ptr_HybridMunimMapsConfigSpec_ in
+      let __cxxWrapped = hybridObject.getCxxWrapper()
+      return __cxxWrapped.getCxxPart()
+    }()
+  }
+  
+  public static func isMunimMapsConfigRecyclable() -> Bool {
+    return HybridMunimMapsConfig.self is any RecyclableView.Type
+  }
 }

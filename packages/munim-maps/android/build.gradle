@@ -1,0 +1,209 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:9.2.1"
+  }
+}
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+}
+
+apply plugin: "com.android.library"
+apply plugin: 'org.jetbrains.kotlin.android'
+apply from: '../nitrogen/generated/android/NitroMunimMaps+autolinking.gradle'
+apply from: "./fix-prefab.gradle"
+
+if (isNewArchitectureEnabled()) {
+  apply plugin: "com.facebook.react"
+}
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["MunimMaps_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["MunimMaps_" + name]).toInteger()
+}
+
+// Map engines are opt-in, each with its SDK, from the app's
+// android/gradle.properties (the Expo config plugin's `providers` writes them):
+//   munimMaps.google=true    Google Maps SDK for Android
+//   munimMaps.mapbox=true    Mapbox Maps SDK for Android
+//   munimMaps.maplibre=false MapLibre Native (on by default: no key needed)
+//   munimMaps.cesium=true    Cesium
+// Each engine's code is in src/<provider>/java and only compiles when its
+// property is on; the registry (MunimMapEngines) finds it by name.
+def munimMapsProvider(name, defaultValue) {
+  def value = rootProject.findProperty("munimMaps.${name}")
+  if (value == null) value = project.findProperty("munimMaps.${name}")
+  return value == null ? defaultValue : value.toString().trim().toBoolean()
+}
+
+def munimMapsProviders = [
+  google  : munimMapsProvider("google", false),
+  mapbox  : munimMapsProvider("mapbox", false),
+  maplibre: munimMapsProvider("maplibre", true),
+  cesium  : munimMapsProvider("cesium", false),
+]
+
+def munimMapsVersions = [
+  filament    : project.findProperty("munimMaps.filamentVersion") ?: "1.75.1",
+  maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.6.1",
+  googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.0.0",
+  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.15.0",
+]
+
+logger.lifecycle("[munim-maps] engines: " + munimMapsProviders.findAll { it.value }.collect { it.key }.join(", "))
+
+android {
+  namespace = "com.munimmaps"
+
+  ndkVersion = getExtOrDefault("ndkVersion")
+  compileSdk = getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdk = getExtOrIntegerDefault("minSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+    munimMapsProviders.each { name, enabled ->
+      buildConfigField "boolean", "MUNIM_MAPS_${name.toUpperCase()}", enabled.toString()
+    }
+    consumerProguardFiles "proguard-rules.pro"
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        abiFilters (*reactNativeArchitectures())
+
+        buildTypes {
+          debug {
+            cppFlags "-O1 -g"
+          }
+          release {
+            cppFlags "-O2"
+          }
+        }
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path = file("CMakeLists.txt")
+    }
+  }
+
+  packaging {
+    excludes = [
+        "META-INF",
+        "META-INF/**",
+        "**/libc++_shared.so",
+        "**/libfbjni.so",
+        "**/libjsi.so",
+        "**/libfolly_json.so",
+        "**/libfolly_runtime.so",
+        "**/libglog.so",
+        "**/libhermes.so",
+        "**/libhermes-executor-debug.so",
+        "**/libhermes_executor.so",
+        "**/libreactnative.so",
+        "**/libreactnativejni.so",
+        "**/libturbomodulejsijni.so",
+        "**/libreact_nativemodule_core.so",
+        "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig = true
+    prefab = true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled = false
+    }
+  }
+
+  // defaultConfig.targetSdk is deprecated for libraries (the app's targetSdk
+  // is the one Android uses); lint and instrumentation tests still need one.
+  lint {
+    targetSdk = getExtOrIntegerDefault("targetSdkVersion")
+    disable.add("GradleCompatible")
+  }
+
+  testOptions {
+    targetSdk = getExtOrIntegerDefault("targetSdkVersion")
+  }
+
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
+
+  sourceSets {
+    main {
+      munimMapsProviders.each { name, enabled ->
+        if (enabled) java.srcDirs += ["src/${name}/java"]
+      }
+      if (isNewArchitectureEnabled()) {
+        java.srcDirs += [
+          // React Codegen files
+          layout.buildDirectory.dir("generated/source/codegen/java").get().asFile
+        ]
+      }
+    }
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+  if (munimMapsProviders.mapbox) {
+    maven { url = "https://api.mapbox.com/downloads/v2/releases/maven" }
+  }
+}
+
+
+dependencies {
+  // For < 0.71, this will be from the local maven repo
+  // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
+  //noinspection GradleDynamicVersion
+  implementation "com.facebook.react:react-native:+"
+
+  // Add a dependency on NitroModules
+  implementation project(":react-native-nitro-modules")
+
+  // The 3D layer: Filament draws GLB / glTF models over every engine.
+  implementation "com.google.android.filament:filament-android:${munimMapsVersions.filament}"
+  implementation "com.google.android.filament:gltfio-android:${munimMapsVersions.filament}"
+  implementation "com.google.android.filament:filament-utils-android:${munimMapsVersions.filament}"
+
+  if (munimMapsProviders.maplibre) {
+    implementation "org.maplibre.gl:android-sdk:${munimMapsVersions.maplibre}"
+  }
+  if (munimMapsProviders.google) {
+    implementation "com.google.android.gms:play-services-maps:${munimMapsVersions.googleMaps}"
+  }
+  if (munimMapsProviders.mapbox) {
+    implementation "com.mapbox.maps:android-ndk27:${munimMapsVersions.mapbox}"
+  }
+}
+
+if (isNewArchitectureEnabled()) {
+  react {
+    jsRootDir = file("../src/")
+    libraryName = "MunimMaps"
+    codegenJavaPackageName = "com.munimmaps"
+  }
+}

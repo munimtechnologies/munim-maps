@@ -85,12 +85,12 @@ final class BuildingOccluder {
   }
 
   /// Loads tiles around the camera and moves the loaded ones into place.
-  func update(for snapshot: MapCameraSnapshot, mapView: MKMapView) {
+  func update(for snapshot: MapCameraState, region: MKCoordinateRegion?) {
     guard enabled else { return }
     let active = !snapshot.globe && snapshot.distance < Self.maxDistance
     root.isHidden = !active
     guard active else { return }
-    requestTiles(around: mapView.region)
+    if let region { requestTiles(around: region) }
     for tile in tiles.values where tile.loaded {
       tile.node.simdPosition = snapshot.scenePosition(
         latitude: tile.anchor.latitude, longitude: tile.anchor.longitude, altitude: 0)

@@ -14,6 +14,7 @@
     "check": "npm run codegen && npm run lint && npm run typecheck && npm run typecheck:example && npm run build && npm run pack:dry-run",
     "pack:dry-run": "npm --workspace munim-maps pack --dry-run",
     "example:start": "npm --workspace example run start",
-    "example:ios": "npm --workspace example run ios"
+    "example:ios": "npm --workspace example run ios",
+    "example:android": "npm --workspace example run android"
   }
 }

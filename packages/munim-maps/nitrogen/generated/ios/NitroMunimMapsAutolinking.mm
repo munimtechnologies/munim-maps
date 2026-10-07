@@ -17,6 +17,7 @@
 #include "HybridMapServicesSpecSwift.hpp"
 #include "HybridLookAroundViewSpecSwift.hpp"
 #include "HybridMarkerViewSpecSwift.hpp"
+#include "HybridMunimMapsConfigSpecSwift.hpp"
 
 @interface NitroMunimMapsAutolinking : NSObject
 @end
@@ -73,6 +74,13 @@
     "MarkerView",
     []() -> std::shared_ptr<HybridObject> {
       std::shared_ptr<HybridMarkerViewSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMarkerView();
+      return hybridObject;
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MunimMapsConfig",
+    []() -> std::shared_ptr<HybridObject> {
+      std::shared_ptr<HybridMunimMapsConfigSpec> hybridObject = NitroMunimMaps::NitroMunimMapsAutolinking::createMunimMapsConfig();
       return hybridObject;
     }
   );
