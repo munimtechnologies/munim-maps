@@ -98,7 +98,6 @@ namespace margelo::nitro::munimmaps {
       virtual std::shared_ptr<Promise<std::string>> snapshot(const NativeSnapshotRequest& request) = 0;
       virtual std::shared_ptr<Promise<bool>> hasLookAround(const MapCoordinate& coordinate) = 0;
       virtual std::shared_ptr<Promise<std::string>> lookAroundSnapshot(const MapCoordinate& coordinate, const std::string& mapItemId, double width, double height, const std::string& pointsOfInterest, MapColorScheme colorScheme) = 0;
-      virtual std::shared_ptr<Promise<bool>> presentPlaceCard(const std::string& identifier) = 0;
       virtual std::string formatDistance(double meters, const std::string& units, const std::string& style) = 0;
 
     protected:

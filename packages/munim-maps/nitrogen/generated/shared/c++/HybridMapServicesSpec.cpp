@@ -26,7 +26,6 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridMethod("snapshot", &HybridMapServicesSpec::snapshot);
       prototype.registerHybridMethod("hasLookAround", &HybridMapServicesSpec::hasLookAround);
       prototype.registerHybridMethod("lookAroundSnapshot", &HybridMapServicesSpec::lookAroundSnapshot);
-      prototype.registerHybridMethod("presentPlaceCard", &HybridMapServicesSpec::presentPlaceCard);
       prototype.registerHybridMethod("formatDistance", &HybridMapServicesSpec::formatDistance);
     });
   }

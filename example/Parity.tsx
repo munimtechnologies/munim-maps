@@ -10,7 +10,6 @@ import {
   createSearchCompleter,
   directions,
   formatDistance,
-  presentPlaceCard,
   routePolyline,
   searchPlaces,
   type MapCamera,
@@ -107,7 +106,7 @@ export interface ParityHandle {
 export function ParityScreen(props: {
   mapRef: RefObject<MunimMapViewRef | null>
   startFollowing: boolean
-  /** munimmapsexample://parity/placecard or /callout: show one without a tap. */
+  /** munimmapsexample://parity/callout: show a callout without a tap. */
   demo: string
   handle: RefObject<ParityHandle>
   trackingMode: UserTrackingMode
@@ -183,9 +182,6 @@ export function ParityScreen(props: {
         setTimeout(() => mapRef.current?.selectMarker('parity-skydeck'), 800)
       }, 2500)
       return () => clearTimeout(timer)
-    }
-    if (demo === 'placecard' && found[0]?.identifier) {
-      presentPlaceCard(found[0].identifier).catch((error) => onEvent(`place card: ${String(error)}`))
     }
     return undefined
   }, [demo, mapRef, found, onEvent])

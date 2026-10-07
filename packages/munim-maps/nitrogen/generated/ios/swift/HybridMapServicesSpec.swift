@@ -25,7 +25,6 @@ public protocol HybridMapServicesSpec_protocol: HybridObject {
   func snapshot(request: NativeSnapshotRequest) throws -> Promise<String>
   func hasLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
   func lookAroundSnapshot(coordinate: MapCoordinate, mapItemId: String, width: Double, height: Double, pointsOfInterest: String, colorScheme: MapColorScheme) throws -> Promise<String>
-  func presentPlaceCard(identifier: String) throws -> Promise<Bool>
   func formatDistance(meters: Double, units: String, style: String) throws -> String
 }
 

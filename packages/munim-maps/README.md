@@ -460,7 +460,7 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`) and 
 | Search, autocomplete, points of interest | ✅ | ❌ | `MKLocalSearch`, `MKLocalSearchCompleter`, `MKLocalPointsOfInterestRequest`. Physical features and `regionRequired` need iOS 18. |
 | Directions and travel times | ✅ | ❌ | `MKDirections`. MapKit gives transit only as travel times (`eta`). |
 | Geocoding | ✅ | ❌ | iOS 26 `MKGeocodingRequest` / `MKReverseGeocodingRequest`, `CLGeocoder` before. |
-| Places by id, place card sheet | ✅ iOS 18+ | ❌ | `mapItem(id)`, `presentPlaceCard(id)`. |
+| Places by id | ✅ iOS 18+ | ❌ | `mapItem(id)`. |
 | Look Around view and snapshots | ✅ iOS 16+ | ❌ | `LookAroundView`, `lookAroundSnapshot()`. |
 | Map images without a view | ✅ | ❌ | `mapSnapshot()` (`MKMapSnapshotter`). |
 
@@ -470,7 +470,7 @@ Everything in MapKit's iOS 26 and 27 SDK that a React Native app can use is avai
 
 - **macOS-only controls**: `MKZoomControl`, `MKPitchControl`, `showsZoomControls` and `showsPitchControl` are not on iOS. There is no standalone 2D/3D button on iOS either (SwiftUI's `MapPitchToggle` has no UIKit version), so the 2D/3D button is the map's own (`pitchButtonVisibility`).
 - **`MKUserTrackingBarButtonItem`**: a navigation-bar item for UIKit; use `MapUserTrackingButton` anywhere in your layout instead.
-- **Place cards on your own markers**: MapKit only shows place cards (`MKSelectionAccessory`) for Apple's own places (`selectableMapFeatures`). For a place you found, use `presentPlaceCard(id)`.
+- **Place cards on your own markers**: MapKit only shows place cards (`MKSelectionAccessory`) for Apple's own places (`selectableMapFeatures`). For a place you found, `openInMaps([place])` shows its card in Apple Maps.
 - **`MKGeoJSONDecoder`**: turns GeoJSON into the same polylines and polygons any GeoJSON library gives you in JavaScript; pass the coordinates to `polylines` and `polygons`.
 - **`MKMultiPolyline` / `MKMultiPolygon`**: a drawing optimisation only; use several entries.
 - **`MKOverlayRenderer.blendMode`**, **`MKAnnotationView.accessoryOffset`**, **drag and drop of `MKMapItem`**, **`NSUserActivity` map items** and **`MKDirections.Request(contentsOf:)`** (handling Apple Maps' directions URLs, which needs app-level URL routing): rarely needed from React Native.
@@ -715,7 +715,6 @@ Functions, no map needed. All return promises and reject on Android.
 | `reverseGeocode(coordinate)` | `MKReverseGeocodingRequest` (iOS 26), `CLGeocoder` | `MapItem[]` |
 | `mapItem(identifier)` | `MKMapItemRequest` (iOS 18) | `MapItem` |
 | `openInMaps(items, { directionsMode?, camera?, region?, mapStyle?, showsTraffic? })` | `MKMapItem.openMaps` | `boolean` |
-| `presentPlaceCard(identifier)` | `MKMapItemDetailViewController` (iOS 18) | `boolean` |
 | `mapSnapshot({ region \| camera, width, height, mapStyle?, elevation?, colorScheme?, pointsOfInterest?, showsBuildings?, showsTraffic? })` | `MKMapSnapshotter` | PNG path |
 | `hasLookAround(coordinate)` | `MKLookAroundSceneRequest` | `boolean` |
 | `lookAroundSnapshot({ coordinate \| mapItemId, width, height, pointsOfInterest?, colorScheme? })` | `MKLookAroundSnapshotter` | PNG path |
@@ -895,7 +894,7 @@ Let people tap Apple's own places and see Apple's place card (hours, photos, rat
 />
 ```
 
-`'callout'` shows the card in a callout over the map, `'sheet'` in a sheet, `'openInMaps'` as a button. While a selection accessory is set MapKit shows no classic callouts on your markers, so leave it `'none'` if you rely on them. For a place you found yourself, `presentPlaceCard(place.identifier)` opens the card as a sheet.
+`'callout'` shows the card in a callout over the map, `'sheet'` in a sheet, `'openInMaps'` as a button. While a selection accessory is set MapKit shows no classic callouts on your markers, so leave it `'none'` if you rely on them. For a place you found yourself, `openInMaps([place])` opens its card in Apple Maps.
 
 ### Look Around
 

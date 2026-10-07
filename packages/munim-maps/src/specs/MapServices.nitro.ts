@@ -181,8 +181,6 @@ export interface MapServices extends HybridObject<{ ios: 'swift' }> {
     pointsOfInterest: string,
     colorScheme: MapColorScheme
   ): Promise<string>
-  /** Apple's place card (`MKMapItemDetailViewController`, iOS 18+), as a sheet. */
-  presentPlaceCard(identifier: string): Promise<boolean>
   /** `MKDistanceFormatter`: `units` `default`, `metric`, `imperial`, `imperialWithYards`; `style` `default`, `abbreviated`, `full`. */
   formatDistance(meters: number, units: string, style: string): string
 }

@@ -484,15 +484,6 @@ export function lookAroundSnapshot(
   )
 }
 
-/**
- * Apple's place card for a place id (`MKMapItemDetailViewController`, iOS
- * 18+), as a sheet: hours, photos, ratings, call and directions buttons.
- * Resolves false where it is not available.
- */
-export function presentPlaceCard(identifier: string): Promise<boolean> {
-  return call((s) => s.presentPlaceCard(identifier))
-}
-
 /** `MKDistanceFormatter`: "1.2 mi" or "2 km", in the user's locale. */
 export function formatDistance(
   meters: number,

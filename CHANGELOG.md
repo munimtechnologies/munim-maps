@@ -22,8 +22,8 @@ All notable changes to this project are documented in this file. The format is b
   - Overlays: gradient polylines (`strokeColors`, `strokeColorLocations`), `lineJoin`, `strokeStart` / `strokeEnd` (updated in place, to animate a route), `level` (`aboveRoads`, `aboveLabels`) on every overlay, and `onOverlayPress` with `tappable` hit-testing for polylines, polygons and circles (`overlayAtPoint(point)` on the ref).
   - `pointsOfInterest` accepts short category names such as `'cafe'`.
 - `<LookAroundView>`: Apple's Look Around embedded in your layout (`coordinate` or `mapItemId`, `showsRoadLabels`, `pointsOfInterest`, `navigationEnabled`, `badgePosition`, `onSceneChange`, `onFullScreenChange`).
-- MapKit services, no map needed: `searchPlaces`, `createSearchCompleter` (autocomplete, resolved to places), `pointsOfInterest`, `directions` and `eta` (transport types, alternates, dates, avoiding tolls and highways, steps), `geocode` and `reverseGeocode` (iOS 26 `MKGeocodingRequest` / `MKReverseGeocodingRequest`, `CLGeocoder` before), `mapItem(id)`, `openInMaps`, `presentPlaceCard`, `mapSnapshot`, `hasLookAround`, `lookAroundSnapshot`, `formatDistance`, and `routePolyline` to draw a route.
-- Example: a MapKit screen with all of it (`munimmapsexample://parity`, `/follow`, `/callout`, `/placecard`) and 16 more self-test checks (services, overlay hit-testing, `MarkerView`, user tracking).
+- MapKit services, no map needed: `searchPlaces`, `createSearchCompleter` (autocomplete, resolved to places), `pointsOfInterest`, `directions` and `eta` (transport types, alternates, dates, avoiding tolls and highways, steps), `geocode` and `reverseGeocode` (iOS 26 `MKGeocodingRequest` / `MKReverseGeocodingRequest`, `CLGeocoder` before), `mapItem(id)`, `openInMaps`, `mapSnapshot`, `hasLookAround`, `lookAroundSnapshot`, `formatDistance`, and `routePolyline` to draw a route.
+- Example: a MapKit screen with all of it (`munimmapsexample://parity`, `/follow`, `/callout`) and 16 more self-test checks (services, overlay hit-testing, `MarkerView`, user tracking).
 
 ### Fixed
 

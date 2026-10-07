@@ -197,26 +197,6 @@ final class HybridMapServices: HybridMapServicesSpec {
     return promise
   }
 
-  func presentPlaceCard(identifier: String) throws -> Promise<Bool> {
-    let promise = Promise<Bool>()
-    DispatchQueue.main.async {
-      guard #available(iOS 18.0, *) else { return promise.resolve(withResult: false) }
-      MapServiceParsing.mapItem(identifier: identifier) { item, error in
-        guard let item else { return promise.reject(withError: error) }
-        guard let presenter = MapServiceParsing.topViewController() else { return promise.resolve(withResult: false) }
-        let controller = MKMapItemDetailViewController(mapItem: item, displaysMap: true)
-        let closer = PlaceCardCloser()
-        controller.delegate = closer
-        objc_setAssociatedObject(controller, &PlaceCardCloser.key, closer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        let navigation = UINavigationController(rootViewController: controller)
-        navigation.modalPresentationStyle = .formSheet
-        presenter.present(navigation, animated: true)
-        promise.resolve(withResult: true)
-      }
-    }
-    return promise
-  }
-
   func formatDistance(meters: Double, units: String, style: String) throws -> String {
     let formatter = MKDistanceFormatter()
     switch units {
@@ -305,16 +285,6 @@ final class HybridMapServices: HybridMapServicesSpec {
       }
     }
     return promise
-  }
-}
-
-/// Dismisses a place card when its Done button is tapped.
-@available(iOS 18.0, *)
-private final class PlaceCardCloser: NSObject, MKMapItemDetailViewControllerDelegate {
-  static var key: UInt8 = 0
-
-  func mapItemDetailViewControllerDidFinish(_ detailViewController: MKMapItemDetailViewController) {
-    (detailViewController.navigationController ?? detailViewController).dismiss(animated: true)
   }
 }
 

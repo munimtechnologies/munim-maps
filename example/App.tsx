@@ -589,7 +589,7 @@ function Example() {
         setLaunching(false)
         setStatus('MapKit parity')
         if (url.includes('follow')) setParityFollow(true)
-        setParityDemo(/parity\/(placecard|callout)/.exec(url)?.[1] ?? '')
+        setParityDemo(/parity\/(callout)/.exec(url)?.[1] ?? '')
         setMode('parity')
       } else if (url?.includes('features')) {
         setLaunching(false)

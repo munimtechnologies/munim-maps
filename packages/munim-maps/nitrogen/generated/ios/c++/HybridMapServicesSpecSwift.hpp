@@ -224,14 +224,6 @@ namespace margelo::nitro::munimmaps {
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline std::shared_ptr<Promise<bool>> presentPlaceCard(const std::string& identifier) override {
-      auto __result = _swiftPart.presentPlaceCard(identifier);
-      if (__result.hasError()) [[unlikely]] {
-        std::rethrow_exception(__result.error());
-      }
-      auto __value = std::move(__result.value());
-      return __value;
-    }
     inline std::string formatDistance(double meters, const std::string& units, const std::string& style) override {
       auto __result = _swiftPart.formatDistance(std::forward<decltype(meters)>(meters), units, style);
       if (__result.hasError()) [[unlikely]] {
