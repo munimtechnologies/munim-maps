@@ -320,7 +320,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
       const file = new File(Paths.document, 'munim-maps-cesium-checks.json')
       if (file.exists) file.delete()
       file.create()
-      file.write(JSON.stringify({ platform: Platform.OS, passed, total: out.length, checks: out }, null, 2))
+      file.write(JSON.stringify({ platform: Platform.OS, finishedAt: new Date().toISOString(), passed, total: out.length, checks: out }, null, 2))
     } catch (e) {
       note(`could not write the report: ${String(e)}`)
     }
