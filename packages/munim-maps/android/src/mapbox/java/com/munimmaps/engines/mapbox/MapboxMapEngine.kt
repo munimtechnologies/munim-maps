@@ -55,6 +55,7 @@ import com.margelo.nitro.munimmaps.MapRegion
 import com.margelo.nitro.munimmaps.MapStyle
 import com.margelo.nitro.munimmaps.NativeCircle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
+import com.margelo.nitro.munimmaps.NativeMapModel
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -152,6 +153,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   internal val annotations = MapboxAnnotations(this)
   internal val controls = MapboxControls(this)
   private val calls = MapboxCalls(this)
+  private lateinit var nativeModels: MapboxNativeModels
 
   internal var destroyed = false
     private set
@@ -202,6 +204,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       modelLayer.setNeedsRender()
     }
     setUpMap()
+    nativeModels = MapboxNativeModels(this)
     modelLayer.attach(this)
     style.scheduleRefresh()
   }
@@ -213,6 +216,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       cameraMovedSinceIdle = true
       getCamera()?.let { listener?.onCameraMove(it) }
       controls.cameraMoved()
+      nativeModels.cameraChanged()
       style.emit("cameraChanged") {
         val cs = event.cameraState
         JSONObject()
@@ -272,6 +276,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     annotations.destroy()
     controls.destroy()
     calls.destroy()
+    nativeModels.destroy()
     modelLayer.destroy()
     mapView.onDestroy()
   }
@@ -286,6 +291,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       styleLoaded = true
       onLoaded()
       shapes.styleLoaded()
+      nativeModels.styleLoaded()
       annotations.styleLoaded()
       controls.styleLoaded()
       modelLayer.setNeedsRender()
@@ -367,7 +373,11 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   override fun setProviderOptions(options: JSONObject) {
     style.setOptions(options)
     controls.setOptions(options)
+    nativeModels.setMode(options.optString("modelRendering", "auto"))
   }
+
+  /** glTF models Mapbox draws itself (`mapbox.modelRendering`); the rest go to the Filament layer. */
+  override fun overlayModels(models: Array<NativeMapModel>): Array<NativeMapModel> = nativeModels.setModels(models)
 
   override fun setMarkers(markers: Array<NativeMarker>) = annotations.setMarkers(markers)
   override fun setClusterStyles(styles: Array<NativeClusterStyle>) = annotations.setClusterStyles(styles)

@@ -60,7 +60,7 @@ def munimMapsVersions = [
   filament    : project.findProperty("munimMaps.filamentVersion") ?: "1.75.1",
   maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.6.1",
   googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.0.0",
-  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.15.0",
+  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.32.0",
 ]
 
 logger.lifecycle("[munim-maps] engines: " + munimMapsProviders.findAll { it.value }.collect { it.key }.join(", "))
