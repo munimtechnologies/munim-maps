@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- `MapModelLayer` over `@rnmapbox/maps` on Android: the layer finds the Mapbox `MapView` (by `mapTestID`, or the nearest one) and draws with Mapbox's own camera (centre, zoom on 512-point tiles, pitch, bearing, padding, Mapbox's 36.87° field of view), every frame. No flag: the adapter compiles whenever `@rnmapbox/maps` (or munim-maps' Mapbox engine) is in the app, against the Mapbox SDK version `@rnmapbox/maps` builds with (`compileOnly`, nothing added to the APK). Taps on models fire `onModelPress` through Mapbox's gestures plugin, next to `@rnmapbox/maps`' own `onPress`. On a Galaxy A14: within 0.09 pt of Mapbox's `pixelForCoordinate` at seven cameras (one padded) and during an animation, within 2 pt on screenshots while dragging.
+- `MapModelLayer` over react-native-maps on Android (Google Maps) without munim-maps' Google engine: the Google adapter compiles whenever react-native-maps is in the app. It finds the camera's centre with Google's projection, so react-native-maps' `mapPadding` is followed. On a Galaxy A14: within 0.35 pt of Google's projection, within 2 pt on screenshots while dragging. No `onModelPress` here: Google's map has a single click listener, react-native-maps'.
+- Example: `munimmapsexample://layer/rnmapbox` and `layer/rnmaps-google` (Android): vehicles, avatars, shapes, effects, zones and paths over each library's map; `/check` measures them against the host's own projection at seven cameras (one with map padding) and during a host-driven animation (`MUNIM_MAPS_LAYER_OVER` log lines), `/pan`, `/pan45` and `/pan45pad` (`/tex`: the Mapbox map in a TextureView) show a probe (the host's magenta circle under munim-maps' green tile) for screenshots while dragging: `example/scripts/layer-pan.sh` drags and saves frames, `layer-probe.py` measures them, `run-check.sh` runs a deep link and keeps its log. `@rnmapbox/maps` is in the example for Android only (`example/react-native.config.js`), its token from the same keys file as the others.
+
+### Fixed
+
+- Android: the 3D layer stayed one frame behind once the map stopped moving whenever Filament skipped the last frame (the GPU busy during a fast drag); a skipped frame is now drawn on the next one.
+- Android, Mapbox engine: models were off with camera padding on a pitched map (38 pt with 160 points of top padding at 50°, measured over `@rnmapbox/maps` with the same camera code): Mapbox moves its centre of perspective to the padded centre, which `MapCameraState` now models (`principalX` / `principalY`, drawn with Filament's camera shift).
+- Android, Google: with map padding the camera's field of view was measured as if the target were straight ahead (17.6° instead of 30°, 11 pt off). Padded cameras now use the field of view measured without padding, and Google's starting field of view is the 30° measured on Android.
+
+### Changed
+
+- Android: `MapModelLayer` keeps its 3D view exactly over the map's view (position and size, before every draw), so it lines up even when the layer and the map are not the same size, and finds the map again after it is remounted.
+- Android: `MapViewAdapters` finds its built-in adapters by class name (like the engines); `MapCameraSource.setTapListener` (default: none) lets an adapter pass map taps to the layer.
+
 ## [0.5.0] - 2026-10-07
 
 munim-maps is one API over five map engines (MapKit, Google Maps, Mapbox, MapLibre and Cesium) on iOS and Android, and ships no 3D models any more: the vehicle catalogue is the separate `munim-maps-vehicles` package. See [docs/providers.md](docs/providers.md).

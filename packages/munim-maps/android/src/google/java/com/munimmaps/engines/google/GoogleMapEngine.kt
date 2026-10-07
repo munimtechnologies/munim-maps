@@ -63,7 +63,6 @@ import com.margelo.nitro.munimmaps.UserLocationEvent
 import com.margelo.nitro.munimmaps.UserTrackingMode
 import com.munimmaps.engine.MapCameraSource
 import com.munimmaps.engine.MapCameraState
-import com.munimmaps.engine.MapViewAdapters
 import com.munimmaps.engine.MunimMapEngine
 import com.munimmaps.engine.MunimMapEngineFactory
 import com.munimmaps.engine.MunimMapEngineListener
@@ -81,11 +80,6 @@ import kotlin.math.ln
 
 object GoogleMapEngineFactory : MunimMapEngineFactory {
   override val isImplemented = true
-
-  init {
-    // MapModelLayer over react-native-maps' Google MapView.
-    MapViewAdapters.register(GoogleMapViewAdapter)
-  }
 
   override fun create(context: Context): MunimMapEngine {
     MunimMapsConfiguration.load(context)

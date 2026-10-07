@@ -24,7 +24,7 @@ import { VEHICLES } from 'munim-maps-vehicles'
  * and mid-flight, and logs `MUNIM_MAPS_LAYER3D {…}`.
  */
 
-const CENTER = { latitude: 41.8826, longitude: -87.6278 }
+export const CENTER = { latitude: 41.8826, longitude: -87.6278 }
 const CAMERA: MapCamera = { ...CENTER, distance: 900, pitch: 55, heading: 30 }
 
 const avatars = [
@@ -36,7 +36,7 @@ const avatars = [
 const SHAPES = ['box', 'sphere', 'cylinder', 'cone', 'capsule', 'pyramid', 'gem'] as const
 const SHAPE_COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#FF375F', '#BF5AF2', '#FFD60A', '#64D2FF']
 
-function buildModels(start: number): MapModel[] {
+export function buildModels(start: number): MapModel[] {
   const shapes: MapModel[] = SHAPES.map((shape, i) => ({
     id: `shape-${shape}`,
     coordinate: { latitude: 41.8838, longitude: -87.6302 + i * 0.00032 },
@@ -109,7 +109,7 @@ function buildModels(start: number): MapModel[] {
   ]
 }
 
-const ZONES: MapZone[] = [
+export const ZONES: MapZone[] = [
   { id: 'loop', circle: { center: CENTER, radius: 120 }, height: 40, color: '#0A84FF40' },
   {
     id: 'block',
@@ -124,7 +124,7 @@ const ZONES: MapZone[] = [
   },
 ]
 
-const PATHS: MapPath[] = [
+export const PATHS: MapPath[] = [
   {
     id: 'flight',
     coordinates: [
