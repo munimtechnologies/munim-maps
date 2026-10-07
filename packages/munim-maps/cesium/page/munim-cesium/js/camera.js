@@ -26,7 +26,11 @@
     const scene = M.viewer.scene
     const ray = scene.camera.getPickRay(position, scratchRay)
     let ground
-    if (ray && scene.mode === C.SceneMode.SCENE3D) ground = scene.globe.pick(ray, scene)
+    // Without terrain the ground is the ellipsoid. The globe's tiles only
+    // approximate it, coarsely until finer tiles load (a level-0 tile sags
+    // tens of kilometres below it), so picking them would put the centre,
+    // the distance and every conversion far off on a slow device.
+    if (ray && scene.mode === C.SceneMode.SCENE3D && M.drawsTerrain()) ground = scene.globe.pick(ray, scene)
     if (!ground) ground = scene.camera.pickEllipsoid(position, scene.globe.ellipsoid)
     if (useDepth && scene.pickPositionSupported) {
       // The depth buffer finds 3D Tiles and models over the ground; it is

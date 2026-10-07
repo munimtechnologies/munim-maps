@@ -89,6 +89,7 @@ Found running every engine's checks on Android:
 Found running Google's photorealistic 3D map on a phone (Maps 3D SDK 0.2.0):
 
 - Google 3D (Android): the initial camera, models, markers, polylines and polygons were given to the SDK before its map was ready and were lost (the map stayed on the whole Earth, with no models); they are applied once the map is ready, including an `initialCamera` that arrives after `google.mode: '3d'`. `getCamera`, `getCamera3d` and relative `flyTo` / `setCamera3d` read the camera set in code (the SDK reports only gestures), camera changes made in code reach `onCameraChange`, and `map3dReady` fires once instead of on every loading-progress update.
+- Cesium: without terrain, the camera centre and distance (`getCamera`, `getVisibleRegion`, `pointForCoordinate`, `cameraChange`) are measured on the ellipsoid, not on the globe's loading tiles, which sag up to tens of kilometres below it until finer tiles arrive (on a slow phone, `getCamera` read 3 to 30 km for a 1.1 km camera for several seconds after the map was ready).
 
 ## [0.4.0] - 2026-10-06
 
