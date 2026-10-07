@@ -406,7 +406,9 @@ export function groundElevation(
   coordinates: { latitude: number; longitude: number }[]
 ): Promise<number[]> {
   if (!isSupported) {
-    return Promise.reject(new Error('munim-maps: groundElevation needs iOS or Android'))
+    return Promise.reject(
+      new Error('munim-maps: groundElevation needs iOS or Android')
+    )
   }
   terrain ??= NitroModules.createHybridObject<MunimTerrain>('MunimTerrain')
   return terrain.groundElevation(
