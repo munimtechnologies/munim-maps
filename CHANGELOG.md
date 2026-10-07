@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-07
+
 munim-maps is one API over five map engines (MapKit, Google Maps, Mapbox, MapLibre and Cesium) on iOS and Android, and ships no 3D models any more: the vehicle catalogue is the separate `munim-maps-vehicles` package. See [docs/providers.md](docs/providers.md).
 
 ### Breaking

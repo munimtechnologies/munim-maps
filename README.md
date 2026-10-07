@@ -62,11 +62,11 @@
 
 ## Introduction
 
-**munim-maps** puts animated 3D models on Apple Maps in React Native: vehicles, people on the floor of a building they are really on, power-ups, zone walls and your own USDZ files, anchored to real coordinates and moving in the same frame as the map.
+**munim-maps** is one React Native map API over five engines: Apple **MapKit**, **Google Maps**, **Mapbox**, **MapLibre** (open maps: OpenStreetMap data, no key) and **Cesium**, on iOS and Android. Pick the engine per map with `provider`. The shared props, markers, shapes, camera, events and 3D models work the same on every engine, and each engine's own features are there too: Google's indoor maps, Street View and photorealistic 3D; Mapbox's Standard style, globe, terrain and offline packs; MapLibre's full style spec; Cesium's 3D Tiles, CZML and time-dynamic scenes. See [Map Providers](#️-map-providers).
 
-Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit map with models built in, and **`MapModelLayer`** draws over any MapKit map on screen, such as `react-native-maps` on iOS. See [Use Your Own Map](#️-use-your-own-map).
+Animated 3D is built in: vehicles, people on the floor of a building they are really on, rocket launches, satellites on the globe, zone walls and your own glTF or USDZ models, anchored to real coordinates and moving in the same frame as the map. Engines that draw 3D models themselves (Mapbox, Cesium, Google's 3D map) render them natively, so buildings and terrain hide them; the others use munim-maps' own 3D layer (`modelRendering`). The 57-model vehicle catalogue is the separate `munim-maps-vehicles` package, loaded from a CDN and cached on the device, or bundled one model at a time.
 
-**One API, five map engines** (in progress for this release): `MunimMapView` takes a `provider`: Apple **MapKit**, **Google Maps**, **Mapbox**, **MapLibre** (open maps: OpenStreetMap data, no key) or **Cesium**, on iOS and Android, with the same props, models and events. See [Map Providers](#️-map-providers).
+Already using `react-native-maps` or another MapKit map? **`MapModelLayer`** draws the 3D layer over it. See [Use Your Own Map](#️-use-your-own-map).
 
 **Fully compatible with Expo!** Works with Expo managed (prebuild) and bare workflows.
 
@@ -84,7 +84,7 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 **Not using React Native?** The same map and 3D layer are a Swift package for UIKit and SwiftUI apps; see [Swift Package Manager](#swift-package-manager).
 
-**Note**: Android is new and in progress: `MunimMapView` draws MapLibre today, with the whole 3D layer (GLB models, shapes, avatars, labels, effects, zones, paths, building occlusion, terrain), the other engines are coming in this release. See the [Platform Support Matrix](#platform-support-matrix).
+**Note**: on Android, MapKit is not available; `MunimMapView` defaults to Google Maps when it is built in, otherwise MapLibre. See the [Platform Support Matrix](#platform-support-matrix).
 
 ## 📦 Installation
 
@@ -1359,7 +1359,9 @@ Development keys for Google Maps, Mapbox and Cesium are read at build time from 
 
 ## 🛣️ Roadmap
 
-- **Every engine, every feature, both platforms**: Google Maps, Mapbox, MapLibre and Cesium on iOS and Android, with everything each engine offers, behind the same `MunimMapView` (in progress for this release; status in [docs/providers.md](docs/providers.md#feature-matrix)).
+- **Google's photorealistic 3D map on iOS**: Google ships it only as a SwiftUI Swift package, which CocoaPods cannot install; it works on Android today.
+- **Globe and 3D terrain on MapLibre**: as soon as MapLibre Native has them (MapLibre GL JS does).
+- **`MapModelLayer` over `@rnmapbox/maps` and Google `MapView`s on Android**: use `MunimMapView` with `provider` until then.
 
 ## 👏 Contributing
 

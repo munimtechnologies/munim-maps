@@ -1,33 +1,31 @@
-name: Build iOS
+name: Build Android
 
 on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/ios-build.yml'
+      - '.github/workflows/android-build.yml'
       - 'package*.json'
       - 'example/**'
-      - 'packages/munim-maps/ios/**'
+      - 'packages/munim-maps/android/**'
       - 'packages/munim-maps/nitrogen/**'
       - 'packages/munim-maps/src/**'
       - 'packages/munim-maps/scripts/**'
-      - 'packages/munim-maps/*.podspec'
-      - 'packages/munim-maps/cesium/**'
       - 'packages/munim-maps/app.plugin.js'
+      - 'packages/munim-maps/cesium/**'
       - 'packages/munim-maps/nitro.json'
       - 'packages/munim-maps/package.json'
   pull_request:
     paths:
-      - '.github/workflows/ios-build.yml'
+      - '.github/workflows/android-build.yml'
       - 'package*.json'
       - 'example/**'
-      - 'packages/munim-maps/ios/**'
+      - 'packages/munim-maps/android/**'
       - 'packages/munim-maps/nitrogen/**'
       - 'packages/munim-maps/src/**'
       - 'packages/munim-maps/scripts/**'
-      - 'packages/munim-maps/*.podspec'
-      - 'packages/munim-maps/cesium/**'
       - 'packages/munim-maps/app.plugin.js'
+      - 'packages/munim-maps/cesium/**'
       - 'packages/munim-maps/nitro.json'
       - 'packages/munim-maps/package.json'
   workflow_dispatch:
@@ -41,13 +39,13 @@ concurrency:
 
 jobs:
   build:
-    name: Build iOS example (Xcode 26, ${{ matrix.name }})
-    runs-on: macos-26
+    name: Build Android example (${{ matrix.name }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: MapKit only
+          - name: MapLibre only
             providers: ''
           - name: every engine
             providers: google,mapbox,maplibre,cesium
@@ -59,21 +57,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
       - run: npm ci --no-audit --no-fund
-      - name: Generate iOS project
-        run: npx expo prebuild --platform ios --clean --no-install
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean --no-install
         working-directory: example
-      - run: pod install
-        working-directory: example/ios
-      - name: Build simulator app
-        run: |
-          set -o pipefail
-          xcodebuild \
-            -workspace MunimMapsExample.xcworkspace \
-            -scheme MunimMapsExample \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            build
-        working-directory: example/ios
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        working-directory: example/android

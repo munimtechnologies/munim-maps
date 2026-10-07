@@ -15,8 +15,12 @@ concurrency:
 
 jobs:
   publish:
-    name: Publish GitHub Package
+    name: Publish GitHub Package (${{ matrix.package }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [munim-maps, munim-maps-vehicles]
     permissions:
       contents: read
       packages: write
@@ -39,13 +43,13 @@ jobs:
         run: npm run build
 
       - name: Prepare GitHub package manifest
-        working-directory: packages/munim-maps
+        working-directory: packages/${{ matrix.package }}
         run: |
           node <<'NODE'
           const fs = require('fs')
 
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-          pkg.name = '@munimtechnologies/munim-maps'
+          pkg.name = '@munimtechnologies/${{ matrix.package }}'
           pkg.publishConfig = {
             access: 'public',
             registry: 'https://npm.pkg.github.com/',
@@ -53,14 +57,14 @@ jobs:
           pkg.repository = {
             type: 'git',
             url: 'git+https://github.com/munimtechnologies/munim-maps.git',
-            directory: 'packages/munim-maps',
+            directory: 'packages/${{ matrix.package }}',
           }
 
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`)
           NODE
 
       - name: Publish to GitHub Packages
-        working-directory: packages/munim-maps
+        working-directory: packages/${{ matrix.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
