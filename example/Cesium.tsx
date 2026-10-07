@@ -237,8 +237,13 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
     map.setCamera(CAMERA, false)
     await wait(1500)
     await attempt('pick marker', async () => {
+      // Centre the dot: at the check camera it is past the right edge of a phone.
+      map.setCamera({ ...CAMERA, ...MARKERS[3]!.coordinate }, false)
+      await wait(1200)
       const p = await map.pointForCoordinate(MARKERS[3]!.coordinate)
       const hit = await c.pick({ x: p.x, y: p.y })
+      map.setCamera(CAMERA, false)
+      await wait(1200)
       return [hit.kind === 'marker' && hit.id === 'dot', JSON.stringify({ kind: hit.kind, id: hit.id })]
     })
     await attempt('pick model', async () => {

@@ -59,7 +59,26 @@ function withReactNativeMapsGoogle(config) {
   })
 }
 
-module.exports = ({ config }) => withReactNativeMapsGoogle({
+// Models from a local server before munim-maps-vehicles is published
+// (EXPO_PUBLIC_MUNIM_MAPS_VEHICLES_BASE_URL=http://localhost:8000/ with
+// `adb reverse tcp:8000 tcp:8000` on Android): release builds refuse
+// cleartext http unless the manifest allows it.
+function withLocalVehicleServer(config) {
+  if (!/^http:\/\//.test(process.env.EXPO_PUBLIC_MUNIM_MAPS_VEHICLES_BASE_URL ?? '')) return config
+  let plugins
+  try {
+    plugins = require('expo/config-plugins')
+  } catch {
+    plugins = require('@expo/config-plugins')
+  }
+  return plugins.withAndroidManifest(config, (c) => {
+    const app = plugins.AndroidConfig.Manifest.getMainApplicationOrThrow(c.modResults)
+    app.$['android:usesCleartextTraffic'] = 'true'
+    return c
+  })
+}
+
+module.exports = ({ config }) => withLocalVehicleServer(withReactNativeMapsGoogle({
   ...config,
   // The Google screen's web-service check (Places, Geocoding, Routes) needs
   // the key in JavaScript; it is only in local builds, never committed.
@@ -78,4 +97,4 @@ module.exports = ({ config }) => withReactNativeMapsGoogle({
       },
     ],
   ],
-})
+}))

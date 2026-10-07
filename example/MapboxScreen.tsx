@@ -158,9 +158,11 @@ const BLOCK = {
   },
 }
 
-// A white circle as an SDF icon (recoloured with icon-color).
+// A white circle as an SDF icon (recoloured with icon-color). A valid PNG:
+// the previous one had bad CRC / zlib checksums, which iOS tolerates and
+// Android's BitmapFactory does not.
 const SDF_DOT =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAPklEQVR4nGNgGAWjYBSMglEwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwCkbBKAAAhnABEeNbcpMAAAAASUVORK5CYII='
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAL0lEQVR42mP4//8/AyUYmyAhgNcAYgFWA0gFKAaQC0YNGF4GUJyQqJKUqZKZSMYA26Sogj5K8sEAAAAASUVORK5CYII='
 
 type Check = { name: string; ok: boolean; detail: string }
 
@@ -431,9 +433,12 @@ export function MapboxScreen(props: {
       await wait(800)
       const inside = await map.overlayAtPoint(await map.pointForCoordinate({ latitude: 41.8850, longitude: -87.6210 }))
       const hole = await map.overlayAtPoint(await map.pointForCoordinate({ latitude: 41.88375, longitude: -87.61975 }))
-      await map.setCamera(CHICAGO, false)
+      // Centred on the line's point: at CHICAGO it is below the bottom edge of a phone.
+      await map.setCamera({ ...CHICAGO, latitude: 41.8808, longitude: -87.63245 }, false)
       await wait(800)
       const line = await map.overlayAtPoint(await map.pointForCoordinate({ latitude: 41.8808, longitude: -87.63245 }))
+      await map.setCamera(CHICAGO, false)
+      await wait(300)
       return inside === 'park' && hole === '' && line === 'dash-4-10'
         ? 'park, hole empty, dash-4-10'
         : `FAIL inside "${inside}", hole "${hole}", line "${line}"`
@@ -492,7 +497,7 @@ export function MapboxScreen(props: {
       await mb.clearLocationOverride()
       const near = Math.abs(c.latitude - 41.8789) < 0.001 && Math.abs(c.longitude + 87.6359) < 0.001
       const turned = Math.abs(((c2.heading - 120 + 540) % 360) - 180) < 3
-      return near && turned ? `followed, heading ${c2.heading.toFixed(0)}°` : `FAIL camera ${c2.latitude.toFixed(4)}, ${c2.longitude.toFixed(4)} heading ${c2.heading.toFixed(0)}`
+      return near && turned ? `followed, heading ${c2.heading.toFixed(0)}°` : `FAIL first ${c.latitude.toFixed(4)}, ${c.longitude.toFixed(4)}; then ${c2.latitude.toFixed(4)}, ${c2.longitude.toFixed(4)} heading ${c2.heading.toFixed(0)}`
     })
     await map.setCamera({ ...CHICAGO, distance: 6000 }, false)
     setTerrain(true)

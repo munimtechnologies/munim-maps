@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import {
   MAP_PROVIDERS,
+  MarkerView,
   MunimMapView,
   availableProviders,
   defaultProvider,
   installedProviders,
   type MapAlignmentReport,
   type MapCamera,
+  type MapMarker,
   type MapModel,
   type MapProvider,
   type MapRegion,
@@ -45,7 +47,9 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 /**
  * The map shows `want`: its corners are inside the visible region (a pitched
  * camera, as here, sees more than the region, so the visible region is
- * larger), and the visible region is not wildly larger.
+ * larger), and the visible region is not wildly larger. On a tall phone at
+ * 55° pitch the visible region reaches far toward the horizon: about 26 x
+ * the region on MapLibre (Android), so the bound is 40 x.
  */
 function near(region: MapRegion, want: MapRegion) {
   const slack = 0.1
@@ -55,7 +59,7 @@ function near(region: MapRegion, want: MapRegion) {
   const corners = [-1, 1].flatMap((a) =>
     [-1, 1].map((b) => inside(want.latitude + (a * want.latitudeDelta) / 2, want.longitude + (b * want.longitudeDelta) / 2))
   )
-  return corners.every(Boolean) && region.latitudeDelta < want.latitudeDelta * 25
+  return corners.every(Boolean) && region.latitudeDelta < want.latitudeDelta * 40
 }
 
 const NAMES: Record<MapProvider, string> = {
@@ -81,6 +85,12 @@ const MODELS: MapModel[] = [
     source: bundledBalloon,
     screenSize: 60,
   },
+]
+
+// A draggable marker on every engine: onMarkerDragStart / onMarkerDrag
+// (continuous) / onMarkerDragEnd are logged as MUNIM_MAPS_PROVIDERS lines.
+const MARKERS: MapMarker[] = [
+  { id: 'drag', coordinate: { latitude: 41.8812, longitude: -87.6290 }, title: 'Drag me', draggable: true, color: '#AF52DE' },
 ]
 
 /** The example's screens, each reachable from the engine picker. */
@@ -144,18 +154,24 @@ export function ProvidersScreen(props: {
   const ready = useRef(false)
   const starts = useRef(0)
   const completes = useRef<MapRegion[]>([])
+  const drags = useRef(0)
+  const runToken = useRef(0)
   const runChecks = useCallback(async () => {
-    // The map's ref arrives after the first render.
-    for (let i = 0; i < 60 && !ref.current; i++) await wait(250)
-    const map = ref.current
-    if (!map) return
+    // One run at a time: switching engines (the map remounts) ends the last.
+    const token = ++runToken.current
     const checks: SharedCheck[] = []
     const check = (name: string, ok: boolean, detail: unknown) => {
+      if (token !== runToken.current) return
       checks.push({ name, ok, detail: JSON.stringify(detail) })
       console.log(`MUNIM_MAPS_SHARED ${provider} ${ok ? 'pass' : 'FAIL'} ${name} ${JSON.stringify(detail)}`)
     }
     setCheckStatus('Checking…')
+    // Wait for this engine's map: until it is ready, the ref may still be
+    // the previous engine's view.
     for (let i = 0; i < 60 && !ready.current; i++) await wait(250)
+    for (let i = 0; i < 60 && !ref.current; i++) await wait(250)
+    const map = ref.current
+    if (!map || token !== runToken.current) return
     check('onMapReady', ready.current, {})
     await wait(1500)
     starts.current = 0
@@ -171,6 +187,7 @@ export function ProvidersScreen(props: {
     await wait(3500)
     const visibleB = await map.getVisibleRegion()
     check('controlled region moves the map', near(visibleB, REGION_B), visibleB)
+    if (token !== runToken.current) return
     const passed = checks.filter((c) => c.ok).length
     const report = { provider, platform: Platform.OS, finishedAt: new Date().toISOString(), passed, total: checks.length, checks }
     console.log(`MUNIM_MAPS_SHARED ${provider} done ${passed}/${checks.length}`)
@@ -192,7 +209,8 @@ export function ProvidersScreen(props: {
   }, [provider])
 
   useEffect(() => {
-    if (props.autoCheck) void runChecks()
+    // With a deep-linked engine, only once that engine is showing.
+    if (props.autoCheck && (!props.initial || props.initial === provider)) void runChecks()
     // Once per engine opened by the deep link.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.autoCheck, provider])
@@ -232,6 +250,23 @@ export function ProvidersScreen(props: {
         models={MODELS}
         lighting="day"
         onModelPress={setPressed}
+        markers={MARKERS}
+        onMarkerPress={(id) => console.log(`MUNIM_MAPS_PROVIDERS ${provider} marker press ${id}`)}
+        onMarkerDragStart={(e) => {
+          drags.current = 0
+          console.log(`MUNIM_MAPS_PROVIDERS ${provider} drag start ${e.id}`)
+        }}
+        onMarkerDrag={(e) => {
+          drags.current += 1
+          if (drags.current % 5 === 1) {
+            console.log(`MUNIM_MAPS_PROVIDERS ${provider} drag move ${e.id} ${e.latitude.toFixed(5)},${e.longitude.toFixed(5)}`)
+          }
+        }}
+        onMarkerDragEnd={(e) =>
+          console.log(
+            `MUNIM_MAPS_PROVIDERS ${provider} drag end ${e.id} ${e.latitude.toFixed(5)},${e.longitude.toFixed(5)} after ${drags.current} onMarkerDrag`
+          )
+        }
         onRegionChangeStart={() => {
           starts.current += 1
         }}
@@ -246,7 +281,14 @@ export function ProvidersScreen(props: {
           console.log(`MUNIM_MAPS_PROVIDERS ${provider} error ${message}`)
           setErrors((list) => (list.includes(message) ? list : [...list, message].slice(-4)))
         }}
-      />
+      >
+        {/* React Native views as a marker (Android: an image marker; Mapbox: a view annotation). */}
+        <MarkerView id="pill" coordinate={{ latitude: 41.8840, longitude: -87.6262 }} anchor={{ x: 0.5, y: 1 }}>
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>MarkerView</Text>
+          </View>
+        </MarkerView>
+      </MunimMapView>
       <View style={[styles.panel, { top: props.topInset + 8 }, !props.panel && styles.hidden]}>
         <ScrollView horizontal contentContainerStyle={styles.row} showsHorizontalScrollIndicator={false}>
           {props.onExit ? (
@@ -315,6 +357,15 @@ export function ProvidersScreen(props: {
 }
 
 const styles = StyleSheet.create({
+  pill: {
+    backgroundColor: '#0A84FF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  pillText: { color: 'white', fontWeight: '700', fontSize: 14 },
   panel: {
     position: 'absolute',
     left: 12,

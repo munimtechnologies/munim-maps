@@ -303,9 +303,15 @@ export function MapLibreScreen(props: { topInset: number; panel: boolean; autoCh
       return leaves.length > 0 ? `cluster ${id}: zoom ${zoom}, ${leaves.length} leaves` : false
     })
     await check('overlayAtPoint finds the tappable polyline', async () => {
-      const p = await map.pointForCoordinate({ latitude: 41.8770, longitude: -87.6275 })
+      // Centre the line: below the check camera it is off screen on a phone.
+      const at = { latitude: 41.8770, longitude: -87.6275 }
+      map.setCamera({ ...CAMERA, ...at }, false)
+      await wait(1000)
+      const p = await map.pointForCoordinate(at)
       const id = await map.overlayAtPoint(p)
-      return id === 'dashed' ? id : fail(`got '${id}'`)
+      map.setCamera(CAMERA, false)
+      await wait(500)
+      return id === 'dashed' ? id : fail(`got '${id}' at ${p.x.toFixed(0)},${p.y.toFixed(0)}`)
     })
     await check('selectMarker / deselectMarker events', async () => {
       pressed.current = []
