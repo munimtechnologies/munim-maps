@@ -151,6 +151,24 @@ layer.onModelPress = { id in print(id) }
 
 `MunimMapKitView` has the same props, events and methods as `MunimMapView` (`setCamera`, `fit(coordinates:)`, `point(for:)`, `snapshot`, `address(for:)`, `openLookAround(at:)`…). Ground heights are `try await MunimTerrain.shared.groundElevations(for: coordinates)`.
 
+## Table of contents
+
+- [🗺️ Map Providers](#️-map-providers)
+- [📚 Documentation](#-documentation)
+- [🚀 Features](#-features)
+- [🗺️ Use Your Own Map](#️-use-your-own-map)
+- [🧊 Bring Your Own Model](#-bring-your-own-model)
+- [🚗 Vehicle Catalogue](#-vehicle-catalogue)
+- [Platform Support Matrix](#platform-support-matrix)
+- [⚡ Quick Start](#-quick-start)
+- [🔧 API Reference](#-api-reference)
+- [📖 Usage Examples](#-usage-examples)
+- [⚙️ How It Works](#️-how-it-works)
+- [🔍 Troubleshooting](#-troubleshooting)
+- [🛣️ Roadmap](#️-roadmap)
+- [👏 Contributing](#-contributing)
+- [📄 License](#-license)
+
 ## 🗺️ Map Providers
 
 `MunimMapView` draws with the engine in `provider`. MapKit is built in on iOS and MapLibre on Android; the others are opt-in at build time, so an app only ships the SDKs it uses. Full details, the per-engine feature matrix and the engine interfaces are in [docs/providers.md](docs/providers.md).
@@ -374,25 +392,6 @@ await cesium.loadDataSource({ type: 'kml', url: 'https://…/tour.kml', flyTo: t
 ```
 
 Everything CesiumJS offers is reachable: imagery and terrain providers, 3D Tiles (OSM Buildings, Google Photorealistic, I3S, voxels, vector tiles, iTwin, Gaussian splats), CZML / GeoJSON / KML / GPX, the clock and timeline, scene modes, lighting, atmosphere, shadows, fog, clouds, post-processing, picking, measuring, terrain heights, particle systems, panoramas, screenshots and the Viewer widgets, and `cesium.evaluate({ script })` (with `allowEvaluate`) for anything else. The checklist, with what is left out and why, is in [docs/providers.md](docs/providers.md#cesium-engine). Caveats: WebGL in a WebView is heavier than a native SDK; Cesium renders on demand to save battery; data attributions stay on screen.
-
-## Table of contents
-
-- [📦 Installation](#-installation)
-- [🗺️ Map Providers](#️-map-providers)
-- [📚 Documentation](#-documentation)
-- [🚀 Features](#-features)
-- [🗺️ Use Your Own Map](#️-use-your-own-map)
-- [🧊 Bring Your Own Model](#-bring-your-own-model)
-- [🚗 Vehicle Catalogue](#-vehicle-catalogue)
-- [Platform Support Matrix](#platform-support-matrix)
-- [⚡ Quick Start](#-quick-start)
-- [🔧 API Reference](#-api-reference)
-- [📖 Usage Examples](#-usage-examples)
-- [⚙️ How It Works](#️-how-it-works)
-- [🔍 Troubleshooting](#-troubleshooting)
-- [🛣️ Roadmap](#️-roadmap)
-- [👏 Contributing](#-contributing)
-- [📄 License](#-license)
 
 ## 📚 Documentation
 
