@@ -94,7 +94,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   func measureAlignment() throws -> Promise<MapAlignmentReport>
   func overlayAtPoint(point: MapPoint) throws -> Promise<String>
   func mapItemForFeature(id: String) throws -> Promise<MapItem>
-  func providerCall(method: String, argsJson: String) throws -> Promise<String>
+  func providerCommand(command: String, argsJson: String) throws -> Promise<String>
 }
 
 public extension HybridMunimMapViewSpec_protocol {

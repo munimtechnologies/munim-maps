@@ -44,7 +44,7 @@ abstract class HybridMunimMapsConfigSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun providerCall(provider: String, method: String, argsJson: String): Promise<String>
+  abstract fun providerCommand(provider: String, command: String, argsJson: String): Promise<String>
   
   abstract fun setProviderEventListener(listener: (provider: String, name: String, json: String) -> Unit): Unit
   

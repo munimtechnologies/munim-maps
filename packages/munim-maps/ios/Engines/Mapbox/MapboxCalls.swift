@@ -5,7 +5,7 @@ import MapKit
 import UIKit
 
 /// `mapboxMap(ref)` methods (`MapboxMapMethods` in src/providers/mapbox.ts),
-/// called through `providerCall`.
+/// called through `providerCommand`.
 enum MapboxCalls {
   typealias Completion = (Result<Any, Error>) -> Void
 

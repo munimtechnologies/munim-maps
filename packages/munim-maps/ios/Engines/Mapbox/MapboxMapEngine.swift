@@ -6,7 +6,7 @@ import simd
 
 // The Mapbox engine: Mapbox Maps SDK v11 (`MapView`), compiled only with the
 // `NitroMunimMaps/Mapbox` subspec. Everything Mapbox-only is driven by the
-// `mapbox={{…}}` options (`MapboxStyleOptions.swift`), the `providerCall`
+// `mapbox={{…}}` options (`MapboxStyleOptions.swift`), the `providerCommand`
 // methods (`MapboxCalls.swift`) and the engine-level offline calls
 // (`MapboxOffline.swift`); markers, shapes and MarkerViews are in
 // `MapboxContent.swift`. The JavaScript side is src/providers/mapbox.ts.
@@ -15,11 +15,11 @@ enum MapboxMapEngineFactory: MunimMapEngineFactory {
   static let isImplemented = true
   static func make() -> MunimMapEngine { MapboxMapEngine() }
 
-  static func providerCall(
-    _ method: String, args: [String: Any], emit: @escaping (String, Any) -> Void,
+  static func providerCommand(
+    _ command: String, arguments: [String: Any], emit: @escaping (String, Any) -> Void,
     completion: @escaping (Result<Any, Error>) -> Void
   ) {
-    MapboxOffline.call(method, args: args, emit: emit, completion: completion)
+    MapboxOffline.call(command, args: arguments, emit: emit, completion: completion)
   }
 }
 
@@ -487,13 +487,19 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
     MapboxGeocoder.reverse(coordinate, completion: completion)
   }
 
-  func providerCall(_ method: String, args: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
-    MapboxCalls.call(method, args: args, engine: self, completion: completion)
+  func providerCommand(
+    _ command: String, arguments: [String: Any], completion: @escaping (Result<Any, Error>) -> Void
+  ) {
+    MapboxCalls.call(command, args: arguments, engine: self, completion: completion)
+  }
+
+  func setProviderEventHandler(_ handler: ((String, Any) -> Void)?) {
+    onProviderEvent = handler
   }
 
   /// Sends a Mapbox event when it is in `mapbox.events`, or always for `interaction`.
   func emit(_ name: String, _ payload: Any) {
-    onProviderEvent?(name, payload)
+    onProviderEvent?(name, MunimProviderJSON.sanitize(payload))
   }
 }
 

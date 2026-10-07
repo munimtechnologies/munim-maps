@@ -1587,9 +1587,9 @@ open class HybridMunimMapViewSpec_cxx {
   }
   
   @inline(__always)
-  public final func providerCall(method: std.string, argsJson: std.string) -> bridge.Result_std__shared_ptr_Promise_std__string___ {
+  public final func providerCommand(command: std.string, argsJson: std.string) -> bridge.Result_std__shared_ptr_Promise_std__string___ {
     do {
-      let __result = try self.__implementation.providerCall(method: String(method), argsJson: String(argsJson))
+      let __result = try self.__implementation.providerCommand(command: String(command), argsJson: String(argsJson))
       let __resultCpp = { () -> bridge.std__shared_ptr_Promise_std__string__ in
         let __promise = bridge.create_std__shared_ptr_Promise_std__string__()
         let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_std__string__(__promise)

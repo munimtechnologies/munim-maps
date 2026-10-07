@@ -302,7 +302,7 @@ namespace margelo::nitro::munimmaps {
       virtual std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() = 0;
       virtual std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) = 0;
       virtual std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) = 0;
-      virtual std::shared_ptr<Promise<std::string>> providerCall(const std::string& method, const std::string& argsJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) = 0;
 
     protected:
       // Hybrid Setup

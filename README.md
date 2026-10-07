@@ -177,7 +177,7 @@ Pick engines and keys with the Expo config plugin:
 
 Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
 
-Methods and events only one engine has go through `ref.current.providerCall(method, argsJson)` and `onProviderEvent({ name, data })`; each engine wraps them with types (`mapboxMap(ref.current)`).
+Methods and events only one engine has go through `ref.current.providerCommand(command, argsJson)` and `onProviderEvent({ provider, name, data })`; each engine wraps them with types (`mapboxMap(ref.current)`).
 
 ### Mapbox
 

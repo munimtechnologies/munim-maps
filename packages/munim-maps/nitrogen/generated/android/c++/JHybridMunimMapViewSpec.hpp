@@ -197,7 +197,7 @@ namespace margelo::nitro::munimmaps {
     std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() override;
     std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) override;
     std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) override;
-    std::shared_ptr<Promise<std::string>> providerCall(const std::string& method, const std::string& argsJson) override;
+    std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) override;
 
   private:
     jni::global_ref<JHybridMunimMapViewSpec::JavaPart> _javaPart;

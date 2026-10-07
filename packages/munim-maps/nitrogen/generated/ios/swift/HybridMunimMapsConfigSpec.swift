@@ -16,7 +16,7 @@ public protocol HybridMunimMapsConfigSpec_protocol: HybridObject {
   func configure(configuration: NativeMapsConfiguration) throws -> Void
   func availableProviders() throws -> String
   func installedProviders() throws -> String
-  func providerCall(provider: String, method: String, argsJson: String) throws -> Promise<String>
+  func providerCommand(provider: String, command: String, argsJson: String) throws -> Promise<String>
   func setProviderEventListener(listener: @escaping (_ provider: String, _ name: String, _ json: String) -> Void) throws -> Void
 }
 

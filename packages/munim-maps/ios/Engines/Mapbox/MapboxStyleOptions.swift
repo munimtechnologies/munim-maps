@@ -216,6 +216,16 @@ extension MapboxMapEngine {
     let preset = config["lightPreset"] as? String ?? "day"
     style.isDarkPreset = preset == "night" || preset == "dusk"
     guard mapboxMap.styleImports.contains(where: { $0.id == "basemap" }) else { return }
+    // Keys set before and not wanted now go back to the style's defaults.
+    let dropped = style.basemapConfig.keys.filter { config[$0] == nil }
+    if !dropped.isEmpty, let schema = try? mapboxMap.getStyleImportSchema(for: "basemap") as? [String: Any] {
+      for key in dropped {
+        style.basemapConfig[key] = nil
+        if let entry = schema[key] as? [String: Any], let value = entry["default"] {
+          try? mapboxMap.setStyleImportConfigProperty(for: "basemap", config: key, value: value)
+        }
+      }
+    }
     for (key, value) in config {
       let canonical = MapboxJSON.key(value)
       if style.basemapConfig[key] == canonical { continue }

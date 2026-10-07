@@ -31,11 +31,14 @@ namespace margelo::nitro::munimmaps {
     [[nodiscard]]
     ProviderEvent toCpp() const {
       static const auto clazz = javaClassStatic();
+      static const auto fieldProvider = clazz->getField<jni::JString>("provider");
+      jni::local_ref<jni::JString> provider = this->getFieldValue(fieldProvider);
       static const auto fieldName = clazz->getField<jni::JString>("name");
       jni::local_ref<jni::JString> name = this->getFieldValue(fieldName);
       static const auto fieldJson = clazz->getField<jni::JString>("json");
       jni::local_ref<jni::JString> json = this->getFieldValue(fieldJson);
       return ProviderEvent(
+        provider->toStdString(),
         name->toStdString(),
         json->toStdString()
       );
@@ -47,11 +50,12 @@ namespace margelo::nitro::munimmaps {
      */
     [[maybe_unused]]
     static jni::local_ref<JProviderEvent::javaobject> fromCpp(const ProviderEvent& value) {
-      using JSignature = JProviderEvent(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
+      using JSignature = JProviderEvent(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
+        jni::make_jstring(value.provider),
         jni::make_jstring(value.name),
         jni::make_jstring(value.json)
       );

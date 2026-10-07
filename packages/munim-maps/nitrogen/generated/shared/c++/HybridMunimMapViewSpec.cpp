@@ -158,7 +158,7 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridMethod("measureAlignment", &HybridMunimMapViewSpec::measureAlignment);
       prototype.registerHybridMethod("overlayAtPoint", &HybridMunimMapViewSpec::overlayAtPoint);
       prototype.registerHybridMethod("mapItemForFeature", &HybridMunimMapViewSpec::mapItemForFeature);
-      prototype.registerHybridMethod("providerCall", &HybridMunimMapViewSpec::providerCall);
+      prototype.registerHybridMethod("providerCommand", &HybridMunimMapViewSpec::providerCommand);
     });
   }
 

@@ -20,6 +20,9 @@ import java.util.Objects
 data class ProviderEvent(
   @DoNotStrip
   @Keep
+  val provider: String,
+  @DoNotStrip
+  @Keep
   val name: String,
   @DoNotStrip
   @Keep
@@ -30,12 +33,14 @@ data class ProviderEvent(
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is ProviderEvent) return false
-    return Objects.deepEquals(this.name, other.name)
+    return Objects.deepEquals(this.provider, other.provider)
+      && Objects.deepEquals(this.name, other.name)
       && Objects.deepEquals(this.json, other.json)
   }
 
   override fun hashCode(): Int {
     return arrayOf<Any?>(
+      provider,
       name,
       json
     ).contentDeepHashCode()
@@ -49,8 +54,8 @@ data class ProviderEvent(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(name: String, json: String): ProviderEvent {
-      return ProviderEvent(name, json)
+    private fun fromCpp(provider: String, name: String, json: String): ProviderEvent {
+      return ProviderEvent(provider, name, json)
     }
   }
 }

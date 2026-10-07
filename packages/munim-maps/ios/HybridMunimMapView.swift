@@ -20,9 +20,6 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   /// Sends the engine's events to JavaScript.
   private func wire(_ engine: MunimMapEngine) {
     engine.onError = { [weak self] message in self?.onError?(message) }
-    engine.onProviderEvent = { [weak self] name, payload in
-      self?.onProviderEvent?(ProviderEvent(name: name, json: MunimProviderJSON.string(payload)))
-    }
     engine.modelLayer.onModelPress = { [weak self] id in self?.onModelPress?(id) }
     engine.onMapReady = { [weak self] in self?.onMapReady?() }
     engine.onCameraChange = { [weak self] camera in self?.onCameraChange?(camera.nitro) }
@@ -64,6 +61,21 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
         title: f.title, latitude: f.coordinate.latitude, longitude: f.coordinate.longitude,
         kind: f.kind, category: f.category, id: f.id))
     }
+    let provider = engine.provider.rawValue
+    engine.setProviderEventHandler { [weak self] name, data in
+      self?.onProviderEvent?(ProviderEvent(provider: provider, name: name, json: Self.json(data)))
+    }
+  }
+
+  /// JSON text for a JSON-compatible value (`null` when it is not).
+  static func json(_ value: Any) -> String {
+    if value is NSNull { return "null" }
+    guard JSONSerialization.isValidJSONObject([value]),
+          let data = try? JSONSerialization.data(withJSONObject: [value], options: [.fragmentsAllowed]),
+          let text = String(data: data, encoding: .utf8)
+    else { return "null" }
+    // Unwrap the array that made fragments valid.
+    return String(text.dropFirst().dropLast())
   }
 
   /// Sets every prop again, on a new engine (`again` runs the observers).
@@ -393,13 +405,12 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     mainPromise { self.map.overlayHit(at: CGPoint(x: point.x, y: point.y))?.id ?? "" }
   }
 
-  func providerCall(method: String, argsJson: String) throws -> Promise<String> {
-    let promise = Promise<String>()
-    let args = MunimProviderJSON.object(argsJson)
+  func mapItemForFeature(id: String) throws -> Promise<MapItem> {
+    let promise = Promise<MapItem>()
     DispatchQueue.main.async {
-      self.map.providerCall(method, args: args) { result in
+      self.map.mapItem(forFeature: id) { result in
         switch result {
-        case .success(let value): promise.resolve(withResult: MunimProviderJSON.string(value))
+        case .success(let item): promise.resolve(withResult: MapItem(item))
         case .failure(let error): promise.reject(withError: error)
         }
       }
@@ -407,12 +418,13 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     return promise
   }
 
-  func mapItemForFeature(id: String) throws -> Promise<MapItem> {
-    let promise = Promise<MapItem>()
+  func providerCommand(command: String, argsJson: String) throws -> Promise<String> {
+    let promise = Promise<String>()
+    let arguments = (try? JSONSerialization.jsonObject(with: Data(argsJson.utf8))) as? [String: Any] ?? [:]
     DispatchQueue.main.async {
-      self.map.mapItem(forFeature: id) { result in
+      self.map.providerCommand(command, arguments: arguments) { result in
         switch result {
-        case .success(let item): promise.resolve(withResult: MapItem(item))
+        case .success(let value): promise.resolve(withResult: Self.json(value))
         case .failure(let error): promise.reject(withError: error)
         }
       }

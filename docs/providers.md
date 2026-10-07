@@ -178,9 +178,9 @@ For each engine:
 
 Every engine can add methods and events without changing the shared spec:
 
-- `ref.current.providerCall(method, argsJson)` → JSON text, and `onProviderEvent({ name, data })` on `MunimMapView`. JavaScript: `callMapProvider(ref.current, method, args)`; each engine adds typed wrappers next to its options (`mapboxMap(ref.current)`).
-- `callProvider(provider, method, args)` and `addProviderEventListener(provider, listener)` for engine-level methods that need no map (Mapbox's offline downloads), through `MunimMapsConfig`.
-- Native: iOS `MunimMapEngine.providerCall(_:args:completion:)` / `onProviderEvent` and `MunimMapEngineFactory.providerCall(_:args:emit:completion:)`; Android `MunimMapEngine.providerCall(method, args, completion)` / `MunimMapEngineListener.onProviderEvent` and `MunimMapEngineFactory.providerCall(context, …)`. All have defaults (reject / drop), so engines opt in.
+- `ref.current.providerCommand(command, argsJson)` → JSON text, and `onProviderEvent({ provider, name, data })` on `MunimMapView` (the same channel the Google, MapLibre and Cesium engines use). JavaScript: `providerCommand(ref.current, command, args)`; each engine adds typed wrappers next to its options (`mapboxMap(ref.current)`).
+- `callProvider(provider, command, args)` and `addProviderEventListener(provider, listener)` for engine-level commands that need no map (Mapbox's offline downloads), through `MunimMapsConfig`.
+- Native: iOS `MunimMapEngine.providerCommand(_:arguments:completion:)` / `setProviderEventHandler(_:)` and `MunimMapEngineFactory.providerCommand(_:arguments:emit:completion:)`; Android `MunimMapEngine.providerCommand(command, args, completion)` (JSON text) / `MunimMapEngineListener.onProviderEvent(name, json)` and `MunimMapEngineFactory.providerCommand(context, …)`. All have defaults (reject / drop), so engines opt in.
 - `onMarkerDrag` (shared): a dragged marker's position while it moves, between `onMarkerDragStart` and `onMarkerDragEnd` (iOS `MunimMapEngine.onMarkerDrag`, Android `MunimMapEngineListener.onMarkerDrag`, defaulted).
 - `MarkerView` on Android: `MunimMapView` keeps its children off screen next to the map (Android's Nitro views cannot hold React children); each `MarkerView` draws its children into a bitmap and calls `MunimMapEngine.setViewMarker` / `setViewMarkerImage` / `removeViewMarker` (defaulted), like iOS.
 

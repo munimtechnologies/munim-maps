@@ -24,7 +24,7 @@ class HybridMunimMapsConfig : HybridMunimMapsConfigSpec() {
 
   override fun installedProviders(): String = MunimMapEngines.installed.joinToString(",") { it.id }
 
-  override fun providerCall(provider: String, method: String, argsJson: String): Promise<String> {
+  override fun providerCommand(provider: String, command: String, argsJson: String): Promise<String> {
     val promise = Promise<String>()
     val engine = MapProvider.entries.firstOrNull { it.id == provider }
     if (engine == null) {
@@ -39,10 +39,10 @@ class HybridMunimMapsConfig : HybridMunimMapsConfigSpec() {
     val args = ProviderJson.objectOf(argsJson)
     Handler(Looper.getMainLooper()).post {
       try {
-        MunimMapEngines.providerCall(
-          engine, context, method, args,
+        MunimMapEngines.providerCommand(
+          engine, context, command, args,
           emit = { name, payload -> eventListener?.invoke(provider, name, ProviderJson.stringOf(payload)) },
-        ) { result -> result.fold({ promise.resolve(ProviderJson.stringOf(it)) }, { promise.reject(it) }) }
+        ) { result -> result.fold({ promise.resolve(it) }, { promise.reject(it) }) }
       } catch (error: Throwable) {
         promise.reject(error)
       }

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native'
 import { NitroModules } from 'react-native-nitro-modules'
 import type { MunimMapsConfig } from '../specs/MunimMapsConfig.nitro'
-import type { MapProvider } from '../specs/MunimMapView.nitro'
+import type { MapProvider, ProviderEvent } from '../specs/MunimMapView.nitro'
 import type { CesiumMapOptions } from './cesium'
 import type { GoogleMapOptions } from './google'
 import type { MapboxMapOptions } from './mapbox'
@@ -154,15 +154,49 @@ export function providerOptionsJson(
   return options ? JSON.stringify(options) : '{}'
 }
 
-/** An engine-only event (`onProviderEvent`) with its payload decoded. */
-export interface MapProviderEvent {
-  name: string
+/**
+ * An event only one engine has (`onProviderEvent`): which engine, the
+ * event's name and its data (parsed from JSON). Engines document their
+ * events; Google's are typed as `GoogleMapEvent`.
+ */
 
-  data: any
+export interface MapProviderEvent<Data = any> {
+  provider: MapProvider
+  name: string
+  data: Data
+}
+
+/** Parses a native `ProviderEvent`. */
+export function parseProviderEvent(event: ProviderEvent): MapProviderEvent {
+  let data: unknown = null
+  try {
+    data = JSON.parse(event.json)
+  } catch {
+    data = event.json
+  }
+  return { provider: event.provider as MapProvider, name: event.name, data }
+}
+
+/** Anything with `MunimMapView`'s `providerCommand` method (its ref). */
+export interface ProviderCommandTarget {
+  providerCommand(command: string, argsJson: string): Promise<string>
+}
+
+/**
+ * Calls a method only the active engine has (`ref.providerCommand` with
+ * JSON in and out). Rejects when the engine does not know the command.
+ */
+export async function providerCommand<Result = unknown>(
+  map: ProviderCommandTarget,
+  command: string,
+  args: object = {}
+): Promise<Result> {
+  const json = await map.providerCommand(command, JSON.stringify(args))
+  return JSON.parse(json || 'null') as Result
 }
 
 /** Decodes engine JSON; `undefined` for empty or broken text. */
-export function parseProviderJson(json: string): unknown {
+function parseJson(json: string): unknown {
   if (!json) return undefined
   try {
     return JSON.parse(json)
@@ -171,40 +205,19 @@ export function parseProviderJson(json: string): unknown {
   }
 }
 
-/** What `callMapProvider` needs: a mounted `MunimMapView`'s ref. */
-export interface ProviderCallTarget {
-  providerCall(method: string, argsJson: string): Promise<string>
-}
-
 /**
- * Calls an engine-only method on a mounted map (`ref.current`), such as
- * Mapbox's `queryRenderedFeatures`. Rejects when the map's engine has no
- * such method. Each engine's typed wrappers (`mapboxMap(ref)`) use this.
- */
-export async function callMapProvider<T = unknown>(
-  map: ProviderCallTarget | null | undefined,
-  method: string,
-  args: object = {}
-): Promise<T> {
-  if (!map) throw new Error(`munim-maps: ${method}: the map is not mounted`)
-  return parseProviderJson(
-    await map.providerCall(method, JSON.stringify(args))
-  ) as T
-}
-
-/**
- * Calls an engine-level method that needs no map, such as Mapbox's offline
+ * Runs an engine-level command that needs no map, such as Mapbox's offline
  * downloads (`MapboxOffline`). Rejects when the engine is not built in.
  */
 export async function callProvider<T = unknown>(
   provider: MapProvider,
-  method: string,
+  command: string,
   args: object = {}
 ): Promise<T> {
   const target = native()
   if (!target) throw new Error('munim-maps: not available on this platform')
-  return parseProviderJson(
-    await target.providerCall(provider, method, JSON.stringify(args))
+  return parseJson(
+    await target.providerCommand(provider, command, JSON.stringify(args))
   ) as T
 }
 
@@ -226,7 +239,7 @@ export function addProviderEventListener(
     target.setProviderEventListener((from, name, json) => {
       const set = providerListeners.get(from as MapProvider)
       if (!set || set.size === 0) return
-      const data = parseProviderJson(json)
+      const data = parseJson(json)
       for (const l of [...set]) l(name, data)
     })
   }

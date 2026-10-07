@@ -66,9 +66,9 @@ namespace margelo::nitro::munimmaps {
     auto __result = method(_javaPart);
     return __result->toStdString();
   }
-  std::shared_ptr<Promise<std::string>> JHybridMunimMapsConfigSpec::providerCall(const std::string& provider, const std::string& method, const std::string& argsJson) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* provider */, jni::alias_ref<jni::JString> /* method */, jni::alias_ref<jni::JString> /* argsJson */)>("providerCall");
-    auto __result = method(_javaPart, jni::make_jstring(provider), jni::make_jstring(method), jni::make_jstring(argsJson));
+  std::shared_ptr<Promise<std::string>> JHybridMunimMapsConfigSpec::providerCommand(const std::string& provider, const std::string& command, const std::string& argsJson) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* provider */, jni::alias_ref<jni::JString> /* command */, jni::alias_ref<jni::JString> /* argsJson */)>("providerCommand");
+    auto __result = method(_javaPart, jni::make_jstring(provider), jni::make_jstring(command), jni::make_jstring(argsJson));
     return [&]() {
       auto __promise = Promise<std::string>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {

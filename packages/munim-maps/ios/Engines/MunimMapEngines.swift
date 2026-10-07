@@ -7,19 +7,19 @@ protocol MunimMapEngineFactory {
   /// placeholder. Flip it once the engine draws a map.
   static var isImplemented: Bool { get }
   static func make() -> MunimMapEngine
-  /// Engine-level methods that need no map (Mapbox's offline downloads).
+  /// Engine-level commands that need no map (Mapbox's offline downloads).
   /// `emit` sends an event to JavaScript (`setProviderEventListener`).
-  static func providerCall(
-    _ method: String, args: [String: Any], emit: @escaping (String, Any) -> Void,
+  static func providerCommand(
+    _ command: String, arguments: [String: Any], emit: @escaping (String, Any) -> Void,
     completion: @escaping (Result<Any, Error>) -> Void)
 }
 
 extension MunimMapEngineFactory {
-  static func providerCall(
-    _ method: String, args: [String: Any], emit: @escaping (String, Any) -> Void,
+  static func providerCommand(
+    _ command: String, arguments: [String: Any], emit: @escaping (String, Any) -> Void,
     completion: @escaping (Result<Any, Error>) -> Void
   ) {
-    completion(.failure(MunimMapEngineError("This engine has no method \"\(method)\"")))
+    completion(.failure(MunimMapEngineError("This engine has no command \"\(command)\"")))
   }
 }
 
@@ -73,9 +73,9 @@ public enum MunimMapEngines {
     MunimMapProvider.allCases.filter { factory(for: $0)?.isImplemented == true }
   }
 
-  /// Calls an engine-level method (no map needed) on `provider`'s engine.
-  public static func providerCall(
-    _ provider: MunimMapProvider, method: String, args: [String: Any],
+  /// Runs an engine-level command (no map needed) on `provider`'s engine.
+  public static func providerCommand(
+    _ provider: MunimMapProvider, command: String, arguments: [String: Any],
     emit: @escaping (String, Any) -> Void,
     completion: @escaping (Result<Any, Error>) -> Void
   ) {
@@ -83,7 +83,7 @@ public enum MunimMapEngines {
       completion(.failure(MunimMapEngineError("\(provider.displayName) is not built into this app")))
       return
     }
-    factory.providerCall(method, args: args, emit: emit, completion: completion)
+    factory.providerCommand(command, arguments: arguments, emit: emit, completion: completion)
   }
 
   /// A new engine for `provider`, or a placeholder saying why there is none.
@@ -98,7 +98,7 @@ public enum MunimMapEngines {
   }
 }
 
-/// JSON for engine-only methods and events (`providerCall`, `onProviderEvent`).
+/// JSON for engine-only commands and events (`providerCommand`, `onProviderEvent`).
 @_expose(!Cxx)
 public enum MunimProviderJSON {
   /// The JSON object in `json`, or an empty one.

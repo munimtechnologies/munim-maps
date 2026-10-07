@@ -6,7 +6,7 @@
  *   (`MapboxMapOptions`). They are declarative: the engine adds, updates and
  *   removes what changed between renders.
  * - Methods only Mapbox has are on `mapboxMap(ref)` (`MapboxMapMethods`),
- *   on top of `ref.providerCall`.
+ *   on top of `ref.providerCommand`.
  * - Offline downloads need no map: `MapboxOffline`.
  * - Mapbox's map events and featureset taps arrive in `onProviderEvent`
  *   (`MapboxEventName`).
@@ -18,12 +18,12 @@
  * expression the SDK supports works on both platforms.
  */
 import {
-  callMapProvider,
   callProvider,
+  providerCommand,
   addProviderEventListener,
   configuredMapboxToken,
 } from './index'
-import type { ProviderCallTarget } from './index'
+import type { ProviderCommandTarget } from './index'
 
 /** A Mapbox style expression, such as `['get', 'height']`. */
 
@@ -500,7 +500,7 @@ export interface MapboxSnapshotOptions {
   showsAttribution?: boolean
 }
 
-/** Typed wrappers for the Mapbox engine's methods, on `ref.providerCall`. */
+/** Typed wrappers for the Mapbox engine's methods, on `ref.providerCommand`. */
 export interface MapboxMapMethods {
   /** Features drawn at a point, in a box, or (no geometry) on the whole map. */
   queryRenderedFeatures(options?: {
@@ -705,11 +705,15 @@ export interface MapboxMapMethods {
 
 /** The Mapbox engine's methods on a mounted map (`ref.current`). */
 export function mapboxMap(
-  map: ProviderCallTarget | null | undefined
+  map: ProviderCommandTarget | null | undefined
 ): MapboxMapMethods {
   return new Proxy({} as MapboxMapMethods, {
     get: (_target, method: string) => (args?: object) =>
-      callMapProvider(map, method, args ?? {}),
+      map
+        ? providerCommand(map, method, args ?? {})
+        : Promise.reject(
+            new Error(`munim-maps: ${method}: the map is not mounted`)
+          ),
   })
 }
 

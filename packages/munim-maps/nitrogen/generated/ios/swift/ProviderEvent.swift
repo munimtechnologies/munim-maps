@@ -18,10 +18,15 @@ public extension ProviderEvent {
   /**
    * Create a new instance of `ProviderEvent`.
    */
-  init(name: String, json: String) {
-    self.init(std.string(name), std.string(json))
+  init(provider: String, name: String, json: String) {
+    self.init(std.string(provider), std.string(name), std.string(json))
   }
 
+  @inline(__always)
+  var provider: String {
+    return String(self.__provider)
+  }
+  
   @inline(__always)
   var name: String {
     return String(self.__name)

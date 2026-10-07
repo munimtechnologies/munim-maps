@@ -68,7 +68,7 @@ import type {
 import { pointsOfInterestFilter } from './services'
 import {
   defaultProvider,
-  parseProviderJson,
+  parseProviderEvent,
   providerOptionsJson,
   type MapProviderEvent,
   type MapProvider,
@@ -431,18 +431,6 @@ function useCallbackProp<A extends unknown[]>(
   return useMemo(() => (fn ? callback(fn) : undefined), [fn])
 }
 
-function useProviderEvent(fn: ((event: MapProviderEvent) => void) | undefined) {
-  return useMemo(
-    () =>
-      fn
-        ? callback((event: ProviderEvent) =>
-            fn({ name: event.name, data: parseProviderJson(event.json) })
-          )
-        : undefined,
-    [fn]
-  )
-}
-
 export interface MapModelLayerProperties {
   models: MapModel[]
   zones?: MapZone[]
@@ -778,7 +766,16 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
-    const onProviderEvent = useProviderEvent(props.onProviderEvent)
+    const onProviderEventProp = props.onProviderEvent
+    const onProviderEvent = useMemo(
+      () =>
+        onProviderEventProp
+          ? callback((event: ProviderEvent) =>
+              onProviderEventProp(parseProviderEvent(event))
+            )
+          : undefined,
+      [onProviderEventProp]
+    )
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
@@ -899,8 +896,9 @@ export * from './providers/mapbox'
 export {
   MAP_PROVIDERS,
   addProviderEventListener,
-  callMapProvider,
   callProvider,
+  parseProviderEvent,
+  providerCommand,
   availableProviders,
   configureMunimMaps,
   defaultProvider,
@@ -914,6 +912,7 @@ export {
   type MapProvider,
   type MapProviderEvent,
   type MunimMapsConfiguration,
+  type ProviderCommandTarget,
   type ProviderOptionProps,
 } from './providers'
 export { MarkerView, type MarkerViewProperties } from './MarkerView'

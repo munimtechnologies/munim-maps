@@ -643,7 +643,7 @@ abstract class HybridMunimMapViewSpec: HybridView() {
   
   @DoNotStrip
   @Keep
-  abstract fun providerCall(method: String, argsJson: String): Promise<String>
+  abstract fun providerCommand(command: String, argsJson: String): Promise<String>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

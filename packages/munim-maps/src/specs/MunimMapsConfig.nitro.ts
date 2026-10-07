@@ -35,12 +35,12 @@ export interface MunimMapsConfig extends HybridObject<{
   installedProviders(): string
   /**
    * An engine-level method that needs no map (Mapbox's offline downloads):
-   * the provider, the method's name and JSON arguments in, JSON out. Rejects
+   * the provider, the command's name and JSON arguments in, JSON out. Rejects
    * when the engine is not built in or has no such method.
    */
-  providerCall(
+  providerCommand(
     provider: string,
-    method: string,
+    command: string,
     argsJson: string
   ): Promise<string>
   /**

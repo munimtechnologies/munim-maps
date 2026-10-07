@@ -3,7 +3,7 @@ package com.munimmaps.engine
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** JSON for engine-only methods and events (`providerCall`, `onProviderEvent`). */
+/** JSON for engine-only methods and events (`providerCommand`, `onProviderEvent`). */
 object ProviderJson {
   /** The JSON object in [json], or an empty one. */
   fun objectOf(json: String): JSONObject = try {

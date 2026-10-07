@@ -82,10 +82,12 @@ export interface EdgeInsets {
 }
 
 /**
- * An engine-only event (`onProviderEvent`), such as Mapbox's `mapIdle` or a
- * tap on a Standard style featureset: its name and JSON payload.
+ * An event only one engine has (Google's indoor level change, a Street View
+ * panorama change…): the engine's `provider` id, the event `name` and its
+ * data as JSON. `onProviderEvent` on `MunimMapView` parses `json`.
  */
 export interface ProviderEvent {
+  provider: string
   name: string
   json: string
 }
@@ -218,7 +220,7 @@ export interface MunimMapViewProps extends HybridViewProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
-  /** Engine-only events, as JSON (see the engine's options in `src/providers/`). */
+  /** Events only the active engine has (see each engine's docs). */
   onProviderEvent?: (event: ProviderEvent) => void
 }
 
@@ -271,12 +273,12 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
   mapItemForFeature(id: string): Promise<MapItem>
   /**
-   * An engine-only method (Mapbox's `queryRenderedFeatures`, …): its name and
-   * JSON arguments in, its JSON result out. Rejects when the engine has no
-   * such method. Typed wrappers live with each engine's options
-   * (`src/providers/<provider>.ts`).
+   * A method only the active engine has, such as Google's
+   * `streetView.open`: `command` names it, `argsJson` is its arguments as
+   * JSON, and the promise resolves with the result as JSON (`null` for
+   * none). Rejects when the engine does not know the command.
    */
-  providerCall(method: string, argsJson: string): Promise<string>
+  providerCommand(command: string, argsJson: string): Promise<string>
 }
 
 export type MunimMapView = HybridView<

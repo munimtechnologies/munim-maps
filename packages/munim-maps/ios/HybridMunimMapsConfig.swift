@@ -26,7 +26,7 @@ final class HybridMunimMapsConfig: HybridMunimMapsConfigSpec {
   /// Shared by every config object: engine-level events go to the last listener set.
   private static var eventListener: ((String, String, String) -> Void)?
 
-  func providerCall(provider: String, method: String, argsJson: String) throws -> Promise<String> {
+  func providerCommand(provider: String, command: String, argsJson: String) throws -> Promise<String> {
     let promise = Promise<String>()
     guard let engine = MunimMapProvider(rawValue: provider) else {
       promise.reject(withError: MunimMapEngineError("Unknown map provider \"\(provider)\""))
@@ -34,8 +34,8 @@ final class HybridMunimMapsConfig: HybridMunimMapsConfigSpec {
     }
     let args = MunimProviderJSON.object(argsJson)
     DispatchQueue.main.async {
-      MunimMapEngines.providerCall(
-        engine, method: method, args: args,
+      MunimMapEngines.providerCommand(
+        engine, command: command, arguments: args,
         emit: { name, payload in
           Self.eventListener?(provider, name, MunimProviderJSON.string(payload))
         },

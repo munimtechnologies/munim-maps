@@ -55,7 +55,7 @@ namespace margelo::nitro::munimmaps {
       virtual void configure(const NativeMapsConfiguration& configuration) = 0;
       virtual std::string availableProviders() = 0;
       virtual std::string installedProviders() = 0;
-      virtual std::shared_ptr<Promise<std::string>> providerCall(const std::string& provider, const std::string& method, const std::string& argsJson) = 0;
+      virtual std::shared_ptr<Promise<std::string>> providerCommand(const std::string& provider, const std::string& command, const std::string& argsJson) = 0;
       virtual void setProviderEventListener(const std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>& listener) = 0;
 
     protected:

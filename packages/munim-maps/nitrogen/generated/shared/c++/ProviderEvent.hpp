@@ -39,12 +39,13 @@ namespace margelo::nitro::munimmaps {
    */
   struct ProviderEvent final {
   public:
+    std::string provider     SWIFT_PRIVATE;
     std::string name     SWIFT_PRIVATE;
     std::string json     SWIFT_PRIVATE;
 
   public:
     ProviderEvent() = default;
-    explicit ProviderEvent(std::string name, std::string json): name(name), json(json) {}
+    explicit ProviderEvent(std::string provider, std::string name, std::string json): provider(provider), name(name), json(json) {}
 
   public:
     friend bool operator==(const ProviderEvent& lhs, const ProviderEvent& rhs) = default;
@@ -60,12 +61,14 @@ namespace margelo::nitro {
     static inline margelo::nitro::munimmaps::ProviderEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::munimmaps::ProviderEvent(
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "provider"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "name"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "json")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::ProviderEvent& arg) {
       jsi::Object obj(runtime);
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "provider"), JSIConverter<std::string>::toJSI(runtime, arg.provider));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "name"), JSIConverter<std::string>::toJSI(runtime, arg.name));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "json"), JSIConverter<std::string>::toJSI(runtime, arg.json));
       return obj;
@@ -78,6 +81,7 @@ namespace margelo::nitro {
       if (!nitro::isPlainObject(runtime, obj)) {
         return false;
       }
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "provider")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "name")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "json")))) return false;
       return true;

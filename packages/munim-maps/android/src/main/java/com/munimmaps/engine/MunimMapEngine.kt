@@ -73,18 +73,18 @@ interface MunimMapEngineFactory {
   fun create(context: Context): MunimMapEngine
 
   /**
-   * Engine-level methods that need no map (Mapbox's offline downloads), on
-   * the main thread. `emit` sends an event to JavaScript; complete with a
-   * JSON-compatible value ([ProviderJson.stringOf]).
+   * Engine-level commands that need no map (Mapbox's offline downloads), on
+   * the main thread. `emit` sends an event to JavaScript; complete with the
+   * result as JSON text ([ProviderJson.stringOf]).
    */
-  fun providerCall(
+  fun providerCommand(
     context: Context,
-    method: String,
+    command: String,
     args: JSONObject,
     emit: (String, Any?) -> Unit,
-    completion: (Result<Any?>) -> Unit,
+    completion: (Result<String>) -> Unit,
   ) {
-    completion(Result.failure(UnsupportedOperationException("This engine has no method \"$method\"")))
+    completion(Result.failure(UnsupportedOperationException("This engine has no command \"$command\"")))
   }
 }
 
@@ -215,14 +215,12 @@ interface MunimMapEngine {
   fun overlayAtPoint(point: MapPoint): String = ""
 
   /**
-   * An engine-only method (React Native `ref.providerCall`), on the main
-   * thread: `args` is the decoded JSON object; complete with a
-   * JSON-compatible value (JSONObject, JSONArray, Map, List, String, Number,
-   * Boolean, null). Send engine-only events with
-   * [MunimMapEngineListener.onProviderEvent]. The default rejects every method.
+   * A method only this engine has (`providerCommand` in JavaScript): `args`
+   * is the decoded JSON; complete with the result as JSON text (`null` for
+   * none).
    */
-  fun providerCall(method: String, args: JSONObject, completion: (Result<Any?>) -> Unit) {
-    completion(Result.failure(UnsupportedOperationException("${provider.displayName} has no method \"$method\"")))
+  fun providerCommand(command: String, args: JSONObject, completion: (Result<String>) -> Unit) {
+    completion(Result.failure(UnsupportedOperationException("${provider.displayName} has no command \"$command\"")))
   }
 }
 

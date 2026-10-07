@@ -781,8 +781,8 @@ namespace margelo::nitro::munimmaps {
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline std::shared_ptr<Promise<std::string>> providerCall(const std::string& method, const std::string& argsJson) override {
-      auto __result = _swiftPart.providerCall(method, argsJson);
+    inline std::shared_ptr<Promise<std::string>> providerCommand(const std::string& command, const std::string& argsJson) override {
+      auto __result = _swiftPart.providerCommand(command, argsJson);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }
