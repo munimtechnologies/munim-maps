@@ -156,7 +156,7 @@ layer.onModelPress = { id in print(id) }
 | Provider | `provider=` | iOS | Android | Key |
 | --- | --- | --- | --- | --- |
 | Apple MapKit | `'mapkit'` | ✅ Built in, the default | — | None |
-| Google Maps | `'google'` | ⏳ Coming in this release | ⏳ Coming in this release | Google Maps SDK key |
+| Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` (Maps SDK 10 + Utils) | ✅ `munimMaps.google=true` (Maps SDK 20 + maps-utils), the default when on | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ⏳ Coming in this release | ⏳ Coming in this release | Mapbox public token |
 | MapLibre (open maps) | `'maplibre'` | ⏳ Coming in this release | ✅ Built in, the default (map, camera, events, GLB models) | None (OpenStreetMap data from OpenFreeMap) |
 | Cesium | `'cesium'` | ⏳ Coming in this release | ⏳ Coming in this release | Cesium ion token |
@@ -176,6 +176,50 @@ Pick engines and keys with the Expo config plugin:
 ```
 
 Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
+
+### Google Maps
+
+`provider="google"` draws with the Maps SDK for iOS (`GoogleMaps` 10, CocoaPods) and the Maps SDK for Android (`play-services-maps` 20), with Google Maps Utils for clustering, heatmaps, KML and GeoJSON, and munim-maps' 3D layer on Google's camera. Every shared prop, event and method works; everything only Google has is in `google={{ … }}`, `onProviderEvent` and `googleMap(ref)`. The full capability list is in [docs/providers.md](docs/providers.md#google-maps-engine-checklist).
+
+**Setup.** Get a key with the *Maps SDK for iOS* and *Maps SDK for Android* APIs on (restrict it to your bundle ID and package + SHA-1). With Expo: `["munim-maps", { "providers": ["google"], "googleMapsApiKey": { "ios": "…", "android": "…" } }]`, then `npx expo prebuild`. Without Expo: `pod 'NitroMunimMaps/Google', :path => '../node_modules/munim-maps'` plus `configureMunimMaps({ googleMapsApiKey })` (or Info.plist `MunimMapsGoogleMapsApiKey`) on iOS, and `munimMaps.google=true` in `android/gradle.properties` plus `com.google.android.geo.API_KEY` meta-data on Android. Showing the user's location needs `NSLocationWhenInUseUsageDescription` (iOS) and `ACCESS_FINE_LOCATION` in the manifest (Android); munim-maps asks for the permission when `showsUserLocation` or tracking turns on. With Google built in, Android maps default to it.
+
+```tsx
+import { MunimMapView, googleMap, googleEvent, googleMapsServices } from 'munim-maps'
+
+<MunimMapView
+  ref={ref}
+  provider="google"
+  initialCamera={{ latitude: 41.88, longitude: -87.63, distance: 1200, pitch: 55, heading: 30 }}
+  colorScheme="dark"
+  showsTraffic
+  markers={[{ id: 'hq', coordinate, style: 'marker', glyph: 'G', callout: true, title: 'HQ' }]}
+  google={{
+    mapId: 'DEMO_MAP_ID',                 // cloud styling, advanced markers, data-driven styling
+    mapType: 'hybrid',                    // normal | satellite | hybrid | terrain | none
+    indoorEnabled: true,
+    zoomControls: true, mapToolbar: true, // Android
+    markers: { hq: { pin: { background: '#0A84FF', glyph: 'HQ' }, collisionBehavior: 'required' } },
+    polylines: { route: { pattern: [{ type: 'dash', length: 12 }, { type: 'gap', length: 6 }], stamp: { imageUri } } },
+    heatmaps: [{ id: 'heat', points, radius: 30 }],
+    groundOverlays: [{ id: 'plan', imageUri, bounds: { southwest, northeast } }],
+    geoJsonLayers: [{ id: 'zones', url: 'https://…/zones.geojson' }],
+    kmlLayers: [{ id: 'trail', url: 'https://…/trail.kml' }],
+    featureLayers: [{ featureType: 'LOCALITY', placeStyles: { [placeId]: { fillColor: '#0A84FF55' } } }],
+  }}
+  onProviderEvent={(event) => {
+    const e = googleEvent(event) // typed: indoorLevelActivated, poiClick, featureClick, streetViewChange…
+  }}
+/>
+
+const google = googleMap(ref.current!)
+await google.animateCamera({ zoom: 18, tilt: 60, bearing: 90 }, 800) // Google's own units
+await google.streetView.open({ latitude, longitude, heading: 90 })  // Street View over the map
+await ref.current!.openLookAround(coordinate)                       // full-screen Street View
+```
+
+**Places, Geocoding, Routes.** These are Google web services, not part of the Maps SDKs: turn the APIs on for a key, then `googleMapsServices({ apiKey })` gives `places.autocomplete`, `places.details`, `places.searchText`, `places.searchNearby`, `places.photoUrl`, `geocoding.geocode` / `reverseGeocode`, `routes.computeRoutes` (lines decoded) and `routes.computeRouteMatrix`. They are billed per request; call them from your server where you can, or use a separate app-restricted key (`iosBundleId`, `androidPackage` + `androidCertSha1` are sent as Google's app-restriction headers). `googleGeometry` has Google's distance, heading, offset, area and polyline encoding in JavaScript.
+
+Caveats: Google publishes a zoom level, not a camera distance, so munim-maps measures Google's field of view from its own projection (the 3D layer then lines up with the map to within a point; `measureAlignment()` reports it). JSON styles (`styleJson`, `styleUrl`, `mapStyle="muted"`, `pointsOfInterest`) and cloud styling (`mapId`) do not mix. Google draws info windows as pictures, so a whole callout is one tap (`onCalloutPress`). The iOS SDK has no stroke patterns, caps or joints: dashes are drawn as spans in metres at the current zoom. Android uses android-maps-utils 3.20 by default (it builds with React Native's Kotlin 2.1); apps on Kotlin 2.3 can set `munimMaps.googleMapsUtilsVersion`. Google has no globe, scale bar or tracking modes (munim-maps follows the user itself). Photorealistic 3D (the separate Maps 3D SDK) is not part of this engine.
 
 ## Table of contents
 
