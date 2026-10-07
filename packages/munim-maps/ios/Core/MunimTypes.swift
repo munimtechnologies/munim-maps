@@ -516,6 +516,13 @@ public enum MunimLineCap: String, Sendable {
 }
 
 @_expose(!Cxx)
+public enum MunimLineJoin: String, Sendable { case round, bevel, miter }
+
+/// Where an overlay sits in MapKit's layers.
+@_expose(!Cxx)
+public enum MunimOverlayLevel: String, Sendable { case aboveRoads, aboveLabels }
+
+@_expose(!Cxx)
 public struct MunimPolyline: Sendable {
   public var id: String
   public var coordinates: [CLLocationCoordinate2D]
@@ -526,6 +533,15 @@ public struct MunimPolyline: Sendable {
   public var geodesic: Bool
   public var lineCap: MunimLineCap
   public var zIndex: Double
+  /// Colours along the line for a gradient, comma-separated.
+  public var strokeColors = ""
+  /// Where each colour sits, 0...1, comma-separated; empty spaces them evenly.
+  public var strokeColorLocations = ""
+  public var lineJoin: MunimLineJoin = .round
+  public var strokeStart: Double = 0
+  public var strokeEnd: Double = 1
+  public var level: MunimOverlayLevel = .aboveLabels
+  public var tappable = true
 
   public init(id: String, coordinates: [CLLocationCoordinate2D], strokeColor: String = "#0A84FF",
               strokeWidth: Double = 3, dashPattern: String = "", geodesic: Bool = false,
@@ -551,6 +567,9 @@ public struct MunimPolygon: Sendable {
   public var strokeWidth: Double
   public var dashPattern: String
   public var zIndex: Double
+  public var lineJoin: MunimLineJoin = .round
+  public var level: MunimOverlayLevel = .aboveLabels
+  public var tappable = true
 
   public init(id: String, coordinates: [CLLocationCoordinate2D], holes: [[CLLocationCoordinate2D]] = [],
               strokeColor: String = "#0A84FF", fillColor: String = "#0A84FF33", strokeWidth: Double = 2,
@@ -578,6 +597,8 @@ public struct MunimCircle: Sendable {
   public var strokeWidth: Double
   public var dashPattern: String
   public var zIndex: Double
+  public var level: MunimOverlayLevel = .aboveLabels
+  public var tappable = true
 
   public init(id: String, center: CLLocationCoordinate2D, radius: Double, strokeColor: String = "#0A84FF",
               fillColor: String = "#0A84FF33", strokeWidth: Double = 2, dashPattern: String = "",
@@ -604,6 +625,7 @@ public struct MunimTileOverlay: Sendable {
   public var maximumZoom: Double
   public var opacity: Double
   public var zIndex: Double
+  public var level: MunimOverlayLevel = .aboveRoads
 
   public init(id: String, urlTemplate: String, replacesMap: Bool = false, minimumZoom: Double = 0,
               maximumZoom: Double = 0, opacity: Double = 1, zIndex: Double = 0) {

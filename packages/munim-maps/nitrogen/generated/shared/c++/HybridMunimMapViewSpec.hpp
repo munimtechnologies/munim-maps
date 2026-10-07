@@ -59,6 +59,8 @@ namespace margelo::nitro::munimmaps { struct MapPressEvent; }
 namespace margelo::nitro::munimmaps { struct CalloutAccessoryEvent; }
 // Forward declaration of `ClusterPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct ClusterPressEvent; }
+// Forward declaration of `OverlayPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
 // Forward declaration of `MarkerDragEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
@@ -107,6 +109,7 @@ namespace margelo::nitro::munimmaps { struct MapItem; }
 #include "MapPressEvent.hpp"
 #include "CalloutAccessoryEvent.hpp"
 #include "ClusterPressEvent.hpp"
+#include "OverlayPressEvent.hpp"
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
@@ -246,6 +249,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setOnCalloutAccessoryPress(const std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>& onCalloutAccessoryPress) = 0;
       virtual std::optional<std::function<void(const ClusterPressEvent& /* event */)>> getOnClusterPress() = 0;
       virtual void setOnClusterPress(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& onClusterPress) = 0;
+      virtual std::optional<std::function<void(const OverlayPressEvent& /* event */)>> getOnOverlayPress() = 0;
+      virtual void setOnOverlayPress(const std::optional<std::function<void(const OverlayPressEvent& /* event */)>>& onOverlayPress) = 0;
       virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragStart() = 0;
       virtual void setOnMarkerDragStart(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragStart) = 0;
       virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragEnd() = 0;
@@ -279,6 +284,7 @@ namespace margelo::nitro::munimmaps {
       virtual std::shared_ptr<Promise<bool>> hasLookAround(const MapCoordinate& coordinate) = 0;
       virtual std::shared_ptr<Promise<bool>> openLookAround(const MapCoordinate& coordinate) = 0;
       virtual std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() = 0;
+      virtual std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) = 0;
       virtual std::shared_ptr<Promise<MapItem>> mapItemForFeature(const std::string& id) = 0;
 
     protected:

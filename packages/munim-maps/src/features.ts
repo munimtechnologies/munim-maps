@@ -3,6 +3,8 @@ import type {
   CalloutAccessoryKind,
   FeatureVisibility,
   LineCap,
+  LineJoin,
+  OverlayLevel,
   MarkerCollisionMode,
   NativeCalloutAccessory,
   NativeClusterStyle,
@@ -116,19 +118,46 @@ export interface MapMarker {
   animatesWhenAdded?: boolean
 }
 
-export interface MapPolyline {
+/** Shared by polylines, polygons and circles. */
+interface OverlayOptions {
+  /**
+   * `'aboveLabels'` (default) draws over MapKit's labels; `'aboveRoads'`
+   * draws under labels and buildings, like Apple Maps' routes.
+   */
+  level?: OverlayLevel
+  /** Taps on it fire the map's `onOverlayPress`. Default true. */
+  tappable?: boolean
+}
+
+export interface MapPolyline extends OverlayOptions {
   id: string
   coordinates: LatLng[]
   strokeColor?: string
+  /**
+   * A gradient along the line (MKGradientPolylineRenderer): two or more
+   * colours, from the first coordinate to the last.
+   */
+  strokeColors?: string[]
+  /** Where each of `strokeColors` sits along the line, 0...1. Default evenly spaced. */
+  strokeColorLocations?: number[]
   strokeWidth?: number
   /** Dash and gap lengths in points, such as `[4, 10]`. */
   dashPattern?: number[]
   geodesic?: boolean
   lineCap?: LineCap
+  /** Default `'round'`. */
+  lineJoin?: LineJoin
+  /**
+   * Draw only part of the line, 0...1 of its length (default 0 and 1).
+   * Change `strokeEnd` over time to animate a route being drawn; it updates
+   * in place.
+   */
+  strokeStart?: number
+  strokeEnd?: number
   zIndex?: number
 }
 
-export interface MapPolygon {
+export interface MapPolygon extends OverlayOptions {
   id: string
   coordinates: LatLng[]
   holes?: LatLng[][]
@@ -136,10 +165,11 @@ export interface MapPolygon {
   fillColor?: string
   strokeWidth?: number
   dashPattern?: number[]
+  lineJoin?: LineJoin
   zIndex?: number
 }
 
-export interface MapCircle {
+export interface MapCircle extends OverlayOptions {
   id: string
   center: LatLng
   /** Metres. */
@@ -161,6 +191,8 @@ export interface MapTileOverlay {
   maximumZoom?: number
   opacity?: number
   zIndex?: number
+  /** Default `'aboveRoads'` (under labels); `'aboveLabels'` covers them. */
+  level?: OverlayLevel
 }
 
 function resolveImage(image: MapMarker['image']): string {
@@ -287,6 +319,13 @@ export function toNativePolyline(line: MapPolyline): NativePolyline {
     geodesic: line.geodesic ?? false,
     lineCap: line.lineCap ?? 'round',
     zIndex: line.zIndex ?? 0,
+    strokeColors: (line.strokeColors ?? []).join(','),
+    strokeColorLocations: (line.strokeColorLocations ?? []).join(','),
+    lineJoin: line.lineJoin ?? 'round',
+    strokeStart: line.strokeStart ?? 0,
+    strokeEnd: line.strokeEnd ?? 1,
+    level: line.level ?? 'aboveLabels',
+    tappable: line.tappable ?? true,
   }
 }
 
@@ -305,6 +344,9 @@ export function toNativePolygon(polygon: MapPolygon): NativePolygon {
     strokeWidth: polygon.strokeWidth ?? 2,
     dashPattern: dash(polygon.dashPattern),
     zIndex: polygon.zIndex ?? 0,
+    lineJoin: polygon.lineJoin ?? 'round',
+    level: polygon.level ?? 'aboveLabels',
+    tappable: polygon.tappable ?? true,
   }
 }
 
@@ -319,6 +361,8 @@ export function toNativeCircle(circle: MapCircle): NativeCircle {
     strokeWidth: circle.strokeWidth ?? 2,
     dashPattern: dash(circle.dashPattern),
     zIndex: circle.zIndex ?? 0,
+    level: circle.level ?? 'aboveLabels',
+    tappable: circle.tappable ?? true,
   }
 }
 
@@ -333,5 +377,6 @@ export function toNativeTileOverlay(
     maximumZoom: overlay.maximumZoom ?? 0,
     opacity: overlay.opacity ?? 1,
     zIndex: overlay.zIndex ?? 0,
+    level: overlay.level ?? 'aboveRoads',
   }
 }

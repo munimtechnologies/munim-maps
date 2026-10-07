@@ -18,14 +18,14 @@ public extension NativePolyline {
   /**
    * Create a new instance of `NativePolyline`.
    */
-  init(id: String, coordinates: [MapCoordinate], strokeColor: String, strokeWidth: Double, dashPattern: String, geodesic: Bool, lineCap: LineCap, zIndex: Double) {
+  init(id: String, coordinates: [MapCoordinate], strokeColor: String, strokeWidth: Double, dashPattern: String, geodesic: Bool, lineCap: LineCap, zIndex: Double, strokeColors: String, strokeColorLocations: String, lineJoin: LineJoin, strokeStart: Double, strokeEnd: Double, level: OverlayLevel, tappable: Bool) {
     self.init(std.string(id), { () -> bridge.std__vector_MapCoordinate_ in
       var __vector = bridge.create_std__vector_MapCoordinate_(coordinates.count)
       for __item in coordinates {
         __vector.push_back(__item)
       }
       return __vector
-    }(), std.string(strokeColor), strokeWidth, std.string(dashPattern), geodesic, lineCap, zIndex)
+    }(), std.string(strokeColor), strokeWidth, std.string(dashPattern), geodesic, lineCap, zIndex, std.string(strokeColors), std.string(strokeColorLocations), lineJoin, strokeStart, strokeEnd, level, tappable)
   }
 
   @inline(__always)
@@ -66,6 +66,41 @@ public extension NativePolyline {
   @inline(__always)
   var zIndex: Double {
     return self.__zIndex
+  }
+  
+  @inline(__always)
+  var strokeColors: String {
+    return String(self.__strokeColors)
+  }
+  
+  @inline(__always)
+  var strokeColorLocations: String {
+    return String(self.__strokeColorLocations)
+  }
+  
+  @inline(__always)
+  var lineJoin: LineJoin {
+    return self.__lineJoin
+  }
+  
+  @inline(__always)
+  var strokeStart: Double {
+    return self.__strokeStart
+  }
+  
+  @inline(__always)
+  var strokeEnd: Double {
+    return self.__strokeEnd
+  }
+  
+  @inline(__always)
+  var level: OverlayLevel {
+    return self.__level
+  }
+  
+  @inline(__always)
+  var tappable: Bool {
+    return self.__tappable
   }
 }
 

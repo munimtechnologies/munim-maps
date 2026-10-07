@@ -60,6 +60,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var onCalloutPress: ((_ id: String) -> Void)? { get set }
   var onCalloutAccessoryPress: ((_ event: CalloutAccessoryEvent) -> Void)? { get set }
   var onClusterPress: ((_ event: ClusterPressEvent) -> Void)? { get set }
+  var onOverlayPress: ((_ event: OverlayPressEvent) -> Void)? { get set }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)? { get set }
@@ -86,6 +87,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   func hasLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
   func openLookAround(coordinate: MapCoordinate) throws -> Promise<Bool>
   func measureAlignment() throws -> Promise<MapAlignmentReport>
+  func overlayAtPoint(point: MapPoint) throws -> Promise<String>
   func mapItemForFeature(id: String) throws -> Promise<MapItem>
 }
 

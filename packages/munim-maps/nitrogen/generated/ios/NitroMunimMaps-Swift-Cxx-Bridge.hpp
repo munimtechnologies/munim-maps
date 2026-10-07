@@ -30,6 +30,8 @@ namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
 namespace margelo::nitro::munimmaps { class HybridMunimTerrainSpec; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `LineJoin` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineJoin; }
 // Forward declaration of `MapAddress` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -88,6 +90,10 @@ namespace margelo::nitro::munimmaps { struct NativePolygon; }
 namespace margelo::nitro::munimmaps { struct NativePolyline; }
 // Forward declaration of `NativeTileOverlay` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `OverlayLevel` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
+// Forward declaration of `OverlayPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 // Forward declaration of `UserTrackingMode` to properly resolve imports.
@@ -115,6 +121,7 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "HybridMunimMapViewSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
 #include "LineCap.hpp"
+#include "LineJoin.hpp"
 #include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
 #include "MapAltitudeReference.hpp"
@@ -144,6 +151,8 @@ namespace NitroMunimMaps { class HybridMunimTerrainSpec_cxx; }
 #include "NativePolygon.hpp"
 #include "NativePolyline.hpp"
 #include "NativeTileOverlay.hpp"
+#include "OverlayLevel.hpp"
+#include "OverlayPressEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "UserTrackingMode.hpp"
 #include <NitroModules/Promise.hpp>
@@ -685,6 +694,43 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(const ClusterPressEvent& /* event */)> get_std__optional_std__function_void_const_ClusterPressEvent_____event______(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const OverlayPressEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const OverlayPressEvent&)>`.
+   */
+  using Func_void_OverlayPressEvent = std::function<void(const OverlayPressEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const OverlayPressEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_OverlayPressEvent_Wrapper final {
+  public:
+    explicit Func_void_OverlayPressEvent_Wrapper(std::function<void(const OverlayPressEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const OverlayPressEvent& /* event */)>>(std::move(func))) {}
+    inline void call(OverlayPressEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const OverlayPressEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_OverlayPressEvent create_Func_void_OverlayPressEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_OverlayPressEvent_Wrapper wrap_Func_void_OverlayPressEvent(Func_void_OverlayPressEvent value) noexcept {
+    return Func_void_OverlayPressEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const OverlayPressEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const OverlayPressEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_OverlayPressEvent_____event______ = std::optional<std::function<void(const OverlayPressEvent& /* event */)>>;
+  inline std::optional<std::function<void(const OverlayPressEvent& /* event */)>> create_std__optional_std__function_void_const_OverlayPressEvent_____event______(const std::function<void(const OverlayPressEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const OverlayPressEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_OverlayPressEvent_____event______(const std::optional<std::function<void(const OverlayPressEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const OverlayPressEvent& /* event */)> get_std__optional_std__function_void_const_OverlayPressEvent_____event______(const std::optional<std::function<void(const OverlayPressEvent& /* event */)>>& optional) noexcept {
     return optional.value();
   }
   

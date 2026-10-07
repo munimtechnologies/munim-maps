@@ -169,6 +169,14 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var onCalloutPress: ((_ id: String) -> Void)?
   var onCalloutAccessoryPress: ((_ event: CalloutAccessoryEvent) -> Void)?
   var onClusterPress: ((_ event: ClusterPressEvent) -> Void)?
+  var onOverlayPress: ((_ event: OverlayPressEvent) -> Void)? {
+    didSet {
+      // Overlays are hit-tested on taps only while someone listens.
+      map.onOverlayPress = onOverlayPress == nil ? nil : { [weak self] id, kind, c in
+        self?.onOverlayPress?(OverlayPressEvent(id: id, kind: kind, latitude: c.latitude, longitude: c.longitude))
+      }
+    }
+  }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)?
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)?
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)?
@@ -296,6 +304,10 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   func measureAlignment() throws -> Promise<MapAlignmentReport> {
     mainPromise { self.map.measureAlignment().nitro }
+  }
+
+  func overlayAtPoint(point: MapPoint) throws -> Promise<String> {
+    mainPromise { self.map.overlayHit(at: CGPoint(x: point.x, y: point.y))?.id ?? "" }
   }
 
   func mapItemForFeature(id: String) throws -> Promise<MapItem> {

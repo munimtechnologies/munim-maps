@@ -329,6 +329,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setOnClusterPress(newViewProps.onClusterPress.value);
     newViewProps.onClusterPress.isDirty = false;
   }
+  // onOverlayPress: optional
+  if (newViewProps.onOverlayPress.isDirty) {
+    swiftPart.setOnOverlayPress(newViewProps.onOverlayPress.value);
+    newViewProps.onOverlayPress.isDirty = false;
+  }
   // onMarkerDragStart: optional
   if (newViewProps.onMarkerDragStart.isDirty) {
     swiftPart.setOnMarkerDragStart(newViewProps.onMarkerDragStart.value);

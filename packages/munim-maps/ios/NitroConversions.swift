@@ -171,33 +171,58 @@ func mapItemAddress(_ item: MKMapItem) -> MapAddress {
 
 extension NativePolyline {
   var core: MunimPolyline {
-    MunimPolyline(id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init), strokeColor: strokeColor,
-                  strokeWidth: strokeWidth, dashPattern: dashPattern, geodesic: geodesic,
-                  lineCap: MunimLineCap(rawValue: lineCap.stringValue) ?? .round, zIndex: zIndex)
+    var line = MunimPolyline(
+      id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init), strokeColor: strokeColor,
+      strokeWidth: strokeWidth, dashPattern: dashPattern, geodesic: geodesic,
+      lineCap: MunimLineCap(rawValue: lineCap.stringValue) ?? .round, zIndex: zIndex)
+    line.strokeColors = strokeColors
+    line.strokeColorLocations = strokeColorLocations
+    line.lineJoin = MunimLineJoin(rawValue: lineJoin.stringValue) ?? .round
+    line.strokeStart = strokeStart
+    line.strokeEnd = strokeEnd
+    line.level = level.core
+    line.tappable = tappable
+    return line
   }
 }
 
 extension NativePolygon {
   var core: MunimPolygon {
-    MunimPolygon(id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init),
-                 holes: holes.map { $0.map(CLLocationCoordinate2D.init) }, strokeColor: strokeColor,
-                 fillColor: fillColor, strokeWidth: strokeWidth, dashPattern: dashPattern, zIndex: zIndex)
+    var polygon = MunimPolygon(
+      id: id, coordinates: coordinates.map(CLLocationCoordinate2D.init),
+      holes: holes.map { $0.map(CLLocationCoordinate2D.init) }, strokeColor: strokeColor,
+      fillColor: fillColor, strokeWidth: strokeWidth, dashPattern: dashPattern, zIndex: zIndex)
+    polygon.lineJoin = MunimLineJoin(rawValue: lineJoin.stringValue) ?? .round
+    polygon.level = level.core
+    polygon.tappable = tappable
+    return polygon
   }
 }
 
 extension NativeCircle {
   var core: MunimCircle {
-    MunimCircle(id: id, center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), radius: radius,
-                strokeColor: strokeColor, fillColor: fillColor, strokeWidth: strokeWidth,
-                dashPattern: dashPattern, zIndex: zIndex)
+    var circle = MunimCircle(
+      id: id, center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), radius: radius,
+      strokeColor: strokeColor, fillColor: fillColor, strokeWidth: strokeWidth,
+      dashPattern: dashPattern, zIndex: zIndex)
+    circle.level = level.core
+    circle.tappable = tappable
+    return circle
   }
 }
 
 extension NativeTileOverlay {
   var core: MunimTileOverlay {
-    MunimTileOverlay(id: id, urlTemplate: urlTemplate, replacesMap: replacesMap, minimumZoom: minimumZoom,
-                     maximumZoom: maximumZoom, opacity: opacity, zIndex: zIndex)
+    var tiles = MunimTileOverlay(
+      id: id, urlTemplate: urlTemplate, replacesMap: replacesMap, minimumZoom: minimumZoom,
+      maximumZoom: maximumZoom, opacity: opacity, zIndex: zIndex)
+    tiles.level = level.core
+    return tiles
   }
+}
+
+extension OverlayLevel {
+  var core: MunimOverlayLevel { MunimOverlayLevel(rawValue: stringValue) ?? .aboveLabels }
 }
 
 extension FeatureVisibility {

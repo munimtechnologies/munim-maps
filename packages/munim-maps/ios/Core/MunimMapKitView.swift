@@ -314,6 +314,9 @@ public final class MunimMapKitView: UIView {
   public var onCalloutAccessoryPress: ((String, String) -> Void)?
   /// A cluster was tapped: its clustering id, the member marker ids and where it is.
   public var onClusterPress: ((String, [String], CLLocationCoordinate2D) -> Void)?
+  /// A tappable polyline, polygon or circle was tapped: id, kind
+  /// (`polyline`, `polygon`, `circle`) and where. Taken instead of `onPress`.
+  public var onOverlayPress: ((String, String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragStart: ((String, CLLocationCoordinate2D) -> Void)?
   public var onMarkerDragEnd: ((String, CLLocationCoordinate2D) -> Void)?
   public var onUserLocationChange: ((CLLocation) -> Void)?
@@ -748,7 +751,17 @@ public final class MunimMapKitView: UIView {
 
   fileprivate func handleTap(at point: CGPoint) {
     if modelLayer.modelHit(at: point) != nil { return } // models have their own event
+    if let onOverlayPress, let hit = features.overlayHit(at: point) {
+      onOverlayPress(hit.id, hit.kind, coordinate(for: point))
+      return
+    }
     onPress?(coordinate(for: point), point)
+  }
+
+  /// Ids of the tappable overlays under a point, topmost first (what a tap
+  /// there would hit), for tests and custom gestures.
+  @nonobjc public func overlayHit(at point: CGPoint) -> (id: String, kind: String)? {
+    features.overlayHit(at: point)
   }
 
   fileprivate func handleLongPress(at point: CGPoint) {

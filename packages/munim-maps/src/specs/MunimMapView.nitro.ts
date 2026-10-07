@@ -23,6 +23,7 @@ import type {
   MapPressEvent,
   MapRegion,
   MarkerDragEvent,
+  OverlayPressEvent,
   NativeCircle,
   NativeMarker,
   NativePolygon,
@@ -171,6 +172,8 @@ export interface MunimMapViewProps extends HybridViewProps {
   onCalloutPress?: (id: string) => void
   onCalloutAccessoryPress?: (event: CalloutAccessoryEvent) => void
   onClusterPress?: (event: ClusterPressEvent) => void
+  /** A tappable polyline, polygon or circle was tapped (the topmost one). */
+  onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
@@ -224,6 +227,8 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   /** Opens Apple's full-screen Look Around at the coordinate. */
   openLookAround(coordinate: MapCoordinate): Promise<boolean>
   measureAlignment(): Promise<MapAlignmentReport>
+  /** Id of the tappable overlay a tap at `point` would hit, or empty. */
+  overlayAtPoint(point: MapPoint): Promise<string>
   /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
   mapItemForFeature(id: string): Promise<MapItem>
 }

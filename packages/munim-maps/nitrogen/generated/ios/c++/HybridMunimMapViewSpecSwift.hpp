@@ -62,6 +62,10 @@ namespace margelo::nitro::munimmaps { enum class CalloutAccessoryKind; }
 namespace margelo::nitro::munimmaps { struct NativePolyline; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `LineJoin` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineJoin; }
+// Forward declaration of `OverlayLevel` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 // Forward declaration of `NativePolygon` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativePolygon; }
 // Forward declaration of `NativeCircle` to properly resolve imports.
@@ -86,6 +90,8 @@ namespace margelo::nitro::munimmaps { struct CalloutAccessoryEvent; }
 namespace margelo::nitro::munimmaps { enum class CalloutAccessorySide; }
 // Forward declaration of `ClusterPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct ClusterPressEvent; }
+// Forward declaration of `OverlayPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
 // Forward declaration of `MarkerDragEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
@@ -132,6 +138,8 @@ namespace margelo::nitro::munimmaps { struct MapItem; }
 #include "CalloutAccessoryKind.hpp"
 #include "NativePolyline.hpp"
 #include "LineCap.hpp"
+#include "LineJoin.hpp"
+#include "OverlayLevel.hpp"
 #include "NativePolygon.hpp"
 #include "NativeCircle.hpp"
 #include "NativeTileOverlay.hpp"
@@ -146,6 +154,7 @@ namespace margelo::nitro::munimmaps { struct MapItem; }
 #include "CalloutAccessoryEvent.hpp"
 #include "CalloutAccessorySide.hpp"
 #include "ClusterPressEvent.hpp"
+#include "OverlayPressEvent.hpp"
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
@@ -537,6 +546,13 @@ namespace margelo::nitro::munimmaps {
     inline void setOnClusterPress(const std::optional<std::function<void(const ClusterPressEvent& /* event */)>>& onClusterPress) noexcept override {
       _swiftPart.setOnClusterPress(onClusterPress);
     }
+    inline std::optional<std::function<void(const OverlayPressEvent& /* event */)>> getOnOverlayPress() noexcept override {
+      auto __result = _swiftPart.getOnOverlayPress();
+      return __result;
+    }
+    inline void setOnOverlayPress(const std::optional<std::function<void(const OverlayPressEvent& /* event */)>>& onOverlayPress) noexcept override {
+      _swiftPart.setOnOverlayPress(onOverlayPress);
+    }
     inline std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragStart() noexcept override {
       auto __result = _swiftPart.getOnMarkerDragStart();
       return __result;
@@ -702,6 +718,14 @@ namespace margelo::nitro::munimmaps {
     }
     inline std::shared_ptr<Promise<MapAlignmentReport>> measureAlignment() override {
       auto __result = _swiftPart.measureAlignment();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<std::string>> overlayAtPoint(const MapPoint& point) override {
+      auto __result = _swiftPart.overlayAtPoint(std::forward<decltype(point)>(point));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

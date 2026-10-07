@@ -54,6 +54,7 @@
     "onCalloutPress": true,
     "onCalloutAccessoryPress": true,
     "onClusterPress": true,
+    "onOverlayPress": true,
     "onMarkerDragStart": true,
     "onMarkerDragEnd": true,
     "onUserLocationChange": true,

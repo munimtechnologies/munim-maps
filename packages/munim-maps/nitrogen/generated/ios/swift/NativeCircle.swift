@@ -18,8 +18,8 @@ public extension NativeCircle {
   /**
    * Create a new instance of `NativeCircle`.
    */
-  init(id: String, latitude: Double, longitude: Double, radius: Double, strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double) {
-    self.init(std.string(id), latitude, longitude, radius, std.string(strokeColor), std.string(fillColor), strokeWidth, std.string(dashPattern), zIndex)
+  init(id: String, latitude: Double, longitude: Double, radius: Double, strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double, level: OverlayLevel, tappable: Bool) {
+    self.init(std.string(id), latitude, longitude, radius, std.string(strokeColor), std.string(fillColor), strokeWidth, std.string(dashPattern), zIndex, level, tappable)
   }
 
   @inline(__always)
@@ -65,5 +65,15 @@ public extension NativeCircle {
   @inline(__always)
   var zIndex: Double {
     return self.__zIndex
+  }
+  
+  @inline(__always)
+  var level: OverlayLevel {
+    return self.__level
+  }
+  
+  @inline(__always)
+  var tappable: Bool {
+    return self.__tappable
   }
 }

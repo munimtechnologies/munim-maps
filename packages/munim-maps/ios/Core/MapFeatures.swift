@@ -26,30 +26,43 @@ final class MunimAnnotation: NSObject, MKAnnotation {
 protocol MunimOverlay: MKOverlay {
   var id: String { get }
   var zIndex: Double { get }
+  var level: MunimOverlayLevel { get }
 }
 
 final class PolylineOverlay: MKPolyline, MunimOverlay {
   var id = ""
   var style: MunimPolyline?
   var zIndex: Double { style?.zIndex ?? 0 }
+  var level: MunimOverlayLevel { style?.level ?? .aboveLabels }
 }
 
 final class PolygonOverlay: MKPolygon, MunimOverlay {
   var id = ""
   var style: MunimPolygon?
   var zIndex: Double { style?.zIndex ?? 0 }
+  var level: MunimOverlayLevel { style?.level ?? .aboveLabels }
 }
 
 final class CircleOverlay: MKCircle, MunimOverlay {
   var id = ""
   var style: MunimCircle?
   var zIndex: Double { style?.zIndex ?? 0 }
+  var level: MunimOverlayLevel { style?.level ?? .aboveLabels }
 }
 
 final class TileOverlay: MKTileOverlay, MunimOverlay {
   var id = ""
   var style: MunimTileOverlay?
   var zIndex: Double { style?.zIndex ?? 0 }
+  var level: MunimOverlayLevel { style?.level ?? .aboveRoads }
+}
+
+extension MunimOverlayLevel {
+  var mapKit: MKOverlayLevel { self == .aboveRoads ? .aboveRoads : .aboveLabels }
+}
+
+func parseNumbers(_ text: String) -> [Double] {
+  text.split(whereSeparator: { $0 == "," || $0 == " " }).compactMap { Double($0) }
 }
 
 func parseDashPattern(_ text: String) -> [NSNumber]? {
@@ -474,7 +487,19 @@ final class MapFeatureController {
 
   func setPolylines(_ items: [MunimPolyline]) {
     sync(prefix: "line", items: items, id: \.id, key: { p in
-      "\(p.coordinates.map { "\($0.latitude),\($0.longitude)" })|\(p.geodesic)|\(p.strokeColor)|\(p.strokeWidth)|\(p.dashPattern)|\(p.lineCap.stringValue)|\(p.zIndex)"
+      "\(p.coordinates.map { "\($0.latitude),\($0.longitude)" })|\(p.geodesic)|\(p.strokeColor)|\(p.strokeWidth)|\(p.dashPattern)|\(p.lineCap.stringValue)|\(p.zIndex)|\(p.strokeColors)|\(p.strokeColorLocations)|\(p.lineJoin.rawValue)|\(p.level.rawValue)|\(p.tappable)"
+    }, restyle: { overlay, p in
+      // Only the drawn range changed: update the renderer in place, so an
+      // animated route does not flicker.
+      guard let line = overlay as? PolylineOverlay, let old = line.style,
+            old.strokeStart != p.strokeStart || old.strokeEnd != p.strokeEnd else { return false }
+      line.style = p
+      if let renderer = self.mapView?.renderer(for: line) as? MKPolylineRenderer {
+        renderer.strokeStart = CGFloat(min(1, max(0, p.strokeStart)))
+        renderer.strokeEnd = CGFloat(min(1, max(0, p.strokeEnd)))
+        renderer.setNeedsDisplay()
+      }
+      return true
     }) { p in
       var coordinates = p.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
       let line: PolylineOverlay
@@ -494,7 +519,7 @@ final class MapFeatureController {
 
   func setPolygons(_ items: [MunimPolygon]) {
     sync(prefix: "polygon", items: items, id: \.id, key: { p in
-      "\(p.coordinates.map { "\($0.latitude),\($0.longitude)" })|\(p.holes.map { $0.map { "\($0.latitude),\($0.longitude)" } })|\(p.strokeColor)|\(p.fillColor)|\(p.strokeWidth)|\(p.dashPattern)|\(p.zIndex)"
+      "\(p.coordinates.map { "\($0.latitude),\($0.longitude)" })|\(p.holes.map { $0.map { "\($0.latitude),\($0.longitude)" } })|\(p.strokeColor)|\(p.fillColor)|\(p.strokeWidth)|\(p.dashPattern)|\(p.zIndex)|\(p.lineJoin.rawValue)|\(p.level.rawValue)|\(p.tappable)"
     }) { p in
       let holes: [MKPolygon] = p.holes.map { ring in
         var c = ring.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
@@ -509,7 +534,7 @@ final class MapFeatureController {
 
   func setCircles(_ items: [MunimCircle]) {
     sync(prefix: "circle", items: items, id: \.id, key: { c in
-      "\(c.latitude),\(c.longitude)|\(c.radius)|\(c.strokeColor)|\(c.fillColor)|\(c.strokeWidth)|\(c.dashPattern)|\(c.zIndex)"
+      "\(c.latitude),\(c.longitude)|\(c.radius)|\(c.strokeColor)|\(c.fillColor)|\(c.strokeWidth)|\(c.dashPattern)|\(c.zIndex)|\(c.level.rawValue)|\(c.tappable)"
     }) { c in
       let circle = CircleOverlay(center: CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude), radius: c.radius)
       circle.id = c.id; circle.style = c
@@ -519,7 +544,7 @@ final class MapFeatureController {
 
   func setTileOverlays(_ items: [MunimTileOverlay]) {
     sync(prefix: "tile", items: items, id: \.id, key: { t in
-      "\(t.urlTemplate)|\(t.replacesMap)|\(t.minimumZoom)|\(t.maximumZoom)|\(t.opacity)|\(t.zIndex)"
+      "\(t.urlTemplate)|\(t.replacesMap)|\(t.minimumZoom)|\(t.maximumZoom)|\(t.opacity)|\(t.zIndex)|\(t.level.rawValue)"
     }) { t in
       let overlay = TileOverlay(urlTemplate: t.urlTemplate)
       overlay.id = t.id; overlay.style = t
@@ -532,7 +557,7 @@ final class MapFeatureController {
 
   /// Replaces overlays whose content changed, keeping their order by zIndex.
   private func sync<T>(prefix: String, items: [T], id: (T) -> String, key: (T) -> String,
-                       make: (T) -> MunimOverlay) {
+                       restyle: ((MunimOverlay, T) -> Bool)? = nil, make: (T) -> MunimOverlay) {
     guard let mapView else { return }
     var seen = Set<String>()
     for item in items {
@@ -540,7 +565,10 @@ final class MapFeatureController {
       guard !seen.contains(itemKey) else { continue }
       seen.insert(itemKey)
       let contentKey = key(item)
-      if overlayKeys[itemKey] == contentKey { continue }
+      if overlayKeys[itemKey] == contentKey {
+        if let restyle, let existing = overlays[itemKey] { _ = restyle(existing, item) }
+        continue
+      }
       if let old = overlays[itemKey] { mapView.removeOverlay(old) }
       let overlay = make(item)
       overlays[itemKey] = overlay
@@ -555,7 +583,7 @@ final class MapFeatureController {
   }
 
   private func insertSorted(_ overlay: MunimOverlay, into mapView: MKMapView) {
-    let level: MKOverlayLevel = overlay is TileOverlay ? .aboveRoads : .aboveLabels
+    let level = overlay.level.mapKit
     let existing = mapView.overlays(in: level).compactMap { $0 as? MunimOverlay }
     let index = existing.firstIndex { $0.zIndex > overlay.zIndex } ?? existing.count
     mapView.insertOverlay(overlay, at: index, level: level)
@@ -569,14 +597,34 @@ final class MapFeatureController {
     }
     switch overlay {
     case let line as PolylineOverlay:
-      let r = MKPolylineRenderer(polyline: line)
-      if let s = line.style { stroke(r, color: s.strokeColor, width: s.strokeWidth, dash: s.dashPattern); r.lineCap = lineCap(s.lineCap) }
+      let colors = (line.style?.strokeColors ?? "").split(separator: ",")
+        .compactMap { UIColor(mapModelHex: $0.trimmingCharacters(in: .whitespaces)) }
+      let r: MKPolylineRenderer
+      if colors.count >= 2 {
+        let gradient = MKGradientPolylineRenderer(polyline: line)
+        var locations = parseNumbers(line.style?.strokeColorLocations ?? "").map { CGFloat($0) }
+        if locations.count != colors.count {
+          locations = colors.indices.map { CGFloat($0) / CGFloat(colors.count - 1) }
+        }
+        gradient.setColors(colors, locations: locations)
+        r = gradient
+      } else {
+        r = MKPolylineRenderer(polyline: line)
+      }
+      if let s = line.style {
+        stroke(r, color: s.strokeColor, width: s.strokeWidth, dash: s.dashPattern)
+        r.lineCap = lineCap(s.lineCap)
+        r.lineJoin = lineJoin(s.lineJoin)
+        r.strokeStart = CGFloat(min(1, max(0, s.strokeStart)))
+        r.strokeEnd = CGFloat(min(1, max(0, s.strokeEnd)))
+      }
       return r
     case let polygon as PolygonOverlay:
       let r = MKPolygonRenderer(polygon: polygon)
       if let s = polygon.style {
         stroke(r, color: s.strokeColor, width: s.strokeWidth, dash: s.dashPattern)
         r.fillColor = UIColor(mapModelHex: s.fillColor)
+        r.lineJoin = lineJoin(s.lineJoin)
       }
       return r
     case let circle as CircleOverlay:
@@ -593,6 +641,89 @@ final class MapFeatureController {
     default:
       return nil
     }
+  }
+
+  private func lineJoin(_ join: MunimLineJoin) -> CGLineJoin {
+    switch join {
+    case .round: return .round
+    case .bevel: return .bevel
+    case .miter: return .miter
+    }
+  }
+
+  // MARK: Overlay taps
+
+  /// The topmost tappable polyline, polygon or circle under `point` (in the
+  /// map view's coordinates): its id and kind.
+  func overlayHit(at point: CGPoint) -> (id: String, kind: String)? {
+    guard let mapView else { return nil }
+    let tapped = MKMapPoint(mapView.convert(point, toCoordinateFrom: mapView))
+    // Metres per point near the tap, for the touch slop.
+    let east = MKMapPoint(mapView.convert(CGPoint(x: point.x + 10, y: point.y), toCoordinateFrom: mapView))
+    let metersPerPoint = max(0.01, tapped.distance(to: east) / 10)
+    let ordered = mapView.overlays(in: .aboveLabels).reversed() + mapView.overlays(in: .aboveRoads).reversed()
+    for case let overlay as MunimOverlay in ordered {
+      switch overlay {
+      case let line as PolylineOverlay:
+        guard let s = line.style, s.tappable else { continue }
+        let slop = max(CGFloat(s.strokeWidth) / 2 + 6, 14)
+        if polylineDistance(line, to: point, in: mapView) <= slop { return (line.id, "polyline") }
+      case let polygon as PolygonOverlay:
+        guard let s = polygon.style, s.tappable else { continue }
+        if Self.contains(polygon, tapped) { return (polygon.id, "polygon") }
+      case let circle as CircleOverlay:
+        guard let s = circle.style, s.tappable else { continue }
+        let distance = MKMapPoint(circle.coordinate).distance(to: tapped)
+        if distance <= circle.radius + metersPerPoint * max(6, s.strokeWidth / 2) { return (circle.id, "circle") }
+      default: continue
+      }
+    }
+    return nil
+  }
+
+  private func polylineDistance(_ line: MKPolyline, to point: CGPoint, in mapView: MKMapView) -> CGFloat {
+    let count = line.pointCount
+    guard count > 0 else { return .greatestFiniteMagnitude }
+    let points = line.points()
+    var best = CGFloat.greatestFiniteMagnitude
+    var previous = mapView.convert(points[0].coordinate, toPointTo: mapView)
+    if count == 1 { return hypot(previous.x - point.x, previous.y - point.y) }
+    for i in 1..<count {
+      let next = mapView.convert(points[i].coordinate, toPointTo: mapView)
+      best = min(best, Self.distance(from: point, toSegment: previous, next))
+      previous = next
+    }
+    return best
+  }
+
+  private static func distance(from p: CGPoint, toSegment a: CGPoint, _ b: CGPoint) -> CGFloat {
+    let dx = b.x - a.x, dy = b.y - a.y
+    let lengthSquared = dx * dx + dy * dy
+    guard lengthSquared > 0 else { return hypot(p.x - a.x, p.y - a.y) }
+    let t = min(1, max(0, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared))
+    return hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+  }
+
+  /// Even-odd point in polygon, holes included.
+  static func contains(_ polygon: MKPolygon, _ point: MKMapPoint) -> Bool {
+    func inside(_ ring: MKPolygon) -> Bool {
+      let points = ring.points()
+      let count = ring.pointCount
+      guard count >= 3 else { return false }
+      var result = false
+      var j = count - 1
+      for i in 0..<count {
+        let a = points[i], b = points[j]
+        if (a.y > point.y) != (b.y > point.y),
+           point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x {
+          result.toggle()
+        }
+        j = i
+      }
+      return result
+    }
+    guard polygon.boundingMapRect.contains(point), inside(polygon) else { return false }
+    return !(polygon.interiorPolygons ?? []).contains(where: inside)
   }
 
   private func lineCap(_ cap: MunimLineCap) -> CGLineCap {

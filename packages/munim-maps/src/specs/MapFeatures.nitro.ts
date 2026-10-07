@@ -136,6 +136,13 @@ export interface NativeMarker {
 }
 
 export type LineCap = 'round' | 'butt' | 'square'
+export type LineJoin = 'round' | 'bevel' | 'miter'
+
+/**
+ * Where an overlay sits in MapKit's layers: `aboveRoads` (under labels and
+ * buildings, the default for tile overlays) or `aboveLabels`.
+ */
+export type OverlayLevel = 'aboveRoads' | 'aboveLabels'
 
 export interface NativePolyline {
   id: string
@@ -148,6 +155,25 @@ export interface NativePolyline {
   geodesic: boolean
   lineCap: LineCap
   zIndex: number
+  /** Colours along the line, comma-separated, for a gradient (MKGradientPolylineRenderer). */
+  strokeColors: string
+  /** Where each of `strokeColors` sits, 0...1, comma-separated; empty spaces them evenly. */
+  strokeColorLocations: string
+  lineJoin: LineJoin
+  /** Draw only this part of the line, 0...1 (animate a route being drawn). */
+  strokeStart: number
+  strokeEnd: number
+  level: OverlayLevel
+  /** Taps on it fire `onOverlayPress`. */
+  tappable: boolean
+}
+
+export interface OverlayPressEvent {
+  id: string
+  /** `polyline`, `polygon` or `circle`. */
+  kind: string
+  latitude: number
+  longitude: number
 }
 
 export interface NativePolygon {
@@ -160,6 +186,9 @@ export interface NativePolygon {
   strokeWidth: number
   dashPattern: string
   zIndex: number
+  lineJoin: LineJoin
+  level: OverlayLevel
+  tappable: boolean
 }
 
 export interface NativeCircle {
@@ -173,6 +202,8 @@ export interface NativeCircle {
   strokeWidth: number
   dashPattern: string
   zIndex: number
+  level: OverlayLevel
+  tappable: boolean
 }
 
 export interface NativeTileOverlay {
@@ -185,6 +216,7 @@ export interface NativeTileOverlay {
   maximumZoom: number
   opacity: number
   zIndex: number
+  level: OverlayLevel
 }
 
 export interface MapPoint {

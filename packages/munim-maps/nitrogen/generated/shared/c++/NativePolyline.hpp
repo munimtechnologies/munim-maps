@@ -32,11 +32,17 @@
 namespace margelo::nitro::munimmaps { struct MapCoordinate; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `LineJoin` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineJoin; }
+// Forward declaration of `OverlayLevel` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 
 #include <string>
 #include "MapCoordinate.hpp"
 #include <vector>
 #include "LineCap.hpp"
+#include "LineJoin.hpp"
+#include "OverlayLevel.hpp"
 
 namespace margelo::nitro::munimmaps {
 
@@ -53,10 +59,17 @@ namespace margelo::nitro::munimmaps {
     bool geodesic     SWIFT_PRIVATE;
     LineCap lineCap     SWIFT_PRIVATE;
     double zIndex     SWIFT_PRIVATE;
+    std::string strokeColors     SWIFT_PRIVATE;
+    std::string strokeColorLocations     SWIFT_PRIVATE;
+    LineJoin lineJoin     SWIFT_PRIVATE;
+    double strokeStart     SWIFT_PRIVATE;
+    double strokeEnd     SWIFT_PRIVATE;
+    OverlayLevel level     SWIFT_PRIVATE;
+    bool tappable     SWIFT_PRIVATE;
 
   public:
     NativePolyline() = default;
-    explicit NativePolyline(std::string id, std::vector<MapCoordinate> coordinates, std::string strokeColor, double strokeWidth, std::string dashPattern, bool geodesic, LineCap lineCap, double zIndex): id(id), coordinates(coordinates), strokeColor(strokeColor), strokeWidth(strokeWidth), dashPattern(dashPattern), geodesic(geodesic), lineCap(lineCap), zIndex(zIndex) {}
+    explicit NativePolyline(std::string id, std::vector<MapCoordinate> coordinates, std::string strokeColor, double strokeWidth, std::string dashPattern, bool geodesic, LineCap lineCap, double zIndex, std::string strokeColors, std::string strokeColorLocations, LineJoin lineJoin, double strokeStart, double strokeEnd, OverlayLevel level, bool tappable): id(id), coordinates(coordinates), strokeColor(strokeColor), strokeWidth(strokeWidth), dashPattern(dashPattern), geodesic(geodesic), lineCap(lineCap), zIndex(zIndex), strokeColors(strokeColors), strokeColorLocations(strokeColorLocations), lineJoin(lineJoin), strokeStart(strokeStart), strokeEnd(strokeEnd), level(level), tappable(tappable) {}
 
   public:
     friend bool operator==(const NativePolyline& lhs, const NativePolyline& rhs) = default;
@@ -79,7 +92,14 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "dashPattern"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "geodesic"))),
         JSIConverter<margelo::nitro::munimmaps::LineCap>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineCap"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeColors"))),
+        JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeColorLocations"))),
+        JSIConverter<margelo::nitro::munimmaps::LineJoin>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineJoin"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeStart"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeEnd"))),
+        JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::NativePolyline& arg) {
@@ -92,6 +112,13 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "geodesic"), JSIConverter<bool>::toJSI(runtime, arg.geodesic));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "lineCap"), JSIConverter<margelo::nitro::munimmaps::LineCap>::toJSI(runtime, arg.lineCap));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "zIndex"), JSIConverter<double>::toJSI(runtime, arg.zIndex));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "strokeColors"), JSIConverter<std::string>::toJSI(runtime, arg.strokeColors));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "strokeColorLocations"), JSIConverter<std::string>::toJSI(runtime, arg.strokeColorLocations));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "lineJoin"), JSIConverter<margelo::nitro::munimmaps::LineJoin>::toJSI(runtime, arg.lineJoin));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "strokeStart"), JSIConverter<double>::toJSI(runtime, arg.strokeStart));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "strokeEnd"), JSIConverter<double>::toJSI(runtime, arg.strokeEnd));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "level"), JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::toJSI(runtime, arg.level));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "tappable"), JSIConverter<bool>::toJSI(runtime, arg.tappable));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -110,6 +137,13 @@ namespace margelo::nitro {
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "geodesic")))) return false;
       if (!JSIConverter<margelo::nitro::munimmaps::LineCap>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineCap")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeColors")))) return false;
+      if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeColorLocations")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::LineJoin>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineJoin")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeStart")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeEnd")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))) return false;
       return true;
     }
   };

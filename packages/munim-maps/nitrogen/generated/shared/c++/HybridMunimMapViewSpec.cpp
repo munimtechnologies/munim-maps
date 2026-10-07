@@ -114,6 +114,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("onCalloutAccessoryPress", &HybridMunimMapViewSpec::setOnCalloutAccessoryPress);
       prototype.registerHybridGetter("onClusterPress", &HybridMunimMapViewSpec::getOnClusterPress);
       prototype.registerHybridSetter("onClusterPress", &HybridMunimMapViewSpec::setOnClusterPress);
+      prototype.registerHybridGetter("onOverlayPress", &HybridMunimMapViewSpec::getOnOverlayPress);
+      prototype.registerHybridSetter("onOverlayPress", &HybridMunimMapViewSpec::setOnOverlayPress);
       prototype.registerHybridGetter("onMarkerDragStart", &HybridMunimMapViewSpec::getOnMarkerDragStart);
       prototype.registerHybridSetter("onMarkerDragStart", &HybridMunimMapViewSpec::setOnMarkerDragStart);
       prototype.registerHybridGetter("onMarkerDragEnd", &HybridMunimMapViewSpec::getOnMarkerDragEnd);
@@ -144,6 +146,7 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridMethod("hasLookAround", &HybridMunimMapViewSpec::hasLookAround);
       prototype.registerHybridMethod("openLookAround", &HybridMunimMapViewSpec::openLookAround);
       prototype.registerHybridMethod("measureAlignment", &HybridMunimMapViewSpec::measureAlignment);
+      prototype.registerHybridMethod("overlayAtPoint", &HybridMunimMapViewSpec::overlayAtPoint);
       prototype.registerHybridMethod("mapItemForFeature", &HybridMunimMapViewSpec::mapItemForFeature);
     });
   }

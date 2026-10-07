@@ -51,6 +51,9 @@ import type {
   MapItem,
   MarkerCollisionMode,
   LineCap,
+  LineJoin,
+  OverlayLevel,
+  OverlayPressEvent,
   MapAddress,
   MapFeatureEvent,
   MapPoint,
@@ -644,6 +647,11 @@ export interface MunimMapViewProperties {
    * (`fitToMarkers(event.markerIds, …)` zooms in on them).
    */
   onClusterPress?: (event: ClusterPressEvent) => void
+  /**
+   * A tappable polyline, polygon or circle was tapped (the topmost). Taken
+   * instead of `onPress`. Overlays are only hit-tested while this is set.
+   */
+  onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
@@ -702,6 +710,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
       props.onCalloutAccessoryPress
     )
     const onClusterPress = useCallbackProp(props.onClusterPress)
+    const onOverlayPress = useCallbackProp(props.onOverlayPress)
     const clusterStyles = useMapped(props.clusterStyles, toNativeClusterStyle)
     const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
     const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
@@ -785,6 +794,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onCalloutPress={onCalloutPress}
         onCalloutAccessoryPress={onCalloutAccessoryPress}
         onClusterPress={onClusterPress}
+        onOverlayPress={onOverlayPress}
         onMarkerDragStart={onMarkerDragStart}
         onMarkerDragEnd={onMarkerDragEnd}
         onUserLocationChange={onUserLocationChange}
@@ -818,6 +828,9 @@ export type {
   ClusterPressEvent,
   MapClusterStyle,
   MapItem,
+  LineJoin,
+  OverlayLevel,
+  OverlayPressEvent,
   MarkerCollisionMode,
   MarkerDisplayPriority,
   SelectionAccessory,

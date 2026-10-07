@@ -32,6 +32,8 @@ namespace margelo::nitro::munimmaps { class HybridMunimMapViewSpec; }
 namespace margelo::nitro::munimmaps { class HybridMunimTerrainSpec; }
 // Forward declaration of `LineCap` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class LineCap; }
+// Forward declaration of `LineJoin` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class LineJoin; }
 // Forward declaration of `MapAddress` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapAddress; }
 // Forward declaration of `MapAlignmentReport` to properly resolve imports.
@@ -106,6 +108,10 @@ namespace margelo::nitro::munimmaps { struct NativePolygon; }
 namespace margelo::nitro::munimmaps { struct NativePolyline; }
 // Forward declaration of `NativeTileOverlay` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
+// Forward declaration of `OverlayLevel` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
+// Forward declaration of `OverlayPressEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
 // Forward declaration of `SelectionAccessory` to properly resolve imports.
 namespace margelo::nitro::munimmaps { enum class SelectionAccessory; }
 // Forward declaration of `UserLocationEvent` to properly resolve imports.
@@ -126,6 +132,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "HybridMunimMapViewSpec.hpp"
 #include "HybridMunimTerrainSpec.hpp"
 #include "LineCap.hpp"
+#include "LineJoin.hpp"
 #include "MapAddress.hpp"
 #include "MapAlignmentReport.hpp"
 #include "MapAltitudeReference.hpp"
@@ -163,6 +170,8 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "NativePolygon.hpp"
 #include "NativePolyline.hpp"
 #include "NativeTileOverlay.hpp"
+#include "OverlayLevel.hpp"
+#include "OverlayPressEvent.hpp"
 #include "SelectionAccessory.hpp"
 #include "UserLocationEvent.hpp"
 #include "UserTrackingMode.hpp"

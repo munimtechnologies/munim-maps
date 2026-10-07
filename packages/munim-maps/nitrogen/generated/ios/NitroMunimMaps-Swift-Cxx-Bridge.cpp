@@ -121,6 +121,14 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const OverlayPressEvent& /* event */)>
+  Func_void_OverlayPressEvent create_Func_void_OverlayPressEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_OverlayPressEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const OverlayPressEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
   // pragma MARK: std::function<void(const MarkerDragEvent& /* event */)>
   Func_void_MarkerDragEvent create_Func_void_MarkerDragEvent(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroMunimMaps::Func_void_MarkerDragEvent::fromUnsafe(swiftClosureWrapper);

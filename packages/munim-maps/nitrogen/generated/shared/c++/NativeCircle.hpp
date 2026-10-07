@@ -28,9 +28,11 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `OverlayLevel` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 
 #include <string>
+#include "OverlayLevel.hpp"
 
 namespace margelo::nitro::munimmaps {
 
@@ -48,10 +50,12 @@ namespace margelo::nitro::munimmaps {
     double strokeWidth     SWIFT_PRIVATE;
     std::string dashPattern     SWIFT_PRIVATE;
     double zIndex     SWIFT_PRIVATE;
+    OverlayLevel level     SWIFT_PRIVATE;
+    bool tappable     SWIFT_PRIVATE;
 
   public:
     NativeCircle() = default;
-    explicit NativeCircle(std::string id, double latitude, double longitude, double radius, std::string strokeColor, std::string fillColor, double strokeWidth, std::string dashPattern, double zIndex): id(id), latitude(latitude), longitude(longitude), radius(radius), strokeColor(strokeColor), fillColor(fillColor), strokeWidth(strokeWidth), dashPattern(dashPattern), zIndex(zIndex) {}
+    explicit NativeCircle(std::string id, double latitude, double longitude, double radius, std::string strokeColor, std::string fillColor, double strokeWidth, std::string dashPattern, double zIndex, OverlayLevel level, bool tappable): id(id), latitude(latitude), longitude(longitude), radius(radius), strokeColor(strokeColor), fillColor(fillColor), strokeWidth(strokeWidth), dashPattern(dashPattern), zIndex(zIndex), level(level), tappable(tappable) {}
 
   public:
     friend bool operator==(const NativeCircle& lhs, const NativeCircle& rhs) = default;
@@ -75,7 +79,9 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fillColor"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeWidth"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "dashPattern"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex"))),
+        JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level"))),
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::NativeCircle& arg) {
@@ -89,6 +95,8 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "strokeWidth"), JSIConverter<double>::toJSI(runtime, arg.strokeWidth));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "dashPattern"), JSIConverter<std::string>::toJSI(runtime, arg.dashPattern));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "zIndex"), JSIConverter<double>::toJSI(runtime, arg.zIndex));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "level"), JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::toJSI(runtime, arg.level));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "tappable"), JSIConverter<bool>::toJSI(runtime, arg.tappable));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -108,6 +116,8 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "strokeWidth")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "dashPattern")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))) return false;
+      if (!JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level")))) return false;
+      if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))) return false;
       return true;
     }
   };

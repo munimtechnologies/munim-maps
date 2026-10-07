@@ -43,6 +43,7 @@
 #include "MapPressEvent.hpp"
 #include "CalloutAccessoryEvent.hpp"
 #include "ClusterPressEvent.hpp"
+#include "OverlayPressEvent.hpp"
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
@@ -119,6 +120,7 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onCalloutPress;
     CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>> onCalloutAccessoryPress;
     CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>> onClusterPress;
+    CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> onOverlayPress;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
     CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
