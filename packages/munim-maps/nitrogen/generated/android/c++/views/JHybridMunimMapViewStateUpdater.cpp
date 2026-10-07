@@ -261,6 +261,10 @@ void JHybridMunimMapViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass
     hybridView->setOnMarkerDragEnd(props->onMarkerDragEnd.value);
     props->onMarkerDragEnd.isDirty = false;
   }
+  if (props->onMarkerDrag.isDirty) {
+    hybridView->setOnMarkerDrag(props->onMarkerDrag.value);
+    props->onMarkerDrag.isDirty = false;
+  }
   if (props->onUserLocationChange.isDirty) {
     hybridView->setOnUserLocationChange(props->onUserLocationChange.value);
     props->onUserLocationChange.isDirty = false;

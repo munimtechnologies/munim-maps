@@ -1040,6 +1040,23 @@ namespace margelo::nitro::munimmaps {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_MarkerDragEvent::javaobject> /* onMarkerDragEnd */)>("setOnMarkerDragEnd_cxx");
     method(_javaPart, onMarkerDragEnd.has_value() ? JFunc_void_MarkerDragEvent_cxx::fromCpp(onMarkerDragEnd.value()) : nullptr);
   }
+  std::optional<std::function<void(const MarkerDragEvent& /* event */)>> JHybridMunimMapViewSpec::getOnMarkerDrag() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_MarkerDragEvent::javaobject>()>("getOnMarkerDrag_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(const MarkerDragEvent& /* event */)> {
+      if (__result->isInstanceOf(JFunc_void_MarkerDragEvent_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_MarkerDragEvent_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_MarkerDragEvent, void(MarkerDragEvent)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridMunimMapViewSpec::setOnMarkerDrag(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDrag) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_MarkerDragEvent::javaobject> /* onMarkerDrag */)>("setOnMarkerDrag_cxx");
+    method(_javaPart, onMarkerDrag.has_value() ? JFunc_void_MarkerDragEvent_cxx::fromCpp(onMarkerDrag.value()) : nullptr);
+  }
   std::optional<std::function<void(const UserLocationEvent& /* location */)>> JHybridMunimMapViewSpec::getOnUserLocationChange() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_UserLocationEvent::javaobject>()>("getOnUserLocationChange_cxx");
     auto __result = method(_javaPart);

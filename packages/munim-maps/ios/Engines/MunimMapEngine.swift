@@ -218,6 +218,9 @@ public protocol MunimMapEngine: AnyObject {
   /// payload. Declare it as a stored property to send events; the default
   /// drops them.
   var onProviderEvent: ((String, Any) -> Void)? { get set }
+  /// A dragged marker moved (continuously, between drag start and end).
+  /// Declare it as a stored property to send it; the default drops it.
+  var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get set }
 }
 
 public extension MunimMapEngine {
@@ -226,6 +229,7 @@ public extension MunimMapEngine {
   }
 
   var onProviderEvent: ((String, Any) -> Void)? { get { nil } set {} }
+  var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get { nil } set {} }
 
   /// Reports that this engine cannot do `what` yet.
   func reportUnsupported(_ what: String) {

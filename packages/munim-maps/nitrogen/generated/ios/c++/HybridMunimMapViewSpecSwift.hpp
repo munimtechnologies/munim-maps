@@ -594,6 +594,13 @@ namespace margelo::nitro::munimmaps {
     inline void setOnMarkerDragEnd(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragEnd) noexcept override {
       _swiftPart.setOnMarkerDragEnd(onMarkerDragEnd);
     }
+    inline std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDrag() noexcept override {
+      auto __result = _swiftPart.getOnMarkerDrag();
+      return __result;
+    }
+    inline void setOnMarkerDrag(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDrag) noexcept override {
+      _swiftPart.setOnMarkerDrag(onMarkerDrag);
+    }
     inline std::optional<std::function<void(const UserLocationEvent& /* location */)>> getOnUserLocationChange() noexcept override {
       auto __result = _swiftPart.getOnUserLocationChange();
       return __result;

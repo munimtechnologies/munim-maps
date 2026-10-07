@@ -476,6 +476,20 @@ abstract class HybridMunimMapViewSpec: HybridView() {
       onMarkerDragEnd = value?.let { it }
     }
   
+  abstract var onMarkerDrag: ((event: MarkerDragEvent) -> Unit)?
+  
+  private var onMarkerDrag_cxx: Func_void_MarkerDragEvent?
+    @Keep
+    @DoNotStrip
+    get() {
+      return onMarkerDrag?.let { Func_void_MarkerDragEvent_java(it) }
+    }
+    @Keep
+    @DoNotStrip
+    set(value) {
+      onMarkerDrag = value?.let { it }
+    }
+  
   abstract var onUserLocationChange: ((location: UserLocationEvent) -> Unit)?
   
   private var onUserLocationChange_cxx: Func_void_UserLocationEvent?

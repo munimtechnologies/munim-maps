@@ -128,6 +128,7 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> onOverlayPress;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
     CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
+    CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDrag;
     CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
     CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> onUserTrackingModeChange;
     CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;

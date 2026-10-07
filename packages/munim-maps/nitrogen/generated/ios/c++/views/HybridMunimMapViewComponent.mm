@@ -359,6 +359,11 @@ using namespace margelo::nitro::munimmaps::views;
     swiftPart.setOnMarkerDragEnd(newViewProps.onMarkerDragEnd.value);
     newViewProps.onMarkerDragEnd.isDirty = false;
   }
+  // onMarkerDrag: optional
+  if (newViewProps.onMarkerDrag.isDirty) {
+    swiftPart.setOnMarkerDrag(newViewProps.onMarkerDrag.value);
+    newViewProps.onMarkerDrag.isDirty = false;
+  }
   // onUserLocationChange: optional
   if (newViewProps.onUserLocationChange.isDirty) {
     swiftPart.setOnUserLocationChange(newViewProps.onUserLocationChange.value);

@@ -694,6 +694,11 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
+  /**
+   * A dragged marker moved: continuously, between `onMarkerDragStart` and
+   * `onMarkerDragEnd`. Engines without it fire only start and end.
+   */
+  onMarkerDrag?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
   /**
    * MapKit changed the tracking mode: the user panned or zoomed away (to
@@ -766,6 +771,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const clusterStyles = useMapped(props.clusterStyles, toNativeClusterStyle)
     const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
     const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
+    const onMarkerDrag = useCallbackProp(props.onMarkerDrag)
     const onUserLocationChange = useCallbackProp(props.onUserLocationChange)
     const onUserTrackingModeChange = useCallbackProp(
       props.onUserTrackingModeChange
@@ -852,6 +858,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onOverlayPress={onOverlayPress}
         onMarkerDragStart={onMarkerDragStart}
         onMarkerDragEnd={onMarkerDragEnd}
+        onMarkerDrag={onMarkerDrag}
         onUserLocationChange={onUserLocationChange}
         onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}

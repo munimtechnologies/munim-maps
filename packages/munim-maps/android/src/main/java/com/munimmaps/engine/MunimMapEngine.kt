@@ -55,6 +55,8 @@ interface MunimMapEngineListener {
   fun onOverlayPress(event: OverlayPressEvent) {}
   fun onMarkerDragStart(event: MarkerDragEvent) {}
   fun onMarkerDragEnd(event: MarkerDragEvent) {}
+  /** A dragged marker moved (continuously, between drag start and end). */
+  fun onMarkerDrag(event: MarkerDragEvent) {}
   fun onUserLocationChange(location: UserLocationEvent) {}
   fun onUserTrackingModeChange(mode: UserTrackingMode) {}
   fun onMapFeaturePress(feature: MapFeatureEvent) {}

@@ -49,6 +49,9 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     engine.onMarkerDragEnd = { [weak self] id, c in
       self?.onMarkerDragEnd?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
     }
+    engine.onMarkerDrag = { [weak self] id, c in
+      self?.onMarkerDrag?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
+    }
     engine.onUserLocationChange = { [weak self] l in
       self?.onUserLocationChange?(UserLocationEvent(
         latitude: l.coordinate.latitude, longitude: l.coordinate.longitude, altitude: l.altitude,
@@ -257,6 +260,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)?
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)?
+  var onMarkerDrag: ((_ event: MarkerDragEvent) -> Void)?
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)?
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?
