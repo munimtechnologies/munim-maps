@@ -7,8 +7,13 @@ module.exports = {
        * @type {import('@react-native-community/cli-types').IOSDependencyParams}
        */
       ios: {},
-      // iOS only for now: Android apps can use Mapbox's built-in model layer.
-      android: null,
+      /**
+       * @type {import('@react-native-community/cli-types').AndroidDependencyParams}
+       */
+      android: {
+        packageImportPath: 'import com.munimmaps.MunimMapsPackage;',
+        packageInstance: 'new MunimMapsPackage()',
+      },
     },
   },
 }

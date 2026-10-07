@@ -34,7 +34,8 @@
     "android/fix-prefab.gradle",
     "android/gradle.properties",
     "android/CMakeLists.txt",
-    "android/src"
+    "android/src",
+    "android/proguard-rules.pro"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
