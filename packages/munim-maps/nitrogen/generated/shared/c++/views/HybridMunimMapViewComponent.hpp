@@ -48,6 +48,7 @@
 #include "MarkerDragEvent.hpp"
 #include "UserLocationEvent.hpp"
 #include "MapFeatureEvent.hpp"
+#include "ProviderEvent.hpp"
 #include <memory>
 #include "HybridMunimMapViewSpec.hpp"
 
@@ -131,6 +132,7 @@ namespace margelo::nitro::munimmaps::views {
     CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> onUserTrackingModeChange;
     CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;
     CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
+    CachedProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>> onProviderEvent;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> hybridRef;
 
   private:

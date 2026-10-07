@@ -8,6 +8,7 @@ import com.munimmaps.engine.MunimMapContainerView
 import com.munimmaps.engine.MunimMapEngine
 import com.munimmaps.engine.MunimMapEngineListener
 import com.munimmaps.engine.MunimMapsConfiguration
+import com.munimmaps.engine.ProviderJson
 import org.json.JSONObject
 
 /**
@@ -111,6 +112,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     override fun onUserTrackingModeChange(mode: UserTrackingMode) { onUserTrackingModeChange?.invoke(mode) }
     override fun onMapFeaturePress(feature: MapFeatureEvent) { onMapFeaturePress?.invoke(feature) }
     override fun onError(message: String) { onError?.invoke(message) }
+    override fun onProviderEvent(name: String, json: String) { onProviderEvent?.invoke(ProviderEvent(name, json)) }
   }
 
   // Props
@@ -228,6 +230,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var onUserTrackingModeChange: ((mode: UserTrackingMode) -> Unit)? = null
   override var onMapFeaturePress: ((feature: MapFeatureEvent) -> Unit)? = null
   override var onError: ((message: String) -> Unit)? = null
+  override var onProviderEvent: ((event: ProviderEvent) -> Unit)? = null
 
   // Methods (called on the JavaScript thread; the engine runs on the main thread)
 
@@ -309,6 +312,12 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override fun measureAlignment(): Promise<MapAlignmentReport> = mainPromise { e, p -> p.resolve(e.measureAlignment()) }
 
   override fun overlayAtPoint(point: MapPoint): Promise<String> = mainPromise { e, p -> p.resolve(e.overlayAtPoint(point)) }
+
+  override fun providerCall(method: String, argsJson: String): Promise<String> = mainPromise { e, p ->
+    e.providerCall(method, ProviderJson.objectOf(argsJson)) { result ->
+      result.fold({ p.resolve(ProviderJson.stringOf(it)) }, { p.reject(it) })
+    }
+  }
 
   override fun mapItemForFeature(id: String): Promise<MapItem> =
     Promise.rejected(UnsupportedOperationException("mapItemForFeature is MapKit only"))

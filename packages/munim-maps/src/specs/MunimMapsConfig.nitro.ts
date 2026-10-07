@@ -33,4 +33,21 @@ export interface MunimMapsConfig extends HybridObject<{
   availableProviders(): string
   /** The engines compiled into this app, implemented or not, comma-separated. */
   installedProviders(): string
+  /**
+   * An engine-level method that needs no map (Mapbox's offline downloads):
+   * the provider, the method's name and JSON arguments in, JSON out. Rejects
+   * when the engine is not built in or has no such method.
+   */
+  providerCall(
+    provider: string,
+    method: string,
+    argsJson: string
+  ): Promise<string>
+  /**
+   * Receives engine-level events (download progress): provider, event name
+   * and JSON payload. One listener; the JavaScript side fans it out.
+   */
+  setProviderEventListener(
+    listener: (provider: string, name: string, json: string) => void
+  ): void
 }

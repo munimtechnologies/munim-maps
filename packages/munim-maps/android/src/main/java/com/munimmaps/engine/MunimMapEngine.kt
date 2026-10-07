@@ -59,6 +59,8 @@ interface MunimMapEngineListener {
   fun onUserTrackingModeChange(mode: UserTrackingMode) {}
   fun onMapFeaturePress(feature: MapFeatureEvent) {}
   fun onError(message: String) {}
+  /** Engine-only events (`onProviderEvent`): a name and a JSON payload. */
+  fun onProviderEvent(name: String, json: String) {}
 }
 
 /** How the registry makes one engine (one per provider source set). */
@@ -66,6 +68,21 @@ interface MunimMapEngineFactory {
   /** False while the engine is a stub that shows a placeholder. */
   val isImplemented: Boolean
   fun create(context: Context): MunimMapEngine
+
+  /**
+   * Engine-level methods that need no map (Mapbox's offline downloads), on
+   * the main thread. `emit` sends an event to JavaScript; complete with a
+   * JSON-compatible value ([ProviderJson.stringOf]).
+   */
+  fun providerCall(
+    context: Context,
+    method: String,
+    args: JSONObject,
+    emit: (String, Any?) -> Unit,
+    completion: (Result<Any?>) -> Unit,
+  ) {
+    completion(Result.failure(UnsupportedOperationException("This engine has no method \"$method\"")))
+  }
 }
 
 /**
@@ -186,6 +203,17 @@ interface MunimMapEngine {
   fun measureAlignment(): MapAlignmentReport = modelLayer.measureAlignment()
   /** Id of the tappable overlay a tap at `point` (points) would hit, or empty. */
   fun overlayAtPoint(point: MapPoint): String = ""
+
+  /**
+   * An engine-only method (React Native `ref.providerCall`), on the main
+   * thread: `args` is the decoded JSON object; complete with a
+   * JSON-compatible value (JSONObject, JSONArray, Map, List, String, Number,
+   * Boolean, null). Send engine-only events with
+   * [MunimMapEngineListener.onProviderEvent]. The default rejects every method.
+   */
+  fun providerCall(method: String, args: JSONObject, completion: (Result<Any?>) -> Unit) {
+    completion(Result.failure(UnsupportedOperationException("${provider.displayName} has no method \"$method\"")))
+  }
 }
 
 /** The name people know it by, for messages. */

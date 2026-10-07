@@ -41,6 +41,7 @@ import type {
   MapStyle,
   MunimMapViewMethods,
   MunimMapViewProps,
+  ProviderEvent,
   UserTrackingMode,
   FeatureVisibility,
   SelectionAccessory,
@@ -67,7 +68,9 @@ import type {
 import { pointsOfInterestFilter } from './services'
 import {
   defaultProvider,
+  parseProviderJson,
   providerOptionsJson,
+  type MapProviderEvent,
   type MapProvider,
   type ProviderOptionProps,
 } from './providers'
@@ -428,6 +431,18 @@ function useCallbackProp<A extends unknown[]>(
   return useMemo(() => (fn ? callback(fn) : undefined), [fn])
 }
 
+function useProviderEvent(fn: ((event: MapProviderEvent) => void) | undefined) {
+  return useMemo(
+    () =>
+      fn
+        ? callback((event: ProviderEvent) =>
+            fn({ name: event.name, data: parseProviderJson(event.json) })
+          )
+        : undefined,
+    [fn]
+  )
+}
+
 export interface MapModelLayerProperties {
   models: MapModel[]
   zones?: MapZone[]
@@ -687,6 +702,13 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
+  /**
+   * Engine-only events, such as Mapbox's `mapIdle`, `sourceDataLoaded` or a
+   * tap on a Standard style featureset (`mapbox.interactions`). `data` is the
+   * decoded payload. Which events exist is listed with each engine's options
+   * (`MapboxMapOptions.events`).
+   */
+  onProviderEvent?: (event: MapProviderEvent) => void
   style?: StyleProp<ViewStyle>
   /** `MarkerView`s: React Native views as markers. */
   children?: ReactNode
@@ -750,6 +772,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
+    const onProviderEvent = useProviderEvent(props.onProviderEvent)
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
@@ -833,6 +856,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
         onError={onError}
+        onProviderEvent={onProviderEvent}
         hybridRef={hybridRef}
       >
         {props.children}
@@ -842,8 +866,12 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
 )
 
 export * from './services'
+export * from './providers/mapbox'
 export {
   MAP_PROVIDERS,
+  addProviderEventListener,
+  callMapProvider,
+  callProvider,
   availableProviders,
   configureMunimMaps,
   defaultProvider,
@@ -855,6 +883,7 @@ export {
   type MapKitMapOptions,
   type MapLibreMapOptions,
   type MapProvider,
+  type MapProviderEvent,
   type MunimMapsConfiguration,
   type ProviderOptionProps,
 } from './providers'

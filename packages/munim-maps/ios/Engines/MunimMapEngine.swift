@@ -206,9 +206,27 @@ public protocol MunimMapEngine: AnyObject {
   /// The tappable overlay a tap at `point` would hit.
   func overlayHit(at point: CGPoint) -> (id: String, kind: String)?
   func mapItem(forFeature id: String, completion: @escaping (Result<MKMapItem, Error>) -> Void)
+
+  // MARK: Engine-only methods and events
+
+  /// An engine-only method (React Native `ref.providerCall`): `args` is the
+  /// decoded JSON object; complete with any JSON-compatible value
+  /// (`[String: Any]`, `[Any]`, `String`, `NSNumber`, `Bool`, `NSNull`).
+  /// The default rejects every method.
+  func providerCall(_ method: String, args: [String: Any], completion: @escaping (Result<Any, Error>) -> Void)
+  /// Engine-only events (`onProviderEvent`): a name and a JSON-compatible
+  /// payload. Declare it as a stored property to send events; the default
+  /// drops them.
+  var onProviderEvent: ((String, Any) -> Void)? { get set }
 }
 
 public extension MunimMapEngine {
+  func providerCall(_ method: String, args: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
+    completion(.failure(MunimMapEngineError("\(provider.displayName) has no method \"\(method)\"")))
+  }
+
+  var onProviderEvent: ((String, Any) -> Void)? { get { nil } set {} }
+
   /// Reports that this engine cannot do `what` yet.
   func reportUnsupported(_ what: String) {
     onError?("\(provider.displayName): \(what) is not supported yet")

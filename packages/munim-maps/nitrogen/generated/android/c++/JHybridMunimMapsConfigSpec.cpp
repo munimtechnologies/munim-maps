@@ -11,8 +11,13 @@
 namespace margelo::nitro::munimmaps { struct NativeMapsConfiguration; }
 
 #include <string>
+#include <NitroModules/Promise.hpp>
+#include <NitroModules/JPromise.hpp>
 #include "NativeMapsConfiguration.hpp"
 #include "JNativeMapsConfiguration.hpp"
+#include <functional>
+#include "JFunc_void_std__string_std__string_std__string.hpp"
+#include <NitroModules/JNICallable.hpp>
 
 namespace margelo::nitro::munimmaps {
 
@@ -60,6 +65,26 @@ namespace margelo::nitro::munimmaps {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("installedProviders");
     auto __result = method(_javaPart);
     return __result->toStdString();
+  }
+  std::shared_ptr<Promise<std::string>> JHybridMunimMapsConfigSpec::providerCall(const std::string& provider, const std::string& method, const std::string& argsJson) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* provider */, jni::alias_ref<jni::JString> /* method */, jni::alias_ref<jni::JString> /* argsJson */)>("providerCall");
+    auto __result = method(_javaPart, jni::make_jstring(provider), jni::make_jstring(method), jni::make_jstring(argsJson));
+    return [&]() {
+      auto __promise = Promise<std::string>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<jni::JString>(__boxedResult);
+        __promise->resolve(__result->toStdString());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  void JHybridMunimMapsConfigSpec::setProviderEventListener(const std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>& listener) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_std__string_std__string_std__string::javaobject> /* listener */)>("setProviderEventListener_cxx");
+    method(_javaPart, JFunc_void_std__string_std__string_std__string_cxx::fromCpp(listener));
   }
 
 } // namespace margelo::nitro::munimmaps

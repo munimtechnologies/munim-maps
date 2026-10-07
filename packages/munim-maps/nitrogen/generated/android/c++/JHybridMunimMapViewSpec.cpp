@@ -95,6 +95,8 @@ namespace margelo::nitro::munimmaps { struct MarkerDragEvent; }
 namespace margelo::nitro::munimmaps { struct UserLocationEvent; }
 // Forward declaration of `MapFeatureEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapFeatureEvent; }
+// Forward declaration of `ProviderEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ProviderEvent; }
 // Forward declaration of `MapPoint` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapPoint; }
 // Forward declaration of `MapAddress` to properly resolve imports.
@@ -212,6 +214,9 @@ namespace margelo::nitro::munimmaps { struct CameraKeyframe; }
 #include "MapFeatureEvent.hpp"
 #include "JFunc_void_MapFeatureEvent.hpp"
 #include "JMapFeatureEvent.hpp"
+#include "ProviderEvent.hpp"
+#include "JFunc_void_ProviderEvent.hpp"
+#include "JProviderEvent.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
 #include "MapPoint.hpp"
@@ -1103,6 +1108,23 @@ namespace margelo::nitro::munimmaps {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_std__string::javaobject> /* onError */)>("setOnError_cxx");
     method(_javaPart, onError.has_value() ? JFunc_void_std__string_cxx::fromCpp(onError.value()) : nullptr);
   }
+  std::optional<std::function<void(const ProviderEvent& /* event */)>> JHybridMunimMapViewSpec::getOnProviderEvent() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JFunc_void_ProviderEvent::javaobject>()>("getOnProviderEvent_cxx");
+    auto __result = method(_javaPart);
+    return __result != nullptr ? std::make_optional([&]() -> std::function<void(const ProviderEvent& /* event */)> {
+      if (__result->isInstanceOf(JFunc_void_ProviderEvent_cxx::javaClassStatic())) [[likely]] {
+        auto downcast = jni::static_ref_cast<JFunc_void_ProviderEvent_cxx::javaobject>(__result);
+        return downcast->cthis()->getFunction();
+      } else {
+        auto __resultRef = jni::make_global(__result);
+        return JNICallable<JFunc_void_ProviderEvent, void(ProviderEvent)>(std::move(__resultRef));
+      }
+    }()) : std::nullopt;
+  }
+  void JHybridMunimMapViewSpec::setOnProviderEvent(const std::optional<std::function<void(const ProviderEvent& /* event */)>>& onProviderEvent) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_ProviderEvent::javaobject> /* onProviderEvent */)>("setOnProviderEvent_cxx");
+    method(_javaPart, onProviderEvent.has_value() ? JFunc_void_ProviderEvent_cxx::fromCpp(onProviderEvent.value()) : nullptr);
+  }
 
   // Methods
   void JHybridMunimMapViewSpec::setCamera(const MapCamera& camera, bool animated) {
@@ -1327,6 +1349,22 @@ namespace margelo::nitro::munimmaps {
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
         auto __result = jni::static_ref_cast<JMapItem>(__boxedResult);
         __promise->resolve(__result->toCpp());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<std::string>> JHybridMunimMapViewSpec::providerCall(const std::string& method, const std::string& argsJson) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* method */, jni::alias_ref<jni::JString> /* argsJson */)>("providerCall");
+    auto __result = method(_javaPart, jni::make_jstring(method), jni::make_jstring(argsJson));
+    return [&]() {
+      auto __promise = Promise<std::string>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<jni::JString>(__boxedResult);
+        __promise->resolve(__result->toStdString());
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
         jni::JniException __jniError(__throwable);

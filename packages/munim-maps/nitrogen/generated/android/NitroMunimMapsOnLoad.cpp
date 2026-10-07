@@ -20,6 +20,7 @@
 #include "JFunc_void_bool.hpp"
 #include "views/JHybridMapModelLayerStateUpdater.hpp"
 #include "JHybridMunimMapsConfigSpec.hpp"
+#include "JFunc_void_std__string_std__string_std__string.hpp"
 #include "JHybridMunimMapViewSpec.hpp"
 #include "JFunc_void_MapCamera.hpp"
 #include "JFunc_void.hpp"
@@ -31,6 +32,7 @@
 #include "JFunc_void_UserLocationEvent.hpp"
 #include "JFunc_void_UserTrackingMode.hpp"
 #include "JFunc_void_MapFeatureEvent.hpp"
+#include "JFunc_void_ProviderEvent.hpp"
 #include "views/JHybridMunimMapViewStateUpdater.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
@@ -77,6 +79,7 @@ void registerAllNatives() {
   margelo::nitro::munimmaps::JFunc_void_bool_cxx::registerNatives();
   margelo::nitro::munimmaps::views::JHybridMapModelLayerStateUpdater::registerNatives();
   margelo::nitro::munimmaps::JHybridMunimMapsConfigSpec::CxxPart::registerNatives();
+  margelo::nitro::munimmaps::JFunc_void_std__string_std__string_std__string_cxx::registerNatives();
   margelo::nitro::munimmaps::JHybridMunimMapViewSpec::CxxPart::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_MapCamera_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_cxx::registerNatives();
@@ -88,6 +91,7 @@ void registerAllNatives() {
   margelo::nitro::munimmaps::JFunc_void_UserLocationEvent_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_UserTrackingMode_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_MapFeatureEvent_cxx::registerNatives();
+  margelo::nitro::munimmaps::JFunc_void_ProviderEvent_cxx::registerNatives();
   margelo::nitro::munimmaps::views::JHybridMunimMapViewStateUpdater::registerNatives();
 
   // Register Nitro Hybrid Objects

@@ -81,6 +81,15 @@ export interface EdgeInsets {
   right: number
 }
 
+/**
+ * An engine-only event (`onProviderEvent`), such as Mapbox's `mapIdle` or a
+ * tap on a Standard style featureset: its name and JSON payload.
+ */
+export interface ProviderEvent {
+  name: string
+  json: string
+}
+
 export interface MapCamera {
   latitude: number
   longitude: number
@@ -207,6 +216,8 @@ export interface MunimMapViewProps extends HybridViewProps {
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   onError?: (message: string) => void
+  /** Engine-only events, as JSON (see the engine's options in `src/providers/`). */
+  onProviderEvent?: (event: ProviderEvent) => void
 }
 
 export interface MunimMapViewMethods extends HybridViewMethods {
@@ -257,6 +268,13 @@ export interface MunimMapViewMethods extends HybridViewMethods {
   overlayAtPoint(point: MapPoint): Promise<string>
   /** The full place behind a tapped map feature (`MapFeatureEvent.id`). */
   mapItemForFeature(id: string): Promise<MapItem>
+  /**
+   * An engine-only method (Mapbox's `queryRenderedFeatures`, …): its name and
+   * JSON arguments in, its JSON result out. Rejects when the engine has no
+   * such method. Typed wrappers live with each engine's options
+   * (`src/providers/<provider>.ts`).
+   */
+  providerCall(method: string, argsJson: string): Promise<string>
 }
 
 export type MunimMapView = HybridView<

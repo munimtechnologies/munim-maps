@@ -20,6 +20,9 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   /// Sends the engine's events to JavaScript.
   private func wire(_ engine: MunimMapEngine) {
     engine.onError = { [weak self] message in self?.onError?(message) }
+    engine.onProviderEvent = { [weak self] name, payload in
+      self?.onProviderEvent?(ProviderEvent(name: name, json: MunimProviderJSON.string(payload)))
+    }
     engine.modelLayer.onModelPress = { [weak self] id in self?.onModelPress?(id) }
     engine.onMapReady = { [weak self] in self?.onMapReady?() }
     engine.onCameraChange = { [weak self] camera in self?.onCameraChange?(camera.nitro) }
@@ -258,6 +261,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?
   var onError: ((_ message: String) -> Void)?
+  var onProviderEvent: ((_ event: ProviderEvent) -> Void)?
 
   // MARK: Methods
 
@@ -383,6 +387,20 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   func overlayAtPoint(point: MapPoint) throws -> Promise<String> {
     mainPromise { self.map.overlayHit(at: CGPoint(x: point.x, y: point.y))?.id ?? "" }
+  }
+
+  func providerCall(method: String, argsJson: String) throws -> Promise<String> {
+    let promise = Promise<String>()
+    let args = MunimProviderJSON.object(argsJson)
+    DispatchQueue.main.async {
+      self.map.providerCall(method, args: args) { result in
+        switch result {
+        case .success(let value): promise.resolve(withResult: MunimProviderJSON.string(value))
+        case .failure(let error): promise.reject(withError: error)
+        }
+      }
+    }
+    return promise
   }
 
   func mapItemForFeature(id: String) throws -> Promise<MapItem> {

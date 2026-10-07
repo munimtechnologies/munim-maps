@@ -17,6 +17,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridMethod("configure", &HybridMunimMapsConfigSpec::configure);
       prototype.registerHybridMethod("availableProviders", &HybridMunimMapsConfigSpec::availableProviders);
       prototype.registerHybridMethod("installedProviders", &HybridMunimMapsConfigSpec::installedProviders);
+      prototype.registerHybridMethod("providerCall", &HybridMunimMapsConfigSpec::providerCall);
+      prototype.registerHybridMethod("setProviderEventListener", &HybridMunimMapsConfigSpec::setProviderEventListener);
     });
   }
 

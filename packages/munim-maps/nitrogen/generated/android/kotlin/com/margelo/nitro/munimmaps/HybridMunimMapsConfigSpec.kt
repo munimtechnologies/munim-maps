@@ -11,6 +11,7 @@ import androidx.annotation.Keep
 import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 import dalvik.annotation.optimization.FastNative
+import com.margelo.nitro.core.Promise
 import com.margelo.nitro.core.HybridObject
 
 /**
@@ -40,6 +41,19 @@ abstract class HybridMunimMapsConfigSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun installedProviders(): String
+  
+  @DoNotStrip
+  @Keep
+  abstract fun providerCall(provider: String, method: String, argsJson: String): Promise<String>
+  
+  abstract fun setProviderEventListener(listener: (provider: String, name: String, json: String) -> Unit): Unit
+  
+  @DoNotStrip
+  @Keep
+  private fun setProviderEventListener_cxx(listener: Func_void_std__string_std__string_std__string): Unit {
+    val __result = setProviderEventListener(listener)
+    return __result
+  }
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

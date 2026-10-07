@@ -190,6 +190,14 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return swiftPart.toUnsafe();
   }
   
+  // pragma MARK: std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>
+  Func_void_std__string_std__string_std__string create_Func_void_std__string_std__string_std__string(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_std__string_std__string_std__string::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::string& provider, const std::string& name, const std::string& json) mutable -> void {
+      swiftClosure.call(provider, name, json);
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMunimMapsConfigSpec>
   std::shared_ptr<HybridMunimMapsConfigSpec> create_std__shared_ptr_HybridMunimMapsConfigSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroMunimMaps::HybridMunimMapsConfigSpec_cxx swiftPart = NitroMunimMaps::HybridMunimMapsConfigSpec_cxx::fromUnsafe(swiftUnsafePointer);
@@ -283,6 +291,14 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     auto swiftClosure = NitroMunimMaps::Func_void_MapFeatureEvent::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](const MapFeatureEvent& feature) mutable -> void {
       swiftClosure.call(feature);
+    };
+  }
+  
+  // pragma MARK: std::function<void(const ProviderEvent& /* event */)>
+  Func_void_ProviderEvent create_Func_void_ProviderEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_ProviderEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const ProviderEvent& event) mutable -> void {
+      swiftClosure.call(event);
     };
   }
   

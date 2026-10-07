@@ -50,6 +50,12 @@ export interface MunimMapsConfiguration {
 }
 
 let config: MunimMapsConfig | undefined
+let mapboxToken = ''
+
+/** The Mapbox token given to `configureMunimMaps`, for `MapboxServices`. */
+export function configuredMapboxToken(): string {
+  return mapboxToken
+}
 let installed: MapProvider[] | undefined
 let available: MapProvider[] | undefined
 let defaultOverride: MapProvider | undefined
@@ -83,6 +89,9 @@ function parse(list: string): MapProvider[] {
 export function configureMunimMaps(configuration: MunimMapsConfiguration) {
   if (configuration.defaultProvider) {
     defaultOverride = configuration.defaultProvider
+  }
+  if (configuration.mapboxAccessToken) {
+    mapboxToken = configuration.mapboxAccessToken
   }
   native()?.configure({
     googleMapsApiKey: configuration.googleMapsApiKey ?? '',
@@ -143,4 +152,92 @@ export function providerOptionsJson(
 ): string {
   const options = props[provider]
   return options ? JSON.stringify(options) : '{}'
+}
+
+/** An engine-only event (`onProviderEvent`) with its payload decoded. */
+export interface MapProviderEvent {
+  name: string
+
+  data: any
+}
+
+/** Decodes engine JSON; `undefined` for empty or broken text. */
+export function parseProviderJson(json: string): unknown {
+  if (!json) return undefined
+  try {
+    return JSON.parse(json)
+  } catch {
+    return undefined
+  }
+}
+
+/** What `callMapProvider` needs: a mounted `MunimMapView`'s ref. */
+export interface ProviderCallTarget {
+  providerCall(method: string, argsJson: string): Promise<string>
+}
+
+/**
+ * Calls an engine-only method on a mounted map (`ref.current`), such as
+ * Mapbox's `queryRenderedFeatures`. Rejects when the map's engine has no
+ * such method. Each engine's typed wrappers (`mapboxMap(ref)`) use this.
+ */
+export async function callMapProvider<T = unknown>(
+  map: ProviderCallTarget | null | undefined,
+  method: string,
+  args: object = {}
+): Promise<T> {
+  if (!map) throw new Error(`munim-maps: ${method}: the map is not mounted`)
+  return parseProviderJson(
+    await map.providerCall(method, JSON.stringify(args))
+  ) as T
+}
+
+/**
+ * Calls an engine-level method that needs no map, such as Mapbox's offline
+ * downloads (`MapboxOffline`). Rejects when the engine is not built in.
+ */
+export async function callProvider<T = unknown>(
+  provider: MapProvider,
+  method: string,
+  args: object = {}
+): Promise<T> {
+  const target = native()
+  if (!target) throw new Error('munim-maps: not available on this platform')
+  return parseProviderJson(
+    await target.providerCall(provider, method, JSON.stringify(args))
+  ) as T
+}
+
+type ProviderListener = (name: string, data: unknown) => void
+const providerListeners = new Map<MapProvider, Set<ProviderListener>>()
+let providerListenerInstalled = false
+
+/**
+ * Listens to engine-level events (Mapbox's download progress). Returns a
+ * function that stops listening.
+ */
+export function addProviderEventListener(
+  provider: MapProvider,
+  listener: ProviderListener
+): () => void {
+  const target = native()
+  if (target && !providerListenerInstalled) {
+    providerListenerInstalled = true
+    target.setProviderEventListener((from, name, json) => {
+      const set = providerListeners.get(from as MapProvider)
+      if (!set || set.size === 0) return
+      const data = parseProviderJson(json)
+      for (const l of [...set]) l(name, data)
+    })
+  }
+  let set = providerListeners.get(provider)
+  if (!set) {
+    set = new Set()
+    providerListeners.set(provider, set)
+  }
+  const listeners = set
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
 }
