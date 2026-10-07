@@ -2,11 +2,7 @@ import CoreLocation
 import MapKit
 import UIKit
 
-/// When MapKit shows a control: only when useful, always, or never.
-@_expose(!Cxx)
-public enum MunimFeatureVisibility: String, Sendable {
-  case adaptive, visible, hidden
-
+extension MunimFeatureVisibility {
   var mapKit: MKFeatureVisibility {
     switch self {
     case .adaptive: return .adaptive

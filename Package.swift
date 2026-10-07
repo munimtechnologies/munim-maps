@@ -12,7 +12,10 @@ let package = Package(
   targets: [
     .target(
       name: "MunimMaps",
-      path: "packages/munim-maps/ios/Core"
+      path: "packages/munim-maps/ios",
+      // The core, the engine interface and the MapKit engine. The other
+      // engines' folders compile to nothing without their SDKs.
+      sources: ["Core", "Engines"]
     ),
     .target(
       name: "MunimMapsVehicles",

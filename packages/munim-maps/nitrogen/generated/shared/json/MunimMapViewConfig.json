@@ -4,6 +4,9 @@
   "bubblingEventTypes": {},
   "directEventTypes": {},
   "validAttributes": {
+    "provider": true,
+    "styleUrl": true,
+    "providerOptions": true,
     "models": true,
     "zones": true,
     "paths": true,

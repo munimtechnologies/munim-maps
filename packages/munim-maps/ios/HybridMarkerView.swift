@@ -35,7 +35,7 @@ enum MarkerViewDefaults {
 
 private final class MarkerViewHost: UIView {
   weak var owner: HybridMarkerView?
-  private weak var map: MunimMapKitView?
+  private weak var map: (any MunimMapEngine)?
   private var registeredId = ""
   private var trackTimer: Timer?
   private var pendingRedraws: [DispatchWorkItem] = []
@@ -94,14 +94,14 @@ private final class MarkerViewHost: UIView {
     }
   }
 
-  /// The `MunimMapKitView` of the `MunimMapView` this marker is a child of:
+  /// The engine of the `MunimMapView` this marker is a child of:
   /// a sibling of one of this view's containers.
-  private func findMap() -> MunimMapKitView? {
+  private func findMap() -> (any MunimMapEngine)? {
     var ancestor = superview
     var depth = 0
     while let current = ancestor, depth < 8 {
       for sibling in current.subviews {
-        if let map = sibling as? MunimMapKitView { return map }
+        if let container = sibling as? MunimMapContainerView { return container.engine }
       }
       ancestor = current.superview
       depth += 1

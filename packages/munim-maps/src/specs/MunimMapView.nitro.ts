@@ -33,6 +33,14 @@ import type {
 } from './MapFeatures.nitro'
 import type { MapCoordinate } from './MapModelLayer.nitro'
 
+/**
+ * The map engine drawing a `MunimMapView`: Apple's MapKit, Google Maps,
+ * Mapbox, MapLibre (open maps: OpenStreetMap data, no key) or Cesium (a 3D
+ * globe). Each engine other than MapKit is opt-in at build time (CocoaPods
+ * subspec on iOS, Gradle property on Android; see docs/providers.md).
+ */
+export type MapProvider = 'mapkit' | 'google' | 'mapbox' | 'maplibre' | 'cesium'
+
 export type MapStyle = 'standard' | 'muted' | 'hybrid' | 'imagery'
 export type MapElevation = 'flat' | 'realistic'
 export type MapColorScheme = 'system' | 'light' | 'dark'
@@ -85,6 +93,24 @@ export interface MapCamera {
 }
 
 export interface MunimMapViewProps extends HybridViewProps {
+  /**
+   * The engine drawing this map, resolved in JavaScript (the platform
+   * default when not set). An engine that is not built into the app shows a
+   * placeholder and reports `onError`.
+   */
+  provider: MapProvider
+  /**
+   * A style URL for the engines that take one: MapLibre and Mapbox style
+   * JSON (`https://…/style.json`, `mapbox://styles/…`). Empty for the
+   * engine's default (OpenFreeMap for MapLibre, Mapbox Standard).
+   */
+  styleUrl: string
+  /**
+   * JSON of the active provider's own options (`google`, `mapbox`,
+   * `maplibre`, `cesium` or `mapkit` on the JavaScript component), so each
+   * engine can add options without changing this spec. `{}` for none.
+   */
+  providerOptions: string
   models: NativeMapModel[]
   zones: NativeMapZone[]
   paths: NativeMapPath[]
@@ -236,5 +262,5 @@ export interface MunimMapViewMethods extends HybridViewMethods {
 export type MunimMapView = HybridView<
   MunimMapViewProps,
   MunimMapViewMethods,
-  { ios: 'swift' }
+  { ios: 'swift'; android: 'kotlin' }
 >

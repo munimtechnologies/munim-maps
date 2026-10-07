@@ -14,6 +14,12 @@ namespace margelo::nitro::munimmaps {
     HybridObject::loadHybridMethods();
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
+      prototype.registerHybridGetter("provider", &HybridMunimMapViewSpec::getProvider);
+      prototype.registerHybridSetter("provider", &HybridMunimMapViewSpec::setProvider);
+      prototype.registerHybridGetter("styleUrl", &HybridMunimMapViewSpec::getStyleUrl);
+      prototype.registerHybridSetter("styleUrl", &HybridMunimMapViewSpec::setStyleUrl);
+      prototype.registerHybridGetter("providerOptions", &HybridMunimMapViewSpec::getProviderOptions);
+      prototype.registerHybridSetter("providerOptions", &HybridMunimMapViewSpec::setProviderOptions);
       prototype.registerHybridGetter("models", &HybridMunimMapViewSpec::getModels);
       prototype.registerHybridSetter("models", &HybridMunimMapViewSpec::setModels);
       prototype.registerHybridGetter("zones", &HybridMunimMapViewSpec::getZones);

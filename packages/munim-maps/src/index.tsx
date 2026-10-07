@@ -66,6 +66,12 @@ import type {
 } from './specs/MapFeatures.nitro'
 import { pointsOfInterestFilter } from './services'
 import {
+  defaultProvider,
+  providerOptionsJson,
+  type MapProvider,
+  type ProviderOptionProps,
+} from './providers'
+import {
   toNativeClusterStyle,
   toNativeCircle,
   toNativeMarker,
@@ -229,8 +235,8 @@ const NativeMunimMapView = getHostComponent<
   MunimMapViewMethods
 >('MunimMapView', () => MunimMapViewConfig)
 
-/** True where munim-maps can draw models (iOS). */
-export const isSupported = Platform.OS === 'ios'
+/** True where munim-maps has native code (iOS and Android). */
+export const isSupported = Platform.OS === 'ios' || Platform.OS === 'android'
 
 function resolveUri(source: MapModel['source'] | MapModel['image']): string {
   if (source == null) return ''
@@ -520,7 +526,22 @@ export const MapModelLayer = forwardRef<
   )
 })
 
-export interface MunimMapViewProperties {
+export interface MunimMapViewProperties extends ProviderOptionProps {
+  /**
+   * The map engine: `'mapkit'` (Apple Maps, iOS), `'google'`, `'mapbox'`,
+   * `'maplibre'` (open maps: OpenStreetMap data, no key) or `'cesium'`.
+   * Default `'mapkit'` on iOS; on Android `'google'` when its engine is
+   * built in, else `'maplibre'` (`configureMunimMaps` changes the default).
+   * Engines are opt-in at build time; one that is not built in shows a
+   * placeholder and reports `onError`. Options only one engine reads go in
+   * that engine's prop (`google={{ mapId }}`, `mapbox={{ projection }}`…).
+   */
+  provider?: MapProvider
+  /**
+   * Style URL for MapLibre and Mapbox (style JSON, `mapbox://styles/…`).
+   * Default OpenFreeMap Liberty for MapLibre, Mapbox Standard for Mapbox.
+   */
+  styleUrl?: string
   initialCamera: MapCamera
   // 3D
   models?: MapModel[]
@@ -692,7 +713,10 @@ function useMapped<T, N>(items: T[] | undefined, map: (item: T) => N): N[] {
   return useMemo(() => (items ?? []).map(map), [items])
 }
 
-/** A MapKit map with models built in. iOS only; renders nothing elsewhere. */
+/**
+ * A map with models built in, drawn by the engine in `provider` (MapKit by
+ * default on iOS, MapLibre or Google Maps on Android).
+ */
 export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
   function MunimMapViewComponent(props, ref) {
     const models = useNativeModels(props.models)
@@ -735,10 +759,14 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         }),
       [ref]
     )
+    const provider = props.provider ?? defaultProvider()
     if (!isSupported) return null
     return (
       <NativeMunimMapView
         style={props.style}
+        provider={provider}
+        styleUrl={props.styleUrl ?? ''}
+        providerOptions={providerOptionsJson(provider, props)}
         models={models}
         zones={zones}
         paths={paths}
@@ -814,6 +842,22 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
 )
 
 export * from './services'
+export {
+  MAP_PROVIDERS,
+  availableProviders,
+  configureMunimMaps,
+  defaultProvider,
+  installedProviders,
+  isProviderAvailable,
+  type CesiumMapOptions,
+  type GoogleMapOptions,
+  type MapboxMapOptions,
+  type MapKitMapOptions,
+  type MapLibreMapOptions,
+  type MapProvider,
+  type MunimMapsConfiguration,
+  type ProviderOptionProps,
+} from './providers'
 export { MarkerView, type MarkerViewProperties } from './MarkerView'
 export {
   LookAroundView,

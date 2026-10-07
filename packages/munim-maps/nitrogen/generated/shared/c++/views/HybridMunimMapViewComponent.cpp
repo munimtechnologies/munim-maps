@@ -26,6 +26,36 @@ namespace margelo::nitro::munimmaps::views {
                                                    const HybridMunimMapViewProps& sourceProps,
                                                    const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
+    provider([&]() -> CachedProp<MapProvider> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("provider", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.provider;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<MapProvider>::fromRawValue(*runtime, value, sourceProps.provider);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.provider: ") + exc.what());
+      }
+    }()),
+    styleUrl([&]() -> CachedProp<std::string> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("styleUrl", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.styleUrl;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.styleUrl);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.styleUrl: ") + exc.what());
+      }
+    }()),
+    providerOptions([&]() -> CachedProp<std::string> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("providerOptions", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.providerOptions;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.providerOptions);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.providerOptions: ") + exc.what());
+      }
+    }()),
     models([&]() -> CachedProp<std::vector<NativeMapModel>> {
       try {
         const react::RawValue* rawValue = rawProps.at("models", nullptr, nullptr);
@@ -609,6 +639,9 @@ namespace margelo::nitro::munimmaps::views {
 
   bool HybridMunimMapViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
+      case hashString("provider"): return true;
+      case hashString("styleUrl"): return true;
+      case hashString("providerOptions"): return true;
       case hashString("models"): return true;
       case hashString("zones"): return true;
       case hashString("paths"): return true;

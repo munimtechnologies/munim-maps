@@ -12,6 +12,8 @@
 // Forward declaration of `HybridMunimMapViewSpec_cxx` to properly resolve imports.
 namespace NitroMunimMaps { class HybridMunimMapViewSpec_cxx; }
 
+// Forward declaration of `MapProvider` to properly resolve imports.
+namespace margelo::nitro::munimmaps { enum class MapProvider; }
 // Forward declaration of `NativeMapModel` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct NativeMapModel; }
 // Forward declaration of `MapAltitudeReference` to properly resolve imports.
@@ -111,9 +113,10 @@ namespace margelo::nitro::munimmaps { struct MapAlignmentReport; }
 // Forward declaration of `MapItem` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct MapItem; }
 
+#include "MapProvider.hpp"
+#include <string>
 #include "NativeMapModel.hpp"
 #include <vector>
-#include <string>
 #include "MapAltitudeReference.hpp"
 #include "MapModelShape.hpp"
 #include "MapModelEffect.hpp"
@@ -212,6 +215,27 @@ namespace margelo::nitro::munimmaps {
 
   public:
     // Properties
+    inline MapProvider getProvider() noexcept override {
+      auto __result = _swiftPart.getProvider();
+      return static_cast<MapProvider>(__result);
+    }
+    inline void setProvider(MapProvider provider) noexcept override {
+      _swiftPart.setProvider(static_cast<int>(provider));
+    }
+    inline std::string getStyleUrl() noexcept override {
+      auto __result = _swiftPart.getStyleUrl();
+      return __result;
+    }
+    inline void setStyleUrl(const std::string& styleUrl) noexcept override {
+      _swiftPart.setStyleUrl(styleUrl);
+    }
+    inline std::string getProviderOptions() noexcept override {
+      auto __result = _swiftPart.getProviderOptions();
+      return __result;
+    }
+    inline void setProviderOptions(const std::string& providerOptions) noexcept override {
+      _swiftPart.setProviderOptions(providerOptions);
+    }
     inline std::vector<NativeMapModel> getModels() noexcept override {
       auto __result = _swiftPart.getModels();
       return __result;

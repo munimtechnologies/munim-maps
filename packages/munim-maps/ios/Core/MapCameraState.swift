@@ -2,46 +2,106 @@ import CoreGraphics
 import MapKit
 import simd
 
-/// A MapKit camera turned into a SceneKit camera.
+/// The camera of a map engine, as munim-maps' 3D layer draws with it.
+///
+/// Every engine (MapKit, Google Maps, Mapbox, MapLibre, Cesium) describes
+/// its camera with this, once a frame (`MapCameraSource.cameraState`), and
+/// the SceneKit renderer (`MapModelRenderer`) only ever reads this: it never
+/// looks at the engine's map view.
 ///
 /// The scene is laid out in metres around the centre coordinate of the map:
 /// x points east, y points up and z points south, so SceneKit's default
 /// forward direction (-z) is north. Positions come from Web Mercator map
-/// points, the same flat projection MapKit draws in at street and city zoom.
+/// points, the flat projection every engine draws in at street and city zoom.
 ///
-/// MapKit's camera, fitted against `MKMapView.convert` on device: a pinhole
-/// camera centred on the view (30° vertical field of view on iPhone), turned
-/// to the camera's `heading` and `pitch`, at the camera's `altitude`. The
-/// centre coordinate is not on the camera's centre line: MapKit draws it at
-/// the centre of the map's safe area, so the camera is moved until the ray
-/// through that point lands on it.
+/// The camera is a pinhole centred on the view, with a vertical field of
+/// view of `fieldOfView` (from `focalLength`, in points), turned to `heading`
+/// and `pitch`, `altitude` metres above the ground. The centre coordinate
+/// need not be on the camera's centre line: MapKit draws it at the centre of
+/// the map's safe area (`centerPoint`), so the camera is moved until the ray
+/// through that point lands on it. Engines that centre the map on the view
+/// pass the view's centre.
 ///
-/// MapKit can draw the Earth as a globe instead (satellite imagery with
-/// realistic elevation, or the standard style with `MapGlobe`). Then
-/// `globe` is true: positions are placed on a sphere, still in metres around
-/// the centre coordinate with y up there, and the camera sits `distance`
-/// metres back along the ray through the centre point. Close in the two
-/// agree; far out only the sphere matches what MapKit draws. MapKit's own
-/// `convert` methods stay flat on the globe, so they can't be used to check.
-struct MapCameraSnapshot: Equatable {
-  /// MapKit's globe is a sphere this size.
-  static let earthRadius: Double = 6_371_008.8
+/// An engine can draw the Earth as a globe instead (MapKit's satellite
+/// imagery with realistic elevation, or the standard style with `MapGlobe`;
+/// Mapbox's globe projection; Cesium always). Then `globe` is true: positions
+/// are placed on a sphere, still in metres around the centre coordinate with
+/// y up there, and the camera sits `distance` metres back along the ray
+/// through the centre point.
+///
+/// Engines whose SDK hands out an exact view-projection (Mapbox and MapLibre
+/// custom layers, Cesium) may set `viewMatrixOverride` and
+/// `projectionOverride` to use it instead of the pinhole model, in the same
+/// scene space.
+@_expose(!Cxx)
+public struct MapCameraState: Equatable {
+  /// The globe is a sphere this size (MapKit's; WGS84's mean radius).
+  public static let earthRadius: Double = 6_371_008.8
 
-  var latitude: Double
-  var longitude: Double
-  /// Metres from the camera to the centre coordinate, as MapKit reports it.
-  var distance: Double
+  /// The centre coordinate of the map.
+  public var latitude: Double
+  public var longitude: Double
+  /// Metres from the camera to the centre coordinate.
+  public var distance: Double
   /// Height of the camera above the ground, in metres.
-  var altitude: Double
-  var pitch: Double
-  var heading: Double
-  var mapSize: CGSize
-  /// Focal length in points, measured against MapKit (see `read`).
-  var focalLength: Double
-  /// Where MapKit draws the centre coordinate, in the map's coordinates.
-  var centerPoint: CGPoint
-  /// Whether MapKit is drawing the Earth as a globe.
-  var globe = false
+  public var altitude: Double
+  /// Degrees from straight down.
+  public var pitch: Double
+  /// Degrees clockwise from north.
+  public var heading: Double
+  /// The map's size in points: the viewport.
+  public var mapSize: CGSize
+  /// Focal length in points (half the map's height over the tangent of half
+  /// the vertical field of view).
+  public var focalLength: Double
+  /// Where the centre coordinate is drawn, in the map's coordinates.
+  public var centerPoint: CGPoint
+  /// Whether the engine is drawing the Earth as a globe.
+  public var globe = false
+  /// Whether the engine raises the ground to real terrain heights (MapKit's
+  /// satellite imagery with realistic elevation, Mapbox terrain, Cesium).
+  /// Models above sea level and `followsTerrain` then lift onto it.
+  public var drawsTerrain = false
+  /// Whether the map is drawn dark, for `lighting = .auto`.
+  public var darkAppearance = false
+  /// An exact camera transform (camera to scene, column-major), when the
+  /// engine has one. Nil uses the pinhole model above.
+  public var cameraTransformOverride: simd_float4x4?
+  /// An exact OpenGL-style projection, when the engine has one.
+  public var projectionOverride: simd_float4x4?
+
+  public init(
+    latitude: Double,
+    longitude: Double,
+    distance: Double,
+    altitude: Double,
+    pitch: Double,
+    heading: Double,
+    mapSize: CGSize,
+    focalLength: Double,
+    centerPoint: CGPoint,
+    globe: Bool = false,
+    drawsTerrain: Bool = false,
+    darkAppearance: Bool = false
+  ) {
+    self.latitude = latitude
+    self.longitude = longitude
+    self.distance = distance
+    self.altitude = altitude
+    self.pitch = pitch
+    self.heading = heading
+    self.mapSize = mapSize
+    self.focalLength = focalLength
+    self.centerPoint = centerPoint
+    self.globe = globe
+    self.drawsTerrain = drawsTerrain
+    self.darkAppearance = darkAppearance
+  }
+
+  /// Focal length in points for a vertical field of view, in radians.
+  public static func focalLength(height: Double, verticalFieldOfView: Double) -> Double {
+    height / 2 / tan(verticalFieldOfView / 2)
+  }
 
   var centerMapPoint: MKMapPoint {
     MKMapPoint(CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
@@ -50,7 +110,7 @@ struct MapCameraSnapshot: Equatable {
   var metersPerMapPoint: Double { MKMetersPerMapPointAtLatitude(latitude) }
 
   /// Vertical field of view in radians.
-  var fieldOfView: Double {
+  public var fieldOfView: Double {
     guard focalLength > 0, mapSize.height > 0 else { return .pi / 6 }
     return 2 * atan(Double(mapSize.height) / 2 / focalLength)
   }
@@ -96,6 +156,7 @@ struct MapCameraSnapshot: Equatable {
   }
 
   var cameraTransform: simd_float4x4 {
+    if let cameraTransformOverride { return cameraTransformOverride }
     var transform = simd_float4x4(orientation)
     transform.columns.3 = SIMD4(position, 1)
     return transform
@@ -109,6 +170,7 @@ struct MapCameraSnapshot: Equatable {
   /// OpenGL-style perspective matrix, the convention SceneKit's
   /// `projectionTransform` uses.
   var projection: simd_float4x4 {
+    if let projectionOverride { return projectionOverride }
     let aspect = Float(mapSize.width / max(1, mapSize.height))
     let f = 1 / tan(Float(fieldOfView) / 2)
     let near = nearPlane
@@ -122,7 +184,7 @@ struct MapCameraSnapshot: Equatable {
   }
 
   /// Scene position of a coordinate, `altitude` metres above the ground.
-  func scenePosition(
+  public func scenePosition(
     latitude: Double,
     longitude: Double,
     altitude: Double
@@ -179,7 +241,7 @@ struct MapCameraSnapshot: Equatable {
 
   /// Screen point (in the map's own coordinates) of a scene position, and
   /// its depth along the view direction. Nil when behind the camera.
-  func project(_ position: SIMD3<Float>) -> (point: CGPoint, depth: Float)? {
+  public func project(_ position: SIMD3<Float>) -> (point: CGPoint, depth: Float)? {
     let view = cameraTransform.inverse
     let eye = view * SIMD4(position, 1)
     let clip = projection * eye
@@ -191,88 +253,4 @@ struct MapCameraSnapshot: Equatable {
     )
     return (point, -eye.z)
   }
-
-  /// Reads the camera of `mapView`, measuring its focal length.
-  ///
-  /// MapKit does not publish its field of view, so it is measured from the
-  /// map: two points on the screen row through the centre coordinate land on
-  /// a ground line square to the view, all at the same depth, so their
-  /// ground distance gives the focal length. The depth itself depends a
-  /// little on the focal length (the row is off the centre line), so this
-  /// settles it in a few rounds. Falls back to `previousFocalLength` when
-  /// the map cannot answer, for example before it has a size.
-  static func read(
-    from mapView: MKMapView,
-    previousFocalLength: Double,
-    globe: Bool = false
-  ) -> MapCameraSnapshot? {
-    let bounds = mapView.bounds
-    guard bounds.width > 1, bounds.height > 1 else { return nil }
-    let camera = mapView.camera
-    let distance = camera.centerCoordinateDistance
-    let altitude = camera.altitude
-    guard distance.isFinite, distance > 0, altitude.isFinite, altitude > 0 else { return nil }
-    let pitch = Double(camera.pitch)
-    let heading = camera.heading
-
-    let local = CGRect(origin: .zero, size: bounds.size)
-    var center = mapView.convert(camera.centerCoordinate, toPointTo: mapView)
-    center.x -= bounds.minX
-    center.y -= bounds.minY
-    if !center.x.isFinite || !center.y.isFinite || !local.contains(center) {
-      center = CGPoint(x: local.midX, y: local.midY)
-    }
-
-    // 30° vertical is what MapKit uses on iPhone; only a starting guess.
-    var focal = previousFocalLength > 0
-      ? previousFocalLength : Double(bounds.height) / 2 / tan(.pi / 12)
-    let half = min(60, bounds.width / 4)
-    let left = mapView.convert(
-      CGPoint(x: bounds.minX + center.x - half, y: bounds.minY + center.y),
-      toCoordinateFrom: mapView)
-    let right = mapView.convert(
-      CGPoint(x: bounds.minX + center.x + half, y: bounds.minY + center.y),
-      toCoordinateFrom: mapView)
-    if CLLocationCoordinate2DIsValid(left), CLLocationCoordinate2DIsValid(right) {
-      let meters = MKMapPoint(left).distance(to: MKMapPoint(right))
-      if meters.isFinite, meters > 0 {
-        let rotation = orientation(heading: heading, pitch: pitch)
-        let forward = rotation.act(SIMD3<Float>(0, 0, -1))
-        for _ in 0..<4 {
-          let direction = ray(
-            through: center, mapSize: bounds.size, focalLength: focal, orientation: rotation)
-          guard direction.y < -1e-5 else { break }
-          let toGround = direction * (Float(altitude) / -direction.y)
-          let depth = Double(simd_dot(toGround, forward))
-          guard depth > 0 else { break }
-          focal = Double(2 * half) * depth / meters
-        }
-      }
-    }
-    guard focal > 0 else { return nil }
-
-    var snapshot = MapCameraSnapshot(
-      latitude: camera.centerCoordinate.latitude,
-      longitude: camera.centerCoordinate.longitude,
-      distance: distance,
-      altitude: altitude,
-      pitch: pitch,
-      heading: heading,
-      mapSize: bounds.size,
-      focalLength: focal,
-      centerPoint: center
-    )
-    if globe {
-      snapshot.globe = true
-      // MapKit's conversions stay flat on the globe, so far out the
-      // measurement above is off; keep the focal length measured closer in.
-      if distance > flatMeasurementLimit, previousFocalLength > 0 {
-        snapshot.focalLength = previousFocalLength
-      }
-    }
-    return snapshot
-  }
-
-  /// Beyond this distance the flat focal-length measurement is not trusted.
-  private static let flatMeasurementLimit: Double = 1_000_000
 }
