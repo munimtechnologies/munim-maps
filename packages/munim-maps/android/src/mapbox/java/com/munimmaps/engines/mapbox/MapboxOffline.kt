@@ -147,6 +147,8 @@ internal object MapboxOffline {
         done(Result.success(null))
       }
       "offline.clearData" -> clearData(done)
+      // The token maps use, for MapboxServices in JavaScript.
+      "accessToken" -> done(Result.success(com.mapbox.common.MapboxOptions.accessToken))
       else -> done(Result.failure(UnsupportedOperationException("Mapbox has no method \"$method\"")))
     }
   }

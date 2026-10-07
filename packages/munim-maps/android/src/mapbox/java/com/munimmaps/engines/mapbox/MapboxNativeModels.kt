@@ -62,7 +62,7 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
 
   init {
     // Taps on native models: before annotations' and the map's own taps.
-    for (layer in listOf(GROUND_LAYER, SEA_LAYER)) {
+    for (layer in listOf(GROUND_LAYER, SEA_LAYER, ANIMATED_LAYER, ANIMATED_SEA_LAYER)) {
       interactions += engine.map.addInteraction(ClickInteraction.layer(layer) { feature, _ ->
         val id = feature.properties.optString("id", "").ifEmpty { feature.originalFeature.id() ?: "" }
         if (id.isEmpty()) return@layer false
@@ -100,7 +100,9 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
       }
       val extras = model.label.isNotEmpty() || model.stem || model.effect != MapModelEffect.NONE || model.occluder
       if (mode == "auto") {
-        if (extras || model.liftPoints != 0.0 || model.playAnimations) rest.add(model) else natives.add(model)
+        // The model layer does not play glTF animations: animated files stay on the Filament layer.
+        val animated = model.playAnimations && infos[model.uri]?.hasAnimations == true
+        if (extras || model.liftPoints != 0.0 || animated) rest.add(model) else natives.add(model)
       } else {
         natives.add(model)
         // The Filament layer keeps the label, stem and effects without the body.
@@ -134,6 +136,11 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
           val info = runCatching { GlbInfo.parse(bytes) }.getOrNull()
           engine.main.post {
             if (info != null) infos[uri] = info
+            // An animated file moves its models back to the Filament layer.
+            if (info?.hasAnimations == true) {
+              split()
+              engine.modelLayer.models = overlay
+            }
             done()
           }
         }
@@ -149,12 +156,15 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
     update()
   }
 
-  /** Rebuilds the model source from the models' poses now. */
+  private fun animated(model: NativeMapModel) = model.motion.size > 1 || model.spinDegreesPerSecond != 0.0
+
+  /** Rebuilds the model sources from the models' poses now. */
   fun update() {
     if (engine.destroyed || !engine.styleLoaded) return
+    updateAnimated()
     val map = engine.map
-    val models = entries()
-    if (native.isEmpty() || models.length() == 0) {
+    val models = entries(native.filter { !animated(it) })
+    if (models.length() == 0) {
       if (installed || map.styleSourceExists(SOURCE)) uninstall()
       return
     }
@@ -176,15 +186,46 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
     }
   }
 
-  private fun addLayer(id: String, sea: Boolean) {
+  /** Moving and spinning models: their own model source, location-indicator models updated every frame. */
+  private fun updateAnimated() {
+    val map = engine.map
+    val moving = native.filter { animated(it) }
+    if (moving.isEmpty()) {
+      for (id in listOf(ANIMATED_LAYER, ANIMATED_SEA_LAYER)) if (map.styleLayerExists(id)) map.removeStyleLayer(id)
+      if (map.styleSourceExists(ANIMATED_SOURCE)) map.removeStyleSource(ANIMATED_SOURCE)
+      return
+    }
+    val models = entries(moving)
+    if (!map.styleSourceExists(ANIMATED_SOURCE)) {
+      MapboxJson.error(map.addStyleSource(ANIMATED_SOURCE, MapboxJson.value(JSONObject().put("type", "model").put("models", models))))?.let {
+        engine.report("native models: $it")
+        return
+      }
+      addLayer(ANIMATED_LAYER, false, ANIMATED_SOURCE, indicator = true)
+      addLayer(ANIMATED_SEA_LAYER, true, ANIMATED_SOURCE, indicator = true)
+    } else {
+      MapboxJson.error(map.setStyleSourceProperty(ANIMATED_SOURCE, "models", MapboxJson.value(models)))?.let { engine.report("native models: $it") }
+    }
+    val keys = models.keys()
+    while (keys.hasNext()) {
+      val id = keys.next()
+      val props = models.optJSONObject(id)?.optJSONObject("featureProperties") ?: continue
+      val state = JSONObject().put("scale", props.optJSONArray("scale")).put("translation", props.optJSONArray("translation"))
+      map.setFeatureState(ANIMATED_SOURCE, id, MapboxJson.value(state)) { }
+    }
+  }
+
+  private fun addLayer(id: String, sea: Boolean, source: String = SOURCE, indicator: Boolean = false) {
     val filter = JSONArray().put(if (sea) "==" else "!=").put(JSONArray().put("get").put("sea")).put(true)
+    fun stateOr(key: String) = JSONArray().put("array").put("number").put(3).put(
+      JSONArray().put("coalesce").put(JSONArray().put("feature-state").put(key)).put(JSONArray().put("get").put(key)))
     val layer = JSONObject()
-      .put("id", id).put("type", "model").put("source", SOURCE)
+      .put("id", id).put("type", "model").put("source", source)
       .put("filter", filter)
       .put("paint", JSONObject()
-        .put("model-type", "common-3d")
-        .put("model-scale", JSONArray().put("get").put("scale"))
-        .put("model-translation", JSONArray().put("get").put("translation"))
+        .put("model-type", if (indicator) "location-indicator" else "common-3d")
+        .put("model-scale", if (indicator) stateOr("scale") else JSONArray().put("get").put("scale"))
+        .put("model-translation", if (indicator) stateOr("translation") else JSONArray().put("get").put("translation"))
         .put("model-cast-shadows", true)
         .put("model-receive-shadows", true)
         .put("model-emissive-strength", JSONArray().put("get").put("emissive"))
@@ -198,20 +239,28 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
     val map = engine.map
     for (id in listOf(GROUND_LAYER, SEA_LAYER)) if (map.styleLayerExists(id)) map.removeStyleLayer(id)
     if (map.styleSourceExists(SOURCE)) map.removeStyleSource(SOURCE)
+    if (native.none { animated(it) }) {
+      for (id in listOf(ANIMATED_LAYER, ANIMATED_SEA_LAYER)) if (map.styleLayerExists(id)) map.removeStyleLayer(id)
+      if (map.styleSourceExists(ANIMATED_SOURCE)) map.removeStyleSource(ANIMATED_SOURCE)
+    }
     installed = false
     lastJson = ""
   }
 
-  private fun entries(): JSONObject {
+  private fun entries(models: List<NativeMapModel>): JSONObject {
     val result = JSONObject()
     val now = System.currentTimeMillis() / 1000.0
-    val camera = if (native.any { it.screenSize > 0 }) engine.cameraState(null) else null
-    for (model in native) {
+    val camera = if (models.any { it.screenSize > 0 }) engine.cameraState(null) else null
+    for (model in models) {
       val uri = resolved[model.uri] ?: continue
       val info = infos[model.uri]
       val pose = pose(model, now)
       var heading = pose[3]
       if (model.spinDegreesPerSecond != 0.0) heading += (model.spinDegreesPerSecond * now) % 360
+      // munim-maps' glTF models face -Z; Mapbox's model layer draws heading 0
+      // facing south without this (measured on the iPad: heading 90 put the
+      // fire truck's cab west).
+      heading += 180
       heading = (heading % 360 + 360) % 360
       var scale = model.scale
       if (model.screenSize > 0) {
@@ -274,6 +323,9 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
     const val SOURCE = "munim-native-models"
     const val GROUND_LAYER = "munim-native-models"
     const val SEA_LAYER = "munim-native-models-sea"
+    const val ANIMATED_SOURCE = "munim-native-animated"
+    const val ANIMATED_LAYER = "munim-native-animated"
+    const val ANIMATED_SEA_LAYER = "munim-native-animated-sea"
 
     private val NOT_GLTF = setOf("usdz", "usd", "usda", "usdc", "scn", "obj", "dae", "fbx", "stl", "ply", "reality")
 
@@ -346,7 +398,7 @@ internal class MapboxNativeModels(private val engine: MapboxMapEngine) {
  * What the native renderer needs from a glTF file: its height (for
  * `screenSize`) and the names of its `paint*` materials (for `tint`).
  */
-internal class GlbInfo(val height: Double, val paintMaterials: List<String>) {
+internal class GlbInfo(val height: Double, val paintMaterials: List<String>, val hasAnimations: Boolean = false) {
   companion object {
     /** Reads the JSON chunk of a GLB (or a .gltf file). */
     fun parse(data: ByteArray): GlbInfo? {
@@ -410,7 +462,8 @@ internal class GlbInfo(val height: Double, val paintMaterials: List<String>) {
       val height = if (maxY > minY) maxY - minY else 0.0
       val paint = (0 until materials.length()).mapNotNull { materials.optJSONObject(it)?.optString("name", "")?.takeIf { n -> n.isNotEmpty() } }
         .filter { it.lowercase().startsWith("paint") }
-      return GlbInfo(height, paint)
+      val animated = (json.optJSONArray("animations")?.length() ?: 0) > 0
+      return GlbInfo(height, paint, animated)
     }
   }
 }

@@ -277,6 +277,8 @@ enum MapboxCalls {
     case "setViewport":
       setViewport(args, engine: e, completion: completion)
 
+    case "getNativeModels":
+      done(e.nativeModels.describe())
     case "getFreeCamera":
       let free = map.freeCameraOptions
       done(["position": ["latitude": free.location.latitude, "longitude": free.location.longitude, "altitude": free.altitude]])

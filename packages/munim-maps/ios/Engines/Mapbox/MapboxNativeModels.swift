@@ -76,7 +76,9 @@ final class MapboxNativeModels {
       }
       let extras = !model.label.isEmpty || model.stem || model.effect != .none || model.occluder
       if mode == "auto" {
-        if extras || model.liftPoints != 0 || model.playAnimations {
+        // The model layer does not play glTF animations: animated files stay on the 3D layer.
+        let animated = model.playAnimations && infos[model.uri]?.hasAnimations == true
+        if extras || model.liftPoints != 0 || animated {
           overlay.append(model)
         } else {
           native.append(model)
@@ -103,118 +105,296 @@ final class MapboxNativeModels {
       guard let self else { return }
       self.loading.remove(uri)
       if let info { self.infos[uri] = info }
-      self.update()
+      // An animated file moves its models back to the 3D layer.
+      if info?.hasAnimations == true { self.modeChanged() } else { self.update() }
     }
   }
 
+  /// `getNativeModels`: who draws what, and the model source as Mapbox has it.
+  func describe() -> [String: Any] {
+    var json: [String: Any] = [
+      "mode": mode, "native": native.map(\.id), "overlay": overlay.map(\.id), "installed": installed,
+      "heights": infos.mapValues { $0.height },
+      "uris": Dictionary(all.map { ($0.id, $0.uri) }, uniquingKeysWith: { a, _ in a }),
+      "positions": Dictionary(native.map { model -> (String, [Double]) in
+        let pose = model.pose(at: Date().timeIntervalSince1970)
+        return (model.id, [pose.latitude, pose.longitude, pose.altitude, pose.heading])
+      }, uniquingKeysWith: { a, _ in a }),
+    ]
+    if let map = engine?.mapboxMap, map.sourceExists(withId: Self.sourceId) {
+      json["source"] = (try? map.sourceProperties(for: Self.sourceId)) ?? NSNull()
+      json["layers"] = [Self.groundLayerId, Self.seaLayerId].filter { map.layerExists(withId: $0) }
+    }
+    return json
+  }
+
   // MARK: Drawing
+  //
+  // Three paths, because Mapbox reloads a `model` source's models whenever
+  // its `models` change, and a GeoJSON source updated every frame never
+  // settles long enough to draw:
+  // - Still models are entries of a `model` source; their `tint` overrides
+  //   only the `paint*` materials.
+  // - Screen-sized models (`screenSize`, no motion) are GeoJSON points drawn
+  //   by `model` layers whose `model-id` names a style model, updated when
+  //   the camera moves; `tint` is mixed over the whole model.
+  // - Moving or spinning models are entries of a second `model` source
+  //   drawn with `model-type: location-indicator` (placed every frame, not
+  //   tiled), as in Mapbox's own animated-model example: their `models`
+  //   (position, orientation) change every frame, altitude and scale go
+  //   through feature state; `tint` overrides the `paint*` materials.
+
+  static let movingSourceId = "munim-native-moving"
+  static let movingLayerId = "munim-native-moving"
+  static let movingSeaLayerId = "munim-native-moving-sea"
+  static var layerIds: [String] { [groundLayerId, seaLayerId, movingLayerId, movingSeaLayerId] }
+
+  private var styleModels = Set<String>()
+  private var lastMovingJSON = ""
+
+  private func animated(_ model: MunimModel) -> Bool {
+    model.motion.count > 1 || model.spinDegreesPerSecond != 0
+  }
+
+  private func changesEveryFrame(_ model: MunimModel) -> Bool {
+    animated(model) || model.screenSize > 0
+  }
+
+  static let animatedSourceId = "munim-native-animated"
+  static let animatedLayerId = "munim-native-animated"
+  static let animatedSeaLayerId = "munim-native-animated-sea"
+  private var animatedLayerIds: [String] { [Self.animatedLayerId, Self.animatedSeaLayerId] }
 
   func styleReloaded() {
     installed = false
     lastJSON = ""
+    lastMovingJSON = ""
+    styleModels = []
     update()
   }
 
-  /// Rebuilds the model source from the models' poses now.
+  /// Draws the native models as they are now.
   func update() {
-    guard let engine, engine.mapboxMap.isStyleLoaded else { return }
+    guard let engine, engine.styleReady else { return }
     let map = engine.mapboxMap
     guard !native.isEmpty else {
-      if installed || map.sourceExists(withId: Self.sourceId) { uninstall() }
+      if installed || map.sourceExists(withId: Self.sourceId) || map.sourceExists(withId: Self.movingSourceId) {
+        uninstall()
+      }
       return
     }
-    let models = entries()
-    let json = MapboxJSON.key(models)
-    guard json != lastJSON || !installed else { return }
-    lastJSON = json
     do {
-      if !installed || !map.sourceExists(withId: Self.sourceId) {
+      if !installed {
         uninstall()
-        try map.addSource(withId: Self.sourceId, properties: ["type": "model", "models": models])
-        try addLayer(Self.groundLayerId, sea: false)
-        try addLayer(Self.seaLayerId, sea: true)
+        try map.addSource(withId: Self.sourceId, properties: ["type": "model", "models": [String: Any]()])
+        try map.addSource(withId: Self.movingSourceId, properties: [
+          "type": "geojson", "data": ["type": "FeatureCollection", "features": [Any]()],
+        ])
+        try addLayer(Self.groundLayerId, source: Self.sourceId, sea: false, moving: false)
+        try addLayer(Self.seaLayerId, source: Self.sourceId, sea: true, moving: false)
+        try addLayer(Self.movingLayerId, source: Self.movingSourceId, sea: false, moving: true)
+        try addLayer(Self.movingSeaLayerId, source: Self.movingSourceId, sea: true, moving: true)
         installed = true
-      } else {
+      }
+      let still = native.filter { !changesEveryFrame($0) }
+      let moving = native.filter { !animated($0) && $0.screenSize > 0 }
+      try updateAnimated(native.filter(animated))
+      let models = stillEntries(still)
+      let json = MapboxJSON.key(models)
+      if json != lastJSON {
+        lastJSON = json
         try map.setSourceProperty(for: Self.sourceId, property: "models", value: models)
+      }
+      for uri in Set(moving.map(\.uri)) where !styleModels.contains(uri) {
+        styleModels.insert(uri)
+        let id = Self.styleModelId(uri)
+        if map.hasStyleModel(modelId: id) { try? map.removeStyleModel(modelId: id) }
+        try map.addStyleModel(modelId: id, modelUri: uri)
+      }
+      let features = movingFeatures(moving)
+      let ids = moving.map(\.id).joined(separator: "|")
+      if ids != lastMovingJSON {
+        // A different set of models: replace the data.
+        lastMovingJSON = ids
+        try map.setSourceProperty(
+          for: Self.movingSourceId, property: "data", value: ["type": "FeatureCollection", "features": features])
+      } else if !features.isEmpty, map.sourceExists(withId: Self.movingSourceId) {
+        // The same models moved: a partial update, cheap enough every frame.
+        let turf = features.compactMap { try? MapboxJSON.decode(Feature.self, from: $0) }
+        map.updateGeoJSONSourceFeatures(forSourceId: Self.movingSourceId, features: turf)
       }
     } catch {
       engine.onError?("Mapbox: native models: \(error.localizedDescription)")
     }
   }
 
-  private func addLayer(_ id: String, sea: Bool) throws {
+  /// Moving models: a `model` source of location-indicator models, updated every frame.
+  private func updateAnimated(_ models: [MunimModel]) throws {
     guard let engine else { return }
-    var layer: [String: Any] = [
-      "id": id, "type": "model", "source": Self.sourceId,
-      "filter": sea ? ["==", ["get", "sea"], true] : ["!=", ["get", "sea"], true],
-      "paint": [
-        "model-type": "common-3d",
-        "model-scale": ["get", "scale"],
-        "model-translation": ["get", "translation"],
-        "model-cast-shadows": true,
-        "model-receive-shadows": true,
-        "model-emissive-strength": ["get", "emissive"],
-        "model-opacity": ["get", "opacity"],
-        "model-elevation-reference": sea ? "sea" : "ground",
-      ] as [String: Any],
+    let map = engine.mapboxMap
+    if !map.sourceExists(withId: Self.animatedSourceId) {
+      try map.addSource(withId: Self.animatedSourceId, properties: ["type": "model", "models": [String: Any]()])
+      for (id, sea) in [(Self.animatedLayerId, false), (Self.animatedSeaLayerId, true)] {
+        var layer: [String: Any] = [
+          "id": id, "type": "model", "source": Self.animatedSourceId,
+          "filter": sea ? ["==", ["get", "sea"], true] : ["!=", ["get", "sea"], true],
+          "paint": [
+            "model-type": "location-indicator",
+            "model-scale": ["coalesce", ["feature-state", "scale"], ["literal", [1, 1, 1]]],
+            "model-translation": ["literal", [0, 0, 0]],
+            "model-cast-shadows": true,
+            "model-receive-shadows": true,
+            "model-emissive-strength": ["get", "emissive"],
+            "model-elevation-reference": sea ? "sea" : "ground",
+          ] as [String: Any],
+        ]
+        layer["paint"] = (layer["paint"] as? [String: Any] ?? [:]).merging([
+          "model-translation": ["array", "number", 3,
+                                ["coalesce", ["feature-state", "translation"], ["literal", [0, 0, 0]]]],
+        ]) { $1 }
+        if engine.hasSlots { layer["slot"] = "middle" }
+        try map.addLayer(with: layer, layerPosition: nil)
+      }
+    }
+    let now = Date().timeIntervalSince1970
+    let camera = engine.cameraSource.cameraState(previous: nil)
+    var entries: [String: Any] = [:]
+    var states: [(String, [String: Any])] = []
+    for model in models {
+      let p = placement(model, now: now, camera: camera)
+      var entry: [String: Any] = [
+        "uri": model.uri,
+        "position": [p.pose.longitude, p.pose.latitude],
+        "orientation": [0, 0, p.heading],
+        "featureProperties": properties(model, p),
+      ]
+      if let overrides = tintOverrides(model) { entry["materialOverrides"] = overrides }
+      entries[model.id] = entry
+      states.append((model.id, ["scale": [p.scale, p.scale, p.scale], "translation": [0, 0, p.pose.altitude]]))
+    }
+    try map.setSourceProperty(for: Self.animatedSourceId, property: "models", value: entries)
+    for (id, state) in states {
+      _ = map.setFeatureState(sourceId: Self.animatedSourceId, featureId: id, state: state) { _ in }
+    }
+  }
+
+  private func tintOverrides(_ model: MunimModel) -> [String: Any]? {
+    guard !model.tintColor.isEmpty, let color = UIColor(mapModelHex: model.tintColor),
+          let names = infos[model.uri]?.paintMaterials, !names.isEmpty else { return nil }
+    return Dictionary(uniqueKeysWithValues: names.map {
+      ($0, ["model-color": color.styleString, "model-color-mix-intensity": 1.0] as [String: Any])
+    })
+  }
+
+  static func styleModelId(_ uri: String) -> String {
+    "munim-model-" + String(UInt(bitPattern: uri.hashValue), radix: 36)
+  }
+
+  private func addLayer(_ id: String, source: String, sea: Bool, moving: Bool) throws {
+    guard let engine else { return }
+    var paint: [String: Any] = [
+      "model-type": "common-3d",
+      "model-scale": ["get", "scale"],
+      "model-translation": ["get", "translation"],
+      "model-cast-shadows": true,
+      "model-receive-shadows": true,
+      "model-emissive-strength": ["get", "emissive"],
+      "model-opacity": ["get", "opacity"],
+      "model-elevation-reference": sea ? "sea" : "ground",
     ]
+    var layer: [String: Any] = [
+      "id": id, "type": "model", "source": source,
+      "filter": sea ? ["==", ["get", "sea"], true] : ["!=", ["get", "sea"], true],
+    ]
+    if moving {
+      paint["model-rotation"] = ["get", "rotation"]
+      paint["model-color"] = ["get", "tint"]
+      paint["model-color-mix-intensity"] = ["get", "tintMix"]
+      layer["layout"] = ["model-id": ["get", "modelId"]]
+    }
+    layer["paint"] = paint
     if engine.hasSlots { layer["slot"] = "middle" }
     try engine.mapboxMap.addLayer(with: layer, layerPosition: nil)
   }
 
   private func uninstall() {
     guard let map = engine?.mapboxMap else { return }
-    for id in [Self.groundLayerId, Self.seaLayerId] where map.layerExists(withId: id) {
-      try? map.removeLayer(withId: id)
+    for id in Self.layerIds + animatedLayerIds where map.layerExists(withId: id) { try? map.removeLayer(withId: id) }
+    for id in [Self.sourceId, Self.movingSourceId, Self.animatedSourceId] where map.sourceExists(withId: id) {
+      try? map.removeSource(withId: id)
     }
-    if map.sourceExists(withId: Self.sourceId) { try? map.removeSource(withId: Self.sourceId) }
     installed = false
     lastJSON = ""
+    lastMovingJSON = ""
   }
 
-  private func entries() -> [String: Any] {
-    guard let engine else { return [:] }
+  /// Pose, heading and scale of a model now.
+  private func placement(_ model: MunimModel, now: Double, camera: MapCameraState?) -> (pose: MunimPose, heading: Double, scale: Double) {
+    let pose = model.pose(at: now)
+    var heading = pose.heading
+    if model.spinDegreesPerSecond != 0 {
+      heading += (model.spinDegreesPerSecond * now).truncatingRemainder(dividingBy: 360)
+    }
+    // munim-maps' glTF models face -Z; Mapbox turns +Z to north. Measured on
+    // the iPad: heading 90 drew the fire truck's cab west without this.
+    heading += 180
+    heading = (heading.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+    var scale = model.scale
+    if model.screenSize > 0, let camera, let height = infos[model.uri]?.height, height > 0 {
+      // Same rule as the 3D layer: `screenSize` points tall on screen.
+      let position = camera.scenePosition(latitude: pose.latitude, longitude: pose.longitude, altitude: pose.altitude)
+      if let depth = camera.project(position)?.depth, depth > 0 {
+        scale *= model.screenSize * Double(depth) / camera.focalLength / height
+      }
+    }
+    return (pose, heading, scale)
+  }
+
+  private func properties(_ model: MunimModel, _ p: (pose: MunimPose, heading: Double, scale: Double)) -> [String: Any] {
+    [
+      "id": model.id,
+      "scale": [p.scale, p.scale, p.scale],
+      "translation": [0, 0, p.pose.altitude],
+      "sea": model.altitudeReference == .sea,
+      "emissive": model.emissive ? 1 : 0,
+      "opacity": 1,
+    ]
+  }
+
+  private func stillEntries(_ models: [MunimModel]) -> [String: Any] {
     let now = Date().timeIntervalSince1970
-    let camera = engine.cameraSource.cameraState(previous: nil)
     var result: [String: Any] = [:]
-    for model in native {
-      let pose = model.pose(at: now)
-      var heading = pose.heading
-      if model.spinDegreesPerSecond != 0 {
-        heading += (model.spinDegreesPerSecond * now).truncatingRemainder(dividingBy: 360)
-      }
-      heading = (heading.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
-      let info = infos[model.uri]
-      var scale = model.scale
-      if model.screenSize > 0, let camera, let height = info?.height, height > 0 {
-        // Same rule as the 3D layer: `screenSize` points tall on screen.
-        let position = camera.scenePosition(latitude: pose.latitude, longitude: pose.longitude, altitude: pose.altitude)
-        if let depth = camera.project(position)?.depth, depth > 0 {
-          scale *= model.screenSize * Double(depth) / camera.focalLength / height
-        }
-      }
+    for model in models {
+      let p = placement(model, now: now, camera: nil)
       var entry: [String: Any] = [
         "uri": model.uri,
-        "position": [pose.longitude, pose.latitude],
-        "orientation": [0, 0, heading],
-        "featureProperties": [
-          "id": model.id,
-          "scale": [scale, scale, scale],
-          "translation": [0, 0, pose.altitude],
-          "sea": model.altitudeReference == .sea,
-          "emissive": model.emissive ? 1 : 0,
-          "opacity": 1,
-        ] as [String: Any],
+        "position": [p.pose.longitude, p.pose.latitude],
+        "orientation": [0, 0, p.heading],
+        "featureProperties": properties(model, p),
       ]
-      if !model.tintColor.isEmpty, let color = UIColor(mapModelHex: model.tintColor),
-         let names = info?.paintMaterials, !names.isEmpty {
-        entry["materialOverrides"] = Dictionary(uniqueKeysWithValues: names.map {
-          ($0, ["model-color": color.styleString, "model-color-mix-intensity": 1.0] as [String: Any])
-        })
-      }
+      if let overrides = tintOverrides(model) { entry["materialOverrides"] = overrides }
       result[model.id] = entry
     }
     return result
+  }
+
+  private func movingFeatures(_ models: [MunimModel]) -> [[String: Any]] {
+    guard let engine else { return [] }
+    let now = Date().timeIntervalSince1970
+    let camera = engine.cameraSource.cameraState(previous: nil)
+    return models.map { model in
+      let p = placement(model, now: now, camera: camera)
+      var props = properties(model, p)
+      props["modelId"] = Self.styleModelId(model.uri)
+      props["rotation"] = [0, 0, p.heading]
+      let tint = UIColor(mapModelHex: model.tintColor)
+      props["tint"] = (tint ?? .white).styleString
+      props["tintMix"] = tint == nil ? 0 : 0.6
+      return [
+        "type": "Feature", "id": model.id, "properties": props,
+        "geometry": ["type": "Point", "coordinates": [p.pose.longitude, p.pose.latitude]],
+      ]
+    }
   }
 
   // MARK: Clock
@@ -250,7 +430,7 @@ final class MapboxNativeModels {
     guard let engine, installed else { return completion(nil) }
     let box = CGRect(x: point.x - 8, y: point.y - 8, width: 16, height: 16)
     _ = engine.mapboxMap.queryRenderedFeatures(
-      with: box, options: RenderedQueryOptions(layerIds: [Self.groundLayerId, Self.seaLayerId], filter: nil)
+      with: box, options: RenderedQueryOptions(layerIds: Self.layerIds + animatedLayerIds, filter: nil)
     ) { result in
       guard case .success(let features) = result, let first = features.first else { return completion(nil) }
       if case .string(let id)? = first.queriedFeature.feature.properties?["id"] {
@@ -275,6 +455,7 @@ private final class MapboxNativeModelsTarget: NSObject {
 struct MapboxGLBInfo {
   var height: Double
   var paintMaterials: [String]
+  var hasAnimations = false
 
   static func load(uri: String, completion: @escaping (MapboxGLBInfo?) -> Void) {
     MapModelNodes.resolveLocalURL(uri: uri) { result in
@@ -367,7 +548,8 @@ struct MapboxGLBInfo {
     }
     let height = maxY > minY ? maxY - minY : 0
     let paint = materials.filter { $0.lowercased().hasPrefix("paint") }
-    return MapboxGLBInfo(height: height, paintMaterials: paint)
+    let animated = !((json["animations"] as? [Any]) ?? []).isEmpty
+    return MapboxGLBInfo(height: height, paintMaterials: paint, hasAnimations: animated)
   }
 }
 #endif

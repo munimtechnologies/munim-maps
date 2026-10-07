@@ -82,6 +82,9 @@ enum MapboxOffline {
         main(result.map(tileRegionJSON))
       })
 
+    case "accessToken":
+      // For MapboxServices in JavaScript: the public token the app has.
+      completion(.success(MapboxOptions.accessToken))
     case "offline.cancel":
       guard let id = args["id"] as? String else { return fail("needs id") }
       let download = downloads.removeValue(forKey: id)

@@ -140,6 +140,7 @@ extension MapboxMapEngine {
     guard wanted.key != style.loadedStyleKey else { return }
     style.loadedStyleKey = wanted.key
     style.styleReloaded()
+    styleReady = false
     if let json = wanted.json {
       mapboxMap.styleJSON = json
     } else if let uri = wanted.uri {
@@ -155,7 +156,7 @@ extension MapboxMapEngine {
   // MARK: Applying `mapbox={{…}}` to the style
 
   func applyStyleOptions(reloaded: Bool) {
-    guard mapboxMap.isStyleLoaded else { return }
+    guard styleReady else { return }
     if reloaded { style.styleReloaded() }
     applyBasemapConfig()
     applyImportConfig()

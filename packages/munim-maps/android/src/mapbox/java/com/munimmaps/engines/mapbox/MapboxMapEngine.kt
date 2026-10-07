@@ -203,10 +203,22 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       }
       modelLayer.setNeedsRender()
     }
-    setUpMap()
     nativeModels = MapboxNativeModels(this)
+    setUpMap()
     modelLayer.attach(this)
     style.scheduleRefresh()
+  }
+
+  private var lastReportedCamera: MapCamera? = null
+  private val cameraSettled = Runnable { if (!destroyed) reportCameraChange() }
+
+  /** `onCameraChange`, once per camera position (map idle or 250 ms without a change). */
+  private fun reportCameraChange() {
+    val camera = getCamera() ?: return
+    if (camera == lastReportedCamera) return
+    lastReportedCamera = camera
+    listener?.onCameraChange(camera)
+    controls.cameraIdle()
   }
 
   private fun setUpMap() {
@@ -217,6 +229,9 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       getCamera()?.let { listener?.onCameraMove(it) }
       controls.cameraMoved()
       nativeModels.cameraChanged()
+      // Mapbox never idles while native models animate: report the camera once it rests 250 ms.
+      main.removeCallbacks(cameraSettled)
+      main.postDelayed(cameraSettled, 250)
       style.emit("cameraChanged") {
         val cs = event.cameraState
         JSONObject()
@@ -229,8 +244,8 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
       modelLayer.setNeedsRender()
       if (cameraMovedSinceIdle) {
         cameraMovedSinceIdle = false
-        getCamera()?.let { listener?.onCameraChange(it) }
-        controls.cameraIdle()
+        main.removeCallbacks(cameraSettled)
+        reportCameraChange()
       }
       style.emit("mapIdle") { JSONObject() }
     }
@@ -270,6 +285,7 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     stopFlight()
     stop()
     destroyed = true
+    main.removeCallbacks(cameraSettled)
     subscriptions.forEach { it.cancel() }
     subscriptions.clear()
     style.destroy()

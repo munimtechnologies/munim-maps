@@ -659,6 +659,20 @@ export interface MapboxMapMethods {
   }): Promise<boolean>
   /** A PNG of a map drawn off screen by Mapbox's `Snapshotter`; its path. */
   snapshot(options?: MapboxSnapshotOptions): Promise<string>
+  /**
+   * Which `models` Mapbox draws in its model layer (`modelRendering`) and
+   * which munim-maps' 3D layer draws, with the model source as Mapbox has it.
+   */
+  getNativeModels(): Promise<{
+    mode: 'auto' | 'native' | 'overlay'
+    native: string[]
+    overlay: string[]
+    installed: boolean
+    /** Where each native model is now: `[latitude, longitude, altitude, heading]`. */
+    positions?: Record<string, [number, number, number, number]>
+    source?: Json
+    layers?: string[]
+  }>
   /** The camera as a position in space (Mapbox's free camera). */
   getFreeCamera(): Promise<{
     position: { latitude: number; longitude: number; altitude: number }
@@ -849,17 +863,23 @@ export const MapboxOffline = {
 // --- Web services (the public token, from JavaScript) -----------------------
 
 let serviceToken = ''
+let nativeToken: Promise<string> | undefined
 
 /**
- * The token for `MapboxServices`. `configureMunimMaps({ mapboxAccessToken })`
- * sets it too; a token only in Info.plist / strings.xml is not visible here.
+ * The token for `MapboxServices`. Default: the one given to
+ * `configureMunimMaps({ mapboxAccessToken })`, else the one the app is
+ * built with (Info.plist / strings.xml, from the config plugin).
  */
 export function setMapboxServicesToken(token: string) {
   serviceToken = token
 }
 
 async function service<T>(url: string, token?: string): Promise<T> {
-  const key = token ?? (serviceToken || configuredMapboxToken())
+  // The token the app is built with (Info.plist / strings.xml), when
+  // JavaScript was not given one.
+  nativeToken ??= callProvider<string>('mapbox', 'accessToken').catch(() => '')
+  const key =
+    token ?? (serviceToken || configuredMapboxToken() || (await nativeToken))
   if (!key) throw new Error('munim-maps: Mapbox services need an access token')
   const response = await fetch(
     `${url}${url.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(key)}`

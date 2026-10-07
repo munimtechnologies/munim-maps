@@ -66,8 +66,12 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   // MARK: Life
 
   private var reportedReady = false
+  /// The current style has loaded. (`MapboxMap.isStyleLoaded` turns false
+  /// again while runtime sources load, so it cannot gate adding content.)
+  var styleReady = false
   private var appliedInitialCamera = false
   private var lastIdleCamera: MunimCamera?
+  private var cameraStopped: DispatchWorkItem?
   private var configObserver: NSObjectProtocol?
 
   init() {
@@ -155,6 +159,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   }
 
   private func styleLoaded() {
+    styleReady = true
     applyStyleOptions(reloaded: true)
     reapplyContent()
     nativeModels.styleReloaded()
@@ -168,6 +173,13 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
   private func cameraChanged() {
     modelLayer.setNeedsRender()
     nativeModels.cameraChanged()
+    // The camera stopped when it has not changed for a moment. Mapbox's
+    // map-idle also waits for tiles and never comes while native models
+    // move, so it cannot be the only signal.
+    cameraStopped?.cancel()
+    let work = DispatchWorkItem { [weak self] in self?.mapIdle() }
+    cameraStopped = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
     content.trackingButton.map { _ in updateTrackingButton() }
     onCameraMove?(camera)
   }
@@ -227,7 +239,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
     didSet {
       style.options = providerOptions
       loadStyleIfNeeded()
-      if mapboxMap.isStyleLoaded { applyStyleOptions(reloaded: false) }
+      if styleReady { applyStyleOptions(reloaded: false) }
       applyMapOptions()
       nativeModels.modeChanged()
     }
@@ -267,7 +279,7 @@ final class MapboxMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults {
 
   private func styleInputsChanged() {
     loadStyleIfNeeded()
-    if mapboxMap.isStyleLoaded { applyStyleOptions(reloaded: false) }
+    if styleReady { applyStyleOptions(reloaded: false) }
   }
 
   // MARK: Look
@@ -590,7 +602,7 @@ final class MapboxCameraSource: MapCameraSource {
   var cameraView: UIView? { engine?.mapView }
 
   func cameraState(previous: MapCameraState?) -> MapCameraState? {
-    guard let engine, engine.mapboxMap.isStyleLoaded else { return nil }
+    guard let engine, engine.styleReady else { return nil }
     let size = engine.mapView.bounds.size
     guard size.width > 1, size.height > 1 else { return nil }
     let state = engine.mapboxMap.cameraState

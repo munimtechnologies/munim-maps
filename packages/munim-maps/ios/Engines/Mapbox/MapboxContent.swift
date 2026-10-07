@@ -18,6 +18,9 @@ import UIKit
 final class MapboxContentState {
   var markers: [MunimMarker] = []
   var managers: [String: PointAnnotationManager] = [:]
+  /// Manager ids get a new suffix when they are remade, so a new manager
+  /// never meets its predecessor's source.
+  var managerGeneration = 0
   var photos: [String: UIImage] = [:]
   var loadingPhotos = Set<String>()
   var selectedMarker: String?
@@ -66,10 +69,14 @@ extension MapboxMapEngine {
   var clusterStyles: [MunimClusterStyle] {
     get { content.clusterStyles }
     set {
+      let oldStyles = content.clusterStyles
       content.clusterStyles = newValue
       // Cluster looks are set when a manager is made: remake them.
-      for id in content.managers.keys { mapView.annotations.removeAnnotationManager(withId: id) }
+      guard MapboxJSON.key(newValue.map { [$0.clusteringId, $0.color, $0.glyphColor, $0.glyph] })
+        != MapboxJSON.key(oldStyles.map { [$0.clusteringId, $0.color, $0.glyphColor, $0.glyph] }) else { return }
+      for manager in content.managers.values { mapView.annotations.removeAnnotationManager(withId: manager.id) }
       content.managers = [:]
+      content.managerGeneration += 1
       updateMarkers()
     }
   }
@@ -120,7 +127,7 @@ extension MapboxMapEngine {
         circleRadius: .constant(18), circleColor: .constant(StyleColor(color)),
         textColor: .constant(StyleColor(textColor)), textSize: .constant(13), textField: text)
     }
-    let id = "munim-markers-" + String(UInt(bitPattern: key.hashValue), radix: 36)
+    let id = "munim-markers-" + String(UInt(bitPattern: key.hashValue), radix: 36) + "-\(content.managerGeneration)"
     let manager = mapView.annotations.makePointAnnotationManager(
       id: id, layerPosition: nil, clusterOptions: clusterOptions,
       onClusterTap: { [weak self] context in self?.clusterTapped(clusteringId: clusteringId, managerId: id, context: context) })
@@ -496,7 +503,7 @@ extension MapboxMapEngine {
   }
 
   func rebuildShapes(force: Bool) {
-    guard mapboxMap.isStyleLoaded else { return }
+    guard styleReady else { return }
     let specs = shapeSpecs()
     let signature = specs.map { "\($0.kind):\($0.id):\($0.level.rawValue):\($0.lineMetrics):\($0.layers.map(\.0))" }
       .joined(separator: "|")
@@ -603,7 +610,7 @@ extension MapboxMapEngine {
   }
 
   func updateTileOverlays(force: Bool) {
-    guard mapboxMap.isStyleLoaded else { return }
+    guard styleReady else { return }
     for id in content.tileIds {
       if mapboxMap.layerExists(withId: id) { try? mapboxMap.removeLayer(withId: id) }
       if mapboxMap.sourceExists(withId: id) { try? mapboxMap.removeSource(withId: id) }
