@@ -64,7 +64,10 @@ Pod::Spec.new do |s|
   # `#if MUNIM_MAPS_CESIUM`), so it compiles only with its subspec.
   s.subspec "Google" do |ss|
     ss.source_files = "ios/Engines/Google/**/*.swift"
-    ss.dependency "GoogleMaps", ">= 9.0"
+    # Maps SDK for iOS 10 and Google Maps Utils 7 (clustering, heatmaps,
+    # KML, GeoJSON).
+    ss.dependency "GoogleMaps", ">= 10.0"
+    ss.dependency "Google-Maps-iOS-Utils", ">= 7.0"
   end
 
   s.subspec "Mapbox" do |ss|

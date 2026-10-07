@@ -882,6 +882,7 @@ export {
   type ProviderCommandTarget,
   type ProviderOptionProps,
 } from './providers'
+export * from './providers/google'
 export { MarkerView, type MarkerViewProperties } from './MarkerView'
 export {
   LookAroundView,
