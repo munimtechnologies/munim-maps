@@ -29,6 +29,7 @@ import { runSelfTest, type SelfTestReport, type TestMode } from './selftest'
 import { ParityScreen, type ParityHandle } from './Parity'
 import type { MapProvider, UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
+import { CesiumScreen } from './Cesium'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -59,7 +60,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'cesium'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -451,6 +452,7 @@ function Example() {
   // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
+  const [cesiumChecks, setCesiumChecks] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -530,6 +532,13 @@ function Example() {
     ran.current = true
     void Linking.getInitialURL().then((url) => {
       if (url?.includes('nopanel')) setPanel(false)
+      // munimmapsexample://cesium (/checks): the Cesium engine's screen.
+      if (/:\/\/cesium/.test(url ?? '')) {
+        setLaunching(false)
+        setCesiumChecks(!!url?.includes('checks'))
+        setMode('cesium')
+        return
+      }
       // munimmapsexample://providers/<provider>: the engine picker.
       const provider = /providers(?:\/(\w+))?/.exec(url ?? '')
       if (provider || Platform.OS === 'android') {
@@ -726,7 +735,9 @@ function Example() {
 
   return (
     <View style={styles.root}>
-      {mode === 'providers' ? (
+      {mode === 'cesium' ? (
+        <CesiumScreen topInset={insets.top} autoChecks={cesiumChecks} onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')} />
+      ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
           topInset={insets.top}
@@ -908,7 +919,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'cesium') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />
@@ -927,6 +938,7 @@ function Example() {
           <Toggle label="expo-maps" on={mode === 'expomaps'} onPress={() => setMode('expomaps')} />
           <Toggle label="MapKit" on={mode === 'parity'} onPress={() => setMode('parity')} />
           <Toggle label="Engines" on={false} onPress={() => setMode('providers')} />
+          <Toggle label="Cesium" on={false} onPress={() => setMode('cesium')} />
           {mode === 'parity' ? (
             <Toggle
               label={`Track: ${trackingMode}`}

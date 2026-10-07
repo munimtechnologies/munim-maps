@@ -18,7 +18,10 @@
  * terrain). `configureMunimMaps({ cesiumIonToken })` turns on Cesium World
  * Terrain, Bing imagery and ion assets.
  */
-import type { MunimMapViewMethods, ProviderEvent } from '../specs/MunimMapView.nitro'
+import type {
+  MunimMapViewMethods,
+  ProviderEvent,
+} from '../specs/MunimMapView.nitro'
 
 // MARK: Shared value shapes
 
@@ -155,7 +158,16 @@ export type CesiumTerrain =
   /** Esri World Elevation 3D. */
   | 'arcgis'
   | {
-      type: 'ellipsoid' | 'world' | 'bathymetry' | 'ion' | 'url' | 'arcgis' | 'vrTheWorld' | '3dTiles' | 'googleEarthEnterprise'
+      type:
+        | 'ellipsoid'
+        | 'world'
+        | 'bathymetry'
+        | 'ion'
+        | 'url'
+        | 'arcgis'
+        | 'vrTheWorld'
+        | '3dTiles'
+        | 'googleEarthEnterprise'
       /** ion asset id (`ion`, `3dTiles`). */
       assetId?: number
       /** quantized-mesh (`url`), ArcGIS, VR-TheWorld, 3D Tiles or GEE URL. */
@@ -217,7 +229,15 @@ export interface CesiumCustomShader {
  */
 export interface CesiumTileset {
   id?: string
-  type?: 'url' | 'ion' | 'osmBuildings' | 'photorealistic' | 'i3s' | 'voxel' | 'mvt' | 'itwin'
+  type?:
+    | 'url'
+    | 'ion'
+    | 'osmBuildings'
+    | 'photorealistic'
+    | 'i3s'
+    | 'voxel'
+    | 'mvt'
+    | 'itwin'
   url?: string
   ionAssetId?: number
   /** Photorealistic: through ion (asset 2275207, ion token) or Google's Map Tiles API (`key`, else the Google Maps key). */
@@ -291,7 +311,15 @@ export interface CesiumDataSource {
   show?: boolean
   flyTo?: boolean
   /** Cluster its billboards, labels and points. */
-  clustering?: { enabled?: boolean; pixelRange?: number; minimumClusterSize?: number; clusterBillboards?: boolean; clusterLabels?: boolean; clusterPoints?: boolean; color?: CesiumColor }
+  clustering?: {
+    enabled?: boolean
+    pixelRange?: number
+    minimumClusterSize?: number
+    clusterBillboards?: boolean
+    clusterLabels?: boolean
+    clusterPoints?: boolean
+    color?: CesiumColor
+  }
 }
 
 // MARK: Time
@@ -332,7 +360,12 @@ export interface CesiumGlobeOptions {
   preloadAncestors?: boolean
   preloadSiblings?: boolean
   undergroundColor?: CesiumColor
-  translucency?: { enabled?: boolean; frontFaceAlpha?: number; backFaceAlpha?: number; rectangle?: CesiumRectangle }
+  translucency?: {
+    enabled?: boolean
+    frontFaceAlpha?: number
+    backFaceAlpha?: number
+    rectangle?: CesiumRectangle
+  }
   cartographicLimitRectangle?: CesiumRectangle
   clippingPolygons?: CesiumClippingPolygons
   clippingPlanes?: CesiumClippingPlanes
@@ -341,17 +374,56 @@ export interface CesiumGlobeOptions {
    * | 'SlopeRamp' | 'AspectRamp' | …, uniforms, ramp: colours }`, or
    * `{ elevationBands: [...] }`.
    */
-  material?: { type?: string; uniforms?: Record<string, unknown>; ramp?: CesiumColor[]; elevationBands?: { entries: { height: number; color: CesiumColor }[]; extendDownwards?: boolean; extendUpwards?: boolean }[] }
+  material?: {
+    type?: string
+    uniforms?: Record<string, unknown>
+    ramp?: CesiumColor[]
+    elevationBands?: {
+      entries: { height: number; color: CesiumColor }[]
+      extendDownwards?: boolean
+      extendUpwards?: boolean
+    }[]
+  }
   [key: string]: unknown
 }
 
 export interface CesiumPostProcess {
   fxaa?: boolean
-  bloom?: boolean | { glowOnly?: boolean; contrast?: number; brightness?: number; delta?: number; sigma?: number; stepSize?: number }
-  ambientOcclusion?: boolean | { intensity?: number; bias?: number; lengthCap?: number; stepSize?: number; frustumLength?: number; ambientOcclusionOnly?: boolean; delta?: number; sigma?: number; blurStepSize?: number }
+  bloom?:
+    | boolean
+    | {
+        glowOnly?: boolean
+        contrast?: number
+        brightness?: number
+        delta?: number
+        sigma?: number
+        stepSize?: number
+      }
+  ambientOcclusion?:
+    | boolean
+    | {
+        intensity?: number
+        bias?: number
+        lengthCap?: number
+        stepSize?: number
+        frustumLength?: number
+        ambientOcclusionOnly?: boolean
+        delta?: number
+        sigma?: number
+        blurStepSize?: number
+      }
   /** Stages from Cesium's PostProcessStageLibrary, or your own shader. */
   stages?: {
-    type: 'blackAndWhite' | 'brightness' | 'nightVision' | 'depthOfField' | 'edgeDetection' | 'silhouette' | 'lensFlare' | 'blur' | 'custom'
+    type:
+      | 'blackAndWhite'
+      | 'brightness'
+      | 'nightVision'
+      | 'depthOfField'
+      | 'edgeDetection'
+      | 'silhouette'
+      | 'lensFlare'
+      | 'blur'
+      | 'custom'
     uniforms?: Record<string, unknown>
     enabled?: boolean
     fragmentShader?: string
@@ -452,29 +524,72 @@ export interface CesiumMapOptions {
   // Look
   globe?: CesiumGlobeOptions
   /** Scene atmosphere (ground and fog colour): `lightIntensity`, `rayleighCoefficient`, `hueShift`, `dynamicLighting`… */
-  atmosphere?: { dynamicLighting?: 'none' | 'sceneLight' | 'sunlight'; [key: string]: unknown }
+  atmosphere?: {
+    dynamicLighting?: 'none' | 'sceneLight' | 'sunlight'
+    [key: string]: unknown
+  }
   skyAtmosphere?: boolean | Record<string, unknown>
   /** The star box; `sources` are six image URLs (positiveX…negativeZ). */
   skyBox?: boolean | { sources: Record<string, string> }
   sun?: boolean | { glowFactor?: number }
   moon?: boolean | Record<string, unknown>
-  fog?: boolean | { enabled?: boolean; density?: number; minimumBrightness?: number; screenSpaceErrorFactor?: number; [key: string]: unknown }
+  fog?:
+    | boolean
+    | {
+        enabled?: boolean
+        density?: number
+        minimumBrightness?: number
+        screenSpaceErrorFactor?: number
+        [key: string]: unknown
+      }
   /** Shadows from the light; an object sets the shadow map (`softShadows`, `size`, `darkness`, `maximumDistance`). */
-  shadows?: boolean | { softShadows?: boolean; size?: number; darkness?: number; maximumDistance?: number; fadingEnabled?: boolean; normalOffset?: boolean }
+  shadows?:
+    | boolean
+    | {
+        softShadows?: boolean
+        size?: number
+        darkness?: number
+        maximumDistance?: number
+        fadingEnabled?: boolean
+        normalOffset?: boolean
+      }
   terrainShadows?: 'enabled' | 'disabled' | 'castOnly' | 'receiveOnly'
   /**
    * The light. Default from the munim `lighting` prop: `auto` is the sun at
    * the clock's time; `day` / `night` light from over the viewer's shoulder.
    */
-  light?: 'sun' | 'directional' | { type: 'sun' | 'directional'; direction?: { x: number; y: number; z: number }; color?: CesiumColor; intensity?: number }
+  light?:
+    | 'sun'
+    | 'directional'
+    | {
+        type: 'sun' | 'directional'
+        direction?: { x: number; y: number; z: number }
+        color?: CesiumColor
+        intensity?: number
+      }
   highDynamicRange?: boolean
-  tonemapper?: 'reinhard' | 'modifiedReinhard' | 'filmic' | 'aces' | 'pbrNeutral'
+  tonemapper?:
+    'reinhard' | 'modifiedReinhard' | 'filmic' | 'aces' | 'pbrNeutral'
   exposure?: number
   backgroundColor?: CesiumColor
   postProcess?: CesiumPostProcess
   /** Volumetric-looking cumulus clouds. */
-  clouds?: { position?: CesiumPosition; latitude?: number; longitude?: number; height?: number; scale?: { x: number; y: number }; maximumSize?: { x: number; y: number; z: number }; slice?: number; brightness?: number; color?: CesiumColor; show?: boolean }[]
-  cloudOptions?: { noiseDetail?: number; noiseOffset?: { x: number; y: number; z: number } }
+  clouds?: {
+    position?: CesiumPosition
+    latitude?: number
+    longitude?: number
+    height?: number
+    scale?: { x: number; y: number }
+    maximumSize?: { x: number; y: number; z: number }
+    slice?: number
+    brightness?: number
+    color?: CesiumColor
+    show?: boolean
+  }[]
+  cloudOptions?: {
+    noiseDetail?: number
+    noiseOffset?: { x: number; y: number; z: number }
+  }
   debugShowFramesPerSecond?: boolean
   pickTranslucentDepth?: boolean
   /** Hide the data attributions. Only where the data's terms allow it. */
@@ -544,15 +659,35 @@ export interface CesiumMapOptions {
 /** Cesium-only events (`onProviderEvent`), parsed. */
 export type CesiumEvent =
   | { name: 'pick'; data: CesiumPick }
-  | { name: 'tilesetLoaded' | 'tilesetAllTilesLoaded' | 'dataSourceLoaded'; data: { id: string; entities?: number } }
-  | { name: 'selectedEntityChanged' | 'trackedEntityChanged'; data: { id: string | null } }
+  | {
+      name: 'tilesetLoaded' | 'tilesetAllTilesLoaded' | 'dataSourceLoaded'
+      data: { id: string; entities?: number }
+    }
+  | {
+      name: 'selectedEntityChanged' | 'trackedEntityChanged'
+      data: { id: string | null }
+    }
   | { name: 'morphComplete'; data: { sceneMode: '3d' | '2d' | 'columbus' } }
   | { name: 'terrainChanged'; data: { type: string } }
-  | { name: 'cameraMoveStart' | 'cameraMoveEnd' | 'globeTilesLoaded'; data: Record<string, never> }
+  | {
+      name: 'cameraMoveStart' | 'cameraMoveEnd' | 'globeTilesLoaded'
+      data: Record<string, never>
+    }
 
 /** What a tap or `pick` hit. */
 export interface CesiumPick {
-  kind: 'marker' | 'model' | 'overlay' | 'zone' | 'path' | 'cluster' | 'entity' | 'feature' | 'primitive' | 'user' | 'none'
+  kind:
+    | 'marker'
+    | 'model'
+    | 'overlay'
+    | 'zone'
+    | 'path'
+    | 'cluster'
+    | 'entity'
+    | 'feature'
+    | 'primitive'
+    | 'user'
+    | 'none'
   id?: string
   ids?: string[]
   entityId?: string
@@ -586,11 +721,25 @@ export interface CesiumCameraView {
   heading: number
   pitch: number
   roll: number
-  frustum: { type: 'perspective' | 'orthographic'; fov?: number; fovy?: number; aspectRatio?: number; near: number; far: number; width?: number }
+  frustum: {
+    type: 'perspective' | 'orthographic'
+    fov?: number
+    fovy?: number
+    aspectRatio?: number
+    near: number
+    far: number
+    width?: number
+  }
   viewMatrix: number[]
   projectionMatrix: number[]
   sceneMode: '3d' | '2d' | 'columbus' | 'morphing'
-  munim: { latitude: number; longitude: number; distance: number; pitch: number; heading: number }
+  munim: {
+    latitude: number
+    longitude: number
+    distance: number
+    pitch: number
+    heading: number
+  }
 }
 
 /** Something to frame or follow: by id. */
@@ -604,75 +753,269 @@ export interface CesiumTarget {
 
 export interface CesiumCommands {
   /** Cesium's camera flight (arcs up for long distances). */
-  flyTo(options: { destination: CesiumPosition | CesiumRectangle; orientation?: CesiumOrientation; duration?: number; maximumHeight?: number; pitchAdjustHeight?: number; flyOverLongitude?: number; flyOverLongitudeWeight?: number; easing?: string }): Promise<{ completed: boolean }>
-  setView(options: { destination: CesiumPosition | CesiumRectangle; orientation?: CesiumOrientation }): Promise<null>
+  flyTo(options: {
+    destination: CesiumPosition | CesiumRectangle
+    orientation?: CesiumOrientation
+    duration?: number
+    maximumHeight?: number
+    pitchAdjustHeight?: number
+    flyOverLongitude?: number
+    flyOverLongitudeWeight?: number
+    easing?: string
+  }): Promise<{ completed: boolean }>
+  setView(options: {
+    destination: CesiumPosition | CesiumRectangle
+    orientation?: CesiumOrientation
+  }): Promise<null>
   /** Looks at a point from heading / pitch / range; `lock` keeps the camera locked to it. */
-  lookAt(options: { target: CesiumPosition; heading?: number; pitch?: number; range?: number; lock?: boolean }): Promise<null>
+  lookAt(options: {
+    target: CesiumPosition
+    heading?: number
+    pitch?: number
+    range?: number
+    lock?: boolean
+  }): Promise<null>
   flyHome(options?: { duration?: number }): Promise<null>
-  zoomTo(target: CesiumTarget & { offset?: { heading?: number; pitch?: number; range?: number } }): Promise<{ completed: boolean }>
-  flyToTarget(target: CesiumTarget & { duration?: number; maximumHeight?: number; offset?: { heading?: number; pitch?: number; range?: number } }): Promise<{ completed: boolean }>
+  zoomTo(
+    target: CesiumTarget & {
+      offset?: { heading?: number; pitch?: number; range?: number }
+    }
+  ): Promise<{ completed: boolean }>
+  flyToTarget(
+    target: CesiumTarget & {
+      duration?: number
+      maximumHeight?: number
+      offset?: { heading?: number; pitch?: number; range?: number }
+    }
+  ): Promise<{ completed: boolean }>
   trackEntity(options: { id?: string }): Promise<{ tracking: boolean }>
   selectEntity(options: { id?: string }): Promise<null>
   /** Circles a point (default the centre) until `stopOrbit`. */
-  orbit(options?: { center?: CesiumPosition; degreesPerSecond?: number; pitch?: number; range?: number; heading?: number }): Promise<null>
+  orbit(options?: {
+    center?: CesiumPosition
+    degreesPerSecond?: number
+    pitch?: number
+    range?: number
+    heading?: number
+  }): Promise<null>
   stopOrbit(): Promise<null>
-  cameraMove(options: { direction: 'forward' | 'backward' | 'left' | 'right' | 'up' | 'down' | 'in' | 'out'; amount?: number }): Promise<null>
-  cameraLook(options: { direction: 'left' | 'right' | 'up' | 'down' | 'twistLeft' | 'twistRight'; degrees?: number }): Promise<null>
-  cameraRotate(options: { direction: 'left' | 'right' | 'up' | 'down'; degrees?: number }): Promise<null>
+  cameraMove(options: {
+    direction:
+      'forward' | 'backward' | 'left' | 'right' | 'up' | 'down' | 'in' | 'out'
+    amount?: number
+  }): Promise<null>
+  cameraLook(options: {
+    direction: 'left' | 'right' | 'up' | 'down' | 'twistLeft' | 'twistRight'
+    degrees?: number
+  }): Promise<null>
+  cameraRotate(options: {
+    direction: 'left' | 'right' | 'up' | 'down'
+    degrees?: number
+  }): Promise<null>
   getCameraView(): Promise<CesiumCameraView>
-  setSceneMode(options: { mode: '3d' | '2d' | 'columbus'; duration?: number }): Promise<null>
+  setSceneMode(options: {
+    mode: '3d' | '2d' | 'columbus'
+    duration?: number
+  }): Promise<null>
   /** A data URL of the scene. */
-  screenshot(options?: { width?: number; height?: number; format?: 'png' | 'jpeg'; quality?: number }): Promise<{ dataUrl: string; width: number; height: number }>
+  screenshot(options?: {
+    width?: number
+    height?: number
+    format?: 'png' | 'jpeg'
+    quality?: number
+  }): Promise<{ dataUrl: string; width: number; height: number }>
   requestRender(): Promise<null>
-  pick(point: { x: number; y: number; width?: number; height?: number }): Promise<CesiumPick>
-  drillPick(point: { x: number; y: number; limit?: number; width?: number; height?: number }): Promise<CesiumPick[]>
+  pick(point: {
+    x: number
+    y: number
+    width?: number
+    height?: number
+  }): Promise<CesiumPick>
+  drillPick(point: {
+    x: number
+    y: number
+    limit?: number
+    width?: number
+    height?: number
+  }): Promise<CesiumPick[]>
   /** The surface (terrain, 3D Tiles, models) under a point. */
   pickPosition(point: { x: number; y: number }): Promise<CesiumPosition | null>
   /** Features of imagery layers there (WMS GetFeatureInfo, ArcGIS identify…). */
-  pickImageryFeatures(point: { x: number; y: number }): Promise<{ name?: string; description?: string; data: unknown; position: CesiumPosition | null; layer: number }[]>
+  pickImageryFeatures(point: { x: number; y: number }): Promise<
+    {
+      name?: string
+      description?: string
+      data: unknown
+      position: CesiumPosition | null
+      layer: number
+    }[]
+  >
   toScreen(position: CesiumPosition): Promise<{ x: number; y: number } | null>
-  measureDistance(options: { points: CesiumPosition[]; mode?: 'geodesic' | 'rhumb' | 'straight' }): Promise<{ meters: number; segments: number[] }>
-  measureArea(options: { points: CesiumPosition[] }): Promise<{ squareMeters: number }>
-  measureHeading(options: { from: CesiumPosition; to: CesiumPosition }): Promise<{ degrees: number; meters: number }>
+  measureDistance(options: {
+    points: CesiumPosition[]
+    mode?: 'geodesic' | 'rhumb' | 'straight'
+  }): Promise<{ meters: number; segments: number[] }>
+  measureArea(options: {
+    points: CesiumPosition[]
+  }): Promise<{ squareMeters: number }>
+  measureHeading(options: {
+    from: CesiumPosition
+    to: CesiumPosition
+  }): Promise<{ degrees: number; meters: number }>
   /** Ground heights (terrain; with `includeTiles`, 3D Tiles and models too). */
-  sampleHeights(options: { points: CesiumPosition[]; includeTiles?: boolean; mostDetailed?: boolean; level?: number }): Promise<(number | null)[]>
-  clampToHeight(options: { points: CesiumPosition[] }): Promise<(CesiumPosition | null)[]>
-  addEntities(options: { czml: CzmlPacket | CzmlPacket[] }): Promise<{ count: number }>
+  sampleHeights(options: {
+    points: CesiumPosition[]
+    includeTiles?: boolean
+    mostDetailed?: boolean
+    level?: number
+  }): Promise<(number | null)[]>
+  clampToHeight(options: {
+    points: CesiumPosition[]
+  }): Promise<(CesiumPosition | null)[]>
+  addEntities(options: {
+    czml: CzmlPacket | CzmlPacket[]
+  }): Promise<{ count: number }>
   removeEntities(options: { ids: string[] }): Promise<{ removed: number }>
-  getEntity(options: { id: string; time?: string }): Promise<{ id: string; name?: string; show: boolean; position: CesiumPosition | null; properties?: Record<string, unknown>; description?: string; availability: { start: string; stop: string } | null } | null>
-  listEntities(options?: { dataSourceId?: string }): Promise<{ id: string; name?: string; dataSource: string }[]>
+  getEntity(options: { id: string; time?: string }): Promise<{
+    id: string
+    name?: string
+    show: boolean
+    position: CesiumPosition | null
+    properties?: Record<string, unknown>
+    description?: string
+    availability: { start: string; stop: string } | null
+  } | null>
+  listEntities(options?: {
+    dataSourceId?: string
+  }): Promise<{ id: string; name?: string; dataSource: string }[]>
   exportKml(options?: { ids?: string[] }): Promise<{ kml: string }>
-  loadDataSource(source: CesiumDataSource): Promise<{ id: string; entities: number }>
+  loadDataSource(
+    source: CesiumDataSource
+  ): Promise<{ id: string; entities: number }>
   removeDataSource(options: { id: string }): Promise<{ removed: boolean }>
   addTileset(tileset: CesiumTileset): Promise<{ id: string }>
   removeTileset(options: { id: string }): Promise<{ removed: boolean }>
-  setTilesetStyle(options: { id: string; style?: Cesium3DTileStyle }): Promise<null>
+  setTilesetStyle(options: {
+    id: string
+    style?: Cesium3DTileStyle
+  }): Promise<null>
   /** Any Cesium3DTileset property (`maximumScreenSpaceError`, `show`, `customShader`…). */
-  setTilesetProperties(options: { id: string; [key: string]: unknown }): Promise<null>
-  tilesetInfo(options: { id: string }): Promise<{ center: CesiumPosition | null; radius: number; properties: unknown; asset: unknown; extras: unknown; tilesLoaded: boolean; memoryBytes: number }>
-  addImageryLayer(layer: CesiumImageryLayer & { index?: number }): Promise<{ id: string; index: number }>
+  setTilesetProperties(options: {
+    id: string
+    [key: string]: unknown
+  }): Promise<null>
+  tilesetInfo(options: { id: string }): Promise<{
+    center: CesiumPosition | null
+    radius: number
+    properties: unknown
+    asset: unknown
+    extras: unknown
+    tilesLoaded: boolean
+    memoryBytes: number
+  }>
+  addImageryLayer(
+    layer: CesiumImageryLayer & { index?: number }
+  ): Promise<{ id: string; index: number }>
   removeImageryLayer(options: { id: string }): Promise<{ removed: boolean }>
-  setImageryLayer(options: { id: string; raise?: boolean | 'top'; lower?: boolean | 'bottom'; [key: string]: unknown }): Promise<null>
-  imageryLayers(): Promise<{ index: number; id: string | null; show: boolean; alpha: number; ready: boolean }[]>
+  setImageryLayer(options: {
+    id: string
+    raise?: boolean | 'top'
+    lower?: boolean | 'bottom'
+    [key: string]: unknown
+  }): Promise<null>
+  imageryLayers(): Promise<
+    {
+      index: number
+      id: string | null
+      show: boolean
+      alpha: number
+      ready: boolean
+    }[]
+  >
   setTerrain(options: { terrain: CesiumTerrain }): Promise<null>
   setClock(clock: CesiumClock): Promise<CesiumClock>
   play(): Promise<null>
   pause(): Promise<null>
   setTime(options: { time: string | number }): Promise<CesiumClock>
   getClock(): Promise<CesiumClock>
-  addParticleSystem(options: { id?: string; position: CesiumPosition; image?: string; emitter?: 'cone' | 'box' | 'circle' | 'sphere'; emitterAngle?: number; emitterRadius?: number; emitterSize?: number; startColor?: CesiumColor; endColor?: CesiumColor; startScale?: number; endScale?: number; minimumParticleLife?: number; maximumParticleLife?: number; minimumSpeed?: number; maximumSpeed?: number; imageSize?: number; sizeInMeters?: boolean; emissionRate?: number; lifetime?: number; loop?: boolean; bursts?: { time: number; minimum: number; maximum: number }[] }): Promise<{ id: string }>
+  addParticleSystem(options: {
+    id?: string
+    position: CesiumPosition
+    image?: string
+    emitter?: 'cone' | 'box' | 'circle' | 'sphere'
+    emitterAngle?: number
+    emitterRadius?: number
+    emitterSize?: number
+    startColor?: CesiumColor
+    endColor?: CesiumColor
+    startScale?: number
+    endScale?: number
+    minimumParticleLife?: number
+    maximumParticleLife?: number
+    minimumSpeed?: number
+    maximumSpeed?: number
+    imageSize?: number
+    sizeInMeters?: boolean
+    emissionRate?: number
+    lifetime?: number
+    loop?: boolean
+    bursts?: { time: number; minimum: number; maximum: number }[]
+  }): Promise<{ id: string }>
   removeParticleSystem(options: { id: string }): Promise<{ removed: boolean }>
   /** A 360° panorama in the scene: an equirectangular image, a cube map, or Google Street View (Street View Static API key). */
-  loadPanorama(options: { id?: string; type?: 'equirectangular' | 'cubemap' | 'googleStreetView'; image?: string; sources?: Record<string, string>; latitude: number; longitude: number; height?: number; heading?: number; pitch?: number; roll?: number; radius?: number; key?: string; panoId?: string }): Promise<{ id: string }>
+  loadPanorama(options: {
+    id?: string
+    type?: 'equirectangular' | 'cubemap' | 'googleStreetView'
+    image?: string
+    sources?: Record<string, string>
+    latitude: number
+    longitude: number
+    height?: number
+    heading?: number
+    pitch?: number
+    roll?: number
+    radius?: number
+    key?: string
+    panoId?: string
+  }): Promise<{ id: string }>
   removePanorama(options?: { id?: string }): Promise<{ removed: boolean }>
   /** A munim model drawn by Cesium: its animations and size. */
-  modelInfo(options: { id: string }): Promise<{ animations: { index: number; name?: string }[]; radius: number; scale: number }>
-  playModelAnimation(options: { id: string; name?: string; index?: number; loop?: 'none' | 'repeat' | 'mirroredRepeat'; multiplier?: number; reverse?: boolean }): Promise<null>
+  modelInfo(options: { id: string }): Promise<{
+    animations: { index: number; name?: string }[]
+    radius: number
+    scale: number
+  }>
+  playModelAnimation(options: {
+    id: string
+    name?: string
+    index?: number
+    loop?: 'none' | 'repeat' | 'mirroredRepeat'
+    multiplier?: number
+    reverse?: boolean
+  }): Promise<null>
   stopModelAnimations(options: { id: string }): Promise<null>
   /** Shows / hides or moves a node of a munim model (glTF node name). */
-  setModelNode(options: { id: string; node: string; show?: boolean; matrix?: number[] }): Promise<null>
+  setModelNode(options: {
+    id: string
+    node: string
+    show?: boolean
+    matrix?: number[]
+  }): Promise<null>
   /** Cesium model looks: colour blend, silhouette, minimum pixel size, shadows, custom shader, wireframe. */
-  setModelStyle(options: { id: string; color?: CesiumColor | null; colorBlendMode?: 'highlight' | 'replace' | 'mix'; colorBlendAmount?: number; silhouetteColor?: CesiumColor; silhouetteSize?: number; minimumPixelSize?: number; maximumScale?: number; shadows?: 'enabled' | 'disabled' | 'castOnly' | 'receiveOnly'; customShader?: CesiumCustomShader | null; debugWireframe?: boolean; showOutline?: boolean }): Promise<null>
+  setModelStyle(options: {
+    id: string
+    color?: CesiumColor | null
+    colorBlendMode?: 'highlight' | 'replace' | 'mix'
+    colorBlendAmount?: number
+    silhouetteColor?: CesiumColor
+    silhouetteSize?: number
+    minimumPixelSize?: number
+    maximumScale?: number
+    shadows?: 'enabled' | 'disabled' | 'castOnly' | 'receiveOnly'
+    customShader?: CesiumCustomShader | null
+    debugWireframe?: boolean
+    showOutline?: boolean
+  }): Promise<null>
   /**
    * Runs JavaScript in the map's WebView with `Cesium`, `viewer` and
    * `munim` in scope, resolving with its (JSON) result. Needs
@@ -690,7 +1033,9 @@ type CommandHost = Pick<MunimMapViewMethods, 'providerCommand'>
  * `cesiumCommands(ref.current).flyTo({ destination: … })`. Each rejects on
  * other engines.
  */
-export function cesiumCommands(map: CommandHost | null | undefined): CesiumCommands {
+export function cesiumCommands(
+  map: CommandHost | null | undefined
+): CesiumCommands {
   return new Proxy({} as CesiumCommands, {
     get(_, name) {
       if (typeof name !== 'string' || name === 'then') return undefined
