@@ -69,6 +69,17 @@ class GoogleMap3DMode(
   private var destroyed = false
   private var resumed = false
   private var lastCamera: Camera? = null
+  private var mapReady = false
+
+  /**
+   * The camera as munim-maps knows it. The Maps 3D SDK (0.2.0) reports
+   * gestures through its camera listener and `getCamera()`, but not cameras
+   * set in code (`setCamera`, `flyCameraTo`): `getCamera()` keeps the camera
+   * of the last gesture (at first, its whole-Earth default). So the camera
+   * set in code is kept here (a flight's destination as soon as it starts),
+   * and a gesture replaces it.
+   */
+  private var knownCamera: Camera? = null
 
   private val motionTick = object : Runnable {
     override fun run() {
@@ -84,26 +95,39 @@ class GoogleMap3DMode(
       override fun onMap3DViewReady(googleMap3D: GoogleMap3D) {
         if (destroyed) return
         map = googleMap3D
-        googleMap3D.setOnMapReadyListener { host.ready() }
+        // Called with the rendering progress (0-100) every time the scene
+        // loads more; the map is ready once. The camera and objects given to
+        // the SDK before this point are lost (it starts on its whole-Earth
+        // camera with an empty scene), so they are applied here.
+        googleMap3D.setOnMapReadyListener {
+          if (mapReady || destroyed) return@setOnMapReadyListener
+          mapReady = true
+          pendingCamera?.let { setCamera(it, 0.0) }
+          pendingCamera = null
+          applyModels()
+          applyMarkers()
+          applyPolylines()
+          applyPolygons()
+          host.ready()
+        }
         googleMap3D.setCameraChangedListener { camera ->
           lastCamera = camera
+          // Before the map is ready this is the SDK's default camera, not ours.
+          if (mapReady) knownCamera = camera
           host.cameraChanged(munim(camera), false)
         }
         googleMap3D.setOnMapSteadyListener { steady ->
           host.emit("map3dSteady", GOut.obj("steady" to steady))
-          if (steady) lastCamera?.let { host.cameraChanged(munim(it), true) }
+          if (steady) (knownCamera ?: lastCamera)?.let { host.cameraChanged(munim(it), true) }
         }
-        googleMap3D.setCameraAnimationEndListener { host.emit("cameraAnimationEnd", GOut.obj()) }
+        googleMap3D.setCameraAnimationEndListener {
+          knownCamera?.let { host.cameraChanged(munim(it), true) }
+          host.emit("cameraAnimationEnd", GOut.obj())
+        }
         googleMap3D.setMap3DClickListener { location, placeId ->
           host.press(location.latitude, location.longitude, placeId)
         }
         applyOptions()
-        pendingCamera?.let { setCamera(it, 0.0) }
-        pendingCamera = null
-        applyModels()
-        applyMarkers()
-        applyPolylines()
-        applyPolygons()
       }
 
       override fun onError(error: Exception) {
@@ -162,12 +186,27 @@ class GoogleMap3DMode(
     Camera(LatLngAltitude(c.latitude, c.longitude, altitude), c.heading, c.pitch.coerceIn(0.0, 90.0), 0.0, maxOf(1.0, c.distance))
 
   override fun setCamera(camera: MapCamera, durationMs: Double) {
-    val map = map ?: run { pendingCamera = camera; return }
-    if (durationMs > 0) map.flyCameraTo(FlyToOptions(google(camera), durationMs.toLong()))
-    else map.setCamera(google(camera))
+    val map = map
+    if (map == null || !mapReady) {
+      pendingCamera = camera
+      return
+    }
+    moveCamera(map, google(camera), durationMs.toLong())
   }
 
-  override fun getCamera(): MapCamera? = map?.getCamera()?.let { munim(it) } ?: pendingCamera
+  /** Moves Google's camera (a flight when `durationMs` > 0) and remembers where to. */
+  private fun moveCamera(map: GoogleMap3D, camera: Camera, durationMs: Long) {
+    if (durationMs > 0) map.flyCameraTo(FlyToOptions(camera, durationMs)) else map.setCamera(camera)
+    knownCamera = camera
+    // A flight reports its end camera when the animation ends.
+    if (durationMs <= 0) host.cameraChanged(munim(camera), true)
+  }
+
+  /** The camera now: the one set in code or by the last gesture (see [knownCamera]). */
+  private fun currentCamera(map: GoogleMap3D): Camera? = knownCamera ?: map.getCamera()
+
+  override fun getCamera(): MapCamera? =
+    pendingCamera ?: map?.let { currentCamera(it) }?.let { munim(it) }
 
   // MARK: Models (Google glTF models)
 
@@ -200,7 +239,7 @@ class GoogleMap3DMode(
   private fun scale(m: NativeMapModel): Double = options["modelScale"].double(1.0) * (if (m.scale > 0) m.scale else 1.0)
 
   private fun applyModels() {
-    val map = map ?: return
+    val map = map?.takeIf { mapReady } ?: return
     val wanted = models.filter { it.visible && it.uri.isNotEmpty() }.associateBy { it.id }
     for (id in nativeModels.keys.toList()) if (id !in wanted) nativeModels.remove(id)?.second?.remove()
     if (models.any { it.visible && it.uri.isEmpty() }) {
@@ -271,7 +310,7 @@ class GoogleMap3DMode(
   }
 
   private fun applyMarkers() {
-    val map = map ?: return
+    val map = map?.takeIf { mapReady } ?: return
     nativeMarkers.values.forEach { it.remove() }
     nativeMarkers.clear()
     for (m in markers) {
@@ -299,7 +338,7 @@ class GoogleMap3DMode(
   }
 
   private fun applyPolylines() {
-    val map = map ?: return
+    val map = map?.takeIf { mapReady } ?: return
     nativePolylines.values.forEach { it.remove() }
     nativePolylines.clear()
     for (p in polylines) {
@@ -323,7 +362,7 @@ class GoogleMap3DMode(
   }
 
   private fun applyPolygons() {
-    val map = map ?: return
+    val map = map?.takeIf { mapReady } ?: return
     nativePolygons.values.forEach { it.remove() }
     nativePolygons.clear()
     for (p in polygons) {
@@ -346,12 +385,12 @@ class GoogleMap3DMode(
 
   override fun command(name: String, args: GJson, completion: (Result<String>) -> Unit): Boolean {
     val map = map
-    if (map == null) {
+    if (map == null || !mapReady) {
       completion(Result.failure(IllegalStateException("Google Maps: the 3D map is not ready yet")))
       return true
     }
     fun camera(json: GJson): Camera {
-      val current = map.getCamera()
+      val current = currentCamera(map)
       val center = current?.center ?: LatLngAltitude(0.0, 0.0, 0.0)
       return Camera(
         LatLngAltitude(json["latitude"].double(center.latitude), json["longitude"].double(center.longitude), json["altitude"].double(center.altitude)),
@@ -360,17 +399,21 @@ class GoogleMap3DMode(
       )
     }
     when (name) {
-      "flyTo" -> map.flyCameraTo(FlyToOptions(camera(args), args["duration"].double(2000.0).toLong()))
-      "flyAround" -> map.flyCameraAround(FlyAroundOptions(camera(args), args["duration"].double(10000.0).toLong(), args["rounds"].double(1.0)))
+      "flyTo" -> moveCamera(map, camera(args), maxOf(1L, args["duration"].double(2000.0).toLong()))
+      "flyAround" -> {
+        val around = camera(args)
+        map.flyCameraAround(FlyAroundOptions(around, args["duration"].double(10000.0).toLong(), args["rounds"].double(1.0)))
+        knownCamera = around
+      }
       "stopCameraAnimation" -> map.stopCameraAnimation()
       "getCamera3d" -> {
-        val c = map.getCamera()
+        val c = currentCamera(map)
         val center = c?.center
         completion(Result.success(GOut.obj("latitude" to center?.latitude, "longitude" to center?.longitude,
           "altitude" to center?.altitude, "heading" to c?.heading, "tilt" to c?.tilt, "roll" to c?.roll, "range" to c?.range).toString()))
         return true
       }
-      "setCamera3d" -> map.setCamera(camera(args))
+      "setCamera3d" -> moveCamera(map, camera(args), 0)
       else -> return false
     }
     completion(Result.success("null"))

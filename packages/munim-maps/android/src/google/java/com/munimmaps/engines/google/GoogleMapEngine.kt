@@ -189,6 +189,8 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
 
   // Photorealistic 3D mode (Google3DMode.kt, src/google3d)
   internal var mode3d: Google3DMode? = null
+  /** The 3D map started before `initialCamera` arrived (props come in any order). */
+  private var mode3dNeedsCamera = false
   private var reportedNativeIn2d = false
 
   /** The 2D map's models go to the munim overlay; the 3D map draws them itself. */
@@ -572,12 +574,14 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   }
 
   private fun enter3d() {
-    val mode = Google3DModes.create(context, host3d, getCamera() ?: initialCamera)
+    val start = getCamera() ?: initialCamera
+    val mode = Google3DModes.create(context, host3d, start)
     if (mode == null) {
       reportError("google.mode '3d' needs the Maps 3D SDK: set munimMaps.googleMaps3d=true (Expo plugin googleMaps3d: true) and rebuild")
       return
     }
     mode3d = mode
+    mode3dNeedsCamera = start == null
     root.addView(mode.view, 0, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
     mapView?.visibility = View.GONE
     modelLayer.view.visibility = View.GONE
@@ -593,6 +597,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   private fun leave3d() {
     val mode = mode3d ?: return
     mode3d = null
+    mode3dNeedsCamera = false
     mode.destroy()
     root.removeView(mode.view)
     mapView?.visibility = View.VISIBLE
@@ -616,6 +621,10 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   override fun setInitialCamera(camera: MapCamera) {
     initialCamera = camera
     applyInitialCameraIfReady()
+    if (mode3dNeedsCamera) {
+      mode3dNeedsCamera = false
+      mode3d?.setCamera(camera, 0.0)
+    }
   }
 
   override fun setMapStyle(style: MapStyle) { mapStyle = style; applySettings() }

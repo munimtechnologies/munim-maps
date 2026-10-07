@@ -288,11 +288,28 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
         throw new Error(JSON.stringify(c))
       })
       await check('3D: flyTo', async () => {
+        const from = await g.getCamera3d()
         await g.flyTo({ heading: 120, range: 1300 }, 1500)
         await wait(3000)
         const c = await g.getCamera3d()
-        if (angle(c.heading, 120) < 3 && near(c.range, 1300, 80)) return `heading ${c.heading.toFixed(1)}, range ${c.range.toFixed(0)}`
-        throw new Error(JSON.stringify(c))
+        // Google reports a flight's camera anchored where the view meets
+        // its 3D mesh (another center and range for the same view), so the
+        // check compares where the camera is: its eye.
+        const eye = (cam: { latitude: number; longitude: number; altitude: number; heading: number; tilt: number; range: number }) => {
+          const tilt = (cam.tilt * Math.PI) / 180
+          const heading = (cam.heading * Math.PI) / 180
+          const back = cam.range * Math.sin(tilt)
+          return {
+            north: (cam.latitude - from.latitude) * 111_320 - back * Math.cos(heading),
+            east: (cam.longitude - from.longitude) * 111_320 * Math.cos((from.latitude * Math.PI) / 180) - back * Math.sin(heading),
+            up: cam.altitude + cam.range * Math.cos(tilt),
+          }
+        }
+        const want = eye({ ...from, heading: 120, range: 1300 })
+        const got = eye(c)
+        const off = Math.hypot(got.north - want.north, got.east - want.east, got.up - want.up)
+        if (angle(c.heading, 120) < 3 && off < 30) return `heading ${c.heading.toFixed(1)}, eye ${off.toFixed(1)} m from the target`
+        throw new Error(`${JSON.stringify(c)} (eye ${off.toFixed(1)} m off)`)
       })
       await check('3D: no engine errors', async () => {
         if (errorsRef.current.length === 0) return 'none'
