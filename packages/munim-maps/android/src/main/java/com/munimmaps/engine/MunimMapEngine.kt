@@ -1,6 +1,7 @@
 package com.munimmaps.engine
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.view.View
 import com.margelo.nitro.munimmaps.CalloutAccessoryEvent
 import com.margelo.nitro.munimmaps.CameraKeyframe
@@ -136,6 +137,13 @@ interface MunimMapEngine {
   fun setCircles(circles: Array<NativeCircle>) { if (circles.isNotEmpty()) reportUnsupported("circles") }
   fun setTileOverlays(overlays: Array<NativeTileOverlay>) { if (overlays.isNotEmpty()) reportUnsupported("tileOverlays") }
   fun setClusterStyles(styles: Array<NativeClusterStyle>) {}
+  /**
+   * A marker drawn from React Native views (`MarkerView`): [image] is the
+   * views drawn (density set), updated with [setViewMarkerImage].
+   */
+  fun setViewMarker(marker: NativeMarker, image: Bitmap?) { reportUnsupported("MarkerView") }
+  fun setViewMarkerImage(image: Bitmap?, id: String) {}
+  fun removeViewMarker(id: String) {}
 
   // Look
 

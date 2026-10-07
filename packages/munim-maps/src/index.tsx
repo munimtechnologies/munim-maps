@@ -790,9 +790,12 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const provider = props.provider ?? defaultProvider()
     if (!isSupported) return null
-    return (
+    // Android's native views cannot hold React children, so `MarkerView`s
+    // sit in an off-screen sibling of the map there.
+    const android = Platform.OS === 'android'
+    const map = (
       <NativeMunimMapView
-        style={props.style}
+        style={android ? StyleSheet.absoluteFill : props.style}
         provider={provider}
         styleUrl={props.styleUrl ?? ''}
         providerOptions={providerOptionsJson(provider, props)}
@@ -866,11 +869,30 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onProviderEvent={onProviderEvent}
         hybridRef={hybridRef}
       >
-        {props.children}
+        {android ? null : props.children}
       </NativeMunimMapView>
+    )
+    if (!android) return map
+    return (
+      <View style={props.style} collapsable={false}>
+        {map}
+        <View
+          style={offscreenChildren}
+          collapsable={false}
+          pointerEvents="none"
+        >
+          {props.children}
+        </View>
+      </View>
     )
   }
 )
+
+const offscreenChildren = {
+  position: 'absolute',
+  left: -100_000,
+  top: 0,
+} as const
 
 export * from './services'
 export * from './providers/mapbox'

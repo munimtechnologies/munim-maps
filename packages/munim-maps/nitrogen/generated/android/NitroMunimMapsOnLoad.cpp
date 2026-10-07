@@ -19,6 +19,8 @@
 #include "JFunc_void_std__string.hpp"
 #include "JFunc_void_bool.hpp"
 #include "views/JHybridMapModelLayerStateUpdater.hpp"
+#include "JHybridMarkerViewSpec.hpp"
+#include "views/JHybridMarkerViewStateUpdater.hpp"
 #include "JHybridMunimMapsConfigSpec.hpp"
 #include "JFunc_void_std__string_std__string_std__string.hpp"
 #include "JHybridMunimMapViewSpec.hpp"
@@ -60,6 +62,14 @@ struct JHybridMunimMapViewSpecImpl: public jni::JavaClass<JHybridMunimMapViewSpe
     return javaPart->getJHybridMunimMapViewSpec();
   }
 };
+struct JHybridMarkerViewSpecImpl: public jni::JavaClass<JHybridMarkerViewSpecImpl, JHybridMarkerViewSpec::JavaPart> {
+  static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/munimmaps/HybridMarkerView;";
+  static std::shared_ptr<JHybridMarkerViewSpec> create() {
+    static const auto constructorFn = javaClassStatic()->getConstructor<JHybridMarkerViewSpecImpl::javaobject()>();
+    jni::local_ref<JHybridMarkerViewSpec::JavaPart> javaPart = javaClassStatic()->newObject(constructorFn);
+    return javaPart->getJHybridMarkerViewSpec();
+  }
+};
 struct JHybridMunimMapsConfigSpecImpl: public jni::JavaClass<JHybridMunimMapsConfigSpecImpl, JHybridMunimMapsConfigSpec::JavaPart> {
   static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/munimmaps/HybridMunimMapsConfig;";
   static std::shared_ptr<JHybridMunimMapsConfigSpec> create() {
@@ -78,6 +88,8 @@ void registerAllNatives() {
   margelo::nitro::munimmaps::JFunc_void_std__string_cxx::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_bool_cxx::registerNatives();
   margelo::nitro::munimmaps::views::JHybridMapModelLayerStateUpdater::registerNatives();
+  margelo::nitro::munimmaps::JHybridMarkerViewSpec::CxxPart::registerNatives();
+  margelo::nitro::munimmaps::views::JHybridMarkerViewStateUpdater::registerNatives();
   margelo::nitro::munimmaps::JHybridMunimMapsConfigSpec::CxxPart::registerNatives();
   margelo::nitro::munimmaps::JFunc_void_std__string_std__string_std__string_cxx::registerNatives();
   margelo::nitro::munimmaps::JHybridMunimMapViewSpec::CxxPart::registerNatives();
@@ -105,6 +117,12 @@ void registerAllNatives() {
     "MunimMapView",
     []() -> std::shared_ptr<HybridObject> {
       return JHybridMunimMapViewSpecImpl::create();
+    }
+  );
+  HybridObjectRegistry::registerHybridObjectConstructor(
+    "MarkerView",
+    []() -> std::shared_ptr<HybridObject> {
+      return JHybridMarkerViewSpecImpl::create();
     }
   );
   HybridObjectRegistry::registerHybridObjectConstructor(

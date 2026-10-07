@@ -50,6 +50,8 @@ target_sources(
   # Android-specific Nitrogen C++ sources
   ../nitrogen/generated/android/c++/JHybridMapModelLayerSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridMapModelLayerStateUpdater.cpp
+  ../nitrogen/generated/android/c++/JHybridMarkerViewSpec.cpp
+  ../nitrogen/generated/android/c++/views/JHybridMarkerViewStateUpdater.cpp
   ../nitrogen/generated/android/c++/JHybridMunimMapsConfigSpec.cpp
   ../nitrogen/generated/android/c++/JHybridMunimMapViewSpec.cpp
   ../nitrogen/generated/android/c++/views/JHybridMunimMapViewStateUpdater.cpp
