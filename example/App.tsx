@@ -460,6 +460,7 @@ function Example() {
   const [layer3dCamera, setLayer3dCamera] = useState<MapCamera | undefined>(undefined)
   const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
   const [googleChecks, setGoogleChecks] = useState(false)
+  const [google3d, setGoogle3d] = useState(false)
   const [providersCheck, setProvidersCheck] = useState(false)
   const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
   const [mapLibreCheck, setMapLibreCheck] = useState(false)
@@ -576,10 +577,12 @@ function Example() {
         setMode('layer3d')
         return
       }
-      // munimmapsexample://google(/checks): the Google engine screen.
+      // munimmapsexample://google(/3d)(/checks): the Google engine screen
+      // (3d: Google's photorealistic 3D map, Android).
       if (/:\/\/google/.test(url ?? '')) {
         setLaunching(false)
         setGoogleChecks(url?.includes('checks') ?? false)
+        setGoogle3d(/:\/\/google\/3d/.test(url ?? ''))
         setMode('google')
         return
       }
@@ -808,6 +811,7 @@ function Example() {
         <GoogleScreen
           topInset={insets.top}
           autoCheck={googleChecks}
+          photo3d={google3d}
           onExit={() => setMode('providers')}
         />
       ) : mode === 'mapbox' ? (

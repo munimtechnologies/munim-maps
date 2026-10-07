@@ -107,7 +107,7 @@ class GoogleMap3DMode(
       }
 
       override fun onError(error: Exception) {
-        host.error("the Maps 3D SDK failed to start: ${error.message} (the key needs the Map Tiles API and the Maps 3D SDK for Android)")
+        host.error("the Maps 3D SDK failed to start: ${error.message} (it needs current Google Play services, which download its module, and the Map Tiles API and the Maps 3D SDK for Android on the key)")
       }
     })
   }

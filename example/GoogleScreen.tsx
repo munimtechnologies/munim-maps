@@ -149,7 +149,7 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onExit?: () => void }) {
+export function GoogleScreen(props: { topInset: number; autoCheck: boolean; photo3d?: boolean; onExit?: () => void }) {
   const ref = useRef<MunimMapViewRef | null>(null)
   const [ready, setReady] = useState(false)
   const [events, setEvents] = useState<string[]>([])
@@ -161,10 +161,12 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
   const [layers, setLayers] = useState(true)
   const [tiles, setTiles] = useState(false)
   // Google's photorealistic 3D map (Android, Maps 3D SDK): models drawn natively.
-  const [photo3d, setPhoto3d] = useState(false)
+  // munimmapsexample://google/3d(/checks) starts in it.
+  const [photo3d, setPhoto3d] = useState(props.photo3d ?? false)
   const [status, setStatus] = useState('')
   const seen = useRef<Record<string, number>>({})
   const readyRef = useRef(false)
+  const errorsRef = useRef<string[]>([])
 
   const google: GoogleMapOptions = useMemo(
     () => ({
@@ -239,7 +241,67 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
       setChecks([...results])
     }
 
+    const finish = () => {
+      const passed = results.filter((r) => r.ok).length
+      const summary = { provider: 'google', mode: photo3d ? '3d' : '2d', platform: Platform.OS, finishedAt: new Date().toISOString(), passed, failed: results.length - passed, results, events: seen.current }
+      console.log(`MUNIM_MAPS_GOOGLE summary ${JSON.stringify({ mode: summary.mode, passed, failed: results.length - passed })}`)
+      try {
+        const file = new File(Paths.document, photo3d ? 'munim-maps-google-3d-checks.json' : 'munim-maps-google-checks.json')
+        if (file.exists) file.delete()
+        file.create()
+        file.write(JSON.stringify(summary, null, 2))
+      } catch (error) {
+        console.warn('MUNIM_MAPS_GOOGLE could not write the report', error)
+      }
+      setStatus(`Checks: ${passed}/${results.length} passed`)
+      setRunning(false)
+    }
+
     await check('map ready', async () => readyRef.current)
+    if (photo3d) {
+      // Google's photorealistic 3D map (Android, Maps 3D SDK): its camera,
+      // flights, and the models it draws itself (modelRendering auto).
+      const near = (a: number, b: number, tolerance: number) => Math.abs(a - b) <= tolerance
+      const angle = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180)
+      await check('3D: the 3D map starts', async () => {
+        // The Maps 3D SDK starts after the screen (and its module may download first).
+        for (let i = 0; i < 60; i++) {
+          try {
+            return JSON.stringify(await g.getCamera3d())
+          } catch {
+            if (errorsRef.current.length > 0) throw new Error(errorsRef.current.join(' | '))
+            await wait(500)
+          }
+        }
+        throw new Error('not ready after 30 s')
+      })
+      await check('3D: setCamera3d / getCamera3d', async () => {
+        await g.setCamera3d({ latitude: 41.8826, longitude: -87.6278, altitude: 180, heading: 30, tilt: 60, range: 900 })
+        await wait(1500)
+        const c = await g.getCamera3d()
+        if (near(c.latitude, 41.8826, 1e-3) && near(c.longitude, -87.6278, 1e-3) && angle(c.heading, 30) < 2 && near(c.tilt, 60, 2) && near(c.range, 900, 60)) return JSON.stringify(c)
+        throw new Error(JSON.stringify(c))
+      })
+      await check('3D: shared getCamera', async () => {
+        const c = await map.getCamera()
+        if (near(c.pitch, 60, 2) && angle(c.heading, 30) < 2 && near(c.distance, 900, 60)) return JSON.stringify(c)
+        throw new Error(JSON.stringify(c))
+      })
+      await check('3D: flyTo', async () => {
+        await g.flyTo({ heading: 120, range: 1300 }, 1500)
+        await wait(3000)
+        const c = await g.getCamera3d()
+        if (angle(c.heading, 120) < 3 && near(c.range, 1300, 80)) return `heading ${c.heading.toFixed(1)}, range ${c.range.toFixed(0)}`
+        throw new Error(JSON.stringify(c))
+      })
+      await check('3D: no engine errors', async () => {
+        if (errorsRef.current.length === 0) return 'none'
+        throw new Error(errorsRef.current.join(' | '))
+      })
+      await g.setCamera3d({ latitude: 41.8826, longitude: -87.6278, altitude: 180, heading: 30, tilt: 60, range: 900 })
+      finish()
+      return
+    }
     await check('sdkInfo', async () => {
       const info = await g.sdkInfo()
       return `${info.platform} ${info.version}`
@@ -404,27 +466,19 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
           throw error
         }
       }
-      return [
+      const outcomes = [
         await outcome('autocomplete', () => services.places.autocomplete({ input: 'pizza', origin: LOOP })),
         await outcome('geocode', () => services.geocoding.geocode('233 S Wacker Dr, Chicago')),
         await outcome('routes', () => services.routes.computeRoutes({ origin: ROUTE[0]!, destination: ROUTE[2]! })),
-      ].join(', ')
+      ]
+      // The example's key has Places (New), Geocoding and Routes on: a
+      // refusal is a failure (a build without a key passes above).
+      if (outcomes.every((o) => o.endsWith(' ok'))) return outcomes.join(', ')
+      throw new Error(outcomes.join(', '))
     })
     map.setCamera(CAMERA, false)
-    const passed = results.filter((r) => r.ok).length
-    const summary = { provider: 'google', platform: Platform.OS, finishedAt: new Date().toISOString(), passed, failed: results.length - passed, results, events: seen.current }
-    console.log(`MUNIM_MAPS_GOOGLE summary ${JSON.stringify({ passed, failed: results.length - passed })}`)
-    try {
-      const file = new File(Paths.document, 'munim-maps-google-checks.json')
-      if (file.exists) file.delete()
-      file.create()
-      file.write(JSON.stringify(summary, null, 2))
-    } catch (error) {
-      console.warn('MUNIM_MAPS_GOOGLE could not write the report', error)
-    }
-    setStatus(`Checks: ${passed}/${results.length} passed`)
-    setRunning(false)
-  }, [running])
+    finish()
+  }, [running, photo3d])
 
   useEffect(() => {
     if (!props.autoCheck || !ready) return
@@ -473,7 +527,10 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
         onMapFeaturePress={(f) => log(`onMapFeaturePress ${f.title} ${f.id.slice(0, 12)}`)}
         onModelPress={(id) => log(`onModelPress ${id}`)}
         onProviderEvent={onProviderEvent}
-        onError={(m) => log(`onError ${m}`)}
+        onError={(m) => {
+          errorsRef.current = [...errorsRef.current, m].slice(-20)
+          log(`onError ${m}`)
+        }}
       />
       <View style={[styles.panel, { top: props.topInset + 8 }]}>
         <ScrollView horizontal contentContainerStyle={styles.row} showsHorizontalScrollIndicator={false}>
