@@ -304,11 +304,20 @@
     return out
   }
 
-  /** A URL Cesium can load: https, data and blob as is; anything else (file paths, Android resources, Metro's http) through the app. */
+  /**
+   * A URL Cesium can load: data and blob as is; https as is, except GLB
+   * models, which go through the app (kept on the device after the first
+   * load, and same-origin); anything else (file paths, Android resources,
+   * Metro's http) through the app.
+   */
   M.resource = function (uri) {
     if (!uri) return uri
     const s = String(uri)
-    if (/^(https:|data:|blob:)/i.test(s)) return s
+    if (/^https:/i.test(s)) {
+      if (M.env.resourceBase && /\.glb([?#]|$)/i.test(s)) return M.env.resourceBase + encodeURIComponent(s)
+      return s
+    }
+    if (/^(data:|blob:)/i.test(s)) return s
     if (/^(Cesium\/|js\/|\.\/)/.test(s)) return s
     if (!M.env.resourceBase) return s
     return M.env.resourceBase + encodeURIComponent(s)

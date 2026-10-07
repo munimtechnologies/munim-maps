@@ -85,7 +85,7 @@
   /** A URL for the model's file, tinted if asked. */
   function modelUrl(uri, tint) {
     if (!tint) {
-      if (/^https:/i.test(uri) || /^data:/i.test(uri)) return Promise.resolve(uri)
+      if (/^data:/i.test(uri)) return Promise.resolve(uri)
       return Promise.resolve(M.resource(uri))
     }
     const key = `${uri}|${tint}`
