@@ -616,6 +616,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.onMapFeaturePress: ") + exc.what());
       }
     }()),
+    onProviderEvent([&]() -> CachedProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onProviderEvent", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onProviderEvent;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onProviderEvent);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onProviderEvent: ") + exc.what());
+      }
+    }()),
     onError([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onError", nullptr, nullptr);
@@ -698,6 +708,7 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("onUserLocationChange"): return true;
       case hashString("onUserTrackingModeChange"): return true;
       case hashString("onMapFeaturePress"): return true;
+      case hashString("onProviderEvent"): return true;
       case hashString("onError"): return true;
       case hashString("hybridRef"): return true;
       default: return false;

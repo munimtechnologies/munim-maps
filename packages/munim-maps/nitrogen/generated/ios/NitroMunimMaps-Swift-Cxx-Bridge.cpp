@@ -286,6 +286,14 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const ProviderEvent& /* event */)>
+  Func_void_ProviderEvent create_Func_void_ProviderEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroMunimMaps::Func_void_ProviderEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const ProviderEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
   // pragma MARK: std::function<void(const MapRegion& /* result */)>
   Func_void_MapRegion create_Func_void_MapRegion(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroMunimMaps::Func_void_MapRegion::fromUnsafe(swiftClosureWrapper);

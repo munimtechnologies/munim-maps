@@ -106,6 +106,8 @@ namespace margelo::nitro::munimmaps { struct NativeTileOverlay; }
 namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 // Forward declaration of `OverlayPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
+// Forward declaration of `ProviderEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ProviderEvent; }
 // Forward declaration of `RouteStep` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct RouteStep; }
 // Forward declaration of `Route` to properly resolve imports.
@@ -189,6 +191,7 @@ namespace NitroMunimMaps { class HybridSearchCompleterSpec_cxx; }
 #include "NativeTileOverlay.hpp"
 #include "OverlayLevel.hpp"
 #include "OverlayPressEvent.hpp"
+#include "ProviderEvent.hpp"
 #include "Route.hpp"
 #include "RouteStep.hpp"
 #include "SearchCompletion.hpp"
@@ -1316,6 +1319,43 @@ namespace margelo::nitro::munimmaps::bridge::swift {
     return optional.has_value();
   }
   inline std::function<void(const MapFeatureEvent& /* feature */)> get_std__optional_std__function_void_const_MapFeatureEvent_____feature______(const std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::function<void(const ProviderEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const ProviderEvent&)>`.
+   */
+  using Func_void_ProviderEvent = std::function<void(const ProviderEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const ProviderEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_ProviderEvent_Wrapper final {
+  public:
+    explicit Func_void_ProviderEvent_Wrapper(std::function<void(const ProviderEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const ProviderEvent& /* event */)>>(std::move(func))) {}
+    inline void call(ProviderEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const ProviderEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_ProviderEvent create_Func_void_ProviderEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_ProviderEvent_Wrapper wrap_Func_void_ProviderEvent(Func_void_ProviderEvent value) noexcept {
+    return Func_void_ProviderEvent_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::optional<std::function<void(const ProviderEvent& /* event */)>>
+  /**
+   * Specialized version of `std::optional<std::function<void(const ProviderEvent& / * event * /)>>`.
+   */
+  using std__optional_std__function_void_const_ProviderEvent_____event______ = std::optional<std::function<void(const ProviderEvent& /* event */)>>;
+  inline std::optional<std::function<void(const ProviderEvent& /* event */)>> create_std__optional_std__function_void_const_ProviderEvent_____event______(const std::function<void(const ProviderEvent& /* event */)>& value) noexcept {
+    return std::optional<std::function<void(const ProviderEvent& /* event */)>>(value);
+  }
+  inline bool has_value_std__optional_std__function_void_const_ProviderEvent_____event______(const std::optional<std::function<void(const ProviderEvent& /* event */)>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::function<void(const ProviderEvent& /* event */)> get_std__optional_std__function_void_const_ProviderEvent_____event______(const std::optional<std::function<void(const ProviderEvent& /* event */)>>& optional) noexcept {
     return optional.value();
   }
   

@@ -144,6 +144,8 @@ namespace margelo::nitro::munimmaps { struct NativeWaypoint; }
 namespace margelo::nitro::munimmaps { enum class OverlayLevel; }
 // Forward declaration of `OverlayPressEvent` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct OverlayPressEvent; }
+// Forward declaration of `ProviderEvent` to properly resolve imports.
+namespace margelo::nitro::munimmaps { struct ProviderEvent; }
 // Forward declaration of `RouteStep` to properly resolve imports.
 namespace margelo::nitro::munimmaps { struct RouteStep; }
 // Forward declaration of `Route` to properly resolve imports.
@@ -228,6 +230,7 @@ namespace margelo::nitro::munimmaps { enum class UserTrackingMode; }
 #include "NativeWaypoint.hpp"
 #include "OverlayLevel.hpp"
 #include "OverlayPressEvent.hpp"
+#include "ProviderEvent.hpp"
 #include "Route.hpp"
 #include "RouteStep.hpp"
 #include "SearchCompletion.hpp"

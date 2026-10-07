@@ -63,6 +63,7 @@
     "onUserLocationChange": true,
     "onUserTrackingModeChange": true,
     "onMapFeaturePress": true,
+    "onProviderEvent": true,
     "onError": true,
     "hybridRef": true
   }

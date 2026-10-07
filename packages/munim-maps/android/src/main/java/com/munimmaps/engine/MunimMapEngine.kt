@@ -58,6 +58,8 @@ interface MunimMapEngineListener {
   fun onUserLocationChange(location: UserLocationEvent) {}
   fun onUserTrackingModeChange(mode: UserTrackingMode) {}
   fun onMapFeaturePress(feature: MapFeatureEvent) {}
+  /** An event only this engine has (`onProviderEvent`): its name and data as JSON. */
+  fun onProviderEvent(name: String, json: String) {}
   fun onError(message: String) {}
 }
 
@@ -186,6 +188,15 @@ interface MunimMapEngine {
   fun measureAlignment(): MapAlignmentReport = modelLayer.measureAlignment()
   /** Id of the tappable overlay a tap at `point` (points) would hit, or empty. */
   fun overlayAtPoint(point: MapPoint): String = ""
+
+  /**
+   * A method only this engine has (`providerCommand` in JavaScript): `args`
+   * is the decoded JSON; complete with the result as JSON text (`null` for
+   * none).
+   */
+  fun providerCommand(command: String, args: JSONObject, completion: (Result<String>) -> Unit) {
+    completion(Result.failure(UnsupportedOperationException("${provider.displayName} has no command \"$command\"")))
+  }
 }
 
 /** The name people know it by, for messages. */

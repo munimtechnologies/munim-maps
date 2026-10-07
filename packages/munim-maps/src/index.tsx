@@ -41,6 +41,7 @@ import type {
   MapStyle,
   MunimMapViewMethods,
   MunimMapViewProps,
+  ProviderEvent,
   UserTrackingMode,
   FeatureVisibility,
   SelectionAccessory,
@@ -67,8 +68,10 @@ import type {
 import { pointsOfInterestFilter } from './services'
 import {
   defaultProvider,
+  parseProviderEvent,
   providerOptionsJson,
   type MapProvider,
+  type MapProviderEvent,
   type ProviderOptionProps,
 } from './providers'
 import {
@@ -686,6 +689,12 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
    */
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
+  /**
+   * Events only the active engine has, such as Google's indoor level
+   * changes or Street View panorama moves (each engine documents its own;
+   * Google's are typed as `GoogleMapEvent`).
+   */
+  onProviderEvent?: (event: MapProviderEvent) => void
   onError?: (message: string) => void
   style?: StyleProp<ViewStyle>
   /** `MarkerView`s: React Native views as markers. */
@@ -750,6 +759,16 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const onMapFeaturePress = useCallbackProp(props.onMapFeaturePress)
     const onError = useCallbackProp(props.onError)
+    const onProviderEventProp = props.onProviderEvent
+    const onProviderEvent = useMemo(
+      () =>
+        onProviderEventProp
+          ? callback((event: ProviderEvent) =>
+              onProviderEventProp(parseProviderEvent(event))
+            )
+          : undefined,
+      [onProviderEventProp]
+    )
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
     const hybridRef = useMemo(
       () =>
@@ -832,6 +851,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onUserLocationChange={onUserLocationChange}
         onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
+        onProviderEvent={onProviderEvent}
         onError={onError}
         hybridRef={hybridRef}
       >
@@ -849,13 +869,17 @@ export {
   defaultProvider,
   installedProviders,
   isProviderAvailable,
+  parseProviderEvent,
+  providerCommand,
   type CesiumMapOptions,
   type GoogleMapOptions,
   type MapboxMapOptions,
   type MapKitMapOptions,
   type MapLibreMapOptions,
   type MapProvider,
+  type MapProviderEvent,
   type MunimMapsConfiguration,
+  type ProviderCommandTarget,
   type ProviderOptionProps,
 } from './providers'
 export { MarkerView, type MarkerViewProperties } from './MarkerView'
