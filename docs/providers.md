@@ -6,9 +6,9 @@ munim-maps draws the same React Native API (`MunimMapView`, models, markers, sha
 | --- | --- | --- | --- | --- |
 | Apple MapKit | `'mapkit'` | Built in, the default | — (Apple only) | None |
 | Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` subspec | ✅ `munimMaps.google=true` (the default when on); photorealistic 3D with `munimMaps.googleMaps3d=true` | Google Maps SDK key |
-| Mapbox | `'mapbox'` | `NitroMunimMaps/Mapbox` subspec | `munimMaps.mapbox=true` | Mapbox public token (`pk.…`) |
-| MapLibre (open maps) | `'maplibre'` | `NitroMunimMaps/MapLibre` subspec | Built in (`munimMaps.maplibre=false` to drop it); the default without Google | None: OpenStreetMap data from [OpenFreeMap](https://openfreemap.org) |
-| Cesium | `'cesium'` | `NitroMunimMaps/Cesium` subspec (CesiumJS 1.146 bundled, in a WKWebView) | `munimMaps.cesium=true` (in a WebView) | None: OpenStreetMap imagery, ellipsoid. A Cesium ion token adds terrain, Bing imagery, OSM Buildings and ion assets |
+| Mapbox | `'mapbox'` | ✅ `NitroMunimMaps/Mapbox` subspec (Mapbox Maps SDK 11.32) | ✅ `munimMaps.mapbox=true` (11.32, `android-ndk27`) | Mapbox public token (`pk.…`) |
+| MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec (MapLibre Native 6.30+) | ✅ Built in (`munimMaps.maplibre=false` to drop it); the default without Google | None: OpenStreetMap data from [OpenFreeMap](https://openfreemap.org) |
+| Cesium | `'cesium'` | ✅ `NitroMunimMaps/Cesium` subspec (CesiumJS 1.146 in a WKWebView, from jsDelivr or bundled) | ✅ `munimMaps.cesium=true` (in a WebView) | None: OpenStreetMap imagery, ellipsoid. A Cesium ion token adds terrain, Bing imagery, OSM Buildings and ion assets |
 
 Engines other than MapKit (iOS) and MapLibre (Android) are opt-in at build time, so an app only ships the SDKs it uses. An engine that is not built in, or not implemented yet, shows a placeholder saying so and reports it through `onError`.
 
@@ -16,7 +16,7 @@ Engines other than MapKit (iOS) and MapLibre (Android) are opt-in at build time,
 
 ```tsx
 import { MunimMapView, configureMunimMaps } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles' // USDZ on iOS, GLB on Android
+import { VEHICLES } from 'munim-maps-vehicles' // from a CDN; munim-maps picks USDZ or GLB per engine
 
 configureMunimMaps({
   mapboxAccessToken: 'pk.…',          // or the config plugin / Info.plist / strings.xml
@@ -34,6 +34,8 @@ configureMunimMaps({
   cesium={{ terrain: 'world', photorealistic: true }}
   initialCamera={{ latitude: 41.88, longitude: -87.63, distance: 900, pitch: 55, heading: 30 }}
   models={[{ id: 'bus', coordinate: { latitude: 41.883, longitude: -87.628 }, source: VEHICLES['bus-city'] }]}
+  modelRendering="auto"                // the engine draws models when it can, else munim-maps' 3D layer
+  onProviderEvent={({ provider, name, data }) => {}} // events only this engine has
 />
 ```
 
@@ -50,17 +52,80 @@ configureMunimMaps({
   "android": { "providers": [] },
   "googleMapsApiKey": { "ios": "…", "android": "…" },
   "mapboxAccessToken": "pk.…",
-  "cesiumIonToken": "…"
+  "cesiumIonToken": "…",
+  "cesium": { "bundled": false },
+  "googleMaps3d": false
 }]
 ```
 
-- **iOS**: writes `munimMaps.providers` to `ios/Podfile.properties.json`; the podspec turns those subspecs on (`NitroMunimMaps/Google`…). Keys go to Info.plist: `MunimMapsGoogleMapsApiKey`, `MBXAccessToken`, `MunimMapsCesiumIonToken`.
-- **Android**: writes `munimMaps.<provider>=true` to `android/gradle.properties`; `android/build.gradle` adds that engine's source set and SDK. Keys go to the manifest (`com.google.android.geo.API_KEY`, `munimmaps.cesium_ion_token` meta-data) and `mapbox_access_token` in strings.xml.
+- **iOS**: writes `munimMaps.providers` (and `munimMaps.cesiumBundled`) to `ios/Podfile.properties.json`; the podspec turns those subspecs on (`NitroMunimMaps/Google`…). Keys go to Info.plist: `MunimMapsGoogleMapsApiKey`, `MBXAccessToken`, `MunimMapsCesiumIonToken`. With the Google engine the pod needs iOS 16.
+- **Android**: writes `munimMaps.<provider>=true` (and `munimMaps.googleMaps3d`, `munimMaps.cesiumBundled`) to `android/gradle.properties`; `android/build.gradle` adds that engine's source set and SDK. With Mapbox it adds Mapbox's Maven repository (public, no secret token) to the app's `android/build.gradle` `allprojects.repositories`. Keys go to the manifest (`com.google.android.geo.API_KEY`, `munimmaps.cesium_ion_token` meta-data) and `mapbox_access_token` in strings.xml.
+- `cesium: { bundled: true }` puts CesiumJS (13 MB) in the app; by default the Cesium engine loads it from jsDelivr the first time and keeps it on disk (see [Cesium engine](#cesium-engine)).
+- `googleMaps3d: true` adds Google's photorealistic 3D SDK on Android (`google={{ mode: '3d' }}`).
 
 ### Without Expo
 
-- **iOS**: `pod 'NitroMunimMaps/Google', :path => '../node_modules/munim-maps'` (and `/Mapbox`, `/MapLibre`, `/Cesium`) in the Podfile, or `MUNIM_MAPS_PROVIDERS=google,maplibre pod install`.
-- **Android**: `munimMaps.google=true` (and `mapbox`, `cesium`; `maplibre=false` to drop MapLibre) in `android/gradle.properties`. SDK versions can be pinned with `munimMaps.maplibreVersion`, `munimMaps.googleMapsVersion`, `munimMaps.mapboxVersion`, `munimMaps.filamentVersion`.
+- **iOS**: `pod 'NitroMunimMaps/Google', :path => '../node_modules/munim-maps'` (and `/Mapbox`, `/MapLibre`, `/Cesium`) in the Podfile, or `MUNIM_MAPS_PROVIDERS=google,maplibre pod install`. `MUNIM_MAPS_CESIUM_BUNDLED=1` bundles CesiumJS. The Google engine needs iOS 16; apps that also use react-native-maps need `pod 'react-native-maps/Google'` (react-native-maps registers its Google map whenever the GoogleMaps pod is present, and the app stops at launch without it).
+- **Android**: `munimMaps.google=true` (and `mapbox`, `cesium`; `maplibre=false` to drop MapLibre; `googleMaps3d`, `cesiumBundled`) in `android/gradle.properties`. With Mapbox, add `maven { url 'https://api.mapbox.com/downloads/v2/releases/maven' }` to `allprojects.repositories` in `android/build.gradle`. SDK versions can be pinned with `munimMaps.maplibreVersion`, `munimMaps.googleMapsVersion`, `munimMaps.googleMapsUtilsVersion`, `munimMaps.googleMaps3dVersion`, `munimMaps.mapboxVersion`, `munimMaps.filamentVersion`.
+
+## Shared API across engines
+
+### Who draws the models: `modelRendering`
+
+`modelRendering` on `MunimMapView` (`'auto'` by default) says who draws `models`:
+
+| Engine | `auto` | `native` | `overlay` |
+| --- | --- | --- | --- |
+| MapKit (iOS) | munim-maps' 3D layer (SceneKit) | the 3D layer (MapKit has no 3D models) | the 3D layer |
+| Google 2D map (iOS, Android) | the 3D layer | the 3D layer, with an `onError` saying so | the 3D layer |
+| Google 3D map (`google={{ mode: '3d' }}`, Android) | Google's glTF `Model`s | Google's models | Google's models, with an `onError` (its camera has no projection the overlay can follow) |
+| Mapbox (iOS, Android) | Mapbox's `model` layer for still glTF bodies; the 3D layer for animated files, labels, stems, effects, occluders, USDZ and shapes | every glTF body in Mapbox; their labels, stems and effects on the 3D layer | everything on the 3D layer |
+| MapLibre (iOS, Android) | the 3D layer | the 3D layer | the 3D layer |
+| Cesium (iOS, Android) | Cesium entities and glTF models for everything Cesium can draw (avatars, labels, stems, shapes, effects, zones and paths too); USDZ / SCN / OBJ files and occluders on the 3D layer | everything as Cesium entities (USDZ and occluders skipped) | everything on the 3D layer over the WebView |
+
+Native models are lit and shadowed with the map and hidden by its own buildings and terrain; the 3D layer draws over the map (with `occlusion="buildings"` to hide models behind buildings). `google.modelRendering`, `mapbox.modelRendering` and `cesium.modelRendering` are aliases (the shared prop wins); Cesium's older `modelRenderer` still works. Natively, every engine takes the app's 3D content through one hook with defaults: `setModels` / `setZones` / `setPaths` (Swift `MunimMapEngine`, Kotlin `MunimMapEngine`): an engine draws what it can and hands the rest to `modelLayer`; `modelLayerDidChange()` tells it the layer's lighting, occlusion, terrain or distance settings changed.
+
+### Engine-only methods and events
+
+Every engine adds methods and events without changing the shared spec, through one channel:
+
+- `ref.current.providerCommand(command, argsJson)` resolves with JSON text; `providerCommand(ref.current, command, args)` parses it. Typed wrappers: `googleMap(ref)`, `mapboxMap(ref)`, `maplibreCommands(ref)`, `cesiumCommands(ref)`.
+- `onProviderEvent({ provider, name, data })` on `MunimMapView`, `data` parsed from JSON. Narrow it with `googleEvent(event)`, `parseCesiumEvent(event)`, `MapLibreEventName`, `MapboxMapOptions.events`.
+- `callProvider(provider, command, args)` and `addProviderEventListener(provider, listener)` for engine-level commands that need no map (Mapbox's offline downloads), through `MunimMapsConfig`.
+- Native: Swift `MunimMapEngine.providerCommand(_:arguments:completion:)` (JSON-compatible values) and `setProviderEventHandler(_:)`; Kotlin `MunimMapEngine.providerCommand(command, args: JSONObject, completion)` (JSON text) and `MunimMapEngineListener.onProviderEvent(name, json)`; `MunimMapEngineFactory.providerCommand(…)` on both for map-less commands. The host sends `ProviderEvent { provider, name, json }` to JavaScript. Everything has a default (reject / drop).
+
+### Markers and regions
+
+- `onMarkerDrag`: a dragged marker's position while it moves, between `onMarkerDragStart` and `onMarkerDragEnd`, on every engine: MapKit (a display link reads the dragged view, since MapKit only sets the coordinate on drop), Google (`mapView(_:didDrag:)`, `OnMarkerDragListener.onMarkerDrag`), Mapbox, MapLibre, Cesium (the page's drag handler). Natively `MunimMapEngine.onMarkerDrag` (Swift) and `MunimMapEngineListener.onMarkerDrag` (Kotlin), defaulted.
+- `MarkerView` on Android: `MunimMapView` keeps its children off screen next to the map (Android's Nitro views cannot hold React children); each `MarkerView` draws its children into a bitmap (again on every change with `tracksViewChanges`) and calls `MunimMapEngine.setViewMarker` / `setViewMarkerImage` / `removeViewMarker`. Mapbox shows it as a view annotation; Google, MapLibre and Cesium as an image marker with the marker's `anchor`, `zIndex`, callout, taps and dragging.
+- react-native-maps' region API: `initialRegion`, a controlled `region` (the map jumps to it when it changes; the region reported by `onRegionChangeComplete` does not move it again), `onRegionChangeStart`, `onRegionChangeComplete(region)` and `ref.animateToRegion(region, ms)`. They are built on `setRegion`, `getVisibleRegion` and the camera events, so they work on every engine. `initialCamera` is optional when a region is given.
+- `selectableMapFeatures` reaches every engine on both platforms (`setSelectableMapFeatures` on Android): MapKit's places, Google's POIs, Mapbox Standard's featuresets (POIs, landmarks, place labels), MapLibre's OpenMapTiles layers, Cesium's 3D Tiles features.
+
+### Models: the vehicle catalogue and remote files
+
+- munim-maps ships no models. The vehicle catalogue (57 tintable models) is the `munim-maps-vehicles` package: `VEHICLES[name]` is a source with both formats on jsDelivr at the package's version (`{ uri, usdz, glb }`); munim-maps picks USDZ where its SceneKit layer draws the model on iOS (MapKit, MapLibre, the Google 2D map, or `modelRendering: 'overlay'`) and GLB where the engine draws glTF itself (Mapbox, Cesium) and on Android. `munim-maps-vehicles/bundled/<name>` bundles one model in the app instead (USDZ on iOS, GLB elsewhere; `bundled/glb/<name>` is GLB everywhere). `configureMunimMapsVehicles({ baseUrl })` points the catalogue at your own server.
+- Remote models (`http(s)://`) are downloaded once and kept in the app's cache folder (iOS `Caches/munim-maps`, Android `cache/munim-maps`), named by a hash of the URL, so a map works offline after its first load. The SceneKit and Filament layers, Mapbox's model layer and Cesium all read the cached file. Metro's development server (port 8081) is always read fresh. Google's 3D map downloads its models itself.
+
+### Coming from react-native-maps (and @rnmapbox/maps)
+
+What an app moving off react-native-maps (MapKit on iOS) or @rnmapbox/maps (Mapbox Standard on Android) needs, engine by engine. ✅ works · 🔨 built, not yet checked on a device · 🟡 partly (note) · — not in the SDK.
+
+| Need | munim-maps | MapKit | Google | Mapbox | MapLibre | Cesium |
+| --- | --- | --- | --- | --- | --- | --- |
+| Controlled `region`, `initialRegion` | `region`, `initialRegion` (JavaScript, on `setRegion`) | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `onRegionChangeStart`, `onRegionChangeComplete(region)` | same names (from the camera events + `getVisibleRegion`) | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `animateToRegion(region, ms)` | `ref.animateToRegion` (= `setRegion(region, ms)`) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `animateCamera({ pitch }, { duration })` | `animateCamera({ ...(await getCamera()), pitch }, ms, 'easeInOut')` (a whole camera, in metres) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `fitToCoordinates(coords, { edgePadding, animated })` | `fitToCoordinates(coords, edgePadding, animated)` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `mapType` standard / hybrid with 3D | `mapStyle="standard" \| "hybrid"`, `elevation="realistic"`, `showsBuildings` | ✅ | 🟡 hybrid, no 3D terrain (Google 2D) | ✅ Standard / Standard Satellite with terrain | 🟡 satellite needs your own tiles (`maplibre.satelliteTilesUrl`) | ✅ Bing (token) or Esri imagery on terrain |
+| `showsUserLocation`, `showsCompass`, `pitchEnabled`, `rotateEnabled`, `scrollEnabled`, `zoomEnabled`, `testID` | same | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Markers with React children: `anchor`, `zIndex`, `tracksViewChanges`, title, description, `onPress` | `MarkerView` | ✅ | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android (view annotations) | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android |
+| Draggable markers: drag start, continuous drag, drag end | `draggable`, `onMarkerDragStart`, `onMarkerDrag`, `onMarkerDragEnd` | 🔨 continuous drag new | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android | ✅ iOS · 🔨 Android | 🔨 |
+| `Circle`, `Polygon`, `Polyline` with stroke and fill | `circles`, `polygons`, `polylines` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Dashes `[4, 10]`, `[6, 4]` | `dashPattern` | ✅ | 🟡 iOS draws them as spans in metres · ✅ Android | ✅ | ✅ | ✅ |
+| Follow the user with heading, re-armed by setting the mode again | `userTrackingMode="followWithHeading"` + `onUserTrackingModeChange` | ✅ | 🟡 munim-maps follows (Google has no tracking modes) | ✅ Mapbox viewport | ✅ location component | ✅ |
+| User puck with a heading cone and a pulse | `showsUserLocation` + the engine's puck options | ✅ MapKit's own (heading beam while following with heading) | 🟡 Google's blue dot (no cone or pulse options) | ✅ `mapbox.puck` (`bearing: 'heading'`, `pulsing`) | 🟡 Android: `maplibre.location` `pulse`, compass render mode; iOS: MapLibre's heading indicator | 🟡 a dot drawn by the page; heading follows the camera |
+| 3D models, globe and lighting in the same map | `models`, `globe`, `lighting` | ✅ (globe: a private switch) | 🟡 no globe | ✅ | 🟡 no globe (MapLibre Native) | ✅ |
 
 ## Feature matrix
 
@@ -68,40 +133,43 @@ configureMunimMaps({
 
 | Feature | MapKit iOS | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | Cesium iOS | Cesium Android |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Map on screen | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ✅ map types, JSON styles, `styleUrl` = JSON style | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ `styleUrl` | ✅ `mapStyle`, `cesium.imagery` | ✅ `mapStyle`, `cesium.imagery` |
-| Dark mode (`colorScheme`) | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🟡 built; phone test pending | ✅ | 🔨 | 🟡 buildings, no 3D terrain | 🟡 buildings, no 3D terrain | ✅ ion token | ✅ ion token |
+| Map on screen | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ✅ map types, JSON styles, `styleUrl` = JSON style | 🔨 | ✅ | 🔨 | ✅ | ✅ `styleUrl` | ✅ `mapStyle`, `cesium.imagery` | ✅ `mapStyle`, `cesium.imagery` |
+| Dark mode (`colorScheme`) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🔨 | ✅ | 🔨 | 🟡 buildings, no 3D terrain | 🟡 buildings, no 3D terrain | ✅ ion token | ✅ ion token |
 | Globe (`globe`) | ✅ | — | — | ✅ | 🔨 | — (not in MapLibre Native) | — | ✅ always | ✅ always |
-| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| `flyCamera` / `stopFlight` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ✅ | ✅ |
-| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| `pointForCoordinate`, `coordinateForPoint` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| Gestures on/off | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| Camera limits, boundary, `mapPadding` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ✅ Utils | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| `MarkerView` (React Native views as markers) | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | — no Android `MarkerView` yet | ✅ | — |
-| Polylines, polygons, circles | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| Gradient / animated polylines, overlay taps | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| Tile overlays | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| User location, tracking modes | ✅ | 🟡 tracking by munim-maps | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| Compass, scale, tracking button | ✅ | 🟡 compass, my-location button; no scale | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| Points of interest filter, traffic | ✅ | ✅ | 🟡 built; phone test pending | 🟡 POI labels all or none; traffic ✅ | 🔨 | 🟡 POIs, no traffic data | 🟡 POIs, no traffic data | — | — |
-| Tappable places (`onMapFeaturePress`) | ✅ | ✅ POIs (place IDs) | 🟡 built; phone test pending | ✅ Standard featuresets | — `selectableMapFeatures` is not passed to Android engines; use `mapbox.interactions` | ✅ | 🔨 | 🟡 3D Tiles features | 🟡 3D Tiles features |
+| `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| `flyCamera` / `stopFlight` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ✅ | ✅ |
+| `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| `pointForCoordinate`, `coordinateForPoint` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| Gestures on/off | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| Camera limits, boundary, `mapPadding` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| Markers (pin, balloon, image, avatar, label, dot), callouts, dragging | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| Clustering (`clusteringId`, `clusterStyles`) | ✅ | ✅ Utils | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| `MarkerView` (React Native views as markers) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 |
+| `onMarkerDrag` (continuous drag) | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | 🔨 | 🔨 |
+| `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion` | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `modelRendering` (engine-drawn models) | — overlay only | — overlay only | 🔨 3D mode | ✅ | 🔨 | — overlay only | — overlay only | ✅ | ✅ |
+| Polylines, polygons, circles | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| Gradient / animated polylines, overlay taps | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| Tile overlays | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| User location, tracking modes | ✅ | 🟡 tracking by munim-maps | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| Compass, scale, tracking button | ✅ | 🟡 compass, my-location button; no scale | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| Points of interest filter, traffic | ✅ | ✅ | 🔨 | 🟡 POI labels all or none; traffic ✅ | 🔨 | 🟡 POIs, no traffic data | 🟡 POIs, no traffic data | — | — |
+| Tappable places (`onMapFeaturePress`) | ✅ | ✅ POIs (place IDs) | 🔨 | ✅ Standard featuresets | 🔨 Standard featuresets | ✅ | 🔨 | 🟡 3D Tiles features | 🟡 3D Tiles features |
 | Place cards (`selectionAccessory`), Look Around | ✅ | 🟡 Street View for Look Around | 🟡 Street View for Look Around; phone test pending | — | — | — | — | — | — |
-| `takeSnapshot`, `addressForCoordinate` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| 3D models: GLB / glTF | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ Cesium | ✅ Cesium |
+| `takeSnapshot`, `addressForCoordinate` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
+| 3D models: GLB / glTF | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ Cesium | ✅ Cesium |
 | 3D models: USDZ, USD, SCN, OBJ… | ✅ | ✅ | — | ✅ | — | ✅ | — | ✅ native layer | — |
-| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| Effects (exhaust, smoke, contrail), occluders | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ✅ (occluders: native layer) | ✅ (occluders: native layer) |
-| Zones, paths | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| `occlusion="buildings"` | ✅ | ✅ | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | ✅ | ✅ real depth | ✅ real depth |
-| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ✅ sea level (Google 2D has no terrain) | ⏳ Android 3D layer | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ✅ Cesium terrain | ✅ Cesium terrain |
-| `onModelPress` | ✅ | ✅ | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
-| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ✅ ≤ 1.7 pt (iPad) | 🟡 built; phone test pending | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| Model heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| Built-in shapes, pictures (avatars), labels, stems, `lift` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| Effects (exhaust, smoke, contrail), occluders | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ (occluders: native layer) | ✅ (occluders: native layer) |
+| Zones, paths | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| `occlusion="buildings"` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ real depth | ✅ real depth |
+| Terrain (`altitudeReference: 'sea'`, `followTerrain`, `groundElevation`) | ✅ | ✅ sea level (Google 2D has no terrain) | 🔨 | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ✅ Cesium terrain | ✅ Cesium terrain |
+| `onModelPress` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
+| `measureAlignment` (3D layer vs the engine's own projection) | ✅ | ✅ ≤ 1.7 pt (iPad) | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
 | `MapModelLayer` over another library's map | ✅ react-native-maps, expo-maps | — | 🟡 react-native-maps (Google `MapView` adapter); phone test pending | — | ⏳ @rnmapbox/maps | ⏳ | ⏳ | — | — |
 | MapKit services (search, directions, geocoding) | ✅ | — | — | — | — | — | — | — | — |
 
@@ -158,7 +226,7 @@ MunimMapView (JS)  ──provider, props──▶  HybridMunimMapView (Swift / K
 | GLB / glTF models, heading, altitude, scale, spin, `motion` | ✅ | gltfio assets; glTF models turned half a turn as iOS's `GLTFLoader` does; the same keyframe maths (`pose`) |
 | Embedded animations (`playAnimations`) | ✅ | gltfio `Animator`, looped on the frame clock |
 | `screenSize`, `lift`, `tint` (materials named `paint…`), `groundShadow` | ✅ | Scaled by depth / focal length each frame; tint on `baseColorFactor`; a soft shadow quad under the model |
-| USDZ, USD, SCN, OBJ… | — | Apple formats; `munim-maps/vehicles` hands Android the GLB catalogue |
+| USDZ, USD, SCN, OBJ… | — | Apple formats; `munim-maps-vehicles` sources resolve to GLB on Android |
 | Built-in shapes (`box`, `sphere`, `cylinder`, `cone`, `capsule`, `pyramid`, `gem`), `color`, `emissive`, see-through colours | ✅ | Meshes built on the CPU, lit with gltfio's ubershader (as iOS: `capsule` is SceneKit's 1 × 1 capsule, a sphere stretched to `size`; the box has no chamfer) |
 | Pictures (`image`, `imageBorder`, `badge`), always facing the camera, drawn over buildings | ✅ | The avatar bitmap drawn with Canvas exactly as iOS draws it, on a camera-facing quad in Filament channel 3 with depth testing off |
 | Labels (22 pt pill, 4 pt above the model), stems (2 pt line, 8 pt dot) | ✅ | Same sizes, drawn on top |
@@ -202,7 +270,12 @@ For each engine:
 
 ## Testing
 
-- **iOS**: plain launch of the example runs the MapKit self-test (`Documents/munim-maps-selftest.json`); `munimmapsexample://providers/<provider>` opens the engine picker. A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
+- **Example deep links** (checks never run on their own, except the MapKit self-test on a plain iOS launch, `Documents/munim-maps-selftest.json`, which includes the MapKit parity screen's checks):
+  - `munimmapsexample://providers[/<provider>]`: the engine picker, which opens every other screen (Android starts here).
+  - `munimmapsexample://google[/checks]` (`Documents/munim-maps-google-checks.json`), `mapbox[/checks|/native]` (`munim-maps-mapbox-checks.json`), `maplibre[/check]` (`munim-maps-maplibre-check.json`), `cesium[/checks]` (`munim-maps-cesium-checks.json`): each engine's screen with every feature group; the suffix runs its checks.
+  - `munimmapsexample://layer3d[/<provider>][/check][/cam/lat,lon,distance,pitch,heading][/noocclusion]`: every 3D layer group on one engine.
+  - `munimmapsexample://parity`, `terrain`, `expomaps`, `features`, `globe`, `cities`, `orbit`, `demo/<shot>`, `lagtest` (iOS).
+  - Models come from munim-maps-vehicles on jsDelivr; before it is published, build with `EXPO_PUBLIC_MUNIM_MAPS_VEHICLES_BASE_URL=<url>` and serve `packages/munim-maps-vehicles` there (`python3 -m http.server`, or a tunnel to it). A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
 - **Android 3D layer**: `munimmapsexample://layer3d/<provider>` shows every 3D group on one engine; add `/check` (or tap Run checks) to measure the layer against the engine at six cameras and four points of a `flyCamera` flight (`adb logcat | grep MUNIM_MAPS_LAYER3D`). `cam/lat,lon,distance,pitch,heading` sets the camera, `noocclusion` turns building occlusion off.
 - **Android**: the example starts on the engine picker (MapLibre by default) and logs `MUNIM_MAPS_PROVIDERS … alignment {…}` every 3 s (`adb logcat | grep MUNIM_MAPS`). Build with `./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a` (from `example/android`, after `npx expo prebuild --platform android`) for an arm64 phone or emulator. Phase 1 was checked on an Android 15 phone: MapLibre with the GLB vehicles, 3D layer within 0.41 pt of MapLibre's own projection.
 
@@ -311,17 +384,7 @@ Notes:
 - **Model rendering.** The 2D Maps SDKs have no 3D models, so on the 2D map `models` are always drawn by munim-maps' overlay (`modelRendering: 'native'` reports that). `google={{ mode: '3d' }}` (Android) switches the engine to Google's photorealistic 3D map (Maps 3D SDK, `Map3DView`): `modelRendering: 'auto'` (default) or `'native'` draws every glTF model (`uri`) as a Google `Model` (position, altitude mode from `altitudeReference`, heading, `scale` × `google.modelScale`, `motion` keyframes stepped natively, taps to `onModelPress`), and polylines, polygons and markers natively; the overlay cannot follow Google 3D's camera (no projection API), so `'overlay'` falls back to native with an error. Built-in shapes, pictures, labels, effects, zones and paths need the 2D map. Local GLBs are copied to the cache and passed as `file://` URLs.
 - **What the 3D mode needs:** `munimMaps.googleMaps3d=true` (Expo plugin `googleMaps3d: true`), and a key with the **Map Tiles API** and the **Maps 3D SDK for Android** enabled (with 3D billing). The development key has neither, so the mode compiles but could not be run. `play-services-maps3d` 0.2.0 is used because 0.2.2 is built with Kotlin 2.3, which React Native's Kotlin 2.1 compiler cannot read (`munimMaps.googleMaps3dVersion` overrides it). **iOS:** the Maps 3D SDK is `GoogleMaps3D`, a SwiftUI-only Swift package; CocoaPods (which React Native uses) cannot install it, so `mode: '3d'` reports an error on iOS and stays on the 2D map.
 - **Not in the SDKs**, so not offered: a scale bar, a globe, a 2D/3D button, Apple's place cards and MapKit's search (use `googleMapsServices` or MapKit's services, which work with any engine on iOS), tracking modes (munim-maps follows the user itself).
-- **Engine-only events and methods** go through the shared `onProviderEvent` / `providerCommand` (added for every engine, with defaults, so no other engine changes). Google's continuous marker drag is the `markerDrag` event (iOS `mapView(_:didDrag:)`, Android `OnMarkerDragListener.onMarkerDrag` in `setUpMarkerCollection`), ready to also feed a shared `onMarkerDrag` event.
-
-## Engine-only methods and events
-
-Every engine can add methods and events without changing the shared spec:
-
-- `ref.current.providerCommand(command, argsJson)` → JSON text, and `onProviderEvent({ provider, name, data })` on `MunimMapView` (the same channel the Google, MapLibre and Cesium engines use). JavaScript: `providerCommand(ref.current, command, args)`; each engine adds typed wrappers next to its options (`mapboxMap(ref.current)`).
-- `callProvider(provider, command, args)` and `addProviderEventListener(provider, listener)` for engine-level commands that need no map (Mapbox's offline downloads), through `MunimMapsConfig`.
-- Native: iOS `MunimMapEngine.providerCommand(_:arguments:completion:)` / `setProviderEventHandler(_:)` and `MunimMapEngineFactory.providerCommand(_:arguments:emit:completion:)`; Android `MunimMapEngine.providerCommand(command, args, completion)` (JSON text) / `MunimMapEngineListener.onProviderEvent(name, json)` and `MunimMapEngineFactory.providerCommand(context, …)`. All have defaults (reject / drop), so engines opt in.
-- `onMarkerDrag` (shared): a dragged marker's position while it moves, between `onMarkerDragStart` and `onMarkerDragEnd` (iOS `MunimMapEngine.onMarkerDrag`, Android `MunimMapEngineListener.onMarkerDrag`, defaulted).
-- `MarkerView` on Android: `MunimMapView` keeps its children off screen next to the map (Android's Nitro views cannot hold React children); each `MarkerView` draws its children into a bitmap and calls `MunimMapEngine.setViewMarker` / `setViewMarkerImage` / `removeViewMarker` (defaulted), like iOS.
+- **Engine-only events and methods** go through the shared `onProviderEvent` / `providerCommand` (added for every engine, with defaults, so no other engine changes). Google's continuous marker drag (iOS `mapView(_:didDrag:)`, Android `OnMarkerDragListener.onMarkerDrag` in `setUpMarkerCollection`) feeds the shared `onMarkerDrag` and the `markerDrag` event.
 
 ## Mapbox engine
 
@@ -331,7 +394,7 @@ Mapbox Maps SDK **11.32** on both platforms (`MapboxMaps ~> 11.32` pod; `com.map
 - `mapbox={{ … }}` (`MapboxMapOptions`, src/providers/mapbox.ts): declarative style objects written exactly as the [Mapbox Style Specification](https://docs.mapbox.com/style-spec/) and handed to the SDK unchanged (`addLayer(with:)` / `addStyleLayer(Value)`), diffed between renders; map options (gestures, ornaments, puck, camera bounds, rendering, debug); `events` and `interactions`.
 - `mapboxMap(ref.current).<method>(args)` (`MapboxMapMethods`): queries, feature state, cluster expansion, partial GeoJSON updates, runtime style edits, style imports, featuresets, Mapbox's camera in zoom levels, free camera, viewport, snapshots, elevation, location override, statistics.
 - `MapboxOffline`: style packs and tile regions, with progress through `addListener`; `MapboxServices`: Geocoding v6, Search Box, Directions, Matrix, Isochrone over HTTPS with the public token (billed per request by Mapbox beyond the free tier; temporary geocoding results may not be stored, per Mapbox's terms).
-- Native models: `mapbox.modelRendering` (`auto` by default) hands glTF models to a Mapbox `model` source drawn by two `model` layers (`munim-native-models`, `munim-native-models-sea`) through the shared `MunimMapEngine.overlayModels(_:)` hook (iOS and Android: the host passes `models` through it and gives the 3D layer what it returns; the default returns all).
+- Native models: `mapbox.modelRendering` (`auto` by default) hands glTF models to a Mapbox `model` source drawn by two `model` layers (`munim-native-models`, `munim-native-models-sea`) through the shared `setModels` hook (iOS and Android: the engine keeps what Mapbox draws and gives the rest to its `modelLayer`). Remote glTF files are read from munim-maps' disk cache.
 - 3D: munim-maps' layer (SceneKit / Filament) is aligned to Mapbox's camera: 36.87° vertical field of view, 512-point tiles, an off-centre projection when the camera has padding (iOS), globe below zoom 5.5, `drawsTerrain` with terrain on. Mapbox's own glTF `model` layer works too (`models` + a `model` layer); munim-maps' models stay in front of Mapbox's 3D buildings (no shared depth buffer) unless `occlusion="buildings"`.
 
 ### Mapbox checklist
@@ -361,7 +424,7 @@ Every capability of the SDKs' public surface (iOS `MapboxMaps` and Android `com.
 | Persistent layers | — | — | — | munim-maps re-adds its layers after every style load, which covers it. |
 | Custom (Metal / OpenGL) layers | — | — | — | munim-maps' own 3D layer is the native drawing hook. |
 | Images (SDF, stretch, content, scale) | `mapbox.images` | ✅ | 🔨 | `http(s)`, `file`, `data:` and bundled URIs. |
-| glTF models for `model` layers | `mapbox.models` | ✅ | 🔨 | `munim-maps/vehicles-glb` works. |
+| glTF models for `model` layers | `mapbox.models` | ✅ | 🔨 | `VEHICLES[name].glb` from munim-maps-vehicles works. |
 | Queries | `queryRenderedFeatures` (point, box, viewport; layers, filter, featureset), `querySourceFeatures` | ✅ | 🔨 | |
 | Cluster expansion | `getClusterExpansionZoom`, `getClusterLeaves`, `getClusterChildren` | ✅ | 🔨 | |
 | Featuresets and interactions (Standard POIs, buildings, place labels, landmarks; layers) with feature state | `mapbox.interactions` → `onProviderEvent('interaction')`; `selectableMapFeatures` → `onMapFeaturePress`; `getFeaturesets` | ✅ | 🔨 | Hover is not a mobile gesture. |
@@ -483,7 +546,7 @@ munim-maps draws markers and shapes on MapLibre as GeoJSON sources with style la
 | Select / deselect | `selectMarker`, `deselectMarker`, `onMarkerPress`, `onMarkerDeselect` | ✅ | 🔨 |
 | Dragging | `draggable`, `onMarkerDragStart`, `onMarkerDragEnd` (long press, then drag) | ✅ | 🔨 |
 | Clustering | `clusteringId`, `clusterStyles`, `onClusterPress` (GeoJSON clustering per `clusteringId`) | ✅ | 🔨 |
-| React Native views as markers | `MarkerView` (drawn as an image marker) | ✅ | ❌ `MarkerView` has no Android view yet (shared code) |
+| React Native views as markers | `MarkerView` (drawn as an image marker) | ✅ | 🔨 (an image in the style, from the shared Android `MarkerView`) |
 | Polylines: colour, width, dashes, caps, joins, geodesic, gradient, partial stroke | `polylines` (`line-gradient`; geodesic lines densified; `strokeStart` / `strokeEnd` cut the line) | ✅ | 🔨 |
 | Polygons with holes, circles | `polygons`, `circles` (geodesic rings) | ✅ | 🔨 |
 | Overlay level | `level`: `aboveRoads` (below the first label layer) or `aboveLabels` | ✅ | 🔨 |
@@ -554,10 +617,10 @@ munim-maps draws markers and shapes on MapLibre as GeoJSON sources with style la
 
 There is no native Cesium SDK for mobile (Cesium Native is a C++ library for game engines, not a map view), so `provider="cesium"` runs **CesiumJS** in a WebView the engine owns: `WKWebView` on iOS, `android.webkit.WebView` on Android. No `react-native-webview` dependency.
 
-- **Bundled, offline, pinned**: CesiumJS **1.146.0** (Apache-2.0; licence and third-party notices in `cesium/munim-cesium/Cesium/LICENSE.md` and `ThirdParty.json`) ships inside munim-maps under `packages/munim-maps/cesium/munim-cesium/`: the minified `Cesium.js`, its `Workers`, `ThirdParty` (Draco, Basis), `Assets` and `Widgets`, nothing else (13 MB on disk, about 4 MB compressed in an app). `scripts/cesium/vendor-cesium.sh <version>` replaces it from npm. iOS serves it from the `MunimMapsCesium` resource bundle of the `NitroMunimMaps/Cesium` subspec through a `munim-cesium://` URL scheme handler; Android serves it from the APK's assets at `https://appassets.androidplatform.net/` (`munimMaps.cesium=true` adds them).
-- **The two halves**: `cesium/munim-cesium/js/*.js` (the same on both platforms) draws everything with CesiumJS; `ios/Engines/Cesium/` and `android/src/cesium/` host the WebView, send props as JSON messages (`{ t: 'set' }`), receive events and the camera, and answer methods (`{ t: 'call' }` / `{ t: 'result' }`). App files (`require()`d images and models, `file://`, Android resources, Metro's `http://` in development) reach the page through `…/resource?uri=`; on iOS, https tiles go through `…/tile/<host>/<path>` with an identifying User-Agent (OpenStreetMap's tile policy; WebKit sends no Referer from a custom scheme).
+- **CesiumJS from a pinned CDN, or bundled**: the engine's page (`packages/munim-maps/cesium/page/munim-cesium/`: `index.html`, `js/`, CSS, 200 KB) is always in the app. CesiumJS **1.146.0** itself (Apache-2.0; the minified `Cesium.js`, its `Workers`, `ThirdParty` (Draco, Basis), `Assets` and `Widgets`, 13 MB) comes by default from `https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/`: the page asks for `Cesium/…` on its own origin and the engine's handler fetches the file, writes it to the cache folder (`munim-maps-cesium/1.146.0/`) and serves it, so the page stays same-origin (Web Workers, no CSP or CORS changes) and works offline after the first load. Self-host with Info.plist `MunimMapsCesiumBaseURL` / manifest meta-data `munimmaps.cesium_base_url` (a `Build/Cesium/` folder of the same version). To ship it in the app instead (offline from the first launch): the config plugin's `cesium: { bundled: true }`, `MUNIM_MAPS_CESIUM_BUNDLED=1` / `"munimMaps.cesiumBundled": "true"` for CocoaPods, `munimMaps.cesiumBundled=true` for Gradle; the files are in `packages/munim-maps/cesium/cesiumjs/` (licence and third-party notices in `Cesium/LICENSE.md` and `ThirdParty.json`), refreshed with `scripts/cesium/vendor-cesium.sh <version>`. iOS serves the page from the `MunimMapsCesium` resource bundle of the `NitroMunimMaps/Cesium` subspec through a `munim-cesium://` URL scheme handler; Android from the APK's assets at `https://appassets.androidplatform.net/` (`munimMaps.cesium=true` adds them).
+- **The two halves**: `cesium/page/munim-cesium/js/*.js` (the same on both platforms) draws everything with CesiumJS; `ios/Engines/Cesium/` and `android/src/cesium/` host the WebView, send props as JSON messages (`{ t: 'set' }`), receive events and the camera, and answer methods (`{ t: 'call' }` / `{ t: 'result' }`). App files (`require()`d images and models, `file://`, Android resources, Metro's `http://` in development) reach the page through `…/resource?uri=`; on iOS, https tiles go through `…/tile/<host>/<path>` with an identifying User-Agent (OpenStreetMap's tile policy; WebKit sends no Referer from a custom scheme).
 - **No key needed**: OpenStreetMap imagery and a smooth ellipsoid (no terrain). With `configureMunimMaps({ cesiumIonToken })` (or the config plugin's `cesiumIonToken`): Cesium World Terrain by default (unless `elevation="flat"`), Bing imagery through ion for `mapStyle` `imagery` / `hybrid` (Esri World Imagery without a token), Cesium OSM Buildings while `showsBuildings`, and every ion asset. `Cesium.Ion.defaultAccessToken` is set to your token or to nothing: CesiumJS's built-in evaluation token is never used.
-- **3D layer, `cesium.modelRendering`**: `auto` (default) and `native` draw the munim 3D layer **natively in Cesium**, so terrain and 3D Tiles hide it: GLB / glTF models (the vehicle catalogue: `munim-maps/vehicles-glb` on iOS, `munim-maps/vehicles` is already GLB on Android) as Cesium `Model` primitives with heading, altitude, `altitudeReference`, scale, `screenSize`, `tint` (recolours `paint…` materials in the GLB), spin, embedded animations and `motion`; built-in shapes (box, sphere, cylinder, cone, pyramid; capsule and gem approximated) as entities; pictures (avatars with border and badge) as billboards; labels as label entities; stems as polylines; `lift` per frame; ground shadows as ground ellipses; effects (exhaust, smoke as particle systems, contrail as a glowing trail); zones as fading walls with a ground outline; paths as 3D polylines. `auto` sends the only things Cesium cannot draw (USDZ, SCN, OBJ files on iOS, and occluders, which Cesium's real depth makes unnecessary) to munim-maps' overlay 3D layer; `native` skips them. `overlay` draws everything on munim-maps' native 3D layer (SceneKit / Filament) over the WebView, fed with Cesium's camera every frame, exactly as on MapKit: it works (`measureAlignment` within a point of Cesium's own projection on the iPad), but it is not hidden by terrain or 3D Tiles and trails the camera by a frame while it moves, because the WebView reports its camera asynchronously. (`modelRenderer` is the older name: `cesium` = `native`, `native` = `overlay`.)
+- **3D layer, `cesium.modelRendering`**: `auto` (default) and `native` draw the munim 3D layer **natively in Cesium**, so terrain and 3D Tiles hide it: GLB / glTF models (munim-maps-vehicles' `VEHICLES` resolve to GLB on Cesium) as Cesium `Model` primitives with heading, altitude, `altitudeReference`, scale, `screenSize`, `tint` (recolours `paint…` materials in the GLB), spin, embedded animations and `motion`; built-in shapes (box, sphere, cylinder, cone, pyramid; capsule and gem approximated) as entities; pictures (avatars with border and badge) as billboards; labels as label entities; stems as polylines; `lift` per frame; ground shadows as ground ellipses; effects (exhaust, smoke as particle systems, contrail as a glowing trail); zones as fading walls with a ground outline; paths as 3D polylines. `auto` sends the only things Cesium cannot draw (USDZ, SCN, OBJ files on iOS, and occluders, which Cesium's real depth makes unnecessary) to munim-maps' overlay 3D layer; `native` skips them. `overlay` draws everything on munim-maps' native 3D layer (SceneKit / Filament) over the WebView, fed with Cesium's camera every frame, exactly as on MapKit: it works (`measureAlignment` within a point of Cesium's own projection on the iPad), but it is not hidden by terrain or 3D Tiles and trails the camera by a frame while it moves, because the WebView reports its camera asynchronously. (`modelRenderer` is the older name: `cesium` = `native`, `native` = `overlay`.)
 - **Extras**: `cesium={{ … }}` (`CesiumMapOptions`, `src/providers/cesium.ts`) reaches CesiumJS declaratively, `cesiumCommands(ref.current)` imperatively (through the engine-neutral `providerCommand(name, argsJson)` method), and `onProviderEvent` + `parseCesiumEvent` deliver Cesium-only events. `cesiumCommands(ref).evaluate({ script })` (with `cesium={{ allowEvaluate: true }}`) runs any CesiumJS code in the page, so nothing in the library is out of reach.
 - **Limits**: WebGL in a WebView is slower than a native SDK and uses more memory; Cesium renders on demand (`requestRenderMode`) and continuously only while something moves. Synchronous getters (`point(for:)`, `coordinate(for:)`, `camera`, `visibleRegion` in Swift; the same on Android) use the camera Cesium last reported, at the ground height of the map's centre; `cesiumCommands(ref).pick` / `pickPosition` / `toScreen` ask Cesium itself (terrain, 3D Tiles). The native 3D layer follows Cesium's camera one message behind (a frame or two while moving). If the WebView's content process is killed for memory, iOS reloads the page and every prop; Android reports `onError` (remount the map). `MapModelLayer` over another library's map does not apply.
 
@@ -588,7 +651,7 @@ Walked from the CesiumJS 1.146 reference (`Cesium.d.ts`: 541 exported classes, f
 | Widgets: Animation, Timeline, BaseLayerPicker, Geocoder (ion, Google, Bing), HomeButton, SceneModePicker, ProjectionPicker, NavigationHelpButton, FullscreenButton, VRButton, InfoBox, SelectionIndicator; inspector mixins (Cesium, 3D Tiles, voxel), PerformanceWatchdog, drag and drop | `cesium.widgets` | ✅ | ✅ | Base layer picker and geocoder need an ion token. VR and fullscreen depend on the WebView |
 | Credits (CreditDisplay) | Always shown; `cesium.showCredits: false` only where the data's terms allow it | ✅ | ✅ | |
 | Keys: Ion, IonResource, ArcGisMapService, GoogleMaps, BingMaps, ITwinPlatform | `configureMunimMaps({ cesiumIonToken, googleMapsApiKey })`; `cesium.ionServer`, `arcGisAccessToken`, `googleMapsApiKey`, `googleStreetViewApiKey`, `bingMapsKey`, `iTwinAccessToken`, `iTwinShareKey` | ✅ | ✅ | |
-| munim markers on Cesium: pin (PinBuilder, Maki icons), balloon, image, avatar, label, dot; badges; callouts with accessories; dragging; clustering (EntityCluster) with `clusterStyles`; `MarkerView` | `markers`, `clusterStyles`, `selectMarker`, `deselectMarker`, `fitToMarkers`, marker events, `MarkerView` | ✅ | ✅ (`MarkerView` is iOS only, as in phase 1) | `glyphSymbol` takes Maki icon names (SF Symbols are Apple's); `displayPriority` / `collisionMode` have no Cesium equivalent (clustering instead) |
+| munim markers on Cesium: pin (PinBuilder, Maki icons), balloon, image, avatar, label, dot; badges; callouts with accessories; dragging; clustering (EntityCluster) with `clusterStyles`; `MarkerView` | `markers`, `clusterStyles`, `selectMarker`, `deselectMarker`, `fitToMarkers`, marker events, `MarkerView` | ✅ | ✅ (`MarkerView` 🔨) | `glyphSymbol` takes Maki icon names (SF Symbols are Apple's); `displayPriority` / `collisionMode` have no Cesium equivalent (clustering instead) |
 | munim shapes: polylines (geodesic / rhumb, dashes, gradients, `strokeStart` / `strokeEnd`), polygons with holes, circles, z-index, overlay taps | `polylines`, `polygons`, `circles`, `onOverlayPress` | ✅ | ✅ | Clamped to terrain. `lineCap` / `lineJoin` / `level` do not exist in Cesium. `overlayAtPoint` is not synchronous on Cesium: use `onOverlayPress` or `commands.drillPick` |
 | munim zones and paths | `zones`, `paths` | ✅ | ✅ | Walls on the terrain; paths above the terrain (or the ellipsoid with `altitudeReference: 'sea'`) |
 | User location and tracking | `showsUserLocation`, `userTrackingMode`, `showsUserTrackingButton`, `onUserLocationChange`, `onUserTrackingModeChange` | ✅ | ✅ | iOS asks for when-in-use access; Android needs the app to hold the location permission |

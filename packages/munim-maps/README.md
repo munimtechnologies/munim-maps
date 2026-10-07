@@ -92,19 +92,21 @@ Use it with the map you already have, or its own: **`MunimMapView`** is a MapKit
 
 ```bash
 npx expo install munim-maps react-native-nitro-modules
+npx expo install munim-maps-vehicles   # optional: the vehicle catalogue
 ```
 
 ### React Native CLI
 
 ```bash
 npm install munim-maps react-native-nitro-modules
+npm install munim-maps-vehicles   # optional: the vehicle catalogue
 ```
 
-munim-maps is native code, so it ships in a new app build, not an over-the-air update.
+munim-maps is native code, so it ships in a new app build, not an over-the-air update. It ships no 3D models: the [vehicle catalogue](#-vehicle-catalogue) is the separate `munim-maps-vehicles` package, which loads models from a CDN (cached on the device) or bundles the ones you pick.
 
 ### Metro
 
-To `require()` model files (including the vehicle catalogue), add their extensions to Metro:
+To `require()` model files (your own, or `munim-maps-vehicles/bundled/<name>`), add their extensions to Metro:
 
 ```js
 // metro.config.js
@@ -116,10 +118,10 @@ config.resolver.assetExts.push('usdz', 'glb', 'gltf', 'obj', 'scn')
 For native iOS apps without React Native. In Xcode, **File → Add Package Dependencies…** and enter `https://github.com/munimtechnologies/munim-maps`, or in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/munimtechnologies/munim-maps", from: "0.3.0")
+.package(url: "https://github.com/munimtechnologies/munim-maps", from: "0.5.0")
 ```
 
-Add the `MunimMaps` product, and `MunimMapsVehicles` for the vehicle catalogue (it bundles the USDZ files, so it is a separate product). iOS 16 or later.
+Add the `MunimMaps` product, and `MunimMapsVehicles` for the vehicle catalogue (its names and URLs: the models load from the munim-maps-vehicles package on jsDelivr and are cached on the device; set `MunimVehicles.baseURL` to self-host). iOS 16 or later.
 
 ```swift
 import MunimMaps
@@ -159,7 +161,7 @@ layer.onModelPress = { id in print(id) }
 | Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` (Maps SDK 10 + Utils) | ✅ `munimMaps.google=true` (Maps SDK 20 + maps-utils), the default when on | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ✅ `NitroMunimMaps/Mapbox` (SDK 11.32) | 🔨 `munimMaps.mapbox=true`: built, device check pending | Mapbox public token |
 | MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec | ✅ Built in, the default without Google | None (OpenStreetMap data from OpenFreeMap) |
-| Cesium | `'cesium'` | ✅ Opt-in (CesiumJS in a WKWebView) | ✅ Opt-in (CesiumJS in a WebView) | None (OpenStreetMap, ellipsoid); a Cesium ion token adds terrain, imagery, buildings |
+| Cesium | `'cesium'` | ✅ Opt-in (CesiumJS from jsDelivr or bundled, in a WKWebView) | ✅ Opt-in (CesiumJS in a WebView) | None (OpenStreetMap, ellipsoid); a Cesium ion token adds terrain, imagery, buildings |
 
 ```tsx
 import { MunimMapView, configureMunimMaps } from 'munim-maps'
@@ -175,9 +177,15 @@ Pick engines and keys with the Expo config plugin:
 ["munim-maps", { "providers": ["google", "mapbox"], "googleMapsApiKey": "…", "mapboxAccessToken": "pk.…" }]
 ```
 
-Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
+Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`; with Mapbox on Android, add Mapbox's Maven repository to `allprojects.repositories` (the config plugin does it). The Google engine needs iOS 16, and an app that also uses react-native-maps needs `pod 'react-native-maps/Google'` once the GoogleMaps pod is in. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
 
-Methods and events only one engine has go through `ref.current.providerCommand(command, argsJson)` and `onProviderEvent({ provider, name, json })`; each engine wraps them with types (`mapboxMap(ref.current)`).
+The same API on every engine, including:
+
+- `modelRendering="auto" | "native" | "overlay"`: who draws `models`. `auto` lets Mapbox (its model layer), Cesium (entities) and Google's 3D map (Android) draw them natively, lit and hidden by their own buildings and terrain, and uses munim-maps' 3D layer on MapKit, MapLibre and the Google 2D map. What an engine cannot draw (avatars, labels, effects, USDZ files…) stays on the 3D layer, except on Cesium, which draws those too.
+- `onMarkerDrag` (continuous, between `onMarkerDragStart` and `onMarkerDragEnd`), `MarkerView` on iOS and Android, and react-native-maps' `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete` and `animateToRegion`.
+- Methods and events only one engine has go through `ref.current.providerCommand(command, argsJson)` and `onProviderEvent({ provider, name, data })`; each engine wraps them with types (`googleMap(ref)`, `mapboxMap(ref)`, `maplibreCommands(ref)`, `cesiumCommands(ref)`).
+
+What an app coming from react-native-maps or @rnmapbox/maps needs, engine by engine, is in [docs/providers.md](docs/providers.md#coming-from-react-native-maps-and-rnmapboxmaps).
 
 ### Google Maps
 
@@ -278,7 +286,7 @@ await MapboxOffline.loadTileRegion({ id: 'loop', bounds, minZoom: 10, maxZoom: 1
 - `mapbox={{ … }}` (`MapboxMapOptions`) is declarative: sources, layers, images, models, imports, terrain, lights and the rest are written exactly as in the [Mapbox Style Specification](https://docs.mapbox.com/style-spec/) (kebab-case keys, expressions) and are added, updated and removed as the prop changes. Standard's slots (`bottom`, `middle`, `top`) go in a layer's `slot`.
 - `mapboxMap(ref.current)` (`MapboxMapMethods`): `queryRenderedFeatures`, `querySourceFeatures`, cluster expansion, feature state, partial GeoJSON updates, runtime style edits, style imports, featuresets, Mapbox's camera in zoom levels (`easeTo`, `flyTo`, `cameraForCoordinates`), the free camera, `setViewport`, the `Snapshotter`, `getElevation`, `setLocationOverride` (simulated positions), `tileCover`, performance statistics.
 - `MapboxOffline`: style packs and tile regions with progress (`addListener`). `MapboxServices`: Geocoding, Search Box, Directions, Matrix and Isochrone web APIs with the public token (each request counts against your Mapbox account).
-- **Native models.** With `mapbox={{ modelRendering: 'auto' }}` (the default) Mapbox draws glTF / GLB `models` itself in its `model` layer, so they are lit and shadowed with the map and hidden by Mapbox's 3D buildings and terrain. Drawn natively: the model body with its position, altitude (`altitudeReference` ground or sea), `heading`, spin, `motion`, `scale`, `screenSize` and `tint` (on the model's `paint*` materials), and `onModelPress`. Always drawn by munim-maps' 3D layer: USDZ and built-in shapes, avatars (`image`), labels, stems, effects, occluders, zones and paths. `auto` keeps a model with a label, stem, effect, `lift` or animations whole on the 3D layer; `'native'` draws every glTF body natively and leaves only those extras on the 3D layer; `'overlay'` draws everything on the 3D layer. Use `munim-maps/vehicles-glb` for the catalogue as glTF on iOS (`munim-maps/vehicles` is USDZ there, which stays on the 3D layer).
+- **Native models.** With `mapbox={{ modelRendering: 'auto' }}` (the default) Mapbox draws glTF / GLB `models` itself in its `model` layer, so they are lit and shadowed with the map and hidden by Mapbox's 3D buildings and terrain. Drawn natively: the model body with its position, altitude (`altitudeReference` ground or sea), `heading`, spin, `motion`, `scale`, `screenSize` and `tint` (on the model's `paint*` materials), and `onModelPress`. Always drawn by munim-maps' 3D layer: USDZ and built-in shapes, avatars (`image`), labels, stems, effects, occluders, zones and paths. `auto` keeps a model with a label, stem, effect, `lift` or animations whole on the 3D layer; `'native'` draws every glTF body natively and leaves only those extras on the 3D layer; `'overlay'` draws everything on the 3D layer. The catalogue (`munim-maps-vehicles`) resolves to GLB on Mapbox, so its models are drawn natively. `modelRendering` on `MunimMapView` is the shared name for this option.
 - Mapbox's own glTF `model` layer is also yours to use directly: `mapbox={{ models: { bus: uri }, layers: [{ type: 'model', … }] }}`.
 
 Caveats: Mapbox's terms keep the logo and attribution on the map. Models on munim-maps' 3D layer are drawn over the map (Mapbox does not share its depth buffer), so Mapbox's 3D buildings do not hide them unless `occlusion="buildings"`; natively drawn models are hidden properly. On iOS the debug wireframes are not offered by the SDK. The full checklist is in [docs/providers.md](docs/providers.md#mapbox-checklist).
@@ -325,19 +333,19 @@ Every MapLibre option, command and event, with what is left out and why, is in t
 
 ### Cesium
 
-`provider="cesium"` draws a 3D globe with [CesiumJS](https://cesium.com/platform/cesiumjs/) 1.146 (Apache-2.0), bundled with munim-maps and running offline in a WebView the engine owns (`WKWebView` / `android.webkit.WebView`; no `react-native-webview`). Without a key it shows OpenStreetMap imagery on a smooth globe; a [Cesium ion](https://ion.cesium.com) token adds Cesium World Terrain, Bing imagery, Cesium OSM Buildings and every ion asset.
+`provider="cesium"` draws a 3D globe with [CesiumJS](https://cesium.com/platform/cesiumjs/) 1.146 (Apache-2.0) in a WebView the engine owns (`WKWebView` / `android.webkit.WebView`; no `react-native-webview`). CesiumJS (13 MB) loads from jsDelivr at that pinned version the first time and is kept on the device, so the app does not carry it; `cesium: { bundled: true }` in the config plugin (`munimMaps.cesiumBundled=true`, `MUNIM_MAPS_CESIUM_BUNDLED=1` without Expo) puts it in the app instead. Without a key it shows OpenStreetMap imagery on a smooth globe; a [Cesium ion](https://ion.cesium.com) token adds Cesium World Terrain, Bing imagery, Cesium OSM Buildings and every ion asset.
 
-Setup: `"providers": ["cesium"]` in the config plugin (and `"cesiumIonToken": "…"` if you have one), or the `NitroMunimMaps/Cesium` subspec and `munimMaps.cesium=true` without Expo. On iOS use the GLB catalogue for models Cesium draws (`munim-maps/vehicles-glb`); USDZ models still work, drawn by munim-maps' native 3D layer on Cesium's camera.
+Setup: `"providers": ["cesium"]` in the config plugin (and `"cesiumIonToken": "…"` if you have one), or the `NitroMunimMaps/Cesium` subspec and `munimMaps.cesium=true` without Expo. The catalogue (`munim-maps-vehicles`) resolves to GLB on Cesium, so Cesium draws it; USDZ models still work, drawn by munim-maps' native 3D layer on Cesium's camera.
 
 ```tsx
 import { MunimMapView, cesiumCommands, parseCesiumEvent } from 'munim-maps'
-import { VEHICLES_GLB } from 'munim-maps/vehicles-glb'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 <MunimMapView
   ref={ref}
   provider="cesium"
   initialCamera={{ latitude: 41.88, longitude: -87.63, distance: 1100, pitch: 55, heading: 30 }}
-  models={[{ id: 'bus', coordinate, source: VEHICLES_GLB['bus-city'], tint: '#0A84FF', screenSize: 40 }]}
+  models={[{ id: 'bus', coordinate, source: VEHICLES['bus-city'], tint: '#0A84FF', screenSize: 40 }]}
   markers={markers}
   cesium={{
     sceneMode: '3d',                       // '2d', 'columbus'
@@ -353,8 +361,8 @@ import { VEHICLES_GLB } from 'munim-maps/vehicles-glb'
     widgets: { timeline: true, animation: true },
   }}
   onProviderEvent={(e) => {
-    const event = parseCesiumEvent(e)
-    if (event.name === 'pick') console.log(event.data.kind, event.data.properties)
+    const event = parseCesiumEvent(e) // undefined for other engines' events
+    if (event?.name === 'pick') console.log(event.data.kind, event.data.properties)
   }}
 />
 
@@ -538,13 +546,25 @@ MunimModel(id: "fox", coordinate: c, uri: Bundle.main.url(forResource: "Fox", wi
 
 ## 🚗 Vehicle Catalogue
 
-Import the catalogue from `munim-maps/vehicles` (a separate entry point, so apps that never use it do not bundle it). Each model's paint can be recoloured with `tint`; models face north at heading 0, are sized in real metres and sit on the ground.
+57 models in their own package, `munim-maps-vehicles`, so munim-maps itself carries no models and apps only get the ones they show. Each model's paint can be recoloured with `tint`; models face north at heading 0, are sized in real metres and sit on the ground.
 
 ```tsx
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 { id: 'ride', coordinate, source: VEHICLES['car-ev'], tint: '#E5484D', heading: 90, screenSize: 15 }
 ```
+
+- **From a CDN** (`VEHICLES[name]`): each model is on jsDelivr at the package's version, as USDZ and GLB. munim-maps picks the format the engine draws (USDZ for its SceneKit layer on iOS, GLB for Mapbox's and Cesium's own models and on Android), downloads it the first time it is shown and keeps it in the app's cache folder, so it works offline afterwards. `configureMunimMapsVehicles({ baseUrl })` loads them from your own server instead (a copy of the package's `usdz/` and `glb/` folders). `VEHICLE_NAMES` lists them; `VehicleName` is their type.
+- **Inside the app**, offline from the first launch: import one model at a time, and only those are bundled (add `usdz` and `glb` to Metro's `assetExts`):
+
+```tsx
+import carEv from 'munim-maps-vehicles/bundled/car-ev'        // USDZ on iOS, GLB on Android
+import carEvGlb from 'munim-maps-vehicles/bundled/glb/car-ev' // GLB everywhere (Mapbox or Cesium on iOS)
+
+{ id: 'ride', coordinate, source: carEv, tint: '#E5484D', screenSize: 15 }
+```
+
+**Moving from 0.4**: `munim-maps/vehicles` and `munim-maps/vehicles-glb` now throw an error that says where the catalogue went. Install `munim-maps-vehicles` and change the import to `import { VEHICLES } from 'munim-maps-vehicles'` (or bundled imports for the models you ship). `VEHICLES_GLB` is gone: the same sources carry GLB, and munim-maps uses it where an engine draws glTF.
 
 ### Cars
 
@@ -660,31 +680,34 @@ The models are generated from code (`scripts/vehicles/make-vehicles.swift`) and 
 
 ## Platform Support Matrix
 
-Columns are engines; two marks are iOS / Android. ✅ works · 🟡 partly (see the notes) or not yet device-tested · 🔨 built, not yet checked on a device · ⏳ coming in this release · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
+A column per engine and platform. ✅ works (checked on a device) · 🟡 partly (see the notes) · 🔨 built, not yet checked on a device · — does not apply. The full per-feature matrix is in [docs/providers.md](docs/providers.md#feature-matrix).
 
-| Capability | MapKit (iOS) | Google | Mapbox | MapLibre | Cesium | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| `MunimMapView` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | MapLibre: OpenFreeMap, no key; its own options, commands and events in [MapLibre (open maps)](#maplibre-open-maps). |
-| `MapModelLayer` over `react-native-maps` | ✅ | — / 🟡 | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
-| `MapModelLayer` over `expo-maps` | ✅ | — / — | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
-| GLB / glTF models | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
-| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ / — | ✅ / — | ✅ / — | ✅ native layer / — | SceneKit / Model I/O, iOS only. |
-| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ |  |
-| Vehicle catalogue | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | `munim-maps/vehicles` (57 models): USDZ on iOS, GLB on Android; `munim-maps/vehicles-glb` for GLB everywhere. |
-| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ / ⏳ | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
-| Globe | ✅ | — / — | ✅ / 🔨 | — / — | ✅ / ✅ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. MapLibre Native has no globe (MapLibre GL JS only). |
-| Hidden behind buildings | ✅ | ✅ / ⏳ | ✅ / 🔨 | ⏳ / ✅ | ✅ / ✅ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
-| Terrain height | ✅ | ✅ / ⏳ | ✅ / 🔨 | ⏳ / ⏳ | ✅ / ✅ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
-| Camera API, regions, conversions, gestures | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
-| Map events | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
-| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / 🟡 | ✅ / ✅ | `MarkerView` is iOS only for now (no Android view yet). |
-| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ |  |
-| User location and tracking (follow, follow with heading) | ✅ | ✅ / 🟡 | ✅ / 🔨 | ✅ / ✅ | ✅ / ✅ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
-| Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 / 🟡 | 🟡 / 🔨 | ✅ / ✅ | ✅ / ✅ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. Mapbox: compass, scale bar and a tracking button, no 2D/3D button. |
-| Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | `selectionAccessory`. |
-| Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | 🟡 `googleMapsServices` / 🟡 `googleMapsServices` | — | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS. |
-| Look Around view and snapshots | ✅ iOS 16+ | 🟡 Street View / 🟡 Street View | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |
-| Map images without a view | ✅ | — | — | — | — | `mapSnapshot()` (`MKMapSnapshotter`). |
+| Capability | MapKit iOS | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | Cesium iOS | Cesium Android | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `MunimMapView` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | MapLibre: OpenFreeMap, no key; its own options, commands and events in [MapLibre (open maps)](#maplibre-open-maps). |
+| `MapModelLayer` over `react-native-maps` | ✅ | — | 🔨 | — | — | — | — | — | — | iOS `react-native-maps` uses MapKit; on Android it is Google Maps (with the Google engine). |
+| `MapModelLayer` over `expo-maps` | ✅ | — | — | — | — | — | — | — | — | `AppleMaps.View` (SwiftUI `Map`, iOS 17+). |
+| GLB / glTF models | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
+| USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ | — | ✅ | — | ✅ | — | ✅ native layer | — | SceneKit / Model I/O, iOS only. |
+| Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |  |
+| Models drawn by the engine (`modelRendering`) | — | — | 🔨 3D map | ✅ | 🔨 | — | — | ✅ | ✅ | Mapbox: its model layer; Cesium: entities; Google: the photorealistic 3D map (Android). Elsewhere munim-maps' 3D layer draws them. |
+| Vehicle catalogue | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | The separate `munim-maps-vehicles` package (57 models): from jsDelivr (cached on the device) or bundled per model; munim-maps picks USDZ or GLB per engine. |
+| Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
+| Globe | ✅ | — | — | ✅ | 🔨 | — | — | ✅ | ✅ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. MapLibre Native has no globe (MapLibre GL JS only). |
+| Hidden behind buildings | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
+| Terrain height | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
+| Camera API, regions, conversions, gestures | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
+| Map events | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `onMapReady`, `onPress`, `onLongPress`, `onCameraMove`, `onCameraChange`, `onModelPress`. |
+| Markers, clustering, callouts, `MarkerView` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | `MarkerView` on Android draws its views into an image marker (Mapbox: a view annotation). |
+| Continuous marker drag (`onMarkerDrag`) | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | 🔨 | 🔨 | Between `onMarkerDragStart` and `onMarkerDragEnd`. |
+| react-native-maps' region API | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion`. |
+| Polylines, polygons, circles, tile overlays, overlay taps | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |  |
+| User location and tracking (follow, follow with heading) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | MapKit's own `MKUserTrackingMode`, reported back with `onUserTrackingModeChange`. |
+| Compass, scale, tracking and 2D/3D buttons | ✅ | 🟡 | 🔨 | 🟡 | 🔨 | ✅ | ✅ | ✅ | ✅ | MapKit: built in or standalone (`MapCompass`, `MapScale`, `MapUserTrackingButton`); 2D/3D button iOS 17+. Mapbox: compass, scale bar and a tracking button, no 2D/3D button. |
+| Place cards for tapped places | ✅ iOS 18+ | — | — | — | — | — | — | — | — | `selectionAccessory`. |
+| Search, autocomplete, points of interest, directions, geocoding, places by id | ✅ | 🟡 `googleMapsServices` | 🟡 `googleMapsServices` | 🟡 `MapboxServices` | 🟡 `MapboxServices` | 🟡 `openMapsServices` | 🟡 `openMapsServices` | — | — | MapKit services (`MKLocalSearch`, `MKDirections`…), usable with any engine on iOS; the Google, Mapbox and OpenStreetMap web services work with any engine. |
+| Look Around view and snapshots | ✅ iOS 16+ | 🟡 Street View | 🟡 Street View | — | — | — | — | — | — | `LookAroundView`, `lookAroundSnapshot()`. |
+| Map images without a view | ✅ | — | — | — | — | — | — | — | — | `mapSnapshot()` (`MKMapSnapshotter`). |
 
 ### MapKit coverage
 
@@ -708,7 +731,7 @@ Render `MapModelLayer` right after the map, in the same parent. It covers the ma
 ```tsx
 import MapView from 'react-native-maps'
 import { MapModelLayer, type MapModel } from 'munim-maps'
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 const models: MapModel[] = [
   {
@@ -969,8 +992,11 @@ Functions, no map needed. All return promises and reject on Android.
 | `<Polyline>` / `<Polygon>` / `<Circle>` | `polylines` / `polygons` / `circles` |
 | `<UrlTile urlTemplate>` | `tileOverlays` |
 | `mapType="mutedStandard"` / `"hybridFlyover"` | `mapStyle="muted"` / `mapStyle="hybrid" elevation="realistic"` |
-| `onRegionChange` / `onRegionChangeComplete` | `onCameraMove` / `onCameraChange` |
-| `animateCamera` / `animateToRegion` / `fitToCoordinates` | `setCamera` / `setRegion` / `fitToCoordinates` |
+| `region` / `initialRegion` | same names: `region` is controlled (store the region from `onRegionChangeComplete` in the same state) |
+| `onRegionChangeStart` / `onRegionChangeComplete` | same names; `onRegionChange` is `onCameraMove` (a `MapCamera` every frame) |
+| `<Marker draggable onDragStart onDrag onDragEnd>` | `draggable` + `onMarkerDragStart` / `onMarkerDrag` / `onMarkerDragEnd` on the map |
+| `animateToRegion(region, ms)` / `fitToCoordinates(coords, { edgePadding, animated })` | same names (`fitToCoordinates(coords, edgePadding, animated)`) |
+| `animateCamera({ pitch }, { duration })` | `animateCamera({ ...(await getCamera()), pitch }, ms, 'easeInOut')` (a whole camera, in metres) |
 | `pointForCoordinate` / `coordinateForPoint` / `addressForCoordinate` / `takeSnapshot` | same names |
 
 `MapCamera`: `{ latitude, longitude, distance, pitch, heading }` (metres from the camera to the centre, degrees).
@@ -1039,7 +1065,7 @@ Unlike `MapPolyline` (a MapKit overlay, flat on the ground), a path is drawn by 
 - `groundElevation(coordinates)`: `Promise<number[]>`, the height of the ground above sea level in metres at each coordinate, from the same terrain tiles munim-maps uses for `altitudeReference: 'sea'`. Negative under the sea (the sea floor) and in places below sea level. Rejects if a tile cannot be downloaded.
 - `circleToPolygon(center, radiusMeters, segments?)`: the outline of a circle on the ground.
 - `toNativeModel(model)`, `toNativeZone(zone)`, `toNativePath(path)`: the native shapes, for testing.
-- `munim-maps/vehicles`: `VEHICLES` (name → asset), `VEHICLE_NAMES`, `VehicleName`.
+- `munim-maps-vehicles` (a separate package): `VEHICLES` (name → remote source with USDZ and GLB), `VEHICLE_NAMES`, `VehicleName`, `configureMunimMapsVehicles({ baseUrl })`, and `munim-maps-vehicles/bundled/<name>` for one bundled model.
 
 ## 📖 Usage Examples
 
@@ -1213,7 +1239,7 @@ const models: MapModel[] = [
 ### Satellites in orbit
 
 ```tsx
-import { VEHICLES } from 'munim-maps/vehicles'
+import { VEHICLES } from 'munim-maps-vehicles'
 
 <MunimMapView
   style={{ flex: 1 }}
