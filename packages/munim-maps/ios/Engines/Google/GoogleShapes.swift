@@ -454,6 +454,9 @@ extension GoogleMapEngine {
     for item in options["heatmaps"].array {
       guard let id = item["id"].string else { continue }
       wanted.insert(id)
+      let key = String(describing: item.raw ?? "")
+      if heatmapLayers[id] != nil, overlayKeys["heatmap:\(id)"] == key { continue }
+      overlayKeys["heatmap:\(id)"] = key
       let layer = heatmapLayers[id] ?? GMUHeatmapTileLayer()
       layer.weightedData = item["points"].array.compactMap { point in
         point.coordinate.map { GMUWeightedLatLng(coordinate: $0, intensity: Float(point["weight"].double(1))) }
@@ -478,6 +481,7 @@ extension GoogleMapEngine {
       heatmapLayers[id] = layer
     }
     for (id, layer) in heatmapLayers where !wanted.contains(id) {
+      overlayKeys["heatmap:\(id)"] = nil
       layer.map = nil
       heatmapLayers[id] = nil
     }

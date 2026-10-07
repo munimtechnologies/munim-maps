@@ -137,6 +137,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
     tileLayers.removeAll()
     groundOverlays.removeAll()
     heatmapLayers.removeAll()
+    overlayKeys.removeAll()
     kmlRenderers.values.forEach { $0.clear() }
     kmlRenderers.removeAll()
     geoJsonOverlays.removeAll()
@@ -191,6 +192,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   var customTileLayers: [String: GMSTileLayer] = [:]
   var groundOverlays: [String: GMSGroundOverlay] = [:]
   var heatmapLayers: [String: GMUHeatmapTileLayer] = [:]
+  var overlayKeys: [String: String] = [:]
   var dashZoom: Float = -1
 
   // Layers (GoogleLayers.swift)
