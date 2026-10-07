@@ -65,6 +65,10 @@
       "ios": {
         "language": "swift",
         "implementationClassName": "HybridMarkerView"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMarkerView"
       }
     },
     "MunimMapsConfig": {

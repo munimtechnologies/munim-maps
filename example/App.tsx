@@ -31,6 +31,7 @@ import { MAP_PROVIDERS, type MapProvider, type UserTrackingMode } from 'munim-ma
 import { ProvidersScreen } from './Providers'
 import { Layer3DScreen } from './Layer3D'
 import { GoogleScreen } from './GoogleScreen'
+import { MapboxScreen } from './MapboxScreen'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -61,7 +62,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'google'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'google' | 'mapbox'
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -457,6 +458,7 @@ function Example() {
   const [layer3dCamera, setLayer3dCamera] = useState<MapCamera | undefined>(undefined)
   const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
   const [googleChecks, setGoogleChecks] = useState(false)
+  const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
   const [globe, setGlobe] = useState(false)
@@ -534,7 +536,24 @@ function Example() {
   useEffect(() => {
     if (ran.current) return
     ran.current = true
+    // munimmapsexample://mapbox (/checks runs the Mapbox checks), also while running.
+    const openMapbox = (url: string | null) => {
+      if (!url || !/:\/\/mapbox/.test(url)) return false
+      setLaunching(false)
+      setMapboxChecks(url.includes('checks') ? true : url.includes('native') ? 'native' : false)
+      setMode('mapbox')
+      return true
+    }
+    const subscription = Linking.addEventListener('url', (event) => {
+      if (openMapbox(event.url)) return
+      const provider = /providers(?:\/(\w+))?/.exec(event.url)
+      if (provider) {
+        setProviderLink(provider[1] as MapProvider | undefined)
+        setMode('providers')
+      }
+    })
     void Linking.getInitialURL().then((url) => {
+      if (openMapbox(url)) return
       if (url?.includes('nopanel')) setPanel(false)
       // munimmapsexample://layer3d[/<provider>][/check]: every 3D layer group on one engine.
       const layer3d = /layer3d(?:\/(\w+))?/.exec(url ?? '')
@@ -647,6 +666,7 @@ function Example() {
         startSelfTest()
       }
     })
+    return () => subscription.remove()
   }, [])
 
   function startSelfTest() {
@@ -767,6 +787,12 @@ function Example() {
         <GoogleScreen
           topInset={insets.top}
           autoCheck={googleChecks}
+          onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
+        />
+      ) : mode === 'mapbox' ? (
+        <MapboxScreen
+          topInset={insets.top}
+          autoChecks={mapboxChecks}
           onExit={() => setMode(Platform.OS === 'ios' ? 'munim' : 'providers')}
         />
       ) : mode === 'providers' ? (
@@ -951,7 +977,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode === 'google') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode === 'google' || mode === 'mapbox') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

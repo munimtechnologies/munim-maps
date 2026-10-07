@@ -267,6 +267,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setOnMarkerDragStart(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragStart) = 0;
       virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDragEnd() = 0;
       virtual void setOnMarkerDragEnd(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDragEnd) = 0;
+      virtual std::optional<std::function<void(const MarkerDragEvent& /* event */)>> getOnMarkerDrag() = 0;
+      virtual void setOnMarkerDrag(const std::optional<std::function<void(const MarkerDragEvent& /* event */)>>& onMarkerDrag) = 0;
       virtual std::optional<std::function<void(const UserLocationEvent& /* location */)>> getOnUserLocationChange() = 0;
       virtual void setOnUserLocationChange(const std::optional<std::function<void(const UserLocationEvent& /* location */)>>& onUserLocationChange) = 0;
       virtual std::optional<std::function<void(UserTrackingMode /* mode */)>> getOnUserTrackingModeChange() = 0;

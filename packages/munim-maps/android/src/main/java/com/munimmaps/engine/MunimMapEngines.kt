@@ -42,6 +42,23 @@ object MunimMapEngines {
   val available: List<MapProvider>
     get() = MapProvider.entries.filter { factory(it)?.isImplemented == true }
 
+  /** Runs an engine-level command (no map needed) on [provider]'s engine, on the main thread. */
+  fun providerCommand(
+    provider: MapProvider,
+    context: Context,
+    command: String,
+    args: org.json.JSONObject,
+    emit: (String, Any?) -> Unit,
+    completion: (Result<String>) -> Unit,
+  ) {
+    val factory = factory(provider)
+    if (factory == null) {
+      completion(Result.failure(IllegalStateException("${provider.displayName} is not built into this app")))
+      return
+    }
+    factory.providerCommand(context, command, args, emit, completion)
+  }
+
   /** A new engine for [provider], or a placeholder saying why there is none. */
   fun create(provider: MapProvider, context: Context): MunimMapEngine {
     val factory = factory(provider)

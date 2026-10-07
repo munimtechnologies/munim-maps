@@ -46,6 +46,9 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     engine.onMarkerDragEnd = { [weak self] id, c in
       self?.onMarkerDragEnd?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
     }
+    engine.onMarkerDrag = { [weak self] id, c in
+      self?.onMarkerDrag?(MarkerDragEvent(id: id, latitude: c.latitude, longitude: c.longitude))
+    }
     engine.onUserLocationChange = { [weak self] l in
       self?.onUserLocationChange?(UserLocationEvent(
         latitude: l.coordinate.latitude, longitude: l.coordinate.longitude, altitude: l.altitude,
@@ -143,7 +146,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     }
   }
 
-  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = models.map(\.core) } }
+  var models: [NativeMapModel] = [] { didSet { map.modelLayer.models = map.overlayModels(models.map(\.core)) } }
   var zones: [NativeMapZone] = [] { didSet { map.modelLayer.zones = zones.map(\.core) } }
   var paths: [NativeMapPath] = [] { didSet { map.modelLayer.paths = paths.map(\.core) } }
   var occlusion: MapOcclusion = .none { didSet { map.modelLayer.buildingOcclusion = occlusion == .buildings } }
@@ -269,6 +272,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)?
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)?
+  var onMarkerDrag: ((_ event: MarkerDragEvent) -> Void)?
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)?
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)?
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)?

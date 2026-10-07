@@ -1,6 +1,7 @@
 package com.munimmaps.engine
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.view.View
 import com.margelo.nitro.munimmaps.CalloutAccessoryEvent
 import com.margelo.nitro.munimmaps.CameraKeyframe
@@ -23,6 +24,7 @@ import com.margelo.nitro.munimmaps.MapStyle
 import com.margelo.nitro.munimmaps.MarkerDragEvent
 import com.margelo.nitro.munimmaps.NativeCircle
 import com.margelo.nitro.munimmaps.NativeClusterStyle
+import com.margelo.nitro.munimmaps.NativeMapModel
 import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 import com.margelo.nitro.munimmaps.NativePolyline
@@ -55,6 +57,8 @@ interface MunimMapEngineListener {
   fun onOverlayPress(event: OverlayPressEvent) {}
   fun onMarkerDragStart(event: MarkerDragEvent) {}
   fun onMarkerDragEnd(event: MarkerDragEvent) {}
+  /** A dragged marker moved (continuously, between drag start and end). */
+  fun onMarkerDrag(event: MarkerDragEvent) {}
   fun onUserLocationChange(location: UserLocationEvent) {}
   fun onUserTrackingModeChange(mode: UserTrackingMode) {}
   fun onMapFeaturePress(feature: MapFeatureEvent) {}
@@ -68,6 +72,21 @@ interface MunimMapEngineFactory {
   /** False while the engine is a stub that shows a placeholder. */
   val isImplemented: Boolean
   fun create(context: Context): MunimMapEngine
+
+  /**
+   * Engine-level commands that need no map (Mapbox's offline downloads), on
+   * the main thread. `emit` sends an event to JavaScript; complete with the
+   * result as JSON text ([ProviderJson.stringOf]).
+   */
+  fun providerCommand(
+    context: Context,
+    command: String,
+    args: JSONObject,
+    emit: (String, Any?) -> Unit,
+    completion: (Result<String>) -> Unit,
+  ) {
+    completion(Result.failure(UnsupportedOperationException("This engine has no command \"$command\"")))
+  }
 }
 
 /**
@@ -119,6 +138,19 @@ interface MunimMapEngine {
   fun setCircles(circles: Array<NativeCircle>) { if (circles.isNotEmpty()) reportUnsupported("circles") }
   fun setTileOverlays(overlays: Array<NativeTileOverlay>) { if (overlays.isNotEmpty()) reportUnsupported("tileOverlays") }
   fun setClusterStyles(styles: Array<NativeClusterStyle>) {}
+  /**
+   * A marker drawn from React Native views (`MarkerView`): [image] is the
+   * views drawn (density set), updated with [setViewMarkerImage].
+   */
+  fun setViewMarker(marker: NativeMarker, image: Bitmap?) { reportUnsupported("MarkerView") }
+  fun setViewMarkerImage(image: Bitmap?, id: String) {}
+  /**
+   * The models the host gives the map. The engine draws the ones it can
+   * itself (Mapbox's model layer) and returns the rest for [modelLayer].
+   * The default returns them all.
+   */
+  fun overlayModels(models: Array<NativeMapModel>): Array<NativeMapModel> = models
+  fun removeViewMarker(id: String) {}
 
   // Look
 

@@ -586,6 +586,16 @@ namespace margelo::nitro::munimmaps::views {
         throw std::runtime_error(std::string("MunimMapView.onMarkerDragEnd: ") + exc.what());
       }
     }()),
+    onMarkerDrag([&]() -> CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("onMarkerDrag", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.onMarkerDrag;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMarkerDrag);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("MunimMapView.onMarkerDrag: ") + exc.what());
+      }
+    }()),
     onUserLocationChange([&]() -> CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onUserLocationChange", nullptr, nullptr);
@@ -705,6 +715,7 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("onOverlayPress"): return true;
       case hashString("onMarkerDragStart"): return true;
       case hashString("onMarkerDragEnd"): return true;
+      case hashString("onMarkerDrag"): return true;
       case hashString("onUserLocationChange"): return true;
       case hashString("onUserTrackingModeChange"): return true;
       case hashString("onMapFeaturePress"): return true;

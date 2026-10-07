@@ -17,6 +17,8 @@ namespace margelo::nitro::munimmaps { struct NativeMapsConfiguration; }
 
 #include "NativeMapsConfiguration.hpp"
 #include <string>
+#include <NitroModules/Promise.hpp>
+#include <functional>
 
 #include "NitroMunimMaps-Swift-Cxx-Umbrella.hpp"
 
@@ -89,6 +91,20 @@ namespace margelo::nitro::munimmaps {
       }
       auto __value = std::move(__result.value());
       return __value;
+    }
+    inline std::shared_ptr<Promise<std::string>> providerCommand(const std::string& provider, const std::string& command, const std::string& argsJson) override {
+      auto __result = _swiftPart.providerCommand(provider, command, argsJson);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline void setProviderEventListener(const std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>& listener) override {
+      auto __result = _swiftPart.setProviderEventListener(listener);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
     }
 
   private:

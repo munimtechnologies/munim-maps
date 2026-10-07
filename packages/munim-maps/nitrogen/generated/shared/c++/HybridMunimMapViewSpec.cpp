@@ -126,6 +126,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("onMarkerDragStart", &HybridMunimMapViewSpec::setOnMarkerDragStart);
       prototype.registerHybridGetter("onMarkerDragEnd", &HybridMunimMapViewSpec::getOnMarkerDragEnd);
       prototype.registerHybridSetter("onMarkerDragEnd", &HybridMunimMapViewSpec::setOnMarkerDragEnd);
+      prototype.registerHybridGetter("onMarkerDrag", &HybridMunimMapViewSpec::getOnMarkerDrag);
+      prototype.registerHybridSetter("onMarkerDrag", &HybridMunimMapViewSpec::setOnMarkerDrag);
       prototype.registerHybridGetter("onUserLocationChange", &HybridMunimMapViewSpec::getOnUserLocationChange);
       prototype.registerHybridSetter("onUserLocationChange", &HybridMunimMapViewSpec::setOnUserLocationChange);
       prototype.registerHybridGetter("onUserTrackingModeChange", &HybridMunimMapViewSpec::getOnUserTrackingModeChange);

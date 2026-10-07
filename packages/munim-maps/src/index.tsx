@@ -684,6 +684,11 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
+  /**
+   * A dragged marker moved: continuously, between `onMarkerDragStart` and
+   * `onMarkerDragEnd`. Engines without it fire only start and end.
+   */
+  onMarkerDrag?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
   /**
    * MapKit changed the tracking mode: the user panned or zoomed away (to
@@ -693,8 +698,10 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   onMapFeaturePress?: (feature: MapFeatureEvent) => void
   /**
    * Events only the active engine has, such as Google's indoor level
-   * changes or Street View panorama moves (each engine documents its own;
-   * Google's are typed as `GoogleMapEvent`).
+   * changes, Street View panorama moves, Mapbox's `mapIdle` or a tap on a
+   * Standard style featureset (`mapbox.interactions`). `data` is the decoded
+   * payload. Each engine documents its own (`GoogleMapEvent`,
+   * `MapboxMapOptions.events`…).
    */
   onProviderEvent?: (event: MapProviderEvent) => void
   onError?: (message: string) => void
@@ -755,6 +762,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const clusterStyles = useMapped(props.clusterStyles, toNativeClusterStyle)
     const onMarkerDragStart = useCallbackProp(props.onMarkerDragStart)
     const onMarkerDragEnd = useCallbackProp(props.onMarkerDragEnd)
+    const onMarkerDrag = useCallbackProp(props.onMarkerDrag)
     const onUserLocationChange = useCallbackProp(props.onUserLocationChange)
     const onUserTrackingModeChange = useCallbackProp(
       props.onUserTrackingModeChange
@@ -782,9 +790,12 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     )
     const provider = props.provider ?? defaultProvider()
     if (!isSupported) return null
-    return (
+    // Android's native views cannot hold React children, so `MarkerView`s
+    // sit in an off-screen sibling of the map there.
+    const android = Platform.OS === 'android'
+    const map = (
       <NativeMunimMapView
-        style={props.style}
+        style={android ? StyleSheet.absoluteFill : props.style}
         provider={provider}
         styleUrl={props.styleUrl ?? ''}
         providerOptions={providerOptionsJson(provider, props)}
@@ -850,6 +861,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onOverlayPress={onOverlayPress}
         onMarkerDragStart={onMarkerDragStart}
         onMarkerDragEnd={onMarkerDragEnd}
+        onMarkerDrag={onMarkerDrag}
         onUserLocationChange={onUserLocationChange}
         onUserTrackingModeChange={onUserTrackingModeChange}
         onMapFeaturePress={onMapFeaturePress}
@@ -857,15 +869,37 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         onError={onError}
         hybridRef={hybridRef}
       >
-        {props.children}
+        {android ? null : props.children}
       </NativeMunimMapView>
+    )
+    if (!android) return map
+    return (
+      <View style={props.style} collapsable={false}>
+        {map}
+        <View
+          style={offscreenChildren}
+          collapsable={false}
+          pointerEvents="none"
+        >
+          {props.children}
+        </View>
+      </View>
     )
   }
 )
 
+const offscreenChildren = {
+  position: 'absolute',
+  left: -100_000,
+  top: 0,
+} as const
+
 export * from './services'
+export * from './providers/mapbox'
 export {
   MAP_PROVIDERS,
+  addProviderEventListener,
+  callProvider,
   availableProviders,
   configureMunimMaps,
   defaultProvider,

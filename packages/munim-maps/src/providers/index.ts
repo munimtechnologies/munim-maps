@@ -50,6 +50,12 @@ export interface MunimMapsConfiguration {
 }
 
 let config: MunimMapsConfig | undefined
+let mapboxToken = ''
+
+/** The Mapbox token given to `configureMunimMaps`, for `MapboxServices`. */
+export function configuredMapboxToken(): string {
+  return mapboxToken
+}
 let installed: MapProvider[] | undefined
 let available: MapProvider[] | undefined
 let defaultOverride: MapProvider | undefined
@@ -83,6 +89,9 @@ function parse(list: string): MapProvider[] {
 export function configureMunimMaps(configuration: MunimMapsConfiguration) {
   if (configuration.defaultProvider) {
     defaultOverride = configuration.defaultProvider
+  }
+  if (configuration.mapboxAccessToken) {
+    mapboxToken = configuration.mapboxAccessToken
   }
   native()?.configure({
     googleMapsApiKey: configuration.googleMapsApiKey ?? '',
@@ -183,4 +192,64 @@ export async function providerCommand<Result = unknown>(
 ): Promise<Result> {
   const json = await map.providerCommand(command, JSON.stringify(args))
   return JSON.parse(json || 'null') as Result
+}
+
+/** Decodes engine JSON; `undefined` for empty or broken text. */
+function parseJson(json: string): unknown {
+  if (!json) return undefined
+  try {
+    return JSON.parse(json)
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Runs an engine-level command that needs no map, such as Mapbox's offline
+ * downloads (`MapboxOffline`). Rejects when the engine is not built in.
+ */
+export async function callProvider<T = unknown>(
+  provider: MapProvider,
+  command: string,
+  args: object = {}
+): Promise<T> {
+  const target = native()
+  if (!target) throw new Error('munim-maps: not available on this platform')
+  return parseJson(
+    await target.providerCommand(provider, command, JSON.stringify(args))
+  ) as T
+}
+
+type ProviderListener = (name: string, data: unknown) => void
+const providerListeners = new Map<MapProvider, Set<ProviderListener>>()
+let providerListenerInstalled = false
+
+/**
+ * Listens to engine-level events (Mapbox's download progress). Returns a
+ * function that stops listening.
+ */
+export function addProviderEventListener(
+  provider: MapProvider,
+  listener: ProviderListener
+): () => void {
+  const target = native()
+  if (target && !providerListenerInstalled) {
+    providerListenerInstalled = true
+    target.setProviderEventListener((from, name, json) => {
+      const set = providerListeners.get(from as MapProvider)
+      if (!set || set.size === 0) return
+      const data = parseJson(json)
+      for (const l of [...set]) l(name, data)
+    })
+  }
+  let set = providerListeners.get(provider)
+  if (!set) {
+    set = new Set()
+    providerListeners.set(provider, set)
+  }
+  const listeners = set
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
 }

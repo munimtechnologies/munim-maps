@@ -1,6 +1,11 @@
 package com.margelo.nitro.munimmaps
 
+import android.os.Handler
+import android.os.Looper
+import com.margelo.nitro.NitroModules
+import com.margelo.nitro.core.Promise
 import com.munimmaps.engine.MunimMapEngines
+import com.munimmaps.engine.ProviderJson
 import com.munimmaps.engine.MunimMapsConfiguration
 import com.munimmaps.engine.id
 
@@ -18,4 +23,39 @@ class HybridMunimMapsConfig : HybridMunimMapsConfigSpec() {
   override fun availableProviders(): String = MunimMapEngines.available.joinToString(",") { it.id }
 
   override fun installedProviders(): String = MunimMapEngines.installed.joinToString(",") { it.id }
+
+  override fun providerCommand(provider: String, command: String, argsJson: String): Promise<String> {
+    val promise = Promise<String>()
+    val engine = MapProvider.entries.firstOrNull { it.id == provider }
+    if (engine == null) {
+      promise.reject(IllegalArgumentException("Unknown map provider \"$provider\""))
+      return promise
+    }
+    val context = NitroModules.applicationContext
+    if (context == null) {
+      promise.reject(IllegalStateException("React Native is not ready"))
+      return promise
+    }
+    val args = ProviderJson.objectOf(argsJson)
+    Handler(Looper.getMainLooper()).post {
+      try {
+        MunimMapEngines.providerCommand(
+          engine, context, command, args,
+          emit = { name, payload -> eventListener?.invoke(provider, name, ProviderJson.stringOf(payload)) },
+        ) { result -> result.fold({ promise.resolve(it) }, { promise.reject(it) }) }
+      } catch (error: Throwable) {
+        promise.reject(error)
+      }
+    }
+    return promise
+  }
+
+  override fun setProviderEventListener(listener: (provider: String, name: String, json: String) -> Unit) {
+    eventListener = listener
+  }
+
+  companion object {
+    /** Engine-level events go to the last listener set. */
+    @Volatile private var eventListener: ((String, String, String) -> Unit)? = null
+  }
 }

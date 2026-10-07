@@ -863,6 +863,28 @@ namespace margelo::nitro::munimmaps::bridge::swift {
   using std__weak_ptr_HybridMarkerViewSpec_ = std::weak_ptr<HybridMarkerViewSpec>;
   inline std__weak_ptr_HybridMarkerViewSpec_ weakify_std__shared_ptr_HybridMarkerViewSpec_(const std::shared_ptr<HybridMarkerViewSpec>& strong) noexcept { return strong; }
   
+  // pragma MARK: std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>
+  /**
+   * Specialized version of `std::function<void(const std::string&, const std::string&, const std::string&)>`.
+   */
+  using Func_void_std__string_std__string_std__string = std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::string& / * provider * /, const std::string& / * name * /, const std::string& / * json * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__string_std__string_std__string_Wrapper final {
+  public:
+    explicit Func_void_std__string_std__string_std__string_Wrapper(std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>&& func): _function(std::make_unique<std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>>(std::move(func))) {}
+    inline void call(std::string provider, std::string name, std::string json) const noexcept {
+      _function->operator()(provider, name, json);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::string& /* provider */, const std::string& /* name */, const std::string& /* json */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__string_std__string_std__string create_Func_void_std__string_std__string_std__string(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__string_std__string_std__string_Wrapper wrap_Func_void_std__string_std__string_std__string(Func_void_std__string_std__string_std__string value) noexcept {
+    return Func_void_std__string_std__string_std__string_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::shared_ptr<HybridMunimMapsConfigSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridMunimMapsConfigSpec>`.

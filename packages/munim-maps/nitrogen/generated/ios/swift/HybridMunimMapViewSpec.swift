@@ -66,6 +66,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var onOverlayPress: ((_ event: OverlayPressEvent) -> Void)? { get set }
   var onMarkerDragStart: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onMarkerDragEnd: ((_ event: MarkerDragEvent) -> Void)? { get set }
+  var onMarkerDrag: ((_ event: MarkerDragEvent) -> Void)? { get set }
   var onUserLocationChange: ((_ location: UserLocationEvent) -> Void)? { get set }
   var onUserTrackingModeChange: ((_ mode: UserTrackingMode) -> Void)? { get set }
   var onMapFeaturePress: ((_ feature: MapFeatureEvent) -> Void)? { get set }

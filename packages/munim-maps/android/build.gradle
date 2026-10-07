@@ -63,7 +63,7 @@ def munimMapsVersions = [
   googleMapsUtils: project.findProperty("munimMaps.googleMapsUtilsVersion") ?: "3.20.1",
   // 0.2.0 is the newest Maps 3D SDK built with Kotlin 2.2 (React Native compiles with 2.1).
   googleMaps3d: project.findProperty("munimMaps.googleMaps3dVersion") ?: "0.2.0",
-  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.15.0",
+  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.32.0",
 ]
 
 // Google's photorealistic 3D map (`google={{ mode: '3d' }}`) is a separate
@@ -179,6 +179,18 @@ repositories {
   google()
   if (munimMapsProviders.mapbox) {
     maven { url = "https://api.mapbox.com/downloads/v2/releases/maven" }
+  }
+}
+
+// The app resolves the Mapbox SDK too (it comes through this library), so
+// every project needs Mapbox's Maven repository (public, no secret token).
+if (munimMapsProviders.mapbox) {
+  rootProject.allprojects { p ->
+    p.repositories {
+      if (!it.any { r -> r instanceof MavenArtifactRepository && r.url.toString().startsWith("https://api.mapbox.com/downloads/v2/releases/maven") }) {
+        maven { url = "https://api.mapbox.com/downloads/v2/releases/maven" }
+      }
+    }
   }
 }
 

@@ -70,7 +70,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
 
   private fun applyModelLayer(e: MunimMapEngine) {
     val layer = e.modelLayer
-    layer.models = models
+    layer.models = e.overlayModels(models)
     layer.zones = zones
     layer.paths = paths
     layer.buildingOcclusion = occlusion == MapOcclusion.BUILDINGS
@@ -107,6 +107,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     override fun onOverlayPress(event: OverlayPressEvent) { onOverlayPress?.invoke(event) }
     override fun onMarkerDragStart(event: MarkerDragEvent) { onMarkerDragStart?.invoke(event) }
     override fun onMarkerDragEnd(event: MarkerDragEvent) { onMarkerDragEnd?.invoke(event) }
+    override fun onMarkerDrag(event: MarkerDragEvent) { onMarkerDrag?.invoke(event) }
     override fun onUserLocationChange(location: UserLocationEvent) { onUserLocationChange?.invoke(location) }
     override fun onUserTrackingModeChange(mode: UserTrackingMode) { onUserTrackingModeChange?.invoke(mode) }
     override fun onMapFeaturePress(feature: MapFeatureEvent) { onMapFeaturePress?.invoke(feature) }
@@ -125,7 +126,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setProviderOptions(options(value)) }
 
   override var models: Array<NativeMapModel> = emptyArray()
-    set(value) { field = value; engine?.modelLayer?.models = value }
+    set(value) { field = value; engine?.let { it.modelLayer.models = it.overlayModels(value) } }
   override var zones: Array<NativeMapZone> = emptyArray()
     set(value) { field = value; engine?.modelLayer?.zones = value }
   override var paths: Array<NativeMapPath> = emptyArray()
@@ -227,6 +228,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setOverlayPressEnabled(value != null) }
   override var onMarkerDragStart: ((event: MarkerDragEvent) -> Unit)? = null
   override var onMarkerDragEnd: ((event: MarkerDragEvent) -> Unit)? = null
+  override var onMarkerDrag: ((event: MarkerDragEvent) -> Unit)? = null
   override var onUserLocationChange: ((location: UserLocationEvent) -> Unit)? = null
   override var onUserTrackingModeChange: ((mode: UserTrackingMode) -> Unit)? = null
   override var onMapFeaturePress: ((feature: MapFeatureEvent) -> Unit)? = null

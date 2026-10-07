@@ -7,6 +7,20 @@ protocol MunimMapEngineFactory {
   /// placeholder. Flip it once the engine draws a map.
   static var isImplemented: Bool { get }
   static func make() -> MunimMapEngine
+  /// Engine-level commands that need no map (Mapbox's offline downloads).
+  /// `emit` sends an event to JavaScript (`setProviderEventListener`).
+  static func providerCommand(
+    _ command: String, arguments: [String: Any], emit: @escaping (String, Any) -> Void,
+    completion: @escaping (Result<Any, Error>) -> Void)
+}
+
+extension MunimMapEngineFactory {
+  static func providerCommand(
+    _ command: String, arguments: [String: Any], emit: @escaping (String, Any) -> Void,
+    completion: @escaping (Result<Any, Error>) -> Void
+  ) {
+    completion(.failure(MunimMapEngineError("This engine has no command \"\(command)\"")))
+  }
 }
 
 /// The engines built into this app, and making them.
@@ -59,6 +73,19 @@ public enum MunimMapEngines {
     MunimMapProvider.allCases.filter { factory(for: $0)?.isImplemented == true }
   }
 
+  /// Runs an engine-level command (no map needed) on `provider`'s engine.
+  public static func providerCommand(
+    _ provider: MunimMapProvider, command: String, arguments: [String: Any],
+    emit: @escaping (String, Any) -> Void,
+    completion: @escaping (Result<Any, Error>) -> Void
+  ) {
+    guard let factory = factory(for: provider) else {
+      completion(.failure(MunimMapEngineError("\(provider.displayName) is not built into this app")))
+      return
+    }
+    factory.providerCommand(command, arguments: arguments, emit: emit, completion: completion)
+  }
+
   /// A new engine for `provider`, or a placeholder saying why there is none.
   public static func make(_ provider: MunimMapProvider) -> MunimMapEngine {
     guard let factory = factory(for: provider) else {
@@ -68,5 +95,43 @@ public enum MunimMapEngines {
           + "(or the Expo config plugin's providers option) and rebuild.")
     }
     return factory.make()
+  }
+}
+
+/// JSON for engine-only commands and events (`providerCommand`, `onProviderEvent`).
+@_expose(!Cxx)
+public enum MunimProviderJSON {
+  /// The JSON object in `json`, or an empty one.
+  public static func object(_ json: String) -> [String: Any] {
+    guard let data = json.data(using: .utf8), !data.isEmpty else { return [:] }
+    return ((try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) as? [String: Any]) ?? [:]
+  }
+
+  /// `value` as JSON text; `null` when it cannot be written.
+  public static func string(_ value: Any) -> String {
+    let clean = sanitize(value)
+    guard let data = try? JSONSerialization.data(withJSONObject: clean, options: [.fragmentsAllowed]) else {
+      return "null"
+    }
+    return String(decoding: data, as: UTF8.self)
+  }
+
+  /// Makes a value JSONSerialization accepts (non-finite numbers become null).
+  public static func sanitize(_ value: Any) -> Any {
+    switch value {
+    case let dictionary as [String: Any]: return dictionary.mapValues(sanitize)
+    case let array as [Any]: return array.map(sanitize)
+    case let number as NSNumber:
+      if CFGetTypeID(number) == CFBooleanGetTypeID() { return number }
+      return number.doubleValue.isFinite ? number : NSNull()
+    case let double as Double: return double.isFinite ? double : NSNull()
+    case is String, is NSNull: return value
+    default:
+      let mirror = Mirror(reflecting: value)
+      if mirror.displayStyle == .optional {
+        return mirror.children.first.map { sanitize($0.value) } ?? NSNull()
+      }
+      return String(describing: value)
+    }
   }
 }

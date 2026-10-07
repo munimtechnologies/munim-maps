@@ -27,5 +27,5 @@ export interface MarkerViewMethods extends HybridViewMethods {
 export type MarkerView = HybridView<
   MarkerViewProps,
   MarkerViewMethods,
-  { ios: 'swift' }
+  { ios: 'swift'; android: 'kotlin' }
 >

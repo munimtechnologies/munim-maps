@@ -1085,6 +1085,38 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var onMarkerDrag: bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ {
+    @inline(__always)
+    get {
+      return { () -> bridge.std__optional_std__function_void_const_MarkerDragEvent_____event______ in
+        if let __unwrappedValue = self.__implementation.onMarkerDrag {
+          return bridge.create_std__optional_std__function_void_const_MarkerDragEvent_____event______({ () -> bridge.Func_void_MarkerDragEvent in
+            let __closureWrapper = Func_void_MarkerDragEvent(__unwrappedValue)
+            return bridge.create_Func_void_MarkerDragEvent(__closureWrapper.toUnsafe())
+          }())
+        } else {
+          return .init()
+        }
+      }()
+    }
+    @inline(__always)
+    set {
+      self.__implementation.onMarkerDrag = { () -> ((_ event: MarkerDragEvent) -> Void)? in
+        if bridge.has_value_std__optional_std__function_void_const_MarkerDragEvent_____event______(newValue) {
+          let __unwrapped = bridge.get_std__optional_std__function_void_const_MarkerDragEvent_____event______(newValue)
+          return { () -> (MarkerDragEvent) -> Void in
+            let __wrappedFunction = bridge.wrap_Func_void_MarkerDragEvent(__unwrapped)
+            return { (__event: MarkerDragEvent) -> Void in
+              __wrappedFunction.call(__event)
+            }
+          }()
+        } else {
+          return nil
+        }
+      }()
+    }
+  }
+  
   public final var onUserLocationChange: bridge.std__optional_std__function_void_const_UserLocationEvent_____location______ {
     @inline(__always)
     get {

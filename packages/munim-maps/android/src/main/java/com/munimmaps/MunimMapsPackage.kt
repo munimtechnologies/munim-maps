@@ -7,6 +7,7 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 import com.margelo.nitro.munimmaps.NitroMunimMapsOnLoad
 import com.margelo.nitro.munimmaps.views.HybridMapModelLayerManager
+import com.margelo.nitro.munimmaps.views.HybridMarkerViewManager
 import com.margelo.nitro.munimmaps.views.HybridMunimMapViewManager
 
 class MunimMapsPackage : BaseReactPackage() {
@@ -15,7 +16,7 @@ class MunimMapsPackage : BaseReactPackage() {
   override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider { emptyMap() }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
-    listOf(HybridMunimMapViewManager(), HybridMapModelLayerManager())
+    listOf(HybridMunimMapViewManager(), HybridMapModelLayerManager(), HybridMarkerViewManager())
 
   companion object {
     init {

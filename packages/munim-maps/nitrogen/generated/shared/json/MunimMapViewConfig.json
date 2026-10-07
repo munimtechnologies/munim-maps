@@ -60,6 +60,7 @@
     "onOverlayPress": true,
     "onMarkerDragStart": true,
     "onMarkerDragEnd": true,
+    "onMarkerDrag": true,
     "onUserLocationChange": true,
     "onUserTrackingModeChange": true,
     "onMapFeaturePress": true,

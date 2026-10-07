@@ -213,6 +213,8 @@ export interface MunimMapViewProps extends HybridViewProps {
   onOverlayPress?: (event: OverlayPressEvent) => void
   onMarkerDragStart?: (event: MarkerDragEvent) => void
   onMarkerDragEnd?: (event: MarkerDragEvent) => void
+  /** While a marker is dragged, about once a frame, between start and end. */
+  onMarkerDrag?: (event: MarkerDragEvent) => void
   onUserLocationChange?: (location: UserLocationEvent) => void
   /** MapKit changed the tracking mode: the user panned away, or used the tracking button. */
   onUserTrackingModeChange?: (mode: UserTrackingMode) => void
