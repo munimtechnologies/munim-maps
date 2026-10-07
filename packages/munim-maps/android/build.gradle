@@ -61,8 +61,14 @@ def munimMapsVersions = [
   maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.6.1",
   googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.0.0",
   googleMapsUtils: project.findProperty("munimMaps.googleMapsUtilsVersion") ?: "3.20.1",
+  // 0.2.0 is the newest Maps 3D SDK built with Kotlin 2.2 (React Native compiles with 2.1).
+  googleMaps3d: project.findProperty("munimMaps.googleMaps3dVersion") ?: "0.2.0",
   mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.15.0",
 ]
+
+// Google's photorealistic 3D map (`google={{ mode: '3d' }}`) is a separate
+// SDK: munimMaps.googleMaps3d=true (with munimMaps.google=true) adds it.
+def munimMapsGoogle3d = munimMapsProviders.google && munimMapsProvider("googleMaps3d", false)
 
 logger.lifecycle("[munim-maps] engines: " + munimMapsProviders.findAll { it.value }.collect { it.key }.join(", "))
 
@@ -157,6 +163,7 @@ android {
       munimMapsProviders.each { name, enabled ->
         if (enabled) java.srcDirs += ["src/${name}/java"]
       }
+      if (munimMapsGoogle3d) java.srcDirs += ["src/google3d/java"]
       if (isNewArchitectureEnabled()) {
         java.srcDirs += [
           // React Codegen files
@@ -197,6 +204,9 @@ dependencies {
     implementation "com.google.android.gms:play-services-maps:${munimMapsVersions.googleMaps}"
     // Clustering, heatmaps, KML, GeoJSON, geometry.
     implementation "com.google.maps.android:android-maps-utils:${munimMapsVersions.googleMapsUtils}"
+    if (munimMapsGoogle3d) {
+      implementation "com.google.android.gms:play-services-maps3d:${munimMapsVersions.googleMaps3d}"
+    }
   }
   if (munimMapsProviders.mapbox) {
     implementation "com.mapbox.maps:android-ndk27:${munimMapsVersions.mapbox}"

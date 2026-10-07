@@ -260,6 +260,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   public var providerOptions: [String: Any] = [:] {
     didSet {
       options = GoogleJSON(providerOptions)
+      reportModeLimits()
       guard mapView != nil else { return }
       if (options["mapId"].string ?? "") != builtMapId {
         makeMapView()
@@ -272,6 +273,21 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
       applyCircles()
       applyTileOverlays()
       applyGoogleOverlays()
+    }
+  }
+
+  private var reportedModeLimits: Set<String> = []
+
+  /// Google's photorealistic 3D map (`google.mode: '3d'`) is the Maps 3D SDK
+  /// for iOS, `GoogleMaps3D`: a SwiftUI-only Swift package that CocoaPods
+  /// cannot install, so the iOS engine stays on the 2D map, where models are
+  /// always drawn by munim-maps' overlay.
+  private func reportModeLimits() {
+    if options["mode"].string == "3d", reportedModeLimits.insert("3d").inserted {
+      onError?("Google Maps: mode '3d' (photorealistic 3D) is Android only for now; iOS's Maps 3D SDK (GoogleMaps3D) is a SwiftUI-only Swift package. Showing the 2D map")
+    }
+    if options["modelRendering"].string == "native", reportedModeLimits.insert("native").inserted {
+      onError?("Google Maps: the 2D map has no native 3D models; models are drawn by the munim overlay")
     }
   }
 

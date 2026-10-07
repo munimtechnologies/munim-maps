@@ -186,6 +186,22 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   internal val featureLayerKeys = mutableMapOf<String, String>()
   internal var streetView: GoogleStreetView? = null
 
+  // Photorealistic 3D mode (Google3DMode.kt, src/google3d)
+  internal var mode3d: Google3DMode? = null
+  private var models3d: Array<com.margelo.nitro.munimmaps.NativeMapModel>? = null
+  private var reportedNativeIn2d = false
+  private val modelWatch = object : Runnable {
+    override fun run() {
+      val mode = mode3d ?: return
+      val models = modelLayer.models
+      if (models !== models3d) {
+        models3d = models
+        mode.setModels(models)
+      }
+      main.postDelayed(this, 250)
+    }
+  }
+
   // Flights
   private var flight: Triple<List<CameraKeyframe>, Double, Boolean>? = null
   private val flightTick = object : Runnable {
@@ -218,6 +234,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   private fun start() {
     if (started || destroyed) return
     started = true
+    mode3d?.resume()
     mapView?.onStart()
     mapView?.onResume()
     streetView?.resume()
@@ -226,6 +243,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   private fun stop() {
     if (!started || destroyed) return
     started = false
+    mode3d?.pause()
     streetView?.pause()
     mapView?.onPause()
     mapView?.onStop()
@@ -237,6 +255,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
     destroyed = true
     stopFlight()
     closeStreetView()
+    leave3d()
     modelLayer.destroy()
     mapView?.onDestroy()
   }
@@ -453,6 +472,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
 
   override fun setProviderOptions(options: JSONObject) {
     this.options = GJson(options)
+    updateMode()
     val mapId = this.options["mapId"].string?.takeIf { it.isNotEmpty() }
     val lite = this.options["liteMode"].bool(false)
     if (mapView == null || mapId != builtMapId || lite != builtLite) {
@@ -468,9 +488,87 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
     applyGoogleOverlays()
   }
 
-  override fun setMarkers(markers: Array<NativeMarker>) { this.markers = markers; applyMarkers() }
-  override fun setPolylines(polylines: Array<NativePolyline>) { this.polylines = polylines; applyPolylines() }
-  override fun setPolygons(polygons: Array<NativePolygon>) { this.polygons = polygons; applyPolygons() }
+  override fun setMarkers(markers: Array<NativeMarker>) { this.markers = markers; applyMarkers(); mode3d?.setMarkers(markers) }
+  override fun setPolylines(polylines: Array<NativePolyline>) { this.polylines = polylines; applyPolylines(); mode3d?.setPolylines(polylines) }
+  override fun setPolygons(polygons: Array<NativePolygon>) { this.polygons = polygons; applyPolygons(); mode3d?.setPolygons(polygons) }
+
+  // MARK: 3D mode
+
+  /**
+   * `google.mode: '3d'` switches to Google's photorealistic 3D map (Maps 3D
+   * SDK), where models are drawn natively (`modelRendering` `auto` or
+   * `native`); the 2D map keeps the munim overlay (it has no 3D models).
+   */
+  private fun updateMode() {
+    val wants3d = options["mode"].string == "3d"
+    val rendering = options["modelRendering"].string ?: "auto"
+    if (!wants3d && rendering == "native" && !reportedNativeIn2d) {
+      reportedNativeIn2d = true
+      reportError("the 2D Google map has no native 3D models; models are drawn by the munim overlay (use google.mode '3d' for native models)")
+    }
+    if (wants3d && mode3d == null) enter3d()
+    if (!wants3d && mode3d != null) leave3d()
+    mode3d?.setOptions(options)
+    if (wants3d && rendering == "overlay") {
+      reportError("Google's 3D map has no projection the munim overlay can follow; its models are drawn natively")
+    }
+  }
+
+  private val host3d = object : Google3DHost {
+    override fun emit(name: String, data: JSONObject) = this@GoogleMapEngine.emit(name, data)
+    override fun error(message: String) = reportError(message)
+    override fun ready() {
+      emit("map3dReady")
+      reportReady()
+    }
+    override fun press(latitude: Double, longitude: Double, placeId: String?) {
+      if (placeId != null) {
+        listener?.onMapFeaturePress(MapFeatureEvent("", latitude, longitude, "pointOfInterest", "", placeId))
+        emit("poiClick", GOut.obj("placeId" to placeId, "name" to "", "latitude" to latitude, "longitude" to longitude))
+      } else {
+        listener?.onPress(MapPressEvent(latitude, longitude, -1.0, -1.0))
+      }
+    }
+    override fun cameraChanged(camera: MapCamera, idle: Boolean) {
+      if (idle) listener?.onCameraChange(camera) else listener?.onCameraMove(camera)
+    }
+    override fun modelPressed(id: String) { modelLayer.onModelPress?.invoke(id) }
+    override fun markerPressed(id: String) { listener?.onMarkerPress(id) }
+  }
+
+  private fun enter3d() {
+    val mode = Google3DModes.create(context, host3d, getCamera() ?: initialCamera)
+    if (mode == null) {
+      reportError("google.mode '3d' needs the Maps 3D SDK: set munimMaps.googleMaps3d=true (Expo plugin googleMaps3d: true) and rebuild")
+      return
+    }
+    mode3d = mode
+    root.addView(mode.view, 0, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+    mapView?.visibility = View.GONE
+    modelLayer.view.visibility = View.GONE
+    modelLayer.detach()
+    if (started) mode.resume()
+    mode.setMarkers(markers)
+    mode.setPolylines(polylines)
+    mode.setPolygons(polygons)
+    models3d = null
+    main.post(modelWatch)
+    emit("modeChange", GOut.obj("mode" to "3d"))
+  }
+
+  private fun leave3d() {
+    val mode = mode3d ?: return
+    mode3d = null
+    main.removeCallbacks(modelWatch)
+    mode.destroy()
+    root.removeView(mode.view)
+    mapView?.visibility = View.VISIBLE
+    if (!destroyed) {
+      modelLayer.view.visibility = View.VISIBLE
+      modelLayer.attach(this)
+    }
+    emit("modeChange", GOut.obj("mode" to "2d"))
+  }
   override fun setCircles(circles: Array<NativeCircle>) { this.circles = circles; applyCircles() }
   override fun setTileOverlays(overlays: Array<NativeTileOverlay>) {
     tileOverlays = overlays
@@ -656,6 +754,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
     .build()
 
   override fun getCamera(): MapCamera? {
+    mode3d?.let { return it.getCamera() }
     val map = map ?: return null
     val view = mapView ?: return null
     GoogleCamera.state(map, view, paddingPx(), density, false)?.let {
@@ -669,6 +768,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   override fun setCamera(camera: MapCamera, animated: Boolean) {
     stopFlight()
     endTrackingForCameraMove()
+    mode3d?.let { return it.setCamera(camera, if (animated) 1000.0 else 0.0) }
     val map = map
     if (map == null) {
       initialCamera = camera
@@ -682,6 +782,7 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
 
   /** Stepped once a frame (like iOS), so the 3D layer reads the camera Google draws. */
   override fun animateCamera(camera: MapCamera, durationMs: Double, easing: MapCameraEasing) {
+    mode3d?.let { return it.setCamera(camera, durationMs) }
     if (durationMs <= 0) return setCamera(camera, false)
     val from = getCamera() ?: return setCamera(camera, false)
     val linear = easing == MapCameraEasing.LINEAR
@@ -696,6 +797,11 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   }
 
   override fun flyCamera(keyframes: Array<CameraKeyframe>, start: Double, loop: Boolean) {
+    mode3d?.let { mode ->
+      // Google 3D flies to one camera: the last keyframe, over the flight's length.
+      val last = keyframes.maxByOrNull { it.t } ?: return
+      return mode.setCamera(last.camera, maxOf(0.0, (last.t - keyframes.minOf { it.t }) * 1000))
+    }
     if (keyframes.size < 2) {
       stopFlight()
       keyframes.firstOrNull()?.let { setCamera(it.camera, false) }
@@ -947,8 +1053,10 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
   override fun deselectMarker(id: String) = deselectMarkerById(id)
   override fun overlayAtPoint(point: MapPoint): String =
     overlayHit(point.x * density, point.y * density)?.first ?: ""
-  override fun providerCommand(command: String, args: JSONObject, completion: (Result<String>) -> Unit) =
+  override fun providerCommand(command: String, args: JSONObject, completion: (Result<String>) -> Unit) {
+    if (mode3d?.command(command, GJson(args), completion) == true) return
     runCommand(command, GJson(args), completion)
+  }
 
   /** Street View is Google's Look Around. */
   override fun hasLookAround(coordinate: MapCoordinate, completion: (Boolean) -> Unit) =

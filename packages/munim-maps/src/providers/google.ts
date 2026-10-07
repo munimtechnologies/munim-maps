@@ -237,6 +237,24 @@ export interface GoogleFeatureLayer {
 
 export interface GoogleMapOptions {
   /**
+   * `'3d'`: Google's photorealistic 3D map (the Maps 3D SDK; Android, built
+   * in with `munimMaps.googleMaps3d=true` / the Expo plugin's
+   * `googleMaps3d: true`; the key needs the Map Tiles API and the Maps 3D
+   * SDK for Android). Models are Google's own glTF models there, and
+   * polylines, polygons and markers are drawn natively. Default `'2d'`.
+   */
+  mode?: '2d' | '3d'
+  /**
+   * How `models` are drawn: `'native'` by the engine (Google 3D's glTF
+   * models), `'overlay'` by munim-maps' 3D layer, `'auto'` (default) native
+   * in 3D mode and the overlay on the 2D map (which has no 3D models).
+   */
+  modelRendering?: 'auto' | 'native' | 'overlay'
+  /** 3D mode: `'hybrid'` (default, with labels) or `'satellite'`. */
+  map3dMode?: 'hybrid' | 'satellite'
+  /** 3D mode: multiplies every model's `scale` (Google 3D models are in metres; `screenSize` does not apply). */
+  modelScale?: number
+  /**
    * A cloud-based map style's Map ID (Google Cloud console): cloud styling,
    * advanced markers, data-driven styling. Applied when the map is made, so
    * changing it remakes the map. `'DEMO_MAP_ID'` works for trying things.
@@ -440,6 +458,9 @@ export type GoogleMapEvent =
       }
     }
   | { name: 'streetViewClose'; data: {} }
+  | { name: 'modeChange'; data: { mode: '2d' | '3d' } }
+  | { name: 'map3dReady' | 'cameraAnimationEnd'; data: {} }
+  | { name: 'map3dSteady'; data: { steady: boolean } }
 
 /** Narrows an `onProviderEvent` event to Google's, or undefined. */
 export function googleEvent(
@@ -461,6 +482,18 @@ export interface GoogleCameraPosition {
   bearing: number
   /** Degrees from straight down. */
   tilt: number
+}
+
+/** Google 3D's camera. */
+export interface GoogleCamera3D {
+  latitude: number
+  longitude: number
+  altitude: number
+  heading: number
+  tilt: number
+  roll: number
+  /** Metres from the camera to the centre. */
+  range: number
 }
 
 export interface GoogleProjection {
@@ -587,6 +620,19 @@ export function googleMap(map: ProviderCommandTarget) {
       }>('sdkInfo', { licenses }),
     /** How munim-maps reads Google's camera for the 3D layer. */
     cameraDiagnostics: () => call<Record<string, unknown>>('cameraDiagnostics'),
+    /** 3D mode: flies to a camera (`range` is metres from the centre). */
+    flyTo: (camera: Partial<GoogleCamera3D>, durationMs = 2000) =>
+      call('flyTo', { ...camera, duration: durationMs }),
+    /** 3D mode: circles a camera's centre `rounds` times. */
+    flyAround: (
+      camera: Partial<GoogleCamera3D>,
+      durationMs = 10000,
+      rounds = 1
+    ) => call('flyAround', { ...camera, duration: durationMs, rounds }),
+    stopCameraAnimation: () => call('stopCameraAnimation'),
+    getCamera3d: () => call<GoogleCamera3D>('getCamera3d'),
+    setCamera3d: (camera: Partial<GoogleCamera3D>) =>
+      call('setCamera3d', camera),
     streetView: {
       /** Finds and shows a panorama; resolves with where it is. */
       open: (options: GoogleStreetViewOptions) =>

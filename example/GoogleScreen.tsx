@@ -160,12 +160,16 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
   const [traffic, setTraffic] = useState(false)
   const [layers, setLayers] = useState(true)
   const [tiles, setTiles] = useState(false)
+  // Google's photorealistic 3D map (Android, Maps 3D SDK): models drawn natively.
+  const [photo3d, setPhoto3d] = useState(false)
   const [status, setStatus] = useState('')
   const seen = useRef<Record<string, number>>({})
   const readyRef = useRef(false)
 
   const google: GoogleMapOptions = useMemo(
     () => ({
+      mode: photo3d ? '3d' : '2d',
+      modelRendering: 'auto',
       mapType: TYPES[type],
       transitEnabled: true,
       indoorEnabled: true,
@@ -186,7 +190,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
       geoJsonLayers: layers ? [{ id: 'sketch', geojson: GEOJSON, style: { strokeColor: '#00C7BE', strokeWidth: 3 } }] : [],
       kmlLayers: layers ? [{ id: 'kml', data: KML }] : [],
     }),
-    [type, layers]
+    [type, layers, photo3d]
   )
 
   const log = useCallback((line: string) => {
@@ -480,6 +484,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; onEx
           <Chip label="Traffic" on={traffic} onPress={() => setTraffic((t) => !t)} />
           <Chip label="Layers" on={layers} onPress={() => setLayers((l) => !l)} />
           <Chip label="Tiles" on={tiles} onPress={() => setTiles((t) => !t)} />
+          <Chip label="3D" on={photo3d} onPress={() => setPhoto3d((m) => !m)} />
           <Chip label="Street View" onPress={() => void g()?.streetView.open({ latitude: 41.8827, longitude: -87.6233, heading: 90 }).catch((e) => log(String(e)))} />
           <Chip label="Indoor" onPress={() => ref.current?.setCamera({ latitude: 41.8786, longitude: -87.6403, distance: 250, pitch: 0, heading: 0 }, true)} />
           <Chip label="Fly" onPress={() => ref.current?.animateCamera({ ...CAMERA, heading: (Date.now() / 50) % 360, pitch: 60 }, 2000, 'easeInOut')} />

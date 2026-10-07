@@ -48,6 +48,8 @@ module.exports = ({ config }) => ({
         googleMapsApiKey: keys.GOOGLE_MAPS_API_KEY || undefined,
         mapboxAccessToken: keys.MAPBOX_ACCESS_TOKEN || undefined,
         cesiumIonToken: keys.CESIUM_ION_TOKEN || undefined,
+        // Android: Google's photorealistic 3D SDK for google={{ mode: '3d' }}.
+        googleMaps3d: true,
       },
     ],
   ],
