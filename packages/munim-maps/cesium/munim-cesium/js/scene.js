@@ -827,11 +827,22 @@
 
   // MARK: Clock
 
-  M.updateClock = function () {
+  let clockKey = ''
+  /** Applies `cesium.clock` when it changed (so other option changes do not reset the time). */
+  M.updateClock = function (force) {
     const viewer = M.viewer
     const clock = viewer.clock
     const c = M.options().clock
     if (!c) return
+    const key = JSON.stringify(c)
+    if (key === clockKey && !force) return
+    clockKey = key
+    M.applyClock(c)
+  }
+
+  M.applyClock = function (c) {
+    const viewer = M.viewer
+    const clock = viewer.clock
     if (c.startTime) clock.startTime = M.julian(c.startTime)
     if (c.stopTime) clock.stopTime = M.julian(c.stopTime)
     if (c.currentTime) clock.currentTime = M.julian(c.currentTime)
@@ -842,6 +853,9 @@
     if (c.clockStep) clock.clockStep = M.enumValue(C.ClockStep, c.clockStep, C.ClockStep.SYSTEM_CLOCK_MULTIPLIER)
     if (viewer.timeline && c.startTime && c.stopTime) viewer.timeline.zoomTo(clock.startTime, clock.stopTime)
   }
+  M.destroyHooks.push(() => {
+    clockKey = ''
+  })
 
   M.clockState = function () {
     const clock = M.viewer.clock
@@ -1031,10 +1045,7 @@
     if (mode !== appliedMode) {
       const duration = M.num(options.morphDuration, appliedMode === undefined ? 0 : 2)
       appliedMode = mode
-      const scene = M.viewer.scene
-      if (mode === '2d') scene.morphTo2D(duration)
-      else if (mode === 'columbus' || mode === 'columbusview') scene.morphToColumbusView(duration)
-      else scene.morphTo3D(duration)
+      M.morph(mode, duration)
     }
     M.applyController && M.applyController()
     M.applyFrustum && M.applyFrustum()

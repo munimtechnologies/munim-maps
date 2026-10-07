@@ -149,7 +149,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
       shadows: look,
       fog: look ? { enabled: true, density: 0.0006 } : undefined,
       globe: look ? { enableLighting: true, showGroundAtmosphere: true } : undefined,
-      postProcess: look ? { bloom: { brightness: -0.3 }, fxaa: true } : undefined,
+      postProcess: look ? { fxaa: true, stages: [{ type: 'silhouette' }] } : undefined,
       clouds: look ? [{ latitude: 41.886, longitude: -87.63, height: 600, scale: { x: 900, y: 200 } }] : undefined,
     }),
     [sceneMode, imagery, renderer, widgets, data, look]

@@ -221,12 +221,7 @@
   // MARK: Scene
 
   M.method('setSceneMode', (a) => {
-    const scene = M.viewer.scene
-    const d = M.num(a.duration, 2)
-    const mode = M.norm(a.mode)
-    if (mode === '2d') scene.morphTo2D(d)
-    else if (mode === 'columbus' || mode === 'columbusview') scene.morphToColumbusView(d)
-    else scene.morphTo3D(d)
+    M.morph(M.norm(a.mode), M.num(a.duration, 2))
   })
 
   M.method('screenshot', (a) => {
@@ -562,8 +557,7 @@
   // MARK: Time
 
   M.method('setClock', (a) => {
-    M.state.options = Object.assign({}, M.state.options || {}, { clock: Object.assign({}, (M.state.options || {}).clock || {}, a) })
-    M.updateClock()
+    M.applyClock(a)
     return M.clockState()
   })
   M.method('play', () => {

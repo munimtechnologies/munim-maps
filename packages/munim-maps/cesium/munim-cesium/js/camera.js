@@ -24,17 +24,21 @@
   /** The ground (terrain or 3D Tiles if loaded, else the ellipsoid) under a window position. */
   M.pickGround = function (position, useDepth) {
     const scene = M.viewer.scene
-    if (useDepth && scene.pickPositionSupported) {
-      const picked = scene.pickPosition(position)
-      if (picked) return picked
-    }
     const ray = scene.camera.getPickRay(position, scratchRay)
-    if (!ray) return undefined
-    if (scene.mode === C.SceneMode.SCENE3D) {
-      const onGlobe = scene.globe.pick(ray, scene)
-      if (onGlobe) return onGlobe
+    let ground
+    if (ray && scene.mode === C.SceneMode.SCENE3D) ground = scene.globe.pick(ray, scene)
+    if (!ground) ground = scene.camera.pickEllipsoid(position, scene.globe.ellipsoid)
+    if (useDepth && scene.pickPositionSupported) {
+      // The depth buffer finds 3D Tiles and models over the ground; it is
+      // only trusted when it is in front of the ground (billboards drawn
+      // over everything leave nonsense depths).
+      const picked = scene.pickPosition(position)
+      if (picked) {
+        const eye = scene.camera.positionWC
+        if (!ground || C.Cartesian3.distance(eye, picked) <= C.Cartesian3.distance(eye, ground) + 1) return picked
+      }
     }
-    return scene.camera.pickEllipsoid(position, scene.globe.ellipsoid)
+    return ground
   }
 
   /** Ground height at a coordinate from the loaded terrain tiles (0 when unknown). */
@@ -51,23 +55,21 @@
     const camera = scene.camera
     const centerPoint = M.centerPoint()
     let center = M.pickGround(centerPoint)
+    if (scene.mode === C.SceneMode.SCENE2D) {
+      // 2D looks straight down: the camera is over the centre.
+      const carto = camera.positionCartographic
+      return { latitude: M.toDeg(carto.latitude), longitude: M.toDeg(carto.longitude), height: 0, distance: carto.height, pitch: 0, heading: (M.toDeg(camera.heading) + 360) % 360, center: undefined }
+    }
     if (scene.mode !== C.SceneMode.SCENE3D) {
       const carto = camera.positionCartographic
       const c = center ? C.Cartographic.fromCartesian(center) : carto
-      const pitch = 90 + M.toDeg(camera.pitch)
-      let height = carto.height
-      if (scene.mode === C.SceneMode.SCENE2D) {
-        const f = camera.frustum
-        const widthMeters = (f.right - f.left) || 1
-        const fovy = C.Math.toRadians(60)
-        height = (widthMeters * (scene.canvas.clientHeight / Math.max(1, scene.canvas.clientWidth))) / 2 / Math.tan(fovy / 2)
-      }
+      const pitch = Math.max(0, Math.min(90, 90 + M.toDeg(camera.pitch)))
       return {
         latitude: M.toDeg(c.latitude),
         longitude: M.toDeg(c.longitude),
         height: c.height || 0,
-        distance: height / Math.max(0.1, Math.cos(M.toRad(pitch))),
-        pitch: Math.max(0, Math.min(90, pitch)),
+        distance: carto.height / Math.max(0.1, Math.cos(M.toRad(pitch))),
+        pitch,
         heading: (M.toDeg(camera.heading) + 360) % 360,
         center: undefined,
       }
@@ -401,22 +403,55 @@
   // MARK: Props
 
   let initialApplied = false
+  let carried // the camera of a viewer that was replaced, for the new one
   M.on('initialCamera', (cam) => {
     if (initialApplied || !cam || !(cam.distance > 0)) return
     initialApplied = true
     M.applyCamera(cam)
   })
+  M.viewerHooks.push(() => {
+    if (!carried) return
+    const cam = carried
+    carried = undefined
+    initialApplied = true
+    M.later(() => M.viewer && M.applyCamera(cam))
+  })
   M.destroyHooks.push(() => {
-    // A new viewer starts where the old one was.
-    try {
-      const cam = M.munimCamera()
-      M.state.initialCamera = cam
-    } catch (e) {
-      // no camera yet
+    // A new viewer starts where the old one was (once it had a camera).
+    if (initialApplied) {
+      try {
+        carried = M.munimCamera()
+      } catch (e) {
+        carried = undefined
+      }
     }
     initialApplied = false
     flight = undefined
   })
+
+  /** Morphs between 3D, 2D and Columbus view, keeping the munim camera. */
+  M.morph = function (mode, duration) {
+    const scene = M.viewer.scene
+    const target = mode === '2d' ? C.SceneMode.SCENE2D : mode === 'columbus' || mode === 'columbusview' ? C.SceneMode.COLUMBUS_VIEW : C.SceneMode.SCENE3D
+    if (scene.mode === target) return
+    let before
+    try {
+      before = M.munimCamera()
+    } catch (e) {
+      before = undefined
+    }
+    if (before) {
+      const remove = scene.morphComplete.addEventListener(() => {
+        remove()
+        M.applyCamera(before)
+        M.requestRender()
+      })
+    }
+    if (mode === '2d') scene.morphTo2D(duration)
+    else if (mode === 'columbus' || mode === 'columbusview') scene.morphToColumbusView(duration)
+    else scene.morphTo3D(duration)
+  }
+
   M.on('gestures', () => M.applyController())
   M.on('distanceRange', () => M.applyController())
   M.on('boundary', () => keepInBoundary())
