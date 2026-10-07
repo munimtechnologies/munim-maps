@@ -153,9 +153,9 @@ layer.onModelPress = { id in print(id) }
 
 ## Table of contents
 
-- [🗺️ Map Providers](#️-map-providers)
 - [📚 Documentation](#-documentation)
 - [🚀 Features](#-features)
+- [🗺️ Map Providers](#️-map-providers)
 - [🗺️ Use Your Own Map](#️-use-your-own-map)
 - [🧊 Bring Your Own Model](#-bring-your-own-model)
 - [🚗 Vehicle Catalogue](#-vehicle-catalogue)
@@ -168,6 +168,69 @@ layer.onModelPress = { id in print(id) }
 - [🛣️ Roadmap](#️-roadmap)
 - [👏 Contributing](#-contributing)
 - [📄 License](#-license)
+
+## 📚 Documentation
+
+<p>Learn about putting 3D on maps <a aria-label="documentation" href="https://github.com/munimtechnologies/munim-maps#readme">in our documentation!</a></p>
+
+- [Getting Started](#-installation)
+- [API Reference](#-api-reference)
+- [Usage Examples](#-usage-examples)
+- [Troubleshooting](#-troubleshooting)
+
+## 🚀 Features
+
+### Models on the map
+
+- 🧊 **3D models at real coordinates**: USDZ, USD, glTF / GLB, SCN, OBJ, PLY, STL or Alembic files, bundled with `require()`, from `file://` or downloaded and cached from `http(s)://` ([details](#-bring-your-own-model))
+- 🏙️ **Hidden behind buildings**: `occlusion="buildings"` hides models behind real building footprints and heights, which MapKit cannot do on its own
+- 🔥 **Exhaust and smoke**: particle effects for rocket launches and fires, stopping at the ground
+- 🔷 **Built-in shapes**: box, sphere, cylinder, cone, capsule, pyramid and gem, with colour and glow
+- 🎨 **Runtime paint**: `tint` recolours a model's paint, so one file comes in any colour
+- 🧭 **Heading, altitude and scale**, plus `spinDegreesPerSecond` and looping USDZ animations
+- ⛰️ **Terrain height**: altitudes above the ground or above sea level (`altitudeReference: 'sea'`, such as a phone's GPS altitude), models that stay on MapKit's 3D terrain (`followTerrain`), and `groundElevation()` for the height of the ground anywhere, which MapKit does not expose ([details](#terrain))
+- 📏 **Screen-size models**: `screenSize` keeps a model the same height on screen at any zoom, like a marker
+- 🌑 **Ground shadows** and **day/night lighting** that follows the map's appearance
+
+### People, vehicles and labels
+
+- 🏢 **People in buildings**: round avatars that always face the camera float at their real height, with a stem down to the spot below and a floor badge such as `5F`
+- 🚴 **Riders**: `lift` floats an avatar over a vehicle model at any zoom
+- 🏷️ **Labels**: text pills that float above any model, for power-ups or names
+- 👆 **Taps**: `onModelPress` with the model's id; the map keeps every gesture
+
+### Globe, satellites and paths
+
+- 🌍 **Globe on the standard map**: `globe` turns the normal map into a globe when zoomed far out, as Apple Maps does (MapKit only does this for satellite imagery). See the [note on how](#the-globe-uses-a-private-mapkit-switch)
+- 🛰️ **Models on the globe**: when MapKit draws a globe (the standard map with `globe`, or `hybrid`/`imagery` with realistic elevation), models are placed on the sphere and hidden behind the Earth when they go round the far side
+- 🪐 **Orbits and flight paths**: `paths` are lines drawn in 3D, a fixed number of points wide, that can sit at any height and follow the globe; MapKit's own polylines stay flat even on the globe
+
+### Zones
+
+- 🧱 **Zone walls**: circles or polygons stand up as see-through walls with solid top and bottom edges, like a map outline turned into a fence
+- 🔄 **Live updates**: change a zone's radius or points and the wall rebuilds (shrinking zones)
+
+### A full MapKit map
+
+- 🗺️ **`MunimMapView`**: everything react-native-maps does on iOS, without a second library: markers, polylines, polygons, circles, tile overlays, every map event and the camera API
+- 📍 **Markers**: MapKit pins and balloons (with emoji or text), images, round avatars with a ring and corner badges, label pills and dots; clustering, dragging, callouts, z-order
+- ✏️ **Shapes**: polylines (dashed, geodesic), polygons with holes, circles, and tile overlays (your own tiles, over or instead of Apple's map)
+- 🍎 **New MapKit**: `standard`, `muted`, `hybrid` and `imagery` styles, realistic elevation, point-of-interest filters, traffic, tappable map features (`onMapFeaturePress`), Look Around, camera distance limits and boundaries
+- 🧭 **Camera and conversions**: `setCamera`, `setRegion`, `fitToCoordinates`, `fitToMarkers`, `pointForCoordinate`, `coordinateForPoint`, snapshots and reverse geocoding
+- 🔦 **Follow with heading**: `userTrackingMode="followWithHeading"` is MapKit's own tracking with the heading beam; MapKit owns the following and `onUserTrackingModeChange` tells you when the user pans away ([details](#follow-the-user-with-heading))
+- 🎛️ **Controls**: compass and scale that are always visible or adaptive, MapKit's tracking and 2D/3D buttons, and standalone `MapCompass`, `MapScale` and `MapUserTrackingButton` you can place anywhere
+- 🪪 **Place cards**: tap a place on Apple's map and get Apple's own place card (`selectionAccessory`, iOS 18+)
+- 🧷 **React Native views as markers**: `<MarkerView>` turns any React Native view into a real MapKit marker that clusters, collides and selects
+- 🌈 **Routes and overlays**: gradient polylines, `strokeStart` / `strokeEnd` to animate a route being drawn, line joins, overlays under or over labels, and `onOverlayPress` for taps on lines and shapes
+- 🔎 **MapKit services**: search and autocomplete, points of interest, directions and travel times, geocoding, places by id, Apple Maps hand-off and map images, without a map on screen ([details](#-mapkit-services))
+- 👀 **Look Around**: `<LookAroundView>` embeds Apple's street-level imagery, and `lookAroundSnapshot()` makes a picture of it
+- 🧩 **`MapModelLayer`**: or keep your map and draw the 3D over it, including `react-native-maps` and `expo-maps` on iOS
+
+### Accuracy
+
+- 🎯 **Matched to MapKit's own camera** to under a point, measured on device against `MKMapView.convert` (on the globe, checked against MapKit's city labels)
+- ⏱️ **Same-frame motion**: models stay within 0.2 px of MapKit's own overlays while MapKit animates the camera
+- ⚡ **High performance**: Nitro modules, Metal rendering, redraws only when the camera moves or something animates
 
 ## 🗺️ Map Providers
 
@@ -392,69 +455,6 @@ await cesium.loadDataSource({ type: 'kml', url: 'https://…/tour.kml', flyTo: t
 ```
 
 Everything CesiumJS offers is reachable: imagery and terrain providers, 3D Tiles (OSM Buildings, Google Photorealistic, I3S, voxels, vector tiles, iTwin, Gaussian splats), CZML / GeoJSON / KML / GPX, the clock and timeline, scene modes, lighting, atmosphere, shadows, fog, clouds, post-processing, picking, measuring, terrain heights, particle systems, panoramas, screenshots and the Viewer widgets, and `cesium.evaluate({ script })` (with `allowEvaluate`) for anything else. The checklist, with what is left out and why, is in [docs/providers.md](docs/providers.md#cesium-engine). Caveats: WebGL in a WebView is heavier than a native SDK; Cesium renders on demand to save battery; data attributions stay on screen.
-
-## 📚 Documentation
-
-<p>Learn about putting 3D on maps <a aria-label="documentation" href="https://github.com/munimtechnologies/munim-maps#readme">in our documentation!</a></p>
-
-- [Getting Started](#-installation)
-- [API Reference](#-api-reference)
-- [Usage Examples](#-usage-examples)
-- [Troubleshooting](#-troubleshooting)
-
-## 🚀 Features
-
-### Models on the map
-
-- 🧊 **3D models at real coordinates**: USDZ, USD, glTF / GLB, SCN, OBJ, PLY, STL or Alembic files, bundled with `require()`, from `file://` or downloaded and cached from `http(s)://` ([details](#-bring-your-own-model))
-- 🏙️ **Hidden behind buildings**: `occlusion="buildings"` hides models behind real building footprints and heights, which MapKit cannot do on its own
-- 🔥 **Exhaust and smoke**: particle effects for rocket launches and fires, stopping at the ground
-- 🔷 **Built-in shapes**: box, sphere, cylinder, cone, capsule, pyramid and gem, with colour and glow
-- 🎨 **Runtime paint**: `tint` recolours a model's paint, so one file comes in any colour
-- 🧭 **Heading, altitude and scale**, plus `spinDegreesPerSecond` and looping USDZ animations
-- ⛰️ **Terrain height**: altitudes above the ground or above sea level (`altitudeReference: 'sea'`, such as a phone's GPS altitude), models that stay on MapKit's 3D terrain (`followTerrain`), and `groundElevation()` for the height of the ground anywhere, which MapKit does not expose ([details](#terrain))
-- 📏 **Screen-size models**: `screenSize` keeps a model the same height on screen at any zoom, like a marker
-- 🌑 **Ground shadows** and **day/night lighting** that follows the map's appearance
-
-### People, vehicles and labels
-
-- 🏢 **People in buildings**: round avatars that always face the camera float at their real height, with a stem down to the spot below and a floor badge such as `5F`
-- 🚴 **Riders**: `lift` floats an avatar over a vehicle model at any zoom
-- 🏷️ **Labels**: text pills that float above any model, for power-ups or names
-- 👆 **Taps**: `onModelPress` with the model's id; the map keeps every gesture
-
-### Globe, satellites and paths
-
-- 🌍 **Globe on the standard map**: `globe` turns the normal map into a globe when zoomed far out, as Apple Maps does (MapKit only does this for satellite imagery). See the [note on how](#the-globe-uses-a-private-mapkit-switch)
-- 🛰️ **Models on the globe**: when MapKit draws a globe (the standard map with `globe`, or `hybrid`/`imagery` with realistic elevation), models are placed on the sphere and hidden behind the Earth when they go round the far side
-- 🪐 **Orbits and flight paths**: `paths` are lines drawn in 3D, a fixed number of points wide, that can sit at any height and follow the globe; MapKit's own polylines stay flat even on the globe
-
-### Zones
-
-- 🧱 **Zone walls**: circles or polygons stand up as see-through walls with solid top and bottom edges, like a map outline turned into a fence
-- 🔄 **Live updates**: change a zone's radius or points and the wall rebuilds (shrinking zones)
-
-### A full MapKit map
-
-- 🗺️ **`MunimMapView`**: everything react-native-maps does on iOS, without a second library: markers, polylines, polygons, circles, tile overlays, every map event and the camera API
-- 📍 **Markers**: MapKit pins and balloons (with emoji or text), images, round avatars with a ring and corner badges, label pills and dots; clustering, dragging, callouts, z-order
-- ✏️ **Shapes**: polylines (dashed, geodesic), polygons with holes, circles, and tile overlays (your own tiles, over or instead of Apple's map)
-- 🍎 **New MapKit**: `standard`, `muted`, `hybrid` and `imagery` styles, realistic elevation, point-of-interest filters, traffic, tappable map features (`onMapFeaturePress`), Look Around, camera distance limits and boundaries
-- 🧭 **Camera and conversions**: `setCamera`, `setRegion`, `fitToCoordinates`, `fitToMarkers`, `pointForCoordinate`, `coordinateForPoint`, snapshots and reverse geocoding
-- 🔦 **Follow with heading**: `userTrackingMode="followWithHeading"` is MapKit's own tracking with the heading beam; MapKit owns the following and `onUserTrackingModeChange` tells you when the user pans away ([details](#follow-the-user-with-heading))
-- 🎛️ **Controls**: compass and scale that are always visible or adaptive, MapKit's tracking and 2D/3D buttons, and standalone `MapCompass`, `MapScale` and `MapUserTrackingButton` you can place anywhere
-- 🪪 **Place cards**: tap a place on Apple's map and get Apple's own place card (`selectionAccessory`, iOS 18+)
-- 🧷 **React Native views as markers**: `<MarkerView>` turns any React Native view into a real MapKit marker that clusters, collides and selects
-- 🌈 **Routes and overlays**: gradient polylines, `strokeStart` / `strokeEnd` to animate a route being drawn, line joins, overlays under or over labels, and `onOverlayPress` for taps on lines and shapes
-- 🔎 **MapKit services**: search and autocomplete, points of interest, directions and travel times, geocoding, places by id, Apple Maps hand-off and map images, without a map on screen ([details](#-mapkit-services))
-- 👀 **Look Around**: `<LookAroundView>` embeds Apple's street-level imagery, and `lookAroundSnapshot()` makes a picture of it
-- 🧩 **`MapModelLayer`**: or keep your map and draw the 3D over it, including `react-native-maps` and `expo-maps` on iOS
-
-### Accuracy
-
-- 🎯 **Matched to MapKit's own camera** to under a point, measured on device against `MKMapView.convert` (on the globe, checked against MapKit's city labels)
-- ⏱️ **Same-frame motion**: models stay within 0.2 px of MapKit's own overlays while MapKit animates the camera
-- ⚡ **High performance**: Nitro modules, Metal rendering, redraws only when the camera moves or something animates
 
 ## 🗺️ Use Your Own Map
 
