@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- Google's photorealistic 3D map on iOS: `google={{ mode: '3d' }}` now works on both platforms, with the same API as Android: munim models drawn as Google's own glTF models (`modelRendering` `auto` / `native`; `overlay` falls back to native with an error), polylines, polygons and markers drawn natively, `googleMap(ref).flyTo`, `flyAround`, `stopCameraAnimation`, `getCamera3d`, `setCamera3d`, and the `map3dReady`, `map3dSteady`, `cameraAnimationEnd` and `modeChange` events. Turn it on with the Expo plugin's `googleMaps3d: true` (now for iOS too) or `"munimMaps.googleMaps3d": "true"` in `ios/Podfile.properties.json` (`MUNIM_MAPS_GOOGLE_MAPS_3D=1`); the key needs the Maps 3D SDK for iOS. Google ships that SDK only as a SwiftUI Swift package (`GoogleMaps3D` 1.0.0): the new `NitroMunimMaps/Google3D` subspec hosts its map in the Google engine's view, the podspec adds the package to the pod with React Native's `spm_dependency`, and the config plugin adds it to the app target as well, so Xcode embeds its framework (without Expo, add the package to the app target in Xcode). On iOS, `screenSize` is approximated from the camera's distance and `tint` recolours the model's `paint*` materials. See [docs/providers.md](docs/providers.md#google-maps-engine-checklist).
+- `googleMap(ref).map3dDiagnostics()` (iOS): how munim-maps drives the 3D map (camera log, flights, models).
+
+### Changed
+
+- iOS: two-format model sources (`munim-maps-vehicles`) resolve to GLB on the Google engine in 3D mode (`modelFormatFor(provider, modelRendering, googleMode)`).
+- Swift: Mapbox's glTF reader moved to the shared `GLBInfo` (`Core/GLBInfo.swift`), which also writes tinted GLB copies.
+
+Found running Google's photorealistic 3D map on an iPad (Maps 3D SDK for iOS 1.0.0), and worked around:
+
+- The SDK's `flyCameraTo` / `flyCameraAround` modifiers fly to the camera of the previous SwiftUI update, so munim-maps flies the camera itself through the map's camera binding.
+- Changes to a model the map already shows are applied one SwiftUI update late, so a still model that changes is drawn anew (markers, polylines and polygons are too); moving models are updated in place.
+- glTF models are read Z-up and turned by their +Z axis: munim-maps stands them up (`tilt` -90) and turns them 180°.
+- A package product of a static-library pod is linked into the app but not embedded, so the config plugin adds the package to the app target too.
+
+
 ## [0.5.0] - 2026-10-07
 
 munim-maps is one API over five map engines (MapKit, Google Maps, Mapbox, MapLibre and Cesium) on iOS and Android, and ships no 3D models any more: the vehicle catalogue is the separate `munim-maps-vehicles` package. See [docs/providers.md](docs/providers.md).

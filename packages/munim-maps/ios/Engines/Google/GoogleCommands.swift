@@ -10,6 +10,7 @@ extension GoogleMapEngine {
     _ command: String, arguments: [String: Any], completion: @escaping (Result<Any, Error>) -> Void
   ) {
     let args = GoogleJSON(arguments)
+    if let mode3d, mode3d.command(command, args, completion: completion) { return }
     func done(_ value: Any = NSNull()) { completion(.success(value)) }
     func fail(_ message: String) { completion(.failure(MunimMapEngineError("Google Maps: \(message)"))) }
 

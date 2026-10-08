@@ -578,7 +578,7 @@ function Example() {
         return
       }
       // munimmapsexample://google(/3d)(/checks): the Google engine screen
-      // (3d: Google's photorealistic 3D map, Android).
+      // (3d: Google's photorealistic 3D map).
       if (/:\/\/google/.test(url ?? '')) {
         setLaunching(false)
         setGoogleChecks(url?.includes('checks') ?? false)

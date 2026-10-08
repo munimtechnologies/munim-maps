@@ -92,7 +92,7 @@ module.exports = ({ config }) => withLocalVehicleServer(withReactNativeMapsGoogl
         googleMapsApiKey: keys.GOOGLE_MAPS_API_KEY || undefined,
         mapboxAccessToken: keys.MAPBOX_ACCESS_TOKEN || undefined,
         cesiumIonToken: keys.CESIUM_ION_TOKEN || undefined,
-        // Android: Google's photorealistic 3D SDK for google={{ mode: '3d' }}.
+        // Google's photorealistic 3D SDK for google={{ mode: '3d' }} (iOS and Android).
         googleMaps3d: true,
       },
     ],
