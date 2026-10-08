@@ -30,6 +30,7 @@
     "maplibre/page",
     "scripts/maplibre/copy-maplibre-web.js",
     "scripts/cesium/copy-cesium.js",
+    "scripts/google3d/embed-google-maps-3d.sh",
     "app.plugin.js",
     "android/build.gradle",
     "android/fix-prefab.gradle",

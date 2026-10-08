@@ -562,6 +562,30 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
 
   override fun getVisibleRegion(): MapRegion? = camera?.region ?: camera?.let { MapRegion(it.latitude, it.longitude, 0.0, 0.0) }
 
+  // The page's own camera and region for JavaScript's promises: the state
+  // posted from the page arrives 150 ms after the camera stops, so it can
+  // still be the previous camera's (seen on a Galaxy after fitToCoordinates).
+
+  override fun fetchCamera(completion: (MapCamera?) -> Unit) {
+    if (!pageReady) return completion(getCamera())
+    call("getCamera") { result ->
+      val d = result.getOrNull() as? JSONObject
+      completion(d?.takeIf { it.has("latitude") }?.let {
+        MapCamera(it.optDouble("latitude"), it.optDouble("longitude"), it.optDouble("distance"), it.optDouble("pitch"), it.optDouble("heading"))
+      } ?: getCamera())
+    }
+  }
+
+  override fun fetchVisibleRegion(completion: (MapRegion?) -> Unit) {
+    if (!pageReady) return completion(getVisibleRegion())
+    call("getVisibleRegion") { result ->
+      val d = result.getOrNull() as? JSONObject
+      completion(d?.takeIf { it.has("latitudeDelta") }?.let {
+        MapRegion(it.optDouble("latitude"), it.optDouble("longitude"), it.optDouble("latitudeDelta"), it.optDouble("longitudeDelta"))
+      } ?: getVisibleRegion())
+    }
+  }
+
   override fun setRegion(region: MapRegion, durationMs: Double) =
     call("setRegion", JSONObject().put("region", CesiumJson.value(region)).put("durationMs", durationMs))
 

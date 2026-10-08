@@ -491,6 +491,37 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
                               span: MKCoordinateSpan(latitudeDelta: 0, longitudeDelta: 0))
   }
 
+  // The page's own camera and region for JavaScript's promises: the state
+  // posted from the page arrives 150 ms after the camera stops, so it can
+  // still be the previous camera's (seen on a Galaxy after fitToCoordinates).
+
+  func fetchCamera(_ completion: @escaping (MunimCamera) -> Void) {
+    guard pageReady else { return completion(camera) }
+    call("getCamera") { [weak self] result in
+      guard let self else { return }
+      let d = (try? result.get()) as? [String: Any]
+      guard let d, let lat = (d["latitude"] as? NSNumber)?.doubleValue, let lng = (d["longitude"] as? NSNumber)?.doubleValue else {
+        return completion(self.camera)
+      }
+      completion(MunimCamera(latitude: lat, longitude: lng, distance: (d["distance"] as? NSNumber)?.doubleValue ?? self.camera.distance,
+                             pitch: (d["pitch"] as? NSNumber)?.doubleValue ?? 0, heading: (d["heading"] as? NSNumber)?.doubleValue ?? 0))
+    }
+  }
+
+  func fetchVisibleRegion(_ completion: @escaping (MKCoordinateRegion) -> Void) {
+    guard pageReady else { return completion(visibleRegion) }
+    call("getVisibleRegion") { [weak self] result in
+      guard let self else { return }
+      let d = (try? result.get()) as? [String: Any]
+      let n = { (key: String) in (d?[key] as? NSNumber)?.doubleValue }
+      guard let lat = n("latitude"), let lng = n("longitude"), let dLat = n("latitudeDelta"), let dLng = n("longitudeDelta") else {
+        return completion(self.visibleRegion)
+      }
+      completion(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                                    span: MKCoordinateSpan(latitudeDelta: dLat, longitudeDelta: dLng)))
+    }
+  }
+
   func setRegion(_ region: MKCoordinateRegion, duration: TimeInterval) {
     call("setRegion", ["region": ["latitude": region.center.latitude, "longitude": region.center.longitude,
                                   "latitudeDelta": region.span.latitudeDelta, "longitudeDelta": region.span.longitudeDelta],

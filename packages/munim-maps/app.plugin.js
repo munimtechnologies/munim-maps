@@ -19,6 +19,8 @@
 // Android: gradle.properties `munimMaps.<provider>=true`, manifest
 // `com.google.android.geo.API_KEY` and `munimmaps.cesium_ion_token`
 // meta-data, and the `mapbox_access_token` string resource.
+const path = require('path')
+
 let plugins
 try {
   plugins = require('expo/config-plugins')
@@ -300,112 +302,94 @@ function checkBundledMapLibre(config, options) {
 }
 
 const GOOGLE_MAPS_3D_PACKAGE = 'https://github.com/googlemaps/ios-maps-3d-sdk'
-// Pinned like the Android SDK; MUNIM_MAPS_GOOGLE_MAPS_3D_VERSION (at prebuild
-// and `pod install`) overrides it in both places.
-const GOOGLE_MAPS_3D_VERSION =
-  process.env.MUNIM_MAPS_GOOGLE_MAPS_3D_VERSION || '1.0.0'
-const GOOGLE_MAPS_3D_PRODUCT = 'GoogleMaps3D'
+
+const GOOGLE_MAPS_3D_EMBED_PHASE = '[munim-maps] Embed GoogleMaps3D'
+const GOOGLE_MAPS_3D_EMBED_SCRIPT = path.join(
+  __dirname,
+  'scripts',
+  'google3d',
+  'embed-google-maps-3d.sh'
+)
 
 /**
- * Adds Google's `GoogleMaps3D` Swift package to the app target, so Xcode
- * embeds its dynamic framework in the app. The pod compiles against the
- * same package (React Native's `spm_dependency`, in NitroMunimMaps.podspec),
- * but a package product linked by a static-library pod is only linked into
- * the app, not embedded: without this the app stops at launch with
- * `Library not loaded: @rpath/GoogleMaps3D.framework/GoogleMaps3D`.
- * Idempotent; `project` is the `xcode` package's project.
+ * Embeds Google's Maps 3D SDK in the app: a Run Script phase at the end of
+ * the app target runs scripts/google3d/embed-google-maps-3d.sh, which copies
+ * the SDK's dynamic framework and resource bundle into the app. The pod
+ * compiles and links against the `GoogleMaps3D` Swift package (React Native's
+ * `spm_dependency`, in NitroMunimMaps.podspec), but a static-library pod
+ * cannot embed it: without this the app stops at launch with
+ * `Library not loaded: @rpath/GoogleMaps3D.framework/GoogleMaps3D`. (Linking
+ * the package product into the app target too, as 0.5.1 builds before the
+ * release did, links its wrapper twice: Debug builds fail with duplicate
+ * symbols.) Idempotent, and removes that package link from older prebuilds;
+ * `project` is the `xcode` package's project, `iosRoot` the ios folder.
  */
-function addGoogleMaps3dPackage(project, version = GOOGLE_MAPS_3D_VERSION) {
+function addGoogleMaps3dPackage(project, iosRoot) {
+  removeGoogleMaps3dPackageLink(project)
   const objects = project.hash.project.objects
-  const section = (name) => (objects[name] = objects[name] ?? {})
-  const entries = (name) =>
-    Object.entries(section(name)).filter(([key]) => !key.endsWith('_comment'))
   const unquote = (value) => String(value ?? '').replace(/^"(.*)"$/, '$1')
-  const packageComment = 'XCRemoteSwiftPackageReference "ios-maps-3d-sdk"'
-
-  let packageId = entries('XCRemoteSwiftPackageReference').find(
-    ([, value]) => unquote(value.repositoryURL) === GOOGLE_MAPS_3D_PACKAGE
-  )?.[0]
-  if (!packageId) {
-    packageId = project.generateUuid()
-    section('XCRemoteSwiftPackageReference')[packageId] = {
-      isa: 'XCRemoteSwiftPackageReference',
-      repositoryURL: `"${GOOGLE_MAPS_3D_PACKAGE}"`,
-      requirement: { kind: 'exactVersion', version },
-    }
-    section('XCRemoteSwiftPackageReference')[`${packageId}_comment`] =
-      packageComment
-  } else {
-    section('XCRemoteSwiftPackageReference')[packageId].requirement = {
-      kind: 'exactVersion',
-      version,
-    }
-  }
-  const root = objects.PBXProject[project.hash.project.rootObject]
-  root.packageReferences = root.packageReferences ?? []
-  if (!root.packageReferences.some((ref) => ref.value === packageId)) {
-    root.packageReferences.push({ value: packageId, comment: packageComment })
-  }
-
-  const app = entries('PBXNativeTarget').find(
-    ([, value]) =>
+  const app = Object.entries(objects.PBXNativeTarget ?? {}).find(
+    ([key, value]) =>
+      !key.endsWith('_comment') &&
       unquote(value.productType) === 'com.apple.product-type.application'
   )
   if (!app) throw new Error('munim-maps: no app target in the Xcode project')
   const [targetId, target] = app
-
-  let productId = entries('XCSwiftPackageProductDependency').find(
-    ([, value]) =>
-      value.package === packageId &&
-      unquote(value.productName) === GOOGLE_MAPS_3D_PRODUCT
-  )?.[0]
-  if (!productId) {
-    productId = project.generateUuid()
-    section('XCSwiftPackageProductDependency')[productId] = {
-      isa: 'XCSwiftPackageProductDependency',
-      package: packageId,
-      package_comment: packageComment,
-      productName: GOOGLE_MAPS_3D_PRODUCT,
-    }
-    section('XCSwiftPackageProductDependency')[`${productId}_comment`] =
-      GOOGLE_MAPS_3D_PRODUCT
+  const script = iosRoot
+    ? `"\${SRCROOT}/${path.relative(iosRoot, GOOGLE_MAPS_3D_EMBED_SCRIPT)}"`
+    : `"${GOOGLE_MAPS_3D_EMBED_SCRIPT}"`
+  const shellScript = `bash ${script}\n`
+  const phases = objects.PBXShellScriptBuildPhase ?? {}
+  const existing = (target.buildPhases ?? []).find(
+    (phase) => unquote(phases[phase.value]?.name) === GOOGLE_MAPS_3D_EMBED_PHASE
+  )
+  if (existing) {
+    phases[existing.value].shellScript = JSON.stringify(shellScript)
+    return project
   }
-  target.packageProductDependencies = target.packageProductDependencies ?? []
-  if (
-    !target.packageProductDependencies.some((ref) => ref.value === productId)
-  ) {
-    target.packageProductDependencies.push({
-      value: productId,
-      comment: GOOGLE_MAPS_3D_PRODUCT,
-    })
-  }
-
-  const frameworks = project.pbxFrameworksBuildPhaseObj(targetId)
-  if (!frameworks)
-    throw new Error('munim-maps: the app target has no Frameworks build phase')
-  const linked = frameworks.files.some((file) => {
-    const buildFile = section('PBXBuildFile')[file.value]
-    return buildFile && buildFile.productRef === productId
-  })
-  if (!linked) {
-    const buildFileId = project.generateUuid()
-    section('PBXBuildFile')[buildFileId] = {
-      isa: 'PBXBuildFile',
-      productRef: productId,
-      productRef_comment: GOOGLE_MAPS_3D_PRODUCT,
-    }
-    section('PBXBuildFile')[`${buildFileId}_comment`] =
-      `${GOOGLE_MAPS_3D_PRODUCT} in Frameworks`
-    frameworks.files.push({
-      value: buildFileId,
-      comment: `${GOOGLE_MAPS_3D_PRODUCT} in Frameworks`,
-    })
-  }
+  project.addBuildPhase(
+    [],
+    'PBXShellScriptBuildPhase',
+    GOOGLE_MAPS_3D_EMBED_PHASE,
+    targetId,
+    { shellPath: '/bin/sh', shellScript: '' }
+  )
+  const added = (target.buildPhases ?? []).find(
+    (phase) => unquote(objects.PBXShellScriptBuildPhase[phase.value]?.name) === GOOGLE_MAPS_3D_EMBED_PHASE
+  )
+  objects.PBXShellScriptBuildPhase[added.value].shellScript = JSON.stringify(shellScript)
   return project
 }
 
 /** Removes what `addGoogleMaps3dPackage` added (the 3D map turned off). */
 function removeGoogleMaps3dPackage(project) {
+  removeGoogleMaps3dPackageLink(project)
+  const objects = project.hash.project.objects
+  const unquote = (value) => String(value ?? '').replace(/^"(.*)"$/, '$1')
+  const phases = objects.PBXShellScriptBuildPhase ?? {}
+  const ids = Object.keys(phases).filter(
+    (key) =>
+      !key.endsWith('_comment') &&
+      unquote(phases[key].name) === GOOGLE_MAPS_3D_EMBED_PHASE
+  )
+  for (const id of ids) {
+    delete phases[id]
+    delete phases[`${id}_comment`]
+  }
+  for (const [key, value] of Object.entries(objects.PBXNativeTarget ?? {})) {
+    if (key.endsWith('_comment') || !value.buildPhases) continue
+    value.buildPhases = value.buildPhases.filter(
+      (phase) => !ids.includes(phase.value)
+    )
+  }
+  return project
+}
+
+/**
+ * Removes the `GoogleMaps3D` package and its product from the app target, as
+ * 0.5.1 builds before the release added them.
+ */
+function removeGoogleMaps3dPackageLink(project) {
   const objects = project.hash.project.objects
   const unquote = (value) => String(value ?? '').replace(/^"(.*)"$/, '$1')
   const packages = objects.XCRemoteSwiftPackageReference ?? {}
@@ -462,7 +446,8 @@ function withGoogleMaps3dPackage(config, options) {
   const enabled =
     options.googleMaps3d && providersFor(options, 'ios').includes('google')
   return withXcodeProject(config, (c) => {
-    if (enabled) addGoogleMaps3dPackage(c.modResults)
+    if (enabled)
+      addGoogleMaps3dPackage(c.modResults, c.modRequest.platformProjectRoot)
     else removeGoogleMaps3dPackage(c.modResults)
     return c
   })
