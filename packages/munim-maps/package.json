@@ -1,6 +1,6 @@
 {
   "name": "munim-maps",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "React Native Maps for MapKit, Google Maps, Mapbox, MapLibre (OpenStreetMap) and Cesium on iOS and Android, with every engine's features and animated 3D built in: vehicles, people on their floor, rocket launches, satellites on the globe. Expo and Swift Package Manager. Powered by Nitro Modules.",
   "main": "lib/index",
   "module": "lib/index",

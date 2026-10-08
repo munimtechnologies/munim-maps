@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-07
+
+### Fixed
+
+- The README in the npm package was the 0.5.0 one without the MapLibre GL JS renderer (globe, 3D terrain, sky) or `MapModelLayer` over `@rnmapbox/maps` and react-native-maps on Android; it now matches the repository's. No code changes.
+
 ## [0.5.1] - 2026-10-07
 
 Google's photorealistic 3D map on iOS, a globe, 3D terrain and sky for MapLibre (through MapLibre GL JS), and `MapModelLayer` over `@rnmapbox/maps` and react-native-maps on Android.
