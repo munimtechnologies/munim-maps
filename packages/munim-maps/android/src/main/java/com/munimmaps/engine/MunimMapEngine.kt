@@ -258,6 +258,27 @@ interface MunimMapEngine {
   fun providerCommand(command: String, args: JSONObject, completion: (Result<String>) -> Unit) {
     completion(Result.failure(UnsupportedOperationException("${provider.displayName} has no command \"$command\"")))
   }
+
+  // Variants and asynchronous answers (all have defaults)
+
+  /**
+   * Which implementation of [provider] this is, when a provider has more
+   * than one (MapLibre: `""` for MapLibre Native, `"web"` for MapLibre GL
+   * JS). The container replaces the engine when it changes.
+   */
+  val variant: String get() = ""
+
+  /**
+   * The answers JavaScript's promises wait for. Engines whose map lives
+   * elsewhere (a WebView) answer exactly there; the defaults answer with the
+   * synchronous methods above.
+   */
+  fun fetchCamera(completion: (MapCamera?) -> Unit) = completion(getCamera())
+  fun fetchVisibleRegion(completion: (MapRegion?) -> Unit) = completion(getVisibleRegion())
+  fun fetchPoint(coordinate: MapCoordinate, completion: (MapPoint?) -> Unit) = completion(pointForCoordinate(coordinate))
+  fun fetchCoordinate(point: MapPoint, completion: (MapCoordinate?) -> Unit) = completion(coordinateForPoint(point))
+  fun fetchAlignment(completion: (MapAlignmentReport) -> Unit) = completion(measureAlignment())
+  fun fetchOverlayHit(point: MapPoint, completion: (String) -> Unit) = completion(overlayAtPoint(point))
 }
 
 /** The name people know it by, for messages. */

@@ -1,0 +1,219 @@
+html,
+body,
+#map {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f2efe9;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.munim-dark,
+body.munim-dark #map {
+  background: #1c1c1e;
+}
+
+body.munim-globe #map {
+  background: radial-gradient(circle at 50% 45%, #1b2a4a 0%, #0b1026 55%, #05070f 100%);
+}
+
+#munim-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+#munim-ui > * {
+  pointer-events: auto;
+}
+
+/* The 3D layer's pictures, labels and stems: over the map, under markers. */
+.munim-3d-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
+}
+
+.munim-marker {
+  position: absolute;
+  cursor: pointer;
+}
+
+.munim-marker-image canvas {
+  display: block;
+}
+
+.munim-marker-title {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 600 12px -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: #1c1c1e;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+  pointer-events: none;
+  text-align: center;
+}
+
+.munim-dark .munim-marker-title {
+  color: #f2f2f7;
+  text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 3px #000;
+}
+
+.munim-marker-subtitle {
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.munim-cluster {
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 14px -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.munim-control {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1c1c1e;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  padding: 0;
+}
+
+.munim-dark .munim-control {
+  background: rgba(44, 44, 46, 0.92);
+  color: #f2f2f7;
+}
+
+.munim-compass svg {
+  width: 30px;
+  height: 30px;
+}
+
+.munim-scale {
+  position: absolute;
+  height: 18px;
+  font-size: 10px;
+  color: #1c1c1e;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff;
+  pointer-events: none !important;
+}
+
+.munim-scale-bar {
+  height: 4px;
+  border: 1.5px solid #1c1c1e;
+  border-top: none;
+  background: rgba(255, 255, 255, 0.6);
+  margin-top: 1px;
+}
+
+.munim-callout {
+  background: rgba(255, 255, 255, 0.97);
+  color: #1c1c1e;
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  min-width: 60px;
+  max-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 14px -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.munim-dark .munim-callout {
+  background: rgba(44, 44, 46, 0.97);
+  color: #f2f2f7;
+}
+
+.munim-callout::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  margin-left: -7px;
+  border-width: 7px 7px 0;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.97) transparent transparent;
+}
+
+.munim-dark .munim-callout::after {
+  border-top-color: rgba(44, 44, 46, 0.97);
+}
+
+.munim-callout-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.munim-callout-title {
+  font-weight: 600;
+}
+
+.munim-callout-subtitle,
+.munim-callout-detail {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.munim-callout-accessory {
+  border: none;
+  background: none;
+  color: #0a84ff;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.munim-callout-accessory img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.munim-user-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0a84ff;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+}
+
+.munim-user-heading {
+  position: absolute;
+  left: 50%;
+  top: -16px;
+  margin-left: -9px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 14px solid rgba(10, 132, 255, 0.55);
+}

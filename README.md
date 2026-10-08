@@ -62,7 +62,7 @@
 
 ## Introduction
 
-**munim-maps** is one React Native map API over five engines: Apple **MapKit**, **Google Maps**, **Mapbox**, **MapLibre** (open maps: OpenStreetMap data, no key) and **Cesium**, on iOS and Android. Pick the engine per map with `provider`. The shared props, markers, shapes, camera, events and 3D models work the same on every engine, and each engine's own features are there too: Google's indoor maps, Street View and photorealistic 3D; Mapbox's Standard style, globe, terrain and offline packs; MapLibre's full style spec; Cesium's 3D Tiles, CZML and time-dynamic scenes. See [Map Providers](#️-map-providers).
+**munim-maps** is one React Native map API over five engines: Apple **MapKit**, **Google Maps**, **Mapbox**, **MapLibre** (open maps: OpenStreetMap data, no key) and **Cesium**, on iOS and Android. Pick the engine per map with `provider`. The shared props, markers, shapes, camera, events and 3D models work the same on every engine, and each engine's own features are there too: Google's indoor maps, Street View and photorealistic 3D; Mapbox's Standard style, globe, terrain and offline packs; MapLibre's full style spec, and its globe, 3D terrain and sky through MapLibre GL JS; Cesium's 3D Tiles, CZML and time-dynamic scenes. See [Map Providers](#️-map-providers).
 
 Animated 3D is built in: vehicles, people on the floor of a building they are really on, rocket launches, satellites on the globe, zone walls and your own glTF or USDZ models, anchored to real coordinates and moving in the same frame as the map. Engines that draw 3D models themselves (Mapbox, Cesium, Google's 3D map) render them natively, so buildings and terrain hide them; the others use munim-maps' own 3D layer (`modelRendering`). The 57-model vehicle catalogue is the separate `munim-maps-vehicles` package, loaded from a CDN and cached on the device, or bundled one model at a time.
 
@@ -241,7 +241,7 @@ layer.onModelPress = { id in print(id) }
 | Apple MapKit | `'mapkit'` | ✅ Built in, the default | — | None |
 | Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` (Maps SDK 10 + Utils); photorealistic 3D with `NitroMunimMaps/Google3D` (Maps 3D SDK 1.0) | ✅ `munimMaps.google=true` (Maps SDK 20 + maps-utils), the default when on; photorealistic 3D with `munimMaps.googleMaps3d=true` | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ✅ `NitroMunimMaps/Mapbox` (SDK 11.32) | 🔨 `munimMaps.mapbox=true`: built, device check pending | Mapbox public token |
-| MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec | ✅ Built in, the default without Google | None (OpenStreetMap data from OpenFreeMap) |
+| MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec: MapLibre Native, and MapLibre GL JS for the globe, 3D terrain and sky | ✅ Built in, the default without Google (Native and GL JS) | None (OpenStreetMap data from OpenFreeMap; AWS Terrain Tiles) |
 | Cesium | `'cesium'` | ✅ Opt-in (CesiumJS from jsDelivr or bundled, in a WKWebView) | ✅ Opt-in (CesiumJS in a WebView) | None (OpenStreetMap, ellipsoid); a Cesium ion token adds terrain, imagery, buildings |
 
 ```tsx
@@ -376,6 +376,17 @@ Caveats: Mapbox's terms keep the logo and attribution on the map. Models on muni
 
 MapLibre Native draws any [MapLibre style](https://maplibre.org/maplibre-style-spec/); the default is [OpenFreeMap](https://openfreemap.org)'s Liberty style: OpenStreetMap data, free, no key, no account. On iOS add `"maplibre"` to the config plugin's `providers` (or `pod 'NitroMunimMaps/MapLibre'`); on Android it is built in.
 
+MapLibre Native has no globe and no 3D terrain, so the `maplibre` provider also has MapLibre GL JS 5, in a WebView: `maplibre={{ renderer: 'auto' }}` (the default) uses MapLibre Native unless the map asks for the globe (`globe`, `maplibre.projection`), 3D terrain (`maplibre.terrain`) or a sky (`maplibre.sky`), and GL JS then; `'web'` and `'native'` force one. GL JS and three.js load from jsDelivr the first time and stay on the device (or bundle them with `maplibre: { bundledWeb: true }`); munim-maps' 3D layer is drawn inside GL JS, so models stand on the terrain and on the globe:
+
+```tsx
+<MunimMapView
+  provider="maplibre"
+  globe                                   // a globe when zoomed out, Mercator from zoom 12
+  maplibre={{ terrain: { exaggeration: 1.2 }, sky: true, hillshade: true }}
+  models={[{ id: 'heli', coordinate: { latitude: 46.5775, longitude: 7.9605 }, source: VEHICLES['heli-light'], screenSize: 30 }]}
+/>
+```
+
 ```tsx
 import { MunimMapView, maplibreCommands } from 'munim-maps'
 
@@ -407,7 +418,8 @@ await maplibre.offlineCreatePack({ name: 'Loop', bounds: { south, west, north, e
 - **Commands** (`maplibreCommands(ref)`): feature queries, cluster leaves and expansion zoom, `flyTo`, `resetNorth`, an offscreen snapshotter, offline packs with progress events, the ambient cache, database merges.
 - **Markers and shapes** are GeoJSON sources with style layers, so they sit in MapLibre's own layer stack, cluster natively and come back after a style change; munim-maps draws the callouts and the drag.
 - **Services**: `addressForCoordinate` and `openMapsServices` (Nominatim, Photon, OSRM, Valhalla). The public servers are for light use only (Nominatim: one request a second); set your own endpoints with `configureOpenMapsServices` and `maplibre.nominatimUrl` before shipping.
-- **Not in MapLibre Native**: globe projection and 3D terrain (MapLibre GL JS only; `globe` reports an error and the map stays flat), traffic (no data in OpenStreetMap), Apple's place cards and Look Around. Satellite imagery needs your own tiles (`maplibre.satelliteTilesUrl`) or a keyed style.
+- **Globe, 3D terrain, sky**: through the GL JS renderer (above); with `renderer: 'native'` MapLibre Native reports them unsupported and stays flat. GL JS has no offline packs (its commands reject saying so).
+- **Not in MapLibre**: traffic (no data in OpenStreetMap), Apple's place cards and Look Around. Satellite imagery needs your own tiles (`maplibre.satelliteTilesUrl`) or a keyed style.
 - **Attribution**: OpenStreetMap's licence asks for it, so the attribution button stays on unless you move or hide it (`maplibre.ornaments.attribution`).
 
 Every MapLibre option, command and event, with what is left out and why, is in the [MapLibre checklist](docs/providers.md#maplibre-engine-checklist-open-maps).
@@ -712,10 +724,11 @@ A column per engine and platform. ✅ works (checked on a device; Android on an 
 | GLB / glTF models | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Android: Filament (gltfio). See [Bring Your Own Model](#-bring-your-own-model). |
 | USDZ / USD / SCN, OBJ, PLY, STL models | ✅ | ✅ | — | ✅ | — | ✅ | — | ✅ native layer | — | SceneKit / Model I/O, iOS only. |
 | Heading, altitude, scale, `screenSize`, `tint`, spin, `motion` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |  |
-| Models drawn by the engine (`modelRendering`) | — | ✅ 3D map | 🔨 3D map | ✅ | ✅ | — | — | ✅ | ✅ | Mapbox: its model layer; Cesium: entities; Google: the photorealistic 3D map. Elsewhere munim-maps' 3D layer draws them. |
+| Models drawn by the engine (`modelRendering`) | — | ✅ 3D map | 🔨 3D map | ✅ | ✅ | ✅ GL JS | ✅ GL JS | ✅ | ✅ | Mapbox: its model layer; Cesium: entities; Google: the photorealistic 3D map. MapLibre: the GL JS renderer (three.js inside GL JS). Elsewhere munim-maps' 3D layer draws them. |
 | Vehicle catalogue | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | The separate `munim-maps-vehicles` package (57 models): from jsDelivr (cached on the device) or bundled per model; munim-maps picks USDZ or GLB per engine. |
 | Avatars, labels, stems, shapes, effects, zones, paths | ✅ | ✅ | ✅ | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Android's Filament layer draws all of them over any engine; see [docs/providers.md](docs/providers.md#the-android-3d-layer). |
-| Globe | ✅ | — | — | ✅ | 🔨 | — | — | ✅ | ✅ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. MapLibre Native has no globe (MapLibre GL JS only). |
+| Globe | ✅ | — | — | ✅ | 🔨 | ✅ GL JS | ✅ GL JS | ✅ | ✅ | MapKit: a private switch on the standard map; see [Troubleshooting](#the-globe-uses-a-private-mapkit-switch). Cesium is always a globe. MapLibre: the GL JS renderer (MapLibre Native has no globe). |
+| 3D terrain (the map's own), sky | ✅ | — | — | ✅ | 🔨 | ✅ GL JS | ✅ GL JS | ✅ ion token | ✅ ion token | MapLibre: the GL JS renderer, keyless AWS Terrain Tiles; models stand on it. |
 | Hidden behind buildings | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | `occlusion="buildings"`: OpenStreetMap footprints and heights. |
 | Terrain height | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ | Public elevation tiles: `altitudeReference: 'sea'`, `followTerrain`, `groundElevation()`. See [Terrain](#terrain). |
 | Camera API, regions, conversions, gestures | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `setCamera`, `animateCamera`, `getCamera`, `setRegion`, `fitToCoordinates`, `pointForCoordinate`… |
@@ -1370,7 +1383,7 @@ Apps built with Xcode 27 must adopt the scene lifecycle or they crash at launch 
 
 ### Example
 
-`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), the self-test and the lag test, and an engine picker with the same models on every map engine (`munimmapsexample://providers/maplibre`; Android starts there).
+`example/` is an Expo app: Starbase launch pads whose Starships launch on a loop, friends on Chicago skyscrapers, vehicles, power-ups, zone walls, satellites orbiting the globe (`munimmapsexample://orbit`), cities on the globe (`munimmapsexample://cities`), Yosemite in 3D with heights above sea level (`munimmapsexample://terrain`), models over expo-maps (`munimmapsexample://expomaps`), the self-test and the lag test, MapLibre GL JS with the globe, terrain and sky (`munimmapsexample://maplibre/web`, `/checks` runs its checks), and an engine picker with the same models on every map engine (`munimmapsexample://providers/maplibre`; Android starts there).
 
 ```bash
 npm install
@@ -1381,7 +1394,7 @@ Development keys for Google Maps, Mapbox and Cesium are read at build time from 
 
 ## 🛣️ Roadmap
 
-- **Globe and 3D terrain on MapLibre**: as soon as MapLibre Native has them (MapLibre GL JS does).
+- **MapLibre GL JS 6** (ES modules only) and offline tile packs for MapLibre's GL JS renderer; it runs GL JS 5.24 today.
 
 ## 👏 Contributing
 

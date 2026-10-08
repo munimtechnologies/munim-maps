@@ -35,6 +35,7 @@ import { RnMapsGoogleHost } from './LayerOverRnMaps'
 import { GoogleScreen } from './GoogleScreen'
 import { MapboxScreen } from './MapboxScreen'
 import { MapLibreScreen } from './MapLibre'
+import { MapLibreWebScreen } from './MapLibreWeb'
 import { CesiumScreen } from './Cesium'
 
 const avatars = [
@@ -66,7 +67,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'layer-rnmapbox' | 'layer-rnmaps-google' | 'google' | 'mapbox' | 'maplibre' | 'cesium'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'layer-rnmapbox' | 'layer-rnmaps-google' | 'google' | 'mapbox' | 'maplibre' | 'maplibreweb' | 'cesium'
 
 // @rnmapbox/maps is only built into the Android app (react-native.config.js).
 const RnMapboxHost: ComponentType<HostMapProps> | null =
@@ -474,6 +475,8 @@ function Example() {
   const [providersCheck, setProvidersCheck] = useState(false)
   const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
   const [mapLibreCheck, setMapLibreCheck] = useState(false)
+  const [mapLibreWebChecks, setMapLibreWebChecks] = useState(false)
+  const [mapLibreWebStart, setMapLibreWebStart] = useState<'globe' | 'city' | 'alps'>('globe')
   const [cesiumChecks, setCesiumChecks] = useState(false)
   const [orbiting, setOrbiting] = useState(false)
   const [tiles, setTiles] = useState(false)
@@ -606,6 +609,14 @@ function Example() {
         setGoogleChecks(url?.includes('checks') ?? false)
         setGoogle3d(/:\/\/google\/3d/.test(url ?? ''))
         setMode('google')
+        return
+      }
+      // munimmapsexample://maplibre/web(/checks): the GL JS renderer (globe, terrain, sky).
+      if (url && /:\/\/maplibre\/web/.test(url)) {
+        setLaunching(false)
+        setMapLibreWebChecks(url.includes('checks'))
+        setMapLibreWebStart(url.includes('/alps') ? 'alps' : url.includes('/city') ? 'city' : 'globe')
+        setMode('maplibreweb')
         return
       }
       // munimmapsexample://maplibre(/check): every MapLibre feature (and its checks).
@@ -860,6 +871,8 @@ function Example() {
           autoCheck={mapLibreCheck}
           onExit={() => setMode('providers')}
         />
+      ) : mode === 'maplibreweb' ? (
+        <MapLibreWebScreen topInset={insets.top} autoChecks={mapLibreWebChecks} start={mapLibreWebStart} onExit={() => setMode('providers')} />
       ) : mode === 'cesium' ? (
         <CesiumScreen topInset={insets.top} autoChecks={cesiumChecks} onExit={() => setMode('providers')} />
       ) : mode === 'providers' ? (
@@ -1056,7 +1069,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode.startsWith('layer-') || mode === 'google' || mode === 'mapbox' || mode === 'maplibre' || mode === 'cesium') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode.startsWith('layer-') || mode === 'google' || mode === 'mapbox' || mode === 'maplibre' || mode === 'maplibreweb' || mode === 'cesium') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

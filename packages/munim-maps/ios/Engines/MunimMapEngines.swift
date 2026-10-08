@@ -51,6 +51,8 @@ public enum MunimMapEngines {
     case .maplibre:
       #if canImport(MapLibre)
       return MapLibreMapEngineFactory.self
+      #elseif MUNIM_MAPS_MAPLIBRE_WEB
+      return MapLibreWebEngineFactory.self
       #else
       return nil
       #endif
@@ -84,6 +86,61 @@ public enum MunimMapEngines {
       return
     }
     factory.providerCommand(command, arguments: arguments, emit: emit, completion: completion)
+  }
+
+  /// Whether this app has MapLibre GL JS (`NitroMunimMaps/MapLibreWeb`,
+  /// which `NitroMunimMaps/MapLibre` includes).
+  public static var hasMapLibreWeb: Bool {
+    #if MUNIM_MAPS_MAPLIBRE_WEB
+    return true
+    #else
+    return false
+    #endif
+  }
+
+  /// Whether this app has MapLibre Native.
+  public static var hasMapLibreNative: Bool {
+    #if canImport(MapLibre)
+    return true
+    #else
+    return false
+    #endif
+  }
+
+  /// Options that only MapLibre GL JS can draw: the globe and other
+  /// projections, 3D terrain, sky. (JavaScript also counts the `globe` prop
+  /// and sends `renderer: "web"`; this covers options set from Swift.)
+  public static func mapLibreNeedsWeb(_ options: [String: Any]) -> Bool {
+    if let projection = options["projection"] {
+      if let name = projection as? String, name != "mercator" { return true }
+      if projection is [String: Any] { return true }
+    }
+    for key in ["terrain", "sky"] {
+      if let on = options[key] as? Bool { if on { return true } } else if options[key] is [String: Any] { return true }
+    }
+    return false
+  }
+
+  /// Which implementation of `provider` the options ask for (`""` is the
+  /// default one). MapLibre: `renderer` `web` (GL JS), `native` (MapLibre
+  /// Native) or `auto` (Native unless `mapLibreNeedsWeb`), within what the
+  /// app has built in.
+  public static func variant(for provider: MunimMapProvider, options: [String: Any]) -> String {
+    guard provider == .maplibre, hasMapLibreWeb else { return "" }
+    guard hasMapLibreNative else { return "web" }
+    switch options["renderer"] as? String ?? "auto" {
+    case "web": return "web"
+    case "native": return ""
+    default: return mapLibreNeedsWeb(options) ? "web" : ""
+    }
+  }
+
+  /// A new engine for `provider` (and the renderer `options` asks for).
+  public static func make(_ provider: MunimMapProvider, options: [String: Any]) -> MunimMapEngine {
+    #if MUNIM_MAPS_MAPLIBRE_WEB
+    if variant(for: provider, options: options) == "web" { return MapLibreWebEngineFactory.make() }
+    #endif
+    return make(provider)
   }
 
   /// A new engine for `provider`, or a placeholder saying why there is none.

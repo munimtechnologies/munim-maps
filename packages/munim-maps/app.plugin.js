@@ -9,6 +9,7 @@
 //     "mapboxAccessToken": "pk.…",
 //     "cesiumIonToken": "…",
 //     "cesium": { "bundled": true },               // CesiumJS in the app (13 MB) instead of from jsDelivr
+//     "maplibre": { "bundledWeb": true },          // MapLibre GL JS + three.js in the app instead of from jsDelivr
 //     "googleMaps3d": true                         // Google's photorealistic 3D SDK (iOS and Android)
 //   }]
 //
@@ -84,6 +85,16 @@ function cesiumBundled(options, providers) {
   return providers.includes('cesium') && options.cesium?.bundled === true
 }
 
+/**
+ * `maplibre: { bundledWeb: true }`: MapLibre GL JS (the `maplibre`
+ * provider's web renderer) and three.js in the app instead of from jsDelivr.
+ * MapLibre is on by default on Android and opt-in on iOS.
+ */
+function maplibreBundled(options, providers, platform) {
+  const on = platform === 'android' || providers.includes('maplibre')
+  return on && options.maplibre?.bundledWeb === true
+}
+
 function keyFor(value, platform) {
   if (value == null) return undefined
   if (typeof value === 'string') return value
@@ -117,6 +128,11 @@ function withMunimMapsIos(config, options) {
       c.modResults['munimMaps.cesiumBundled'] = 'true'
     } else {
       delete c.modResults['munimMaps.cesiumBundled']
+    }
+    if (maplibreBundled(options, providers, 'ios')) {
+      c.modResults['munimMaps.maplibreBundled'] = 'true'
+    } else {
+      delete c.modResults['munimMaps.maplibreBundled']
     }
     // Google's photorealistic 3D map: the NitroMunimMaps/Google3D subspec,
     // which adds Google's GoogleMaps3D Swift package to the pod.
@@ -178,6 +194,19 @@ function withMunimMapsAndroid(config, options) {
       props.push({
         type: 'property',
         key: 'munimMaps.cesiumBundled',
+        value: 'true',
+      })
+    }
+    // MapLibre GL JS and three.js in the APK (maplibre: { bundledWeb: true }).
+    const indexMapLibre = props.findIndex(
+      (item) =>
+        item.type === 'property' && item.key === 'munimMaps.maplibreBundled'
+    )
+    if (indexMapLibre >= 0) props.splice(indexMapLibre, 1)
+    if (maplibreBundled(options, providers, 'android')) {
+      props.push({
+        type: 'property',
+        key: 'munimMaps.maplibreBundled',
         value: 'true',
       })
     }
@@ -244,6 +273,27 @@ function checkBundledCesium(config, options) {
       resolveCesium({ root: config._internal?.projectRoot ?? process.cwd() })
     )
     if (warning) console.warn(`munim-maps: ${warning}`)
+  } catch (error) {
+    console.warn(`munim-maps: ${error.message}`)
+  }
+}
+
+/** The same for bundled MapLibre GL JS (the app's `maplibre-gl` and `three`). */
+function checkBundledMapLibre(config, options) {
+  const bundled = ['ios', 'android'].some((platform) =>
+    maplibreBundled(options, providersFor(options, platform), platform)
+  )
+  if (!bundled) return
+  const {
+    resolvePackages,
+    warnings,
+  } = require('./scripts/maplibre/copy-maplibre-web')
+  try {
+    const found = resolvePackages({
+      root: config._internal?.projectRoot ?? process.cwd(),
+    })
+    for (const warning of warnings(found))
+      console.warn(`munim-maps: ${warning}`)
   } catch (error) {
     console.warn(`munim-maps: ${error.message}`)
   }
@@ -420,6 +470,7 @@ function withGoogleMaps3dPackage(config, options) {
 
 module.exports = function withMunimMaps(config, options = {}) {
   checkBundledCesium(config, options)
+  checkBundledMapLibre(config, options)
   config = withMunimMapsIos(config, options)
   config = withGoogleMaps3dPackage(config, options)
   config = withMunimMapsAndroid(config, options)

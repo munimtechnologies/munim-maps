@@ -16,14 +16,20 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
   var engine: MunimMapEngine? = null
     private set
 
-  /** Replaces the engine when [provider] differs; returns the new one, or null when unchanged. */
-  fun setProvider(provider: MapProvider): MunimMapEngine? {
-    if (engine?.provider == provider) return null
+  /**
+   * Replaces the engine when [provider] (or, for providers with more than one
+   * renderer, the one [options] ask for) differs; returns the new one, or
+   * null when unchanged.
+   */
+  fun setProvider(provider: MapProvider, options: org.json.JSONObject = org.json.JSONObject()): MunimMapEngine? {
+    val variant = MunimMapEngines.variant(provider, options)
+    val current = engine
+    if (current != null && current.provider == provider && current.variant == variant) return null
     engine?.let {
       removeView(it.view)
       it.destroy()
     }
-    val next = MunimMapEngines.create(provider, context)
+    val next = MunimMapEngines.create(provider, context, options)
     engine = next
     addView(next.view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     layoutChildren()

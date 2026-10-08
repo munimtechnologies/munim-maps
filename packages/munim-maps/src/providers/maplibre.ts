@@ -9,6 +9,11 @@
  * or sources and layers added on top (`sources`, `layers`), with
  * expressions, filters, feature state, images and light, written exactly as
  * in a style JSON. See docs/providers.md for the full checklist.
+ *
+ * Two renderers draw the `maplibre` provider: MapLibre Native (the SDK) and
+ * MapLibre GL JS 5 in a WebView, which adds what Native does not have: the
+ * globe, 3D terrain, sky and atmosphere. `renderer: 'auto'` (default) uses
+ * Native unless the map asks for one of those (`resolveMapLibreRenderer`).
  */
 
 /** A value or an expression from the MapLibre style spec. */
@@ -162,8 +167,63 @@ export interface MapLibreMapOptions {
         opacity?: number
         beforeId?: string
       }
-  /** MapLibre Native has no globe: `'globe'` reports an error. */
-  projection?: 'mercator' | 'globe'
+  /**
+   * Which renderer draws the map. `auto` (default): MapLibre Native, unless
+   * the map asks for something only MapLibre GL JS has (the `globe` prop,
+   * `projection` other than `mercator`, `terrain`, `sky`); then GL JS.
+   * `web` always uses GL JS, `native` always uses MapLibre Native (which
+   * reports what it cannot draw through `onError`). See
+   * `resolveMapLibreRenderer`.
+   */
+  renderer?: MapLibreRenderer
+  /**
+   * The projection: `globe` (GL JS: a globe when zoomed out that turns into
+   * Mercator from zoom 10 to 12; the same as the `globe` prop),
+   * `vertical-perspective` (always a globe), `mercator`, or a style-spec
+   * `projection` (`{ type: … }`, expressions allowed). Anything but
+   * `mercator` needs the GL JS renderer (MapLibre Native has no globe).
+   */
+  projection?:
+    'mercator' | 'globe' | 'vertical-perspective' | { type: StyleValue }
+  /**
+   * 3D terrain (GL JS renderer): `true` for keyless public elevation tiles
+   * (AWS Terrain Tiles, Terrarium encoding, zoom 15), or your `raster-dem`
+   * tiles, a TileJSON `url`, or a `source` already in the style;
+   * `exaggeration` scales heights. `elevation="flat"` turns it off. munim
+   * models, paths and zones sit on it.
+   */
+  terrain?:
+    | boolean
+    | {
+        tiles?: string[]
+        url?: string
+        /** A `raster-dem` source in the style or `sources`. */
+        source?: string
+        encoding?: 'terrarium' | 'mapbox'
+        tileSize?: number
+        maxzoom?: number
+        exaggeration?: number
+        attribution?: string
+      }
+  /**
+   * Sky and atmosphere (GL JS renderer): `true` for munim-maps' default sky
+   * (with the globe's atmosphere when zoomed out), `false` for none, or a
+   * style-spec `sky` (`sky-color`, `horizon-color`, `fog-color`,
+   * `fog-ground-blend`, `horizon-fog-blend`, `sky-horizon-blend`,
+   * `atmosphere-blend`; expressions allowed). The globe and terrain get the
+   * default sky unless this is `false`.
+   */
+  sky?: boolean | Record<string, StyleValue>
+  /** GL JS renderer: vertical field of view in degrees (default 36.87). */
+  fov?: number
+  /** GL JS renderer: label fade duration in milliseconds (default 300). */
+  fadeDuration?: number
+  /**
+   * GL JS renderer: let `maplibreCommands(ref).evaluate({ script })` run
+   * JavaScript in the page (with `map`, `maplibregl` and `munim`), so every
+   * GL JS API is reachable. Off by default.
+   */
+  allowEvaluate?: boolean
   ornaments?: {
     compass?: MapLibreOrnament
     scaleBar?: MapLibreOrnament & { metric?: boolean }
@@ -260,6 +320,53 @@ export interface MapLibreMapOptions {
   httpHeaders?: Record<string, string>
   /** `error`, `warning`, `info`, `debug`, `verbose` or `none`. */
   logLevel?: 'none' | 'error' | 'warning' | 'info' | 'debug' | 'verbose'
+}
+
+export type MapLibreRenderer = 'auto' | 'native' | 'web'
+
+/** What GL JS has and MapLibre Native does not, as the options and props ask for it. */
+export type MapLibreWebFeature = 'globe' | 'projection' | 'terrain' | 'sky'
+
+/**
+ * The renderer `maplibre={{ renderer }}` resolves to, and why. `auto` uses
+ * MapLibre GL JS when the map asks for the globe (`globe` prop or
+ * `projection` other than `mercator`), 3D terrain (`terrain`) or a sky
+ * (`sky`), and MapLibre Native otherwise. A style URL's own `projection`,
+ * `terrain` or `sky` cannot be seen from here: use `renderer: 'web'` for
+ * such styles (a `styleJson` with them is detected).
+ */
+export function resolveMapLibreRenderer(
+  options: MapLibreMapOptions | undefined,
+  props: { globe?: boolean } = {}
+): { renderer: 'native' | 'web'; reasons: MapLibreWebFeature[] } {
+  const reasons: MapLibreWebFeature[] = []
+  const o = options ?? {}
+  if (props.globe) reasons.push('globe')
+  if (o.projection && o.projection !== 'mercator') reasons.push('projection')
+  if (o.terrain) reasons.push('terrain')
+  if (o.sky) reasons.push('sky')
+  const style =
+    typeof o.styleJson === 'string'
+      ? safeParse(o.styleJson)
+      : (o.styleJson as Record<string, unknown> | undefined)
+  if (style) {
+    const projection = style.projection as { type?: unknown } | undefined
+    if (projection && projection.type !== 'mercator') reasons.push('projection')
+    if (style.terrain) reasons.push('terrain')
+    if (style.sky) reasons.push('sky')
+  }
+  const wanted = o.renderer ?? 'auto'
+  if (wanted === 'web') return { renderer: 'web', reasons }
+  if (wanted === 'native') return { renderer: 'native', reasons }
+  return { renderer: reasons.length ? 'web' : 'native', reasons }
+}
+
+function safeParse(text: string): Record<string, unknown> | undefined {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
 }
 
 // MARK: Commands
@@ -457,6 +564,42 @@ export function maplibreCommands(target: CommandTarget | null | undefined) {
     /** Android: tell MapLibre whether it is online (null: let it detect). */
     setConnected: (connected: boolean | null) =>
       run<null>(target, 'setConnected', { connected }),
+
+    // GL JS renderer only
+    /** Which renderer draws the map, and the GL JS and three.js versions. */
+    getRenderer: () =>
+      run<{ renderer: 'web'; maplibre: string; three: string }>(
+        target,
+        'getRenderer'
+      ),
+    setProjection: (projection: MapLibreMapOptions['projection']) =>
+      run<null>(target, 'setProjection', { projection }),
+    getProjection: () => run<{ type: unknown }>(target, 'getProjection'),
+    /** Whether the map is drawn as a globe now (false past zoom 12). */
+    isGlobe: () => run<boolean>(target, 'isGlobe'),
+    setTerrain: (terrain: MapLibreMapOptions['terrain'] | null) =>
+      run<null>(target, 'setTerrain', { terrain }),
+    getTerrain: () =>
+      run<{ source: string; exaggeration?: number } | null>(
+        target,
+        'getTerrain'
+      ),
+    /** Drawn ground height (metres × exaggeration) where terrain tiles are loaded; null without terrain. */
+    queryTerrainElevation: (coordinate: {
+      latitude: number
+      longitude: number
+    }) => run<number | null>(target, 'queryTerrainElevation', { coordinate }),
+    setSky: (sky: Record<string, StyleValue> | null) =>
+      run<null>(target, 'setSky', { sky }),
+    getSky: () => run<Record<string, StyleValue> | null>(target, 'getSky'),
+    /** GL JS `easeTo` / `jumpTo` options (center, zoom, bearing, pitch, roll, padding, duration). */
+    easeTo: (options: Record<string, unknown>) =>
+      run<null>(target, 'easeTo', options),
+    jumpTo: (options: Record<string, unknown>) =>
+      run<null>(target, 'jumpTo', options),
+    /** Runs JavaScript in the page (needs `maplibre={{ allowEvaluate: true }}`); resolves with its JSON result. */
+    evaluate: <T = unknown>(script: string) =>
+      run<T>(target, 'evaluate', { script }),
   }
 }
 
@@ -474,3 +617,7 @@ export type MapLibreEventName =
   | 'renderError'
   | 'offlineProgress'
   | 'offlineError'
+  /** GL JS renderer: once, with `{ renderer: 'web', maplibre }`. */
+  | 'renderer'
+  /** GL JS renderer: the projection changed (globe <-> Mercator). */
+  | 'projectionTransition'

@@ -234,6 +234,22 @@ public protocol MunimMapEngine: AnyObject {
   /// A dragged marker moved (continuously, between drag start and end).
   /// Declare it as a stored property to send it; the default drops it.
   var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get set }
+
+  // MARK: Variants and asynchronous answers (defaults below, for every engine)
+
+  /// Which implementation of `provider` this is, when a provider has more
+  /// than one (MapLibre: `""` for MapLibre Native, `"web"` for MapLibre GL
+  /// JS). The container replaces the engine when it changes.
+  var variant: String { get }
+  /// The answers JavaScript's promises wait for. Engines whose map lives
+  /// elsewhere (a WebView) answer exactly there; the defaults answer with
+  /// the synchronous properties above.
+  func fetchCamera(_ completion: @escaping (MunimCamera) -> Void)
+  func fetchVisibleRegion(_ completion: @escaping (MKCoordinateRegion) -> Void)
+  func fetchPoint(for coordinate: CLLocationCoordinate2D, _ completion: @escaping (CGPoint) -> Void)
+  func fetchCoordinate(for point: CGPoint, _ completion: @escaping (CLLocationCoordinate2D) -> Void)
+  func fetchAlignment(_ completion: @escaping (MunimAlignmentReport) -> Void)
+  func fetchOverlayHit(at point: CGPoint, _ completion: @escaping (String) -> Void)
 }
 
 public extension MunimMapEngine {
@@ -250,6 +266,20 @@ public extension MunimMapEngine {
     completion(.failure(MunimMapEngineError("\(provider.displayName) has no command \"\(command)\"")))
   }
   var onMarkerDrag: ((String, CLLocationCoordinate2D) -> Void)? { get { nil } set {} }
+
+  var variant: String { "" }
+  func fetchCamera(_ completion: @escaping (MunimCamera) -> Void) { completion(camera) }
+  func fetchVisibleRegion(_ completion: @escaping (MKCoordinateRegion) -> Void) { completion(visibleRegion) }
+  func fetchPoint(for coordinate: CLLocationCoordinate2D, _ completion: @escaping (CGPoint) -> Void) {
+    completion(point(for: coordinate))
+  }
+  func fetchCoordinate(for point: CGPoint, _ completion: @escaping (CLLocationCoordinate2D) -> Void) {
+    completion(coordinate(for: point))
+  }
+  func fetchAlignment(_ completion: @escaping (MunimAlignmentReport) -> Void) { completion(measureAlignment()) }
+  func fetchOverlayHit(at point: CGPoint, _ completion: @escaping (String) -> Void) {
+    completion(overlayHit(at: point)?.id ?? "")
+  }
 
   /// Reports that this engine cannot do `what` yet.
   func reportUnsupported(_ what: String) {

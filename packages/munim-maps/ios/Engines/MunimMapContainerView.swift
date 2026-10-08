@@ -18,14 +18,16 @@ public final class MunimMapContainerView: UIView {
 
   public var provider: MunimMapProvider { engine.provider }
 
-  /// Replaces the engine when `provider` differs from the current one.
+  /// Replaces the engine when `provider` (or, for providers with more than
+  /// one renderer, the one `options` asks for) differs from the current one.
   /// Returns the new engine, or nil when nothing changed; the caller then
   /// sets every property on it again.
   @discardableResult
-  public func setProvider(_ provider: MunimMapProvider) -> MunimMapEngine? {
-    guard provider != engine.provider else { return nil }
+  public func setProvider(_ provider: MunimMapProvider, options: [String: Any] = [:]) -> MunimMapEngine? {
+    let variant = MunimMapEngines.variant(for: provider, options: options)
+    guard provider != engine.provider || variant != engine.variant else { return nil }
     engine.view.removeFromSuperview()
-    engine = MunimMapEngines.make(provider)
+    engine = MunimMapEngines.make(provider, options: options)
     install(engine.view)
     return engine
   }

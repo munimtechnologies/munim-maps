@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>munim-maps MapLibre GL JS</title>
+    <!-- MapLibre GL JS (BSD-3-Clause, see maplibre-gl/LICENSE.txt) and
+         three.js (MIT, see three/LICENSE): from jsDelivr through the engine,
+         at pinned versions, or bundled from the app's own `maplibre-gl` and
+         `three` packages. Both are served from this page's own origin. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./three/build/three.module.min.js",
+          "./three/build/three.core.js": "./three/build/three.core.min.js",
+          "three/addons/": "./three/examples/jsm/"
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="maplibre-gl/maplibre-gl.css" />
+    <link rel="stylesheet" href="munim-maplibre.css" />
+    <script src="maplibre-gl/maplibre-gl.js"></script>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="munim-ui"></div>
+    <script src="js/core.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/features.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/commands.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>

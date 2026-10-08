@@ -66,6 +66,7 @@ import type {
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
 import { pointsOfInterestFilter } from './services'
+import { resolveMapLibreRenderer } from './providers/maplibre'
 import {
   defaultProvider,
   parseProviderEvent,
@@ -279,12 +280,13 @@ function resolveUri(
 export function modelFormatFor(
   provider: MapProvider,
   modelRendering?: string,
-  googleMode?: string
+  googleMode?: string,
+  webRenderer = false
 ): ModelFormat {
   if (Platform.OS !== 'ios') return 'glb'
   // Google's 3D map always draws models itself (it has no overlay).
   if (provider === 'google' && googleMode === '3d') return 'glb'
-  if (provider === 'mapbox' || provider === 'cesium') {
+  if (provider === 'mapbox' || provider === 'cesium' || webRenderer) {
     return modelRendering === 'overlay' ? 'usdz' : 'glb'
   }
   return 'usdz'
@@ -865,7 +867,9 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
       modelFormatFor(
         provider,
         modelRenderingFor(provider, props),
-        provider === 'google' ? props.google?.mode : undefined
+        provider === 'google' ? props.google?.mode : undefined,
+        provider === 'maplibre' &&
+          resolveMapLibreRenderer(props.maplibre, props).renderer === 'web'
       )
     )
     const zones = useNativeZones(props.zones)
@@ -1116,7 +1120,10 @@ export * from './providers/mapbox'
 export * from './openMapsServices'
 export {
   maplibreCommands,
+  resolveMapLibreRenderer,
   type MapLibreCommands,
+  type MapLibreRenderer,
+  type MapLibreWebFeature,
   type MapLibreEventName,
   type MapLibreFeature,
   type MapLibreLayer,

@@ -98,6 +98,7 @@ export type ExampleScreen =
   | 'google'
   | 'mapbox'
   | 'maplibre'
+  | 'maplibreweb'
   | 'cesium'
   | 'layer3d'
   | 'layer-rnmapbox'
@@ -117,6 +118,7 @@ const ENGINE_SCREENS: { screen: ExampleScreen; provider: MapProvider; label: str
   { screen: 'google', provider: 'google', label: 'Google' },
   { screen: 'mapbox', provider: 'mapbox', label: 'Mapbox' },
   { screen: 'maplibre', provider: 'maplibre', label: 'MapLibre' },
+  { screen: 'maplibreweb', provider: 'maplibre', label: 'MapLibre GL JS (globe, terrain)' },
   { screen: 'cesium', provider: 'cesium', label: 'Cesium' },
 ]
 
