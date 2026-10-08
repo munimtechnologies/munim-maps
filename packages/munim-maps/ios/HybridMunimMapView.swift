@@ -131,18 +131,28 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   var provider: MapProvider = .mapkit {
     didSet {
       let wanted = MunimMapProvider(rawValue: provider.stringValue) ?? .mapkit
-      guard let engine = container.setProvider(wanted) else { return }
+      guard let engine = container.setProvider(wanted, options: decodedOptions) else { return }
       wire(engine)
       applyAll()
     }
+  }
+
+  private var decodedOptions: [String: Any] {
+    (try? JSONSerialization.jsonObject(with: Data(providerOptions.utf8))) as? [String: Any] ?? [:]
   }
 
   var styleUrl = "" { didSet { map.styleURL = styleUrl } }
 
   var providerOptions = "{}" {
     didSet {
-      let data = Data(providerOptions.utf8)
-      map.providerOptions = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+      let options = decodedOptions
+      // A provider with two renderers (MapLibre Native / GL JS) may need the other one.
+      if let engine = container.setProvider(container.provider, options: options) {
+        wire(engine)
+        applyAll()
+        return
+      }
+      map.providerOptions = options
     }
   }
 
@@ -305,7 +315,9 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
 
   func getCamera() throws -> Promise<MapCamera> {
-    mainPromise { self.map.camera.nitro }
+    let promise = Promise<MapCamera>()
+    DispatchQueue.main.async { self.map.fetchCamera { promise.resolve(withResult: $0.nitro) } }
+    return promise
   }
 
   func setRegion(region: MapRegion, durationMs: Double) throws {
@@ -317,11 +329,14 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
 
   func getVisibleRegion() throws -> Promise<MapRegion> {
-    mainPromise {
-      let r = self.map.visibleRegion
-      return MapRegion(latitude: r.center.latitude, longitude: r.center.longitude,
-                       latitudeDelta: r.span.latitudeDelta, longitudeDelta: r.span.longitudeDelta)
+    let promise = Promise<MapRegion>()
+    DispatchQueue.main.async {
+      self.map.fetchVisibleRegion { r in
+        promise.resolve(withResult: MapRegion(latitude: r.center.latitude, longitude: r.center.longitude,
+                                              latitudeDelta: r.span.latitudeDelta, longitudeDelta: r.span.longitudeDelta))
+      }
     }
+    return promise
   }
 
   func fitToCoordinates(coordinates: [MapCoordinate], padding: EdgeInsets, animated: Bool) throws {
@@ -336,17 +351,23 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
 
   func pointForCoordinate(coordinate: MapCoordinate) throws -> Promise<MapPoint> {
-    mainPromise {
-      let p = self.map.point(for: CLLocationCoordinate2D(coordinate))
-      return MapPoint(x: Double(p.x), y: Double(p.y))
+    let promise = Promise<MapPoint>()
+    DispatchQueue.main.async {
+      self.map.fetchPoint(for: CLLocationCoordinate2D(coordinate)) { p in
+        promise.resolve(withResult: MapPoint(x: Double(p.x), y: Double(p.y)))
+      }
     }
+    return promise
   }
 
   func coordinateForPoint(point: MapPoint) throws -> Promise<MapCoordinate> {
-    mainPromise {
-      let c = self.map.coordinate(for: CGPoint(x: point.x, y: point.y))
-      return MapCoordinate(latitude: c.latitude, longitude: c.longitude)
+    let promise = Promise<MapCoordinate>()
+    DispatchQueue.main.async {
+      self.map.fetchCoordinate(for: CGPoint(x: point.x, y: point.y)) { c in
+        promise.resolve(withResult: MapCoordinate(latitude: c.latitude, longitude: c.longitude))
+      }
     }
+    return promise
   }
 
   func selectMarker(id: String) throws {
@@ -406,11 +427,15 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
   }
 
   func measureAlignment() throws -> Promise<MapAlignmentReport> {
-    mainPromise { self.map.measureAlignment().nitro }
+    let promise = Promise<MapAlignmentReport>()
+    DispatchQueue.main.async { self.map.fetchAlignment { promise.resolve(withResult: $0.nitro) } }
+    return promise
   }
 
   func overlayAtPoint(point: MapPoint) throws -> Promise<String> {
-    mainPromise { self.map.overlayHit(at: CGPoint(x: point.x, y: point.y))?.id ?? "" }
+    let promise = Promise<String>()
+    DispatchQueue.main.async { self.map.fetchOverlayHit(at: CGPoint(x: point.x, y: point.y)) { promise.resolve(withResult: $0) } }
+    return promise
   }
 
   func mapItemForFeature(id: String) throws -> Promise<MapItem> {

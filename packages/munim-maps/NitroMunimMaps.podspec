@@ -12,6 +12,8 @@ munim_maps_subspecs = {
   "google" => "Google",
   "mapbox" => "Mapbox",
   "maplibre" => "MapLibre",
+  # MapLibre GL JS only (globe, terrain, sky), without MapLibre Native.
+  "maplibre-web" => "MapLibreWeb",
   "cesium" => "Cesium",
 }
 
@@ -77,6 +79,53 @@ munim_maps_copy_cesium = lambda do
   "cesium/build/Cesium"
 end
 
+# MapLibre GL JS (the `maplibre` provider's "web" renderer: globe, 3D
+# terrain, sky) and three.js load from jsDelivr by default; munim-maps does
+# not ship them. Bundle them (offline from the first launch) with
+# MUNIM_MAPS_MAPLIBRE_BUNDLED=1 or "munimMaps.maplibreBundled": "true" in
+# ios/Podfile.properties.json (the Expo config plugin's
+# `maplibre: { bundledWeb: true }` writes it): they are then copied from the
+# app's own `maplibre-gl` (and `three`) npm packages at `pod install`.
+munim_maps_maplibre_bundled = lambda do
+  value = ENV["MUNIM_MAPS_MAPLIBRE_BUNDLED"]
+  if value.nil?
+    begin
+      root = Pod::Config.instance.installation_root
+      properties = File.join(root.to_s, "Podfile.properties.json")
+      value = JSON.parse(File.read(properties))["munimMaps.maplibreBundled"] if File.exist?(properties)
+    rescue StandardError
+      value = nil
+    end
+  end
+  ["1", "true", "yes"].include?(value.to_s.strip.downcase)
+end
+
+# Copies GL JS (and three.js) from the app's packages into
+# maplibre/build/web and returns the folders for the MunimMapsMapLibre bundle.
+munim_maps_copy_maplibre = lambda do
+  require "open3"
+  dest = File.join(__dir__, "maplibre", "build", "web")
+  root = begin
+    Pod::Config.instance.installation_root.to_s
+  rescue StandardError
+    Dir.pwd
+  end
+  script = File.join(__dir__, "scripts", "maplibre", "copy-maplibre-web.js")
+  out, err, status = Open3.capture3("node", script, "--root", root, "--dest", dest)
+  unless status.success?
+    message = err.strip.sub(/^error: /, "")
+    message = "munim-maps: could not bundle MapLibre GL JS" if message.empty?
+    raise(defined?(Pod::Informative) ? Pod::Informative : RuntimeError, message)
+  end
+  err.each_line do |line|
+    message = line.strip.sub(/^warning: /, "")
+    next if message.empty?
+    defined?(Pod::UI) ? Pod::UI.warn(message) : warn(message)
+  end
+  Pod::UI.puts(out.strip) if defined?(Pod::UI) && !out.strip.empty?
+  ["maplibre/build/web/maplibre-gl"] + (File.directory?(File.join(dest, "three")) ? ["maplibre/build/web/three"] : [])
+end
+
 Pod::Spec.new do |s|
   s.name         = "NitroMunimMaps"
   s.version      = package["version"]
@@ -135,6 +184,22 @@ Pod::Spec.new do |s|
   s.subspec "MapLibre" do |ss|
     ss.source_files = "ios/Engines/MapLibre/**/*.swift"
     ss.dependency "MapLibre", ">= 6.30"
+    # The GL JS renderer comes with it (`maplibre={{ renderer }}`).
+    ss.dependency "NitroMunimMaps/MapLibreWeb"
+  end
+
+  # MapLibre GL JS in a WKWebView: the `maplibre` provider's "web" renderer
+  # (globe, 3D terrain, sky). Its page (maplibre/page/munim-maplibre) is in
+  # the MunimMapsMapLibre resource bundle; GL JS 5 (BSD-3-Clause) and three.js
+  # (MIT) come from jsDelivr through the engine's URL handler, cached on
+  # disk, or from this bundle when bundled.
+  s.subspec "MapLibreWeb" do |ss|
+    ss.source_files = "ios/Engines/MapLibreWeb/**/*.swift"
+    ss.frameworks = "WebKit", "CoreLocation"
+    maplibre_resources = ["maplibre/page/munim-maplibre"]
+    maplibre_resources += munim_maps_copy_maplibre.call if munim_maps_maplibre_bundled.call
+    ss.resource_bundles = { "MunimMapsMapLibre" => maplibre_resources }
+    ss.pod_target_xcconfig = { "SWIFT_ACTIVE_COMPILATION_CONDITIONS" => "$(inherited) MUNIM_MAPS_MAPLIBRE_WEB" }
   end
 
   # The engine's page (cesium/page/munim-cesium) runs in a WKWebView the

@@ -41,6 +41,8 @@ def getExtOrIntegerDefault(name) {
 //   munimMaps.mapbox=true    Mapbox Maps SDK for Android
 //   munimMaps.maplibre=false MapLibre Native (on by default: no key needed)
 //   munimMaps.cesium=true    Cesium
+//   munimMaps.maplibreWeb=false  MapLibre GL JS (the `maplibre` provider's web
+//                            renderer: globe, terrain, sky; on with MapLibre)
 // Each engine's code is in src/<provider>/java and only compiles when its
 // property is on; the registry (MunimMapEngines) finds it by name.
 def munimMapsProvider(name, defaultValue) {
@@ -62,6 +64,14 @@ def munimMapsProviders = [
   maplibre: munimMapsProvider("maplibre", true),
   cesium  : munimMapsProvider("cesium", false),
 ]
+// MapLibre GL JS in a WebView: on whenever MapLibre is (it adds no SDK, only
+// the page's assets); munimMaps.maplibreWeb=false drops it.
+munimMapsProviders.maplibreWeb = munimMapsProvider("maplibreWeb", munimMapsProviders.maplibre)
+
+// munimMaps.maplibreBundled=true: MapLibre GL JS and three.js in the APK
+// (offline from the first launch) instead of from jsDelivr, copied from the
+// app's own `maplibre-gl` and `three` npm packages (munimMapsCopyMapLibreWeb).
+def munimMapsMapLibreBundled = (project.findProperty("munimMaps.maplibreBundled") ?: "false").toString().toBoolean()
 
 def munimMapsVersions = [
   filament    : project.findProperty("munimMaps.filamentVersion") ?: "1.75.1",
@@ -178,6 +188,12 @@ android {
       if (munimMapsProviders.cesium) {
         assets.srcDirs += ["../cesium/page"]
       }
+      // MapLibre GL JS: the renderer's page as assets under munim-maplibre/;
+      // GL JS and three.js come from jsDelivr (cached on disk) unless
+      // munimMaps.maplibreBundled=true copies them in.
+      if (munimMapsProviders.maplibreWeb) {
+        assets.srcDirs += ["../maplibre/page"]
+      }
       if (isNewArchitectureEnabled()) {
         java.srcDirs += [
           // React Codegen files
@@ -232,6 +248,50 @@ if (munimMapsProviders.cesium && munimMapsCesiumBundled) {
   androidComponents {
     onVariants(selector().all()) { variant ->
       variant.sources.assets?.addGeneratedSourceDirectory(copyCesium) { it.outputDir }
+    }
+  }
+}
+
+// Bundled MapLibre GL JS and three.js: copied from the app's packages into
+// generated assets (munim-maplibre/maplibre-gl/…, munim-maplibre/three/…) by
+// scripts/maplibre/copy-maplibre-web.js.
+abstract class MunimMapsCopyMapLibreWebTask extends DefaultTask {
+  @Input abstract Property<String> getRoot()
+  @Input abstract Property<String> getStamp()
+  @InputFile abstract RegularFileProperty getScript()
+  @OutputDirectory abstract DirectoryProperty getOutputDir()
+  @javax.inject.Inject abstract ExecOperations getExecOperations()
+
+  @TaskAction
+  void copyMapLibre() {
+    def dest = new File(outputDir.get().asFile, "munim-maplibre")
+    def copyScript = script.get().asFile.absolutePath
+    execOperations.exec { spec ->
+      spec.commandLine("node", copyScript, "--root", root.get(), "--dest", dest.absolutePath, "--no-version-warning")
+    }
+  }
+}
+
+if (munimMapsProviders.maplibreWeb && munimMapsMapLibreBundled) {
+  def copyScript = file("../scripts/maplibre/copy-maplibre-web.js")
+  def resolved = providers.exec { spec ->
+    spec.commandLine(["node", copyScript.absolutePath, "--resolve", "--root", rootProject.projectDir.absolutePath])
+    spec.ignoreExitValue = true
+  }
+  if (resolved.result.get().exitValue != 0) {
+    throw new GradleException(resolved.standardError.asText.get().trim())
+  }
+  def found = new groovy.json.JsonSlurper().parseText(resolved.standardOutput.asText.get().trim())
+  if (found.warning) logger.warn("munim-maps: ${found.warning}")
+  def copyMapLibre = tasks.register("munimMapsCopyMapLibreWeb", MunimMapsCopyMapLibreWebTask) { task ->
+    task.root.set(rootProject.projectDir.absolutePath)
+    task.stamp.set("maplibre-gl@${found.maplibre.version} three@${found.three ? found.three.version : '-'}")
+    task.script.set(copyScript)
+    task.outputDir.set(layout.buildDirectory.dir("generated/munim-maps/maplibre-assets"))
+  }
+  androidComponents {
+    onVariants(selector().all()) { variant ->
+      variant.sources.assets?.addGeneratedSourceDirectory(copyMapLibre) { it.outputDir }
     }
   }
 }

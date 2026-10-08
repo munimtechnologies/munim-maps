@@ -6,7 +6,7 @@ import type { CesiumMapOptions } from './cesium'
 import type { GoogleMapOptions } from './google'
 import type { MapboxMapOptions } from './mapbox'
 import type { MapKitMapOptions } from './mapkit'
-import type { MapLibreMapOptions } from './maplibre'
+import { resolveMapLibreRenderer, type MapLibreMapOptions } from './maplibre'
 
 export type {
   CesiumMapOptions,
@@ -166,12 +166,21 @@ export interface ProviderOptionProps {
   cesium?: CesiumMapOptions
 }
 
-/** JSON of the active provider's namespaced options, for the native side. */
+/**
+ * JSON of the active provider's namespaced options, for the native side.
+ * MapLibre's `renderer` arrives resolved (`native` or `web`, see
+ * `resolveMapLibreRenderer`), so the native side picks MapLibre Native or
+ * GL JS without knowing every prop.
+ */
 export function providerOptionsJson(
   provider: MapProvider,
-  props: ProviderOptionProps
+  props: ProviderOptionProps & { globe?: boolean }
 ): string {
-  const options = props[provider] as object | undefined
+  let options = props[provider] as Record<string, unknown> | undefined
+  if (provider === 'maplibre') {
+    const resolved = resolveMapLibreRenderer(props.maplibre, props)
+    options = { ...options, renderer: resolved.renderer }
+  }
   // The shared `modelRendering` reaches the engine with its own options.
   if (props.modelRendering) {
     return JSON.stringify({ ...options, modelRendering: props.modelRendering })

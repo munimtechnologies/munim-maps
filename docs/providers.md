@@ -7,7 +7,7 @@ munim-maps draws the same React Native API (`MunimMapView`, models, markers, sha
 | Apple MapKit | `'mapkit'` | Built in, the default | — (Apple only) | None |
 | Google Maps | `'google'` | ✅ `NitroMunimMaps/Google` subspec | ✅ `munimMaps.google=true` (the default when on); photorealistic 3D with `munimMaps.googleMaps3d=true` | Google Maps SDK key |
 | Mapbox | `'mapbox'` | ✅ `NitroMunimMaps/Mapbox` subspec (Mapbox Maps SDK 11.32) | ✅ `munimMaps.mapbox=true` (11.32, `android-ndk27`) | Mapbox public token (`pk.…`) |
-| MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec (MapLibre Native 6.30+) | ✅ Built in (`munimMaps.maplibre=false` to drop it); the default without Google | None: OpenStreetMap data from [OpenFreeMap](https://openfreemap.org) |
+| MapLibre (open maps) | `'maplibre'` | ✅ `NitroMunimMaps/MapLibre` subspec (MapLibre Native 6.30+, and MapLibre GL JS 5 in a WKWebView for the globe, 3D terrain and sky) | ✅ Built in (`munimMaps.maplibre=false` to drop it); the default without Google; GL JS in a WebView with it (`munimMaps.maplibreWeb`) | None: OpenStreetMap data from [OpenFreeMap](https://openfreemap.org); keyless AWS Terrain Tiles for terrain |
 | Cesium | `'cesium'` | ✅ `NitroMunimMaps/Cesium` subspec (CesiumJS 1.146 in a WKWebView, from jsDelivr or bundled) | ✅ `munimMaps.cesium=true` (in a WebView) | None: OpenStreetMap imagery, ellipsoid. A Cesium ion token adds terrain, Bing imagery, OSM Buildings and ion assets |
 
 Engines other than MapKit (iOS) and MapLibre (Android) are opt-in at build time, so an app only ships the SDKs it uses. An engine that is not built in, or not implemented yet, shows a placeholder saying so and reports it through `onError`.
@@ -30,7 +30,7 @@ configureMunimMaps({
   styleUrl="https://tiles.openfreemap.org/styles/liberty" // MapLibre / Mapbox
   google={{ mapId: '…' }}             // options only one engine reads
   mapbox={{ projection: 'globe' }}
-  maplibre={{ projection: 'globe' }}
+  maplibre={{ projection: 'globe', terrain: true }} // MapLibre GL JS draws these (renderer: 'auto')
   cesium={{ terrain: 'world', photorealistic: true }}
   initialCamera={{ latitude: 41.88, longitude: -87.63, distance: 900, pitch: 55, heading: 30 }}
   models={[{ id: 'bus', coordinate: { latitude: 41.883, longitude: -87.628 }, source: VEHICLES['bus-city'] }]}
@@ -54,6 +54,7 @@ configureMunimMaps({
   "mapboxAccessToken": "pk.…",
   "cesiumIonToken": "…",
   "cesium": { "bundled": false },
+  "maplibre": { "bundledWeb": false },
   "googleMaps3d": false
 }]
 ```
@@ -61,12 +62,13 @@ configureMunimMaps({
 - **iOS**: writes `munimMaps.providers` (and `munimMaps.cesiumBundled`) to `ios/Podfile.properties.json`; the podspec turns those subspecs on (`NitroMunimMaps/Google`…). Keys go to Info.plist: `MunimMapsGoogleMapsApiKey`, `MBXAccessToken`, `MunimMapsCesiumIonToken`. With the Google engine the pod needs iOS 16.
 - **Android**: writes `munimMaps.<provider>=true` (and `munimMaps.googleMaps3d`, `munimMaps.cesiumBundled`) to `android/gradle.properties`; `android/build.gradle` adds that engine's source set and SDK. With Mapbox it adds Mapbox's Maven repository (public, no secret token) to the app's `android/build.gradle` `allprojects.repositories`. Keys go to the manifest (`com.google.android.geo.API_KEY`, `munimmaps.cesium_ion_token` meta-data) and `mapbox_access_token` in strings.xml.
 - `cesium: { bundled: true }` puts CesiumJS (13 MB) in the app, copied from the app's own `cesium` npm package (`npm install cesium@1.146.0`; prebuild warns when it is missing or another version); by default the Cesium engine loads it from jsDelivr the first time and keeps it on disk (see [Cesium engine](#cesium-engine)).
+- `maplibre: { bundledWeb: true }` puts MapLibre GL JS (1.1 MB) and three.js (2.2 MB unminified) in the app, copied from the app's own `maplibre-gl` and `three` npm packages (`npm install maplibre-gl@5.24.0 three@0.186.1`); by default the GL JS renderer loads them from jsDelivr the first time and keeps them on disk (see [MapLibre GL JS renderer](#maplibre-gl-js-renderer-globe-3d-terrain-sky)). It writes `munimMaps.maplibreBundled` (Podfile.properties.json, gradle.properties).
 - `googleMaps3d: true` adds Google's photorealistic 3D SDK on Android (`google={{ mode: '3d' }}`).
 
 ### Without Expo
 
-- **iOS**: `pod 'NitroMunimMaps/Google', :path => '../node_modules/munim-maps'` (and `/Mapbox`, `/MapLibre`, `/Cesium`) in the Podfile, or `MUNIM_MAPS_PROVIDERS=google,maplibre pod install`. `MUNIM_MAPS_CESIUM_BUNDLED=1` bundles CesiumJS from the app's `cesium` package (`MUNIM_MAPS_CESIUM_DIR=<folder>` for another one). The Google engine needs iOS 16; apps that also use react-native-maps need `pod 'react-native-maps/Google'` (react-native-maps registers its Google map whenever the GoogleMaps pod is present, and the app stops at launch without it).
-- **Android**: `munimMaps.google=true` (and `mapbox`, `cesium`; `maplibre=false` to drop MapLibre; `googleMaps3d`, `cesiumBundled` with `cesiumDir` to copy CesiumJS from somewhere else than the app's `cesium` package) in `android/gradle.properties`. With Mapbox, add `maven { url 'https://api.mapbox.com/downloads/v2/releases/maven' }` to `allprojects.repositories` in `android/build.gradle`. SDK versions can be pinned with `munimMaps.maplibreVersion`, `munimMaps.googleMapsVersion`, `munimMaps.googleMapsUtilsVersion`, `munimMaps.googleMaps3dVersion`, `munimMaps.mapboxVersion`, `munimMaps.filamentVersion`.
+- **iOS**: `pod 'NitroMunimMaps/Google', :path => '../node_modules/munim-maps'` (and `/Mapbox`, `/MapLibre`, `/Cesium`) in the Podfile, or `MUNIM_MAPS_PROVIDERS=google,maplibre pod install`. `MUNIM_MAPS_CESIUM_BUNDLED=1` bundles CesiumJS from the app's `cesium` package (`MUNIM_MAPS_CESIUM_DIR=<folder>` for another one). `NitroMunimMaps/MapLibre` includes `NitroMunimMaps/MapLibreWeb` (MapLibre GL JS); `MUNIM_MAPS_PROVIDERS=maplibre-web` (or `pod 'NitroMunimMaps/MapLibreWeb'`) builds GL JS alone, without MapLibre Native; `MUNIM_MAPS_MAPLIBRE_BUNDLED=1` bundles GL JS and three.js from the app's packages (`MUNIM_MAPS_MAPLIBRE_GL_DIR`, `MUNIM_MAPS_THREE_DIR` for other folders). The Google engine needs iOS 16; apps that also use react-native-maps need `pod 'react-native-maps/Google'` (react-native-maps registers its Google map whenever the GoogleMaps pod is present, and the app stops at launch without it).
+- **Android**: `munimMaps.google=true` (and `mapbox`, `cesium`; `maplibre=false` to drop MapLibre; `maplibreWeb=false` to drop MapLibre GL JS, `maplibreBundled=true` to put GL JS and three.js in the APK; `googleMaps3d`, `cesiumBundled` with `cesiumDir` to copy CesiumJS from somewhere else than the app's `cesium` package) in `android/gradle.properties`. With Mapbox, add `maven { url 'https://api.mapbox.com/downloads/v2/releases/maven' }` to `allprojects.repositories` in `android/build.gradle`. SDK versions can be pinned with `munimMaps.maplibreVersion`, `munimMaps.googleMapsVersion`, `munimMaps.googleMapsUtilsVersion`, `munimMaps.googleMaps3dVersion`, `munimMaps.mapboxVersion`, `munimMaps.filamentVersion`.
 
 ## Shared API across engines
 
@@ -80,7 +82,8 @@ configureMunimMaps({
 | Google 2D map (iOS, Android) | the 3D layer | the 3D layer, with an `onError` saying so | the 3D layer |
 | Google 3D map (`google={{ mode: '3d' }}`, Android) | Google's glTF `Model`s | Google's models | Google's models, with an `onError` (its camera has no projection the overlay can follow) |
 | Mapbox (iOS, Android) | Mapbox's `model` layer for still glTF bodies; the 3D layer for animated files, labels, stems, effects, occluders, USDZ and shapes | every glTF body in Mapbox; their labels, stems and effects on the 3D layer | everything on the 3D layer |
-| MapLibre (iOS, Android) | the 3D layer | the 3D layer | the 3D layer |
+| MapLibre Native (iOS, Android) | the 3D layer | the 3D layer | the 3D layer |
+| MapLibre GL JS (`maplibre.renderer` `web`, or `auto` with the globe, terrain or sky) | everything drawn inside GL JS (a three.js custom layer: models, shapes, avatars, labels, stems, effects, zones, paths), on the globe and the terrain; USDZ / SCN / OBJ files on the 3D layer (iOS) | the same | everything on the 3D layer over the WebView (flat map; not hidden by terrain) |
 | Cesium (iOS, Android) | Cesium entities and glTF models for everything Cesium can draw (avatars, labels, stems, shapes, effects, zones and paths too); USDZ / SCN / OBJ files and occluders on the 3D layer | everything as Cesium entities (USDZ and occluders skipped) | everything on the 3D layer over the WebView |
 
 Native models are lit and shadowed with the map and hidden by its own buildings and terrain; the 3D layer draws over the map (with `occlusion="buildings"` to hide models behind buildings). `google.modelRendering`, `mapbox.modelRendering` and `cesium.modelRendering` are aliases (the shared prop wins); Cesium's older `modelRenderer` still works. Natively, every engine takes the app's 3D content through one hook with defaults: `setModels` / `setZones` / `setPaths` (Swift `MunimMapEngine`, Kotlin `MunimMapEngine`): an engine draws what it can and hands the rest to `modelLayer`; `modelLayerDidChange()` tells it the layer's lighting, occlusion, terrain or distance settings changed.
@@ -125,7 +128,7 @@ What an app moving off react-native-maps (MapKit on iOS) or @rnmapbox/maps (Mapb
 | Dashes `[4, 10]`, `[6, 4]` | `dashPattern` | ✅ | 🟡 iOS draws them as spans in metres · ✅ Android | ✅ | ✅ | ✅ |
 | Follow the user with heading, re-armed by setting the mode again | `userTrackingMode="followWithHeading"` + `onUserTrackingModeChange` | ✅ | 🟡 munim-maps follows (Google has no tracking modes) | ✅ Mapbox viewport | ✅ location component | ✅ |
 | User puck with a heading cone and a pulse | `showsUserLocation` + the engine's puck options | ✅ MapKit's own (heading beam while following with heading) | 🟡 Google's blue dot (no cone or pulse options) | ✅ `mapbox.puck` (`bearing: 'heading'`, `pulsing`) | 🟡 Android: `maplibre.location` `pulse`, compass render mode; iOS: MapLibre's heading indicator | 🟡 a dot drawn by the page; heading follows the camera |
-| 3D models, globe and lighting in the same map | `models`, `globe`, `lighting` | ✅ (globe: a private switch) | 🟡 no globe | ✅ | 🟡 no globe (MapLibre Native) | ✅ |
+| 3D models, globe and lighting in the same map | `models`, `globe`, `lighting` | ✅ (globe: a private switch) | 🟡 no globe | ✅ | ✅ (globe: the GL JS renderer) | ✅ |
 
 ## Feature matrix
 
@@ -136,8 +139,9 @@ What an app moving off react-native-maps (MapKit on iOS) or @rnmapbox/maps (Mapb
 | Map on screen | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
 | `styleUrl` / built-in styles (`mapStyle`) | ✅ styles | ✅ map types, JSON styles, `styleUrl` = JSON style | 🔨 | ✅ | 🔨 | ✅ | ✅ `styleUrl` | ✅ `mapStyle`, `cesium.imagery` | ✅ `mapStyle`, `cesium.imagery` |
 | Dark mode (`colorScheme`) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
-| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🔨 | ✅ | 🔨 | 🟡 buildings, no 3D terrain | 🟡 buildings, no 3D terrain | ✅ ion token | ✅ ion token |
-| Globe (`globe`) | ✅ | — | — | ✅ | 🔨 | — (not in MapLibre Native) | — | ✅ always | ✅ always |
+| 3D buildings, terrain (`elevation`, `showsBuildings`) | ✅ | ✅ buildings; no terrain | 🔨 | ✅ | 🔨 | ✅ buildings; 3D terrain with the GL JS renderer (`maplibre.terrain`) | ✅ buildings; 3D terrain with the GL JS renderer (`maplibre.terrain`) | ✅ ion token | ✅ ion token |
+| Globe (`globe`) | ✅ | — | — | ✅ | 🔨 | ✅ GL JS renderer (MapLibre Native has none) | ✅ GL JS renderer (MapLibre Native has none) | ✅ always | ✅ always |
+| Sky, fog, atmosphere | — | — | — | ✅ | 🔨 | ✅ GL JS renderer (`maplibre.sky`) | ✅ GL JS renderer (`maplibre.sky`) | ✅ | ✅ |
 | `initialCamera`, `setCamera`, `animateCamera`, `getCamera` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
 | `flyCamera` / `stopFlight` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🟡 built, not yet device-checked | ✅ | ✅ |
 | `setRegion`, `getVisibleRegion`, `fitToCoordinates` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ | ✅ | ✅ |
@@ -150,7 +154,7 @@ What an app moving off react-native-maps (MapKit on iOS) or @rnmapbox/maps (Mapb
 | `MarkerView` (React Native views as markers) | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 |
 | `onMarkerDrag` (continuous drag) | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | 🔨 | 🔨 |
 | `region`, `initialRegion`, `onRegionChangeStart`, `onRegionChangeComplete`, `animateToRegion` | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 |
-| `modelRendering` (engine-drawn models) | — overlay only | — overlay only | 🔨 3D mode | ✅ | 🔨 | — overlay only | — overlay only | ✅ | ✅ |
+| `modelRendering` (engine-drawn models) | — overlay only | — overlay only | 🔨 3D mode | ✅ | 🔨 | ✅ GL JS renderer (three.js inside GL JS); Native: overlay | ✅ GL JS renderer (three.js inside GL JS); Native: overlay | ✅ | ✅ |
 | Polylines, polygons, circles | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
 | Gradient / animated polylines, overlay taps | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
 | Tile overlays | ✅ | ✅ | 🔨 | ✅ | 🔨 | ✅ | 🔨 | ✅ | ✅ |
@@ -201,6 +205,7 @@ MunimMapView (JS)  ──provider, props──▶  HybridMunimMapView (Swift / K
 | `Core/MunimModelLayer.swift`, `Core/MapModelRenderer.swift` | The SceneKit 3D layer; `attach(to: MapCameraSource)` |
 | `Engines/MapKit/` | The MapKit engine (`MunimMapKitView`, the reference implementation; it does not adopt the defaults, so the compiler checks it implements everything) and `MapKitCameraSource` |
 | `Engines/Google/`, `Mapbox/`, `MapLibre/`, `Cesium/` | One folder per engine, each wrapped in `#if canImport(GoogleMaps)` / `MapboxMaps` / `MapLibre` / `#if MUNIM_MAPS_CESIUM`, compiled only with its subspec |
+| `Engines/MapLibreWeb/` | The `maplibre` provider's GL JS renderer (`variant` `"web"`, `#if MUNIM_MAPS_MAPLIBRE_WEB`, the `NitroMunimMaps/MapLibreWeb` subspec): the WKWebView host, the URL handler and GL JS's camera maths; its page is `maplibre/page/munim-maplibre/` |
 
 ### Android (`packages/munim-maps/android/`)
 
@@ -216,6 +221,7 @@ MunimMapView (JS)  ──provider, props──▶  HybridMunimMapView (Swift / K
 | `…/models/ModelEffects.kt`, `BuildingOccluder.kt`, `TerrainElevation.kt`, `CameraFlight.kt` | Particle effects, building occlusion (vector tiles), `MunimTerrain` (Terrarium tiles), `flyCamera` on the layer's frame clock |
 | `…/com/margelo/nitro/munimmaps/Hybrid*.kt` | The Nitro views and `MunimMapsConfig` |
 | `src/<provider>/java/com/munimmaps/engines/<provider>/` | One source set per engine, compiled only when `munimMaps.<provider>=true` (MapLibre: on by default) |
+| `src/maplibreWeb/java/com/munimmaps/engines/maplibreweb/` | The `maplibre` provider's GL JS renderer (`munimMaps.maplibreWeb`, on with MapLibre): the WebView host and GL JS's camera maths |
 
 ## The Android 3D layer
 
@@ -272,7 +278,7 @@ For each engine:
 
 - **Example deep links** (checks never run on their own, except the MapKit self-test on a plain iOS launch, `Documents/munim-maps-selftest.json`, which includes the MapKit parity screen's checks):
   - `munimmapsexample://providers[/<provider>][/check]`: the engine picker, which opens every other screen (Android starts here); `/check` runs the shared region checks on that engine (`Documents/munim-maps-shared-checks-<provider>.json`, `MUNIM_MAPS_SHARED` log lines).
-  - `munimmapsexample://google[/checks]` (`Documents/munim-maps-google-checks.json`), `mapbox[/checks|/native]` (`munim-maps-mapbox-checks.json`), `maplibre[/check]` (`munim-maps-maplibre-check.json`), `cesium[/checks]` (`munim-maps-cesium-checks.json`): each engine's screen with every feature group; the suffix runs its checks.
+  - `munimmapsexample://google[/checks]` (`Documents/munim-maps-google-checks.json`), `mapbox[/checks|/native]` (`munim-maps-mapbox-checks.json`), `maplibre[/check]` (`munim-maps-maplibre-check.json`, MapLibre Native), `maplibre/web[/checks]` (`munim-maps-maplibre-web-checks.json`, `MUNIM_MAPLIBRE_WEB_CHECK` log lines: the GL JS renderer with the globe, terrain and sky), `cesium[/checks]` (`munim-maps-cesium-checks.json`): each engine's screen with every feature group; the suffix runs its checks.
   - `munimmapsexample://layer3d[/<provider>][/check][/cam/lat,lon,distance,pitch,heading][/noocclusion]`: every 3D layer group on one engine.
   - `munimmapsexample://parity`, `terrain`, `expomaps`, `features`, `globe`, `cities`, `orbit`, `demo/<shot>`, `lagtest` (iOS).
   - Models come from munim-maps-vehicles on jsDelivr; before it is published, build with `EXPO_PUBLIC_MUNIM_MAPS_VEHICLES_BASE_URL=<url>` and serve `packages/munim-maps-vehicles` there (`python3 -m http.server`, or a tunnel to it). A fast compile check of the engine code without the SDKs: typecheck `ios/Core` and `ios/Engines` with `swiftc -typecheck -sdk iphonesimulator`, adding empty stand-in modules named `GoogleMaps`, `MapboxMaps`, `MapLibre` (`-I`) and `-D MUNIM_MAPS_CESIUM` to compile every engine's stub.
@@ -481,8 +487,9 @@ Every capability in the public surface of MapLibre Native for iOS (6.30, the new
 | Light | `MLNLight` | `Style.getLight()` | `maplibre.light` (style-spec `light`) | ✅ | 🔨 |
 | Label language | `localizeLabelsIntoLocale:` | no API | `maplibre.labelLanguage` (rewrites `text-field` to `name:<lang>` with a fallback, on both) | ✅ | 🔨 |
 | Local CJK glyphs | `MLNIdeographicFontFamilyName` (Info.plist) | `MapLibreMapOptions.localIdeographFontFamily` | Android: `maplibre.localIdeographFontFamily`; iOS: the Info.plist key | ❌ Info.plist only | 🔨 |
-| Globe projection | not in MapLibre Native (GL JS only) | not in MapLibre Native | `globe` / `maplibre.projection: 'globe'` report "not supported" | ❌ SDK has none | ❌ SDK has none |
-| 3D terrain | not in MapLibre Native | not in MapLibre Native | `elevation="realistic"` stays flat; hillshade and color relief instead | ❌ SDK has none | ❌ SDK has none |
+| Globe projection | not in MapLibre Native (GL JS only) | not in MapLibre Native | `globe` / `maplibre.projection: 'globe'` switch to the [GL JS renderer](#maplibre-gl-js-renderer-globe-3d-terrain-sky) (`renderer: 'native'` keeps Native, which reports "not supported") | ✅ GL JS | ✅ GL JS |
+| 3D terrain | not in MapLibre Native | not in MapLibre Native | `maplibre.terrain` switches to the GL JS renderer (keyless AWS Terrain Tiles, `exaggeration`); `elevation="flat"` turns it off | ✅ GL JS | ✅ GL JS |
+| Sky, fog, atmosphere | not in MapLibre Native | not in MapLibre Native | `maplibre.sky` switches to the GL JS renderer | ✅ GL JS | ✅ GL JS |
 | 3D buildings | `fill-extrusion` layers | same | `showsBuildings` toggles the style's building layers | ✅ | 🔨 |
 | Points of interest | style `poi` layers | same | `pointsOfInterest` (`all`, `none`, OpenMapTiles `class` names) | ✅ | 🔨 |
 | Traffic | no traffic data in OpenStreetMap | same | `showsTraffic` reports unsupported | ❌ no data | ❌ no data |
@@ -614,6 +621,35 @@ munim-maps draws markers and shapes on MapLibre as GeoJSON sources with style la
 
 - Coordinate, distance, clock and compass direction formatters (`MLNCoordinateFormatter`…): Foundation formatters, not map features; JavaScript has `Intl`.
 - Android plugins (annotation, offline, localization, scale bar, building, markerview): separate artifacts whose features munim-maps implements itself (markers, offline, label language, scale bar, buildings, `MarkerView`).
+
+### MapLibre GL JS renderer: globe, 3D terrain, sky
+
+MapLibre Native (iOS 6.30, Android 13.6) has no globe and no 3D terrain; MapLibre GL JS 5 has both. So the `maplibre` provider has two renderers, chosen with `maplibre={{ renderer }}`:
+
+| `renderer` | Draws with |
+| --- | --- |
+| `'auto'` (default) | MapLibre Native, unless the map asks for something only GL JS has (below); then GL JS |
+| `'web'` | MapLibre GL JS 5 in a WebView the engine owns, always |
+| `'native'` | MapLibre Native, always (what it cannot draw is reported through `onError`, as before) |
+
+**What makes `auto` use GL JS** (`resolveMapLibreRenderer(options, { globe })` tells you, with the reasons):
+
+- the `globe` prop, or `maplibre.projection` other than `'mercator'` (`'globe'`, `'vertical-perspective'`, or a style-spec projection object);
+- `maplibre.terrain` (3D terrain);
+- `maplibre.sky` (sky, fog and the globe's atmosphere);
+- a `maplibre.styleJson` whose style has its own `projection` (not Mercator), `terrain` or `sky`.
+
+A style loaded from `styleUrl` / `maplibre.style` with its own globe, terrain or sky cannot be seen from JavaScript without downloading it: use `renderer: 'web'` for such styles. Everything else (hillshade, colour relief, `fill-extrusion` buildings, every other layer type, PMTiles, MLT) MapLibre Native draws, so `auto` keeps Native for it. JavaScript resolves `auto` and sends `renderer: 'native' | 'web'` to the native side, which swaps engines when it changes (`MunimMapEngine.variant`: `""` for Native, `"web"` for GL JS); Swift and Kotlin apps that set options directly get the same rule (`MunimMapEngines.variant(for:options:)`).
+
+**GL JS from a pinned CDN, or bundled.** The renderer's page (`packages/munim-maps/maplibre/page/munim-maplibre/`: `index.html`, `js/`, CSS, about 160 KB) is always in the app. MapLibre GL JS **5.24.0** (BSD-3-Clause; `maplibre-gl.js` and `maplibre-gl.css`, 1.1 MB) and, only when the map has models, zones or paths, **three.js 0.186.1** (MIT; the ES module build, minified by jsDelivr, and the `GLTFLoader`, `SkeletonUtils`, `BufferGeometryUtils` and `RoomEnvironment` addons, about 970 KB) come from `https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/` and `https://cdn.jsdelivr.net/npm/three@0.186.1/`: the page asks for `maplibre-gl/…` and `three/…` on its own origin and the engine's URL handler fetches each file once, writes it to the cache folder (`munim-maps-maplibre/maplibre-gl@5.24.0/`, `…/three@0.186.1/`) and serves it, so the page stays same-origin (GL JS's worker, ES modules and an import map, no CSP or CORS changes) and works offline after the first load. Self-host with Info.plist `MunimMapsMapLibreGLBaseURL` / `MunimMapsThreeBaseURL` or manifest meta-data `munimmaps.maplibre_gl_base_url` / `munimmaps.three_base_url` (folders with the same files as those versions). To ship them in the app instead (offline from the first launch): add `maplibre-gl` **5.24.0** (and `three` **0.186.1**) to the app's dependencies and turn on the config plugin's `maplibre: { bundledWeb: true }`, `MUNIM_MAPS_MAPLIBRE_BUNDLED=1` / `"munimMaps.maplibreBundled": "true"` for CocoaPods, `munimMaps.maplibreBundled=true` for Gradle. munim-maps does not ship GL JS or three.js: `scripts/maplibre/copy-maplibre-web.js` copies them with their licences (`LICENSE.txt`, BSD-3-Clause; `LICENSE`, MIT) from the app's packages at `pod install` (into the `MunimMapsMapLibre` resource bundle) and in the Gradle task `munimMapsCopyMapLibreWeb` (generated assets, `munim-maplibre/maplibre-gl/`, `munim-maplibre/three/`). Another version builds with a warning; a missing `maplibre-gl` stops the build; without `three` the 3D layer still loads three.js from jsDelivr. GL JS 6 is ES modules only and not supported yet. `npm run check:maplibre` checks the pins (copy-maplibre-web.js, MapLibreWebSupport.swift, MapLibreWebEngine.kt) agree and that the npm package carries neither library.
+
+**Where it lives.** iOS: `ios/Engines/MapLibreWeb/` in the `NitroMunimMaps/MapLibreWeb` subspec (WebKit; `#if MUNIM_MAPS_MAPLIBRE_WEB`), which `NitroMunimMaps/MapLibre` includes; `MUNIM_MAPS_PROVIDERS=maplibre-web` builds GL JS alone, without MapLibre Native (then `maplibre` always uses GL JS). The page is served from the `MunimMapsMapLibre` resource bundle through a `munim-maplibre://` URL scheme handler. Android: `android/src/maplibreWeb/` (`munimMaps.maplibreWeb`, on whenever MapLibre is; it adds no SDK), served from the APK's assets at `https://appassets.androidplatform.net/`. Both halves speak the Cesium engine's message protocol (`{ t: 'set' | 'call' | 'init' }` in, `{ t: 'event' | 'cam' | 'result' }` out).
+
+**munim-maps' 3D layer inside GL JS.** Models, avatars, labels, stems, zones, paths and effects are drawn by the page, in GL JS's own WebGL context, as a custom style layer (`munim-3d`) rendered with three.js. Each model is drawn in its own local frame (metres, east-up-south) with the matrix GL JS gives custom layers for a model at that point (`getMatrixForModel`, Mercator or globe) times the frame's projection, blended between the globe and Mercator exactly as GL JS blends its tiles from zoom 10 to 12 (the matrices are linear, so blending them blends every vertex), so models stay on the map on the flat map, on the globe and through the transition, with float64 maths on the CPU and small numbers on the GPU at any zoom. Models with `altitudeReference: 'ground'` stand on the terrain under them (`queryTerrainElevation`, the drawn height with exaggeration), not on the height of the camera's centre: `followTerrain` is always on here. `'sea'` altitudes are metres above sea level, not exaggerated. The layer shares GL JS's depth buffer: terrain hides models behind mountains; it sits under the style's 3D buildings, so buildings in front of a model hide it and translucent ones show it through them (`occlusion="buildings"` puts it over them, so they hide models completely); on the globe GL JS's depth is not a camera depth, so models draw over the map there. Pictures (avatars), labels and stems are drawn on a 2D canvas over the map in the same frame (always facing the camera and crisp, as on the other engines; hidden on the far side of the globe). Effects: exhaust and smoke are particles simulated in the page, contrails ribbons through the model's recent positions. Zones are fading walls with a ground outline, paths 3D ribbons a fixed number of points wide, both on the terrain (rebuilt as terrain tiles load). glTF models are turned half a turn (glTF faces +Z; munim models face north at heading 0), `tint` recolours `paint…` materials, embedded animations play, `screenSize` sizes the model's height in points from the eye's distance, lighting follows `lighting` (`auto` follows dark mode) with an image-based environment for metals. `measureAlignment()` compares each model's ground point through the layer's matrices with `map.project` (which puts it on the terrain): within a thousandth of a point on the flat map, the globe and terrain in the checks below. `modelRendering: 'overlay'` instead draws everything with munim-maps' native layer (SceneKit / Filament) over the WebView on GL JS's camera, as on the Native renderer: it aligns on the flat map, but is not hidden by terrain, trails the WebView by a frame while the camera moves, and does not follow the globe's projection exactly; USDZ, SCN and OBJ files (iOS) always go to the native layer.
+
+**What it reaches.** Every shared prop, event and method (markers of every style with badges, titles, callouts and accessories, dragging with continuous `onMarkerDrag`, screen-space clustering with `clusterStyles`, `MarkerView` as an image marker, polylines with dashes, gradients, caps, joins, geodesic segments and `strokeStart` / `strokeEnd`, polygons with holes, circles, tile overlays, overlay taps and `overlayAtPoint`, `onMapFeaturePress` on OpenMapTiles layers, camera, regions, fitting, flights, limits, padding, gestures, compass, scale, tracking button, user location, snapshots, Nominatim addresses); every MapLibre option that GL JS has (styles, presets, dark style, imagery, `sources`, `layers`, `images`, `light`, `transition`, `hillshade` and `colorRelief`, label language, buildings, points of interest, ornaments, camera limits and roll, `pixelRatio`, debug drawing, HTTP headers); and the MapLibre commands with the same names and arguments (queries, cluster commands, runtime styling, feature state, `flyTo`, `resetNorth`, `resetPosition`, `metersPerPoint`, `getStyle`, `reloadStyle`, the offscreen `snapshot`). GL JS-only extras (`maplibreCommands(ref)`): `getRenderer`, `setProjection` / `getProjection` / `isGlobe`, `setTerrain` / `getTerrain` / `queryTerrainElevation`, `setSky` / `getSky`, `easeTo` / `jumpTo` with GL JS options, and `evaluate({ script })` with `maplibre={{ allowEvaluate: true }}` (runs JavaScript with `map`, `maplibregl` and `munim`), so every GL JS API is reachable. Events: `renderer` (once), `styleLoaded`, `mapLoadFailed`, `cameraMoveStarted`, `idle`, `renderedMap`, `sourceChanged`, `styleImageMissing`, `renderError`, `projectionTransition`.
+
+**Left out on the GL JS renderer, and why:** offline packs, the ambient cache, database merges and `setConnected` (GL JS has no offline database; tiles stay in the WebView's HTTP cache; the commands reject saying so), placement transitions and the Native-only gesture, rendering and location-puck options (no GL JS equivalent; ignored), the `queryRenderedFeatures` check that markers are style layers (markers are DOM elements here, so they follow terrain and the globe and drag natively; `getStyle` lists the shape layers). Synchronous Swift / Kotlin getters (`point(for:)`, `coordinate(for:)`, `camera`, `visibleRegion`) use the camera the page last reported at the centre's ground height; JavaScript's promises (`pointForCoordinate`, `coordinateForPoint`, `getCamera`, `getVisibleRegion`, `measureAlignment`, `overlayAtPoint`) ask GL JS itself (`MunimMapEngine.fetch…` hooks). WebGL in a WebView uses more memory than MapLibre Native; if the content process is killed, iOS reloads the page with every prop and Android reports `onError` (remount the map).
 
 ## Cesium engine
 

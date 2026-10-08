@@ -66,6 +66,7 @@ import type {
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
 import { pointsOfInterestFilter } from './services'
+import { resolveMapLibreRenderer } from './providers/maplibre'
 import {
   defaultProvider,
   parseProviderEvent,
@@ -277,10 +278,11 @@ function resolveUri(
  */
 export function modelFormatFor(
   provider: MapProvider,
-  modelRendering?: string
+  modelRendering?: string,
+  webRenderer = false
 ): ModelFormat {
   if (Platform.OS !== 'ios') return 'glb'
-  if (provider === 'mapbox' || provider === 'cesium') {
+  if (provider === 'mapbox' || provider === 'cesium' || webRenderer) {
     return modelRendering === 'overlay' ? 'usdz' : 'glb'
   }
   return 'usdz'
@@ -858,7 +860,12 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const provider = props.provider ?? defaultProvider()
     const models = useNativeModels(
       props.models,
-      modelFormatFor(provider, modelRenderingFor(provider, props))
+      modelFormatFor(
+        provider,
+        modelRenderingFor(provider, props),
+        provider === 'maplibre' &&
+          resolveMapLibreRenderer(props.maplibre, props).renderer === 'web'
+      )
     )
     const zones = useNativeZones(props.zones)
     const paths = useNativePaths(props.paths)
@@ -1108,7 +1115,10 @@ export * from './providers/mapbox'
 export * from './openMapsServices'
 export {
   maplibreCommands,
+  resolveMapLibreRenderer,
   type MapLibreCommands,
+  type MapLibreRenderer,
+  type MapLibreWebFeature,
   type MapLibreEventName,
   type MapLibreFeature,
   type MapLibreLayer,

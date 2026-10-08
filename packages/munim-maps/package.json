@@ -27,6 +27,8 @@
     "vehicles-glb.js",
     "vehicles-glb.d.ts",
     "cesium/page",
+    "maplibre/page",
+    "scripts/maplibre/copy-maplibre-web.js",
     "scripts/cesium/copy-cesium.js",
     "app.plugin.js",
     "android/build.gradle",
@@ -145,6 +147,7 @@
     "vehicles.js",
     "vehicles-glb.js",
     "cesium/",
+    "maplibre/",
     "android/build/"
   ],
   "prettier": {

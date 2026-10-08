@@ -29,7 +29,8 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   }
 
   override fun afterUpdate() {
-    val next = container.setProvider(provider) ?: return
+    // A provider with two renderers (MapLibre Native / GL JS) may need the other one.
+    val next = container.setProvider(provider, options(providerOptions)) ?: return
     next.listener = listener
     applyAll(next)
   }
@@ -271,16 +272,18 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override fun stopFlight() = onMain { it.stopFlight() }
 
   override fun getCamera(): Promise<MapCamera> = mainPromise { e, p ->
-    val camera = e.getCamera()
-    if (camera != null) p.resolve(camera) else p.reject(IllegalStateException("The camera is not known yet"))
+    e.fetchCamera { camera ->
+      if (camera != null) p.resolve(camera) else p.reject(IllegalStateException("The camera is not known yet"))
+    }
   }
 
   override fun setRegion(region: MapRegion, durationMs: Double) = onMain { it.stopFlight(); it.setRegion(region, durationMs) }
   override fun animateToRegion(region: MapRegion, durationMs: Double) = setRegion(region, durationMs)
 
   override fun getVisibleRegion(): Promise<MapRegion> = mainPromise { e, p ->
-    val region = e.getVisibleRegion()
-    if (region != null) p.resolve(region) else p.reject(IllegalStateException("The region is not known yet"))
+    e.fetchVisibleRegion { region ->
+      if (region != null) p.resolve(region) else p.reject(IllegalStateException("The region is not known yet"))
+    }
   }
 
   override fun fitToCoordinates(coordinates: Array<MapCoordinate>, padding: EdgeInsets, animated: Boolean) =
@@ -292,13 +295,15 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   }
 
   override fun pointForCoordinate(coordinate: MapCoordinate): Promise<MapPoint> = mainPromise { e, p ->
-    val point = e.pointForCoordinate(coordinate)
-    if (point != null) p.resolve(point) else p.reject(UnsupportedOperationException("pointForCoordinate is not available"))
+    e.fetchPoint(coordinate) { point ->
+      if (point != null) p.resolve(point) else p.reject(UnsupportedOperationException("pointForCoordinate is not available"))
+    }
   }
 
   override fun coordinateForPoint(point: MapPoint): Promise<MapCoordinate> = mainPromise { e, p ->
-    val coordinate = e.coordinateForPoint(point)
-    if (coordinate != null) p.resolve(coordinate) else p.reject(UnsupportedOperationException("coordinateForPoint is not available"))
+    e.fetchCoordinate(point) { coordinate ->
+      if (coordinate != null) p.resolve(coordinate) else p.reject(UnsupportedOperationException("coordinateForPoint is not available"))
+    }
   }
 
   override fun selectMarker(id: String) = onMain { it.selectMarker(id) }
@@ -322,9 +327,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     e.openLookAround(coordinate) { p.resolve(it) }
   }
 
-  override fun measureAlignment(): Promise<MapAlignmentReport> = mainPromise { e, p -> p.resolve(e.measureAlignment()) }
+  override fun measureAlignment(): Promise<MapAlignmentReport> = mainPromise { e, p -> e.fetchAlignment { p.resolve(it) } }
 
-  override fun overlayAtPoint(point: MapPoint): Promise<String> = mainPromise { e, p -> p.resolve(e.overlayAtPoint(point)) }
+  override fun overlayAtPoint(point: MapPoint): Promise<String> = mainPromise { e, p -> e.fetchOverlayHit(point) { p.resolve(it) } }
 
   override fun mapItemForFeature(id: String): Promise<MapItem> =
     Promise.rejected(UnsupportedOperationException("mapItemForFeature is MapKit only"))
