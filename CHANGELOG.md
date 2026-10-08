@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-07
+
+Google's photorealistic 3D map on iOS, a globe, 3D terrain and sky for MapLibre (through MapLibre GL JS), and `MapModelLayer` over `@rnmapbox/maps` and react-native-maps on Android.
+
 ### Added
 
 - **MapLibre: globe, 3D terrain and sky** through a second renderer for the `maplibre` provider, MapLibre GL JS 5 in a WebView, since MapLibre Native has neither. `maplibre={{ renderer: 'auto' | 'native' | 'web' }}`: `auto` (default) keeps MapLibre Native unless the map asks for something only GL JS has (the `globe` prop, `maplibre.projection` other than Mercator, `maplibre.terrain`, `maplibre.sky`, or a `styleJson` with its own projection, terrain or sky; `resolveMapLibreRenderer()` tells you which and why). New options: `projection: 'globe' | 'vertical-perspective' | {…}`, `terrain` (`true` for keyless AWS Terrain Tiles, or your `raster-dem` tiles, with `exaggeration`), `sky` (`true`, `false` or a style-spec `sky`, with the globe's atmosphere), `fov`, `fadeDuration`, `allowEvaluate`. The same API as the Native renderer (markers with dragging and continuous `onMarkerDrag`, clustering, callouts, `MarkerView`, shapes with dashes and gradients, tile overlays, camera, regions, fitting, flights, conversions on the terrain, the whole style spec at runtime, the MapLibre commands, `onProviderEvent`), plus `maplibreCommands(ref)` `getRenderer`, `setProjection`, `getProjection`, `isGlobe`, `setTerrain`, `getTerrain`, `queryTerrainElevation`, `setSky`, `getSky`, `easeTo`, `jumpTo` and `evaluate`, and the `renderer` and `projectionTransition` events.
