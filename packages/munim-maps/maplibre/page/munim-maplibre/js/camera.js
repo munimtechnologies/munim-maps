@@ -70,8 +70,23 @@
     }
   }
 
+  /**
+   * GL JS 5 freezes the centre's ground height for every animation and only
+   * thaws it with `freezeElevation`, so after an ease the centre stays at the
+   * old height (a jump to the Alps would keep Chicago's): thaw it once the
+   * camera rests, so the centre follows the terrain under it again.
+   */
+  M.thawElevation = function () {
+    const map = M.map
+    if (map && map._elevationFreeze && !map.isMoving()) {
+      map._elevationFreeze = false
+      map.triggerRepaint()
+    }
+  }
+
   M.applyCamera = function (cam) {
     M.map.jumpTo(M.viewForCamera(cam))
+    M.thawElevation()
   }
 
   const EASE_IN_OUT = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
@@ -255,6 +270,7 @@
       M.emit('cameraMove', M.munimCamera())
     })
     map.on('moveend', () => {
+      M.thawElevation()
       postCamera(true)
       M.emit('cameraChange', M.munimCamera())
       const range = M.state.distanceRange

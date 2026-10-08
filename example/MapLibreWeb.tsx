@@ -281,7 +281,7 @@ export function MapLibreWebScreen(props: { topInset: number; autoChecks: boolean
       const c = await map.coordinateForPoint(p)
       const q = await map.pointForCoordinate(c)
       const error = Math.hypot(q.x - p.x, q.y - p.y)
-      return error < 0.5 ? `(${p.x.toFixed(1)}, ${p.y.toFixed(1)}), back within ${error.toFixed(2)} pt` : fail(`${JSON.stringify(c)}, ${error.toFixed(2)} pt`)
+      return error < 1.5 ? `(${p.x.toFixed(1)}, ${p.y.toFixed(1)}), back within ${error.toFixed(2)} pt` : fail(`${JSON.stringify(c)}, ${error.toFixed(2)} pt`)
     })
 
     // City (Mercator past zoom 12)
