@@ -149,7 +149,7 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function GoogleScreen(props: { topInset: number; autoCheck: boolean; photo3d?: boolean; onExit?: () => void }) {
+export function GoogleScreen(props: { topInset: number; autoCheck: boolean; photo3d?: boolean; camera3d?: number[]; onExit?: () => void }) {
   const ref = useRef<MunimMapViewRef | null>(null)
   const [ready, setReady] = useState(false)
   const [events, setEvents] = useState<string[]>([])
@@ -508,6 +508,21 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.autoCheck, ready])
+
+  // munimmapsexample://google/3d/cam/<lat>,<lng>,<altitude>,<heading>,<tilt>,<range>
+  // starts the 3D map at that camera (side and top-down views of the models).
+  useEffect(() => {
+    const cam = props.camera3d
+    if (!ready || !photo3d || !cam) return
+    const [latitude, longitude, altitude, heading, tilt, range] = cam as [number, number, number, number, number, number]
+    const apply = () => {
+      if (!ref.current) return
+      void googleMap(ref.current).setCamera3d({ latitude, longitude, altitude, heading, tilt, range }).catch((e) => log(String(e)))
+    }
+    // The 3D map may still be loading its module when the screen is ready.
+    const timers = [1500, 5000, 10000].map((ms) => setTimeout(apply, ms))
+    return () => timers.forEach(clearTimeout)
+  }, [ready, photo3d, props.camera3d, log])
 
   const g = () => (ref.current ? googleMap(ref.current) : undefined)
 
