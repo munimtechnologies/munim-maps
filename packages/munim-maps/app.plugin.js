@@ -355,9 +355,12 @@ function addGoogleMaps3dPackage(project, iosRoot) {
     { shellPath: '/bin/sh', shellScript: '' }
   )
   const added = (target.buildPhases ?? []).find(
-    (phase) => unquote(objects.PBXShellScriptBuildPhase[phase.value]?.name) === GOOGLE_MAPS_3D_EMBED_PHASE
+    (phase) =>
+      unquote(objects.PBXShellScriptBuildPhase[phase.value]?.name) ===
+      GOOGLE_MAPS_3D_EMBED_PHASE
   )
-  objects.PBXShellScriptBuildPhase[added.value].shellScript = JSON.stringify(shellScript)
+  objects.PBXShellScriptBuildPhase[added.value].shellScript =
+    JSON.stringify(shellScript)
   return project
 }
 
