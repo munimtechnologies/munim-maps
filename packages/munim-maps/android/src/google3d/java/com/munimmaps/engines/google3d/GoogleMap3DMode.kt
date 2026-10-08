@@ -236,6 +236,14 @@ class GoogleMap3DMode(
   private fun altitudeMode(m: NativeMapModel) =
     if (m.altitudeReference == MapAltitudeReference.SEA) AltitudeMode.ABSOLUTE else AltitudeMode.RELATIVE_TO_GROUND
 
+  /**
+   * Google's Maps 3D SDK reads glTF files Z-up and turns a model's +Z to its
+   * heading; munim-maps' models (like every glTF) are Y-up and face -Z. So
+   * they are stood up (tilt -90) and turned 180°, as on iOS: without this the
+   * bus stood on its tail and the balloon lay on its side (checked on a Galaxy).
+   */
+  private fun orientation(heading: Double) = Orientation((heading + 180.0).mod(360.0), -90.0, 0.0)
+
   private fun scale(m: NativeMapModel): Double = options["modelScale"].double(1.0) * (if (m.scale > 0) m.scale else 1.0)
 
   private fun applyModels() {
@@ -251,7 +259,7 @@ class GoogleMap3DMode(
       if (existing != null && existing.first == key) continue
       if (existing != null && existing.second.url == modelUrls[m.uri]) {
         existing.second.position = position(m, m.latitude, m.longitude, m.altitude)
-        existing.second.orientation = Orientation(m.heading, 0.0, 0.0)
+        existing.second.orientation = orientation(m.heading)
         val s = scale(m)
         existing.second.scale = Vector3D(s, s, s)
         existing.second.altitudeMode = altitudeMode(m)
@@ -264,7 +272,7 @@ class GoogleMap3DMode(
         nativeModels.remove(id)?.second?.remove()
         val s = scale(m)
         val model = map.addModel(ModelOptions(id, position(m, m.latitude, m.longitude, m.altitude), url,
-          altitudeMode(m), Vector3D(s, s, s), Orientation(m.heading, 0.0, 0.0)))
+          altitudeMode(m), Vector3D(s, s, s), orientation(m.heading)))
         model.setClickListener { host.modelPressed(id) }
         nativeModels[id] = key to model
       }
@@ -298,7 +306,7 @@ class GoogleMap3DMode(
         }
       }
       model.position = position(m, lat, lng, alt)
-      model.orientation = Orientation(heading, 0.0, 0.0)
+      model.orientation = orientation(heading)
     }
   }
 

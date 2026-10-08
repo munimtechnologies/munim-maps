@@ -471,6 +471,7 @@ function Example() {
   const [layerOverTexture, setLayerOverTexture] = useState(false)
   const [googleChecks, setGoogleChecks] = useState(false)
   const [google3d, setGoogle3d] = useState(false)
+  const [google3dCamera, setGoogle3dCamera] = useState<number[] | undefined>()
   const [providersCheck, setProvidersCheck] = useState(false)
   const [mapboxChecks, setMapboxChecks] = useState<boolean | 'native'>(false)
   const [mapLibreCheck, setMapLibreCheck] = useState(false)
@@ -605,6 +606,9 @@ function Example() {
         setLaunching(false)
         setGoogleChecks(url?.includes('checks') ?? false)
         setGoogle3d(/:\/\/google\/3d/.test(url ?? ''))
+        // .../cam/<lat>,<lng>,<altitude>,<heading>,<tilt>,<range>: the 3D camera to start at.
+        const cam = /cam\/([-\d.,]+)/.exec(url ?? '')?.[1]?.split(',').map(Number)
+        setGoogle3dCamera(cam?.length === 6 ? cam : undefined)
         setMode('google')
         return
       }
@@ -845,6 +849,7 @@ function Example() {
           topInset={insets.top}
           autoCheck={googleChecks}
           photo3d={google3d}
+          camera3d={google3dCamera}
           onExit={() => setMode('providers')}
         />
       ) : mode === 'mapbox' ? (
