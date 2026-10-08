@@ -21,6 +21,7 @@ extension GoogleMapEngine {
   // MARK: Polylines
 
   func applyPolylines() {
+    mode3d?.setPolylines(polylines)
     guard let mapView else { return }
     var wanted = Set<String>()
     for p in polylines {
@@ -221,6 +222,7 @@ extension GoogleMapEngine {
   // MARK: Polygons and circles
 
   func applyPolygons() {
+    mode3d?.setPolygons(polygons)
     guard let mapView else { return }
     var wanted = Set<String>()
     for p in polygons {

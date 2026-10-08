@@ -25,4 +25,12 @@ interface MapCameraSource {
    * measure the 3D layer against the map (`measureAlignment`). Null if unknown.
    */
   fun screenPoint(latitude: Double, longitude: Double): PointF?
+
+  /**
+   * For maps owned by another library (`MapModelLayer`): report taps on the
+   * map, in pixels in [cameraView], to [listener] (true when it hit a
+   * model), without taking them from the map. Null stops. Sources whose SDK
+   * cannot share taps keep this default, and the layer gets none.
+   */
+  fun setTapListener(listener: ((x: Float, y: Float) -> Boolean)?) {}
 }

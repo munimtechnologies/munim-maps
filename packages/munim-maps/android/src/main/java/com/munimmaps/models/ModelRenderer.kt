@@ -365,6 +365,11 @@ internal class ModelRenderer(
     if (renderer.beginFrame(chain, frameTimeNanos)) {
       renderer.render(view)
       renderer.endFrame()
+    } else {
+      // Filament skipped this frame (the GPU is behind): draw this camera on
+      // the next one, or the layer stays a frame behind once the map stops.
+      needsRender = true
+      lastRendered = null
     }
   }
 
@@ -388,6 +393,14 @@ internal class ModelRenderer(
     val aspect = if (state.height > 0) state.width / state.height else 1.0
     camera.setProjection(
       state.fieldOfView * 180 / PI, aspect, state.nearPlane, state.farPlane, Camera.Fov.VERTICAL)
+    // A moved centre of perspective (Mapbox padding). Filament doubles the
+    // shift it is given (checked on a phone), so half the offset in
+    // normalised device coordinates.
+    if (state.width > 0 && state.height > 0) {
+      camera.setShift(
+        (state.opticalCenterX - state.width / 2) / state.width,
+        -(state.opticalCenterY - state.height / 2) / state.height)
+    }
     camera.setModelMatrix(state.cameraTransform)
 
     if (buildings.enabled) buildings.update(state)

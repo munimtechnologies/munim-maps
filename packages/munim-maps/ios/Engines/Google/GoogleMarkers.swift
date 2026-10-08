@@ -36,6 +36,7 @@ extension GoogleMapEngine {
   // MARK: Applying
 
   func applyMarkers() {
+    mode3d?.setMarkers(markers + viewMarkers.values)
     guard let mapView else { return }
     var wanted: [String: MunimMarker] = [:]
     for m in markers { wanted[m.id] = m }

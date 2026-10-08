@@ -87,7 +87,36 @@ def munimMapsVersions = [
 // SDK: munimMaps.googleMaps3d=true (with munimMaps.google=true) adds it.
 def munimMapsGoogle3d = munimMapsProviders.google && munimMapsProvider("googleMaps3d", false)
 
-logger.lifecycle("[munim-maps] engines: " + munimMapsProviders.findAll { it.value }.collect { it.key }.join(", "))
+// `MapModelLayer` over another library's map: an adapter per map SDK
+// (src/googleView, src/mapboxView), compiled whenever that SDK is in the
+// app, with no flag: with munim-maps' own engine for it, or with the React
+// Native library that brings it (found by its Gradle project). The SDK is
+// then compileOnly here, the app's own copy is used at run time.
+// munimMaps.googleView / munimMaps.mapboxView=true|false override the
+// library check (the Google engine always needs src/googleView: its camera).
+def munimMapsLibraryProject(String... names) {
+  return names.collect { rootProject.findProject(":${it}") }.find { it != null }
+}
+def munimMapsRnMaps = munimMapsLibraryProject("react-native-maps")
+def munimMapsRnMapbox = munimMapsLibraryProject("rnmapbox_maps", "@rnmapbox_maps")
+def munimMapsViewAdapters = [
+  google: munimMapsProviders.google || munimMapsProvider("googleView", munimMapsRnMaps != null),
+  mapbox: munimMapsProviders.mapbox || munimMapsProvider("mapboxView", munimMapsRnMapbox != null),
+]
+
+// The Mapbox SDK version @rnmapbox/maps builds with (its RNMapboxMapsVersion
+// or the one in its package.json), to compile the adapter against.
+def munimMapsRnMapboxSdkVersion(rnMapbox, String fallback) {
+  def version = rootProject.ext.has("RNMapboxMapsVersion") ? rootProject.ext.get("RNMapboxMapsVersion") : null
+  if (version == null && rnMapbox != null) {
+    def packageJson = new File(rnMapbox.projectDir, "../package.json")
+    if (packageJson.exists()) version = new groovy.json.JsonSlurper().parseText(packageJson.text)?.mapbox?.android
+  }
+  return version?.toString()?.replaceAll(/[^0-9.]/, "") ?: fallback
+}
+
+logger.lifecycle("[munim-maps] engines: " + munimMapsProviders.findAll { it.value }.collect { it.key }.join(", ") +
+  "; MapModelLayer over: " + (munimMapsViewAdapters.findAll { it.value }.collect { it.key }.join(", ") ?: "nothing"))
 
 android {
   namespace = "com.munimmaps"
@@ -181,6 +210,9 @@ android {
         if (enabled) java.srcDirs += ["src/${name}/java"]
       }
       if (munimMapsGoogle3d) java.srcDirs += ["src/google3d/java"]
+      munimMapsViewAdapters.each { name, enabled ->
+        if (enabled) java.srcDirs += ["src/${name}View/java"]
+      }
       // Cesium: the engine's page as assets under munim-cesium/. CesiumJS
       // itself comes from jsDelivr (cached on disk) unless
       // munimMaps.cesiumBundled=true puts it in the APK (13 MB, see
@@ -299,7 +331,7 @@ if (munimMapsProviders.maplibreWeb && munimMapsMapLibreBundled) {
 repositories {
   mavenCentral()
   google()
-  if (munimMapsProviders.mapbox) {
+  if (munimMapsProviders.mapbox || munimMapsViewAdapters.mapbox) {
     maven { url = "https://api.mapbox.com/downloads/v2/releases/maven" }
   }
 }
@@ -340,6 +372,13 @@ dependencies {
   }
   if (munimMapsProviders.mapbox) {
     implementation "com.mapbox.maps:android-ndk27:${munimMapsVersions.mapbox}"
+  }
+  // MapModelLayer adapters without the engine: the app's library brings the SDK.
+  if (munimMapsViewAdapters.google && !munimMapsProviders.google) {
+    compileOnly "com.google.android.gms:play-services-maps:${munimMapsVersions.googleMaps}"
+  }
+  if (munimMapsViewAdapters.mapbox && !munimMapsProviders.mapbox) {
+    compileOnly "com.mapbox.maps:android-ndk27:${munimMapsRnMapboxSdkVersion(munimMapsRnMapbox, munimMapsVersions.mapbox)}"
   }
 }
 

@@ -272,16 +272,20 @@ function resolveUri(
 
 /**
  * The format two-format model sources resolve to: USDZ where munim-maps'
- * SceneKit layer draws the models (iOS on MapKit, MapLibre and Google, or
- * any engine with `modelRendering: 'overlay'`), GLB where the engine draws
- * glTF itself (Mapbox, Cesium) and on Android (Filament).
+ * SceneKit layer draws the models (iOS on MapKit, MapLibre and the Google
+ * 2D map, or any engine with `modelRendering: 'overlay'`), GLB where the
+ * engine draws glTF itself (Mapbox, Cesium, Google's 3D map with
+ * `google.mode: '3d'`) and on Android (Filament).
  */
 export function modelFormatFor(
   provider: MapProvider,
   modelRendering?: string,
+  googleMode?: string,
   webRenderer = false
 ): ModelFormat {
   if (Platform.OS !== 'ios') return 'glb'
+  // Google's 3D map always draws models itself (it has no overlay).
+  if (provider === 'google' && googleMode === '3d') return 'glb'
   if (provider === 'mapbox' || provider === 'cesium' || webRenderer) {
     return modelRendering === 'overlay' ? 'usdz' : 'glb'
   }
@@ -863,6 +867,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
       modelFormatFor(
         provider,
         modelRenderingFor(provider, props),
+        provider === 'google' ? props.google?.mode : undefined,
         provider === 'maplibre' &&
           resolveMapLibreRenderer(props.maplibre, props).renderer === 'web'
       )

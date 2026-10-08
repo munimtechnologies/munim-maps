@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import { File, Paths } from 'expo-file-system'
 import { StatusBar } from 'expo-status-bar'
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -30,6 +30,8 @@ import { ParityScreen, type ParityHandle } from './Parity'
 import { MAP_PROVIDERS, type MapProvider, type UserTrackingMode } from 'munim-maps'
 import { ProvidersScreen } from './Providers'
 import { Layer3DScreen } from './Layer3D'
+import { LayerOverScreen, type HostLibrary, type HostMapProps } from './LayerOver'
+import { RnMapsGoogleHost } from './LayerOverRnMaps'
 import { GoogleScreen } from './GoogleScreen'
 import { MapboxScreen } from './MapboxScreen'
 import { MapLibreScreen } from './MapLibre'
@@ -65,7 +67,11 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'google' | 'mapbox' | 'maplibre' | 'maplibreweb' | 'cesium'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'layer-rnmapbox' | 'layer-rnmaps-google' | 'google' | 'mapbox' | 'maplibre' | 'maplibreweb' | 'cesium'
+
+// @rnmapbox/maps is only built into the Android app (react-native.config.js).
+const RnMapboxHost: ComponentType<HostMapProps> | null =
+  Platform.OS === 'android' ? (require('./LayerOverRnMapbox') as typeof import('./LayerOverRnMapbox')).RnMapboxHost : null
 
 // Terrain: Half Dome and Yosemite Valley, with heights above sea level
 // (`altitudeReference: 'sea'`), the way a phone reports them. munim-maps
@@ -460,6 +466,10 @@ function Example() {
   const [layer3dCheck, setLayer3dCheck] = useState(false)
   const [layer3dCamera, setLayer3dCamera] = useState<MapCamera | undefined>(undefined)
   const [layer3dOcclusion, setLayer3dOcclusion] = useState(true)
+  const [layerOverCheck, setLayerOverCheck] = useState(false)
+  const [layerOverPan, setLayerOverPan] = useState<number | undefined>(undefined)
+  const [layerOverPanPadding, setLayerOverPanPadding] = useState(false)
+  const [layerOverTexture, setLayerOverTexture] = useState(false)
   const [googleChecks, setGoogleChecks] = useState(false)
   const [google3d, setGoogle3d] = useState(false)
   const [providersCheck, setProvidersCheck] = useState(false)
@@ -564,6 +574,18 @@ function Example() {
     void Linking.getInitialURL().then((url) => {
       if (openMapbox(url)) return
       if (url?.includes('nopanel')) setPanel(false)
+      // munimmapsexample://layer/<rnmapbox|rnmaps-google>[/check|/pan|/pan45|/pan45pad][/tex]:
+      // MapModelLayer over another library's map (Android).
+      const layerOver = /:\/\/layer\/(rnmapbox|rnmaps-google)(?:\/(check|pan(\d+)?))?/.exec(url ?? '')
+      if (layerOver) {
+        setLaunching(false)
+        setLayerOverCheck(layerOver[2] === 'check')
+        setLayerOverPan(layerOver[2]?.startsWith('pan') ? Number(layerOver[3] ?? 0) : undefined)
+        setLayerOverPanPadding(url?.includes('pad') ?? false)
+        setLayerOverTexture(url?.includes('/tex') ?? false)
+        setMode(`layer-${layerOver[1] as HostLibrary}`)
+        return
+      }
       // munimmapsexample://layer3d[/<provider>][/check]: every 3D layer group on one engine.
       const layer3d = /layer3d(?:\/(\w+))?/.exec(url ?? '')
       if (layer3d) {
@@ -581,7 +603,7 @@ function Example() {
         return
       }
       // munimmapsexample://google(/3d)(/checks): the Google engine screen
-      // (3d: Google's photorealistic 3D map, Android).
+      // (3d: Google's photorealistic 3D map).
       if (/:\/\/google/.test(url ?? '')) {
         setLaunching(false)
         setGoogleChecks(url?.includes('checks') ?? false)
@@ -818,6 +840,17 @@ function Example() {
           topInset={insets.top}
           onExit={() => setMode('providers')}
         />
+      ) : mode === 'layer-rnmaps-google' || (mode === 'layer-rnmapbox' && RnMapboxHost) ? (
+        <LayerOverScreen
+          library={mode === 'layer-rnmapbox' ? 'rnmapbox' : 'rnmaps-google'}
+          Host={mode === 'layer-rnmapbox' ? RnMapboxHost! : RnMapsGoogleHost}
+          autoCheck={layerOverCheck}
+          pan={layerOverPan}
+          panPadding={layerOverPanPadding}
+          hostTextureView={layerOverTexture}
+          topInset={insets.top}
+          onExit={() => setMode('providers')}
+        />
       ) : mode === 'google' ? (
         <GoogleScreen
           topInset={insets.top}
@@ -853,6 +886,10 @@ function Example() {
             if (screen === 'layer3d') {
               setProviderLink(engine)
               setLayer3dCheck(false)
+            }
+            if (screen === 'layer-rnmapbox' || screen === 'layer-rnmaps-google') {
+              setLayerOverCheck(false)
+              setLayerOverPan(undefined)
             }
             setMode(screen)
           }}
@@ -1032,7 +1069,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode === 'google' || mode === 'mapbox' || mode === 'maplibre' || mode === 'maplibreweb' || mode === 'cesium') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode.startsWith('layer-') || mode === 'google' || mode === 'mapbox' || mode === 'maplibre' || mode === 'maplibreweb' || mode === 'cesium') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

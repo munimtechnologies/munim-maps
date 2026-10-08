@@ -20,7 +20,8 @@ import kotlin.math.tan
  *
  * The scene is laid out in metres around the centre coordinate: x east, y up,
  * z south (so -z is north). Positions come from Web Mercator. The camera is a
- * pinhole centred on the view, with [focalLength] in pixels, turned to
+ * pinhole centred on the view (or on [principalX], [principalY] when the
+ * engine moves its centre of perspective), with [focalLength] in pixels, turned to
  * [heading] and [pitch], [altitude] metres above the ground; the ray through
  * [centerX], [centerY] (where the engine draws the centre coordinate, in
  * pixels) meets the ground at the origin. On a [globe], positions are on a
@@ -52,7 +53,19 @@ data class MapCameraState(
   val darkAppearance: Boolean = false,
   /** Pixels per point (density), to size things given in points. */
   val pixelRatio: Double = 1.0,
+  /**
+   * Where the camera's optical axis meets the view, in pixels, when the
+   * engine moves its centre of perspective (Mapbox and MapLibre do with
+   * padding: the view's middle is no longer straight ahead). Null: the
+   * middle of the view.
+   */
+  val principalX: Double? = null,
+  val principalY: Double? = null,
 ) {
+  /** The optical axis' pixel: [principalX], [principalY] or the view's middle. */
+  val opticalCenterX: Double get() = principalX ?: (width / 2)
+  val opticalCenterY: Double get() = principalY ?: (height / 2)
+
   /** Vertical field of view in radians. */
   val fieldOfView: Double
     get() = if (focalLength > 0 && height > 0) 2 * atan(height / 2 / focalLength) else PI / 6
@@ -65,7 +78,7 @@ data class MapCameraState(
 
   /** World direction of the ray through a pixel (not normalised). */
   fun ray(x: Double, y: Double): DoubleArray {
-    val local = doubleArrayOf((x - width / 2) / focalLength, -(y - height / 2) / focalLength, -1.0)
+    val local = doubleArrayOf((x - opticalCenterX) / focalLength, -(y - opticalCenterY) / focalLength, -1.0)
     return mul(rotation, local)
   }
 
@@ -139,8 +152,8 @@ data class MapCameraState(
     val ey = r[1] * v[0] + r[4] * v[1] + r[7] * v[2]
     val ez = r[2] * v[0] + r[5] * v[1] + r[8] * v[2]
     if (-ez < 1e-4) return null
-    val x = width / 2 + ex / -ez * focalLength
-    val y = height / 2 - ey / -ez * focalLength
+    val x = opticalCenterX + ex / -ez * focalLength
+    val y = opticalCenterY - ey / -ez * focalLength
     return doubleArrayOf(x, y, -ez)
   }
 

@@ -52,6 +52,27 @@ munim_maps_cesium_bundled = lambda do
   ["1", "true", "yes"].include?(value.to_s.strip.downcase)
 end
 
+# Google's photorealistic 3D map (`google={{ mode: '3d' }}`) is the Maps 3D
+# SDK for iOS, which Google ships only as a Swift package (`GoogleMaps3D`).
+# Turn it on with MUNIM_MAPS_GOOGLE_MAPS_3D=1 or "munimMaps.googleMaps3d":
+# "true" in ios/Podfile.properties.json (the Expo config plugin's
+# `googleMaps3d: true` writes it), next to the Google engine: the
+# `NitroMunimMaps/Google3D` subspec is then on, and React Native's
+# `spm_dependency` adds the Swift package to this pod in the Pods project.
+munim_maps_google_maps_3d = lambda do
+  value = ENV["MUNIM_MAPS_GOOGLE_MAPS_3D"]
+  if value.nil?
+    begin
+      root = Pod::Config.instance.installation_root
+      properties = File.join(root.to_s, "Podfile.properties.json")
+      value = JSON.parse(File.read(properties))["munimMaps.googleMaps3d"] if File.exist?(properties)
+    rescue StandardError
+      value = nil
+    end
+  end
+  ["1", "true", "yes"].include?(value.to_s.strip.downcase)
+end
+
 # Copies CesiumJS from the app's `cesium` package into cesium/build/Cesium
 # (skipped when it is already there) and returns that folder for the
 # MunimMapsCesium resource bundle.
@@ -216,6 +237,31 @@ Pod::Spec.new do |s|
     ss.pod_target_xcconfig = { "SWIFT_ACTIVE_COMPILATION_CONDITIONS" => "$(inherited) MUNIM_MAPS_CESIUM" }
   end
 
+  # Google's photorealistic 3D map (Maps 3D SDK for iOS, iOS 16+): the
+  # SwiftUI `GoogleMaps3D` map hosted in the Google engine's view. The Swift
+  # package itself is added below with React Native's `spm_dependency`.
+  s.subspec "Google3D" do |ss|
+    ss.dependency "NitroMunimMaps/Google"
+    ss.source_files = "ios/Engines/Google3D/**/*.swift"
+    ss.frameworks = "SwiftUI"
+    ss.pod_target_xcconfig = { "SWIFT_ACTIVE_COMPILATION_CONDITIONS" => "$(inherited) MUNIM_MAPS_GOOGLE3D" }
+  end
+
   providers = munim_maps_providers.call
-  s.default_subspecs = providers.empty? ? :none : providers.map { |p| munim_maps_subspecs[p] }
+  subspecs = providers.map { |p| munim_maps_subspecs[p] }
+  google_3d = providers.include?("google") && munim_maps_google_maps_3d.call
+  subspecs << "Google3D" if google_3d
+  s.default_subspecs = subspecs.empty? ? :none : subspecs
+
+  if google_3d
+    unless defined?(spm_dependency)
+      raise(defined?(Pod::Informative) ? Pod::Informative : RuntimeError,
+            "munim-maps: the Google 3D map needs React Native's spm_dependency (require react_native_pods.rb in the Podfile)")
+    end
+    # Pinned like the Android SDK; MUNIM_MAPS_GOOGLE_MAPS_3D_VERSION overrides it.
+    spm_dependency(s,
+      url: "https://github.com/googlemaps/ios-maps-3d-sdk",
+      requirement: { kind: "exactVersion", version: ENV["MUNIM_MAPS_GOOGLE_MAPS_3D_VERSION"] || "1.0.0" },
+      products: ["GoogleMaps3D"])
+  end
 end

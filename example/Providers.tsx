@@ -101,6 +101,8 @@ export type ExampleScreen =
   | 'maplibreweb'
   | 'cesium'
   | 'layer3d'
+  | 'layer-rnmapbox'
+  | 'layer-rnmaps-google'
   | 'parity'
   | 'munim'
   | 'rnmaps'
@@ -118,6 +120,12 @@ const ENGINE_SCREENS: { screen: ExampleScreen; provider: MapProvider; label: str
   { screen: 'maplibre', provider: 'maplibre', label: 'MapLibre' },
   { screen: 'maplibreweb', provider: 'maplibre', label: 'MapLibre GL JS (globe, terrain)' },
   { screen: 'cesium', provider: 'cesium', label: 'Cesium' },
+]
+
+/** MapModelLayer over other libraries' maps (Android). */
+const ANDROID_SCREENS: { screen: ExampleScreen; label: string }[] = [
+  { screen: 'layer-rnmapbox', label: 'Layer over @rnmapbox/maps' },
+  { screen: 'layer-rnmaps-google', label: 'Layer over react-native-maps' },
 ]
 
 /** The other examples (iOS: MapKit, react-native-maps and expo-maps). */
@@ -330,7 +338,11 @@ export function ProvidersScreen(props: {
                     <Text style={styles.chipText}>{e.label} ›</Text>
                   </Pressable>
                 ))
-              : null}
+              : ANDROID_SCREENS.map((e) => (
+                  <Pressable key={e.screen} onPress={() => props.onOpen?.(e.screen, provider)} style={styles.chip}>
+                    <Text style={styles.chipText}>{e.label} ›</Text>
+                  </Pressable>
+                ))}
           </ScrollView>
         ) : null}
         <Text style={styles.status}>

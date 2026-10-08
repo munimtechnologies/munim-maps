@@ -72,6 +72,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   }
 
   deinit {
+    mode3d?.destroy()
     flightLink?.invalidate()
     readyTimer?.invalidate()
     myLocationObservation?.invalidate()
@@ -84,6 +85,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
     mapView?.frame = bounds
     modelLayer.view.frame = bounds
     streetView?.frame = bounds
+    mode3d?.view.frame = bounds
     applyInitialCameraIfReady()
     applyZoomLimits()
     modelLayer.setNeedsRender()
@@ -112,7 +114,11 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
     let source = GoogleCameraSource(mapView: map)
     cameraSource = source
     modelLayer.detach()
-    modelLayer.attach(to: source)
+    if mode3d == nil {
+      modelLayer.attach(to: source)
+    } else {
+      map.isHidden = true
+    }
 
     myLocationObservation = map.observe(\.myLocation, options: [.new]) { [weak self] map, _ in
       DispatchQueue.main.async { self?.myLocationChanged(map.myLocation) }
@@ -263,7 +269,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   public var providerOptions: [String: Any] = [:] {
     didSet {
       options = GoogleJSON(providerOptions)
-      reportModeLimits()
+      updateMode()
       guard mapView != nil else { return }
       if (options["mapId"].string ?? "") != builtMapId {
         makeMapView()
@@ -279,19 +285,109 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
     }
   }
 
+  // MARK: 3D mode
+
+  /// Google's photorealistic 3D map (`Google3DMode.swift`, the
+  /// `NitroMunimMaps/Google3D` subspec) while `google.mode` is `'3d'`.
+  var mode3d: Google3DMode?
+  /// The 3D map started before `initialCamera` arrived (props come in any order).
+  private var mode3dNeedsCamera = false
   private var reportedModeLimits: Set<String> = []
 
-  /// Google's photorealistic 3D map (`google.mode: '3d'`) is the Maps 3D SDK
-  /// for iOS, `GoogleMaps3D`: a SwiftUI-only Swift package that CocoaPods
-  /// cannot install, so the iOS engine stays on the 2D map, where models are
-  /// always drawn by munim-maps' overlay.
-  private func reportModeLimits() {
-    if options["mode"].string == "3d", reportedModeLimits.insert("3d").inserted {
-      onError?("Google Maps: mode '3d' (photorealistic 3D) is Android only for now; iOS's Maps 3D SDK (GoogleMaps3D) is a SwiftUI-only Swift package. Showing the 2D map")
+  /// `google.mode: '3d'` switches to Google's photorealistic 3D map (Maps 3D
+  /// SDK), where models are drawn natively (`modelRendering` `auto` or
+  /// `native`); the 2D map keeps the munim overlay (it has no 3D models).
+  private func updateMode() {
+    let wants3d = options["mode"].string == "3d"
+    let rendering = options["modelRendering"].string ?? "auto"
+    if !wants3d, rendering == "native", reportedModeLimits.insert("native").inserted {
+      onError?("Google Maps: the 2D map has no native 3D models; models are drawn by the munim overlay (use google.mode '3d' for native models)")
     }
-    if options["modelRendering"].string == "native", reportedModeLimits.insert("native").inserted {
-      onError?("Google Maps: the 2D map has no native 3D models; models are drawn by the munim overlay")
+    if wants3d, mode3d == nil { enter3d() }
+    if !wants3d, mode3d != nil { leave3d() }
+    mode3d?.setOptions(options)
+    if wants3d, mode3d != nil, rendering == "overlay", reportedModeLimits.insert("overlay").inserted {
+      onError?("Google Maps: Google's 3D map has no projection the munim overlay can follow; its models are drawn natively")
     }
+  }
+
+  private func enter3d() {
+    let start: MunimCamera? = (mapView != nil && appliedInitialCamera) ? camera : initialCamera
+    guard let mode = Google3DModes.make(engine: self, camera: start) else {
+      if reportedModeLimits.insert("3d").inserted {
+        onError?("Google Maps: google.mode '3d' needs the Maps 3D SDK: add the NitroMunimMaps/Google3D subspec (Expo plugin googleMaps3d: true, or \"munimMaps.googleMaps3d\": \"true\" in ios/Podfile.properties.json) and rebuild. Showing the 2D map")
+      }
+      return
+    }
+    stopFlight()
+    mode3d = mode
+    mode3dNeedsCamera = start == nil
+    mode.view.frame = bounds
+    mode.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    insertSubview(mode.view, belowSubview: modelLayer.view)
+    mapView?.isHidden = true
+    modelLayer.view.isHidden = true
+    modelLayer.detach()
+    mode.setMarkers(markers + viewMarkers.values)
+    mode.setPolylines(polylines)
+    mode.setPolygons(polygons)
+    mode.setModels(models3d)
+    emit("modeChange", ["mode": "3d"])
+  }
+
+  private func leave3d() {
+    guard let mode = mode3d else { return }
+    mode3d = nil
+    mode3dNeedsCamera = false
+    mode.destroy()
+    mode.view.removeFromSuperview()
+    mapView?.isHidden = false
+    modelLayer.view.isHidden = false
+    if let cameraSource { modelLayer.attach(to: cameraSource) }
+    modelLayer.setNeedsRender()
+    emit("modeChange", ["mode": "2d"])
+  }
+
+  /// The app's models: the 2D map's overlay draws them, the 3D map itself.
+  private var models3d: [MunimModel] = []
+
+  public func setModels(_ models: [MunimModel]) {
+    models3d = models
+    modelLayer.models = models
+    mode3d?.setModels(models)
+  }
+
+  // Called by the 3D mode (GoogleMap3DMode).
+
+  func map3dReady() {
+    emit("map3dReady")
+    reportReady()
+  }
+
+  func map3dError(_ message: String) {
+    onError?("Google Maps: \(message)")
+  }
+
+  func map3dPress(_ coordinate: CLLocationCoordinate2D, placeId: String?) {
+    if let placeId {
+      onMapFeaturePress?(MunimMapFeature(
+        title: "", coordinate: coordinate, kind: "pointOfInterest", category: "", id: placeId))
+      emit("poiClick", ["placeId": placeId, "name": "", "latitude": coordinate.latitude, "longitude": coordinate.longitude])
+    } else {
+      onPress?(coordinate, CGPoint(x: -1, y: -1))
+    }
+  }
+
+  func map3dCameraChanged(_ camera: MunimCamera, idle: Bool) {
+    if idle { onCameraChange?(camera) } else { onCameraMove?(camera) }
+  }
+
+  func map3dModelPressed(_ id: String) {
+    modelLayer.onModelPress?(id)
+  }
+
+  func map3dMarkerPressed(_ id: String) {
+    onMarkerPress?(id)
   }
 
   private func loadStyleURL() {
@@ -336,7 +432,13 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   // MARK: Look
 
   public var initialCamera: MunimCamera? {
-    didSet { applyInitialCameraIfReady() }
+    didSet {
+      applyInitialCameraIfReady()
+      if mode3dNeedsCamera, let initialCamera {
+        mode3dNeedsCamera = false
+        mode3d?.setCamera(initialCamera, duration: 0)
+      }
+    }
   }
 
   public var mapStyle: MunimMapStyle = .standard { didSet { applySettings() } }
@@ -544,6 +646,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   }
 
   public var camera: MunimCamera {
+    if let mode3d, let camera = mode3d.camera { return camera }
     guard let mapView else { return initialCamera ?? MunimCamera(latitude: 0, longitude: 0, distance: 10_000_000) }
     return munimCamera(mapView.camera)
   }
@@ -551,6 +654,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   public func setCamera(_ camera: MunimCamera, animated: Bool) {
     stopFlight()
     endTrackingForCameraMove()
+    if let mode3d { return mode3d.setCamera(camera, duration: animated ? 1 : 0) }
     guard let mapView else {
       initialCamera = camera
       appliedInitialCamera = false
@@ -564,6 +668,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   /// Moves the camera over `duration` seconds, stepped once a frame so the
   /// 3D layer reads the camera Google is drawing.
   public func animateCamera(_ camera: MunimCamera, duration: TimeInterval, linear: Bool) {
+    if let mode3d { return mode3d.setCamera(camera, duration: duration) }
     guard duration > 0 else { return setCamera(camera, animated: false) }
     let from = self.camera
     let steps = linear ? 1 : 24
@@ -576,6 +681,11 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   }
 
   public func flyCamera(_ keyframes: [MunimCameraKeyframe], start: Double, loop: Bool) {
+    if let mode3d {
+      // Google 3D flies to one camera: the last keyframe, over the flight's length.
+      guard let first = keyframes.min(by: { $0.t < $1.t }), let last = keyframes.max(by: { $0.t < $1.t }) else { return }
+      return mode3d.setCamera(last.camera, duration: max(0, last.t - first.t))
+    }
     guard keyframes.count > 1 else {
       stopFlight()
       if let only = keyframes.first { setCamera(only.camera, animated: false) }

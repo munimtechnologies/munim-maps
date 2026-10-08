@@ -10,11 +10,11 @@
 //     "cesiumIonToken": "…",
 //     "cesium": { "bundled": true },               // CesiumJS in the app (13 MB) instead of from jsDelivr
 //     "maplibre": { "bundledWeb": true },          // MapLibre GL JS + three.js in the app instead of from jsDelivr
-//     "googleMaps3d": true                         // Android: Google's photorealistic 3D SDK
+//     "googleMaps3d": true                         // Google's photorealistic 3D SDK (iOS and Android)
 //   }]
 //
 // iOS: Podfile.properties.json `munimMaps.providers` (the podspec turns
-// those subspecs on), Info.plist `MunimMapsGoogleMapsApiKey`,
+// those subspecs on) and `munimMaps.googleMaps3d`, Info.plist `MunimMapsGoogleMapsApiKey`,
 // `MBXAccessToken`, `MunimMapsCesiumIonToken`.
 // Android: gradle.properties `munimMaps.<provider>=true`, manifest
 // `com.google.android.geo.API_KEY` and `munimmaps.cesium_ion_token`
@@ -33,6 +33,7 @@ const {
   withPodfileProperties,
   withProjectBuildGradle,
   withStringsXml,
+  withXcodeProject,
 } = plugins
 
 const MAPBOX_MAVEN = 'https://api.mapbox.com/downloads/v2/releases/maven'
@@ -132,6 +133,13 @@ function withMunimMapsIos(config, options) {
       c.modResults['munimMaps.maplibreBundled'] = 'true'
     } else {
       delete c.modResults['munimMaps.maplibreBundled']
+    }
+    // Google's photorealistic 3D map: the NitroMunimMaps/Google3D subspec,
+    // which adds Google's GoogleMaps3D Swift package to the pod.
+    if (options.googleMaps3d && providers.includes('google')) {
+      c.modResults['munimMaps.googleMaps3d'] = 'true'
+    } else {
+      delete c.modResults['munimMaps.googleMaps3d']
     }
     return c
   })
@@ -291,12 +299,184 @@ function checkBundledMapLibre(config, options) {
   }
 }
 
+const GOOGLE_MAPS_3D_PACKAGE = 'https://github.com/googlemaps/ios-maps-3d-sdk'
+// Pinned like the Android SDK; MUNIM_MAPS_GOOGLE_MAPS_3D_VERSION (at prebuild
+// and `pod install`) overrides it in both places.
+const GOOGLE_MAPS_3D_VERSION =
+  process.env.MUNIM_MAPS_GOOGLE_MAPS_3D_VERSION || '1.0.0'
+const GOOGLE_MAPS_3D_PRODUCT = 'GoogleMaps3D'
+
+/**
+ * Adds Google's `GoogleMaps3D` Swift package to the app target, so Xcode
+ * embeds its dynamic framework in the app. The pod compiles against the
+ * same package (React Native's `spm_dependency`, in NitroMunimMaps.podspec),
+ * but a package product linked by a static-library pod is only linked into
+ * the app, not embedded: without this the app stops at launch with
+ * `Library not loaded: @rpath/GoogleMaps3D.framework/GoogleMaps3D`.
+ * Idempotent; `project` is the `xcode` package's project.
+ */
+function addGoogleMaps3dPackage(project, version = GOOGLE_MAPS_3D_VERSION) {
+  const objects = project.hash.project.objects
+  const section = (name) => (objects[name] = objects[name] ?? {})
+  const entries = (name) =>
+    Object.entries(section(name)).filter(([key]) => !key.endsWith('_comment'))
+  const unquote = (value) => String(value ?? '').replace(/^"(.*)"$/, '$1')
+  const packageComment = 'XCRemoteSwiftPackageReference "ios-maps-3d-sdk"'
+
+  let packageId = entries('XCRemoteSwiftPackageReference').find(
+    ([, value]) => unquote(value.repositoryURL) === GOOGLE_MAPS_3D_PACKAGE
+  )?.[0]
+  if (!packageId) {
+    packageId = project.generateUuid()
+    section('XCRemoteSwiftPackageReference')[packageId] = {
+      isa: 'XCRemoteSwiftPackageReference',
+      repositoryURL: `"${GOOGLE_MAPS_3D_PACKAGE}"`,
+      requirement: { kind: 'exactVersion', version },
+    }
+    section('XCRemoteSwiftPackageReference')[`${packageId}_comment`] =
+      packageComment
+  } else {
+    section('XCRemoteSwiftPackageReference')[packageId].requirement = {
+      kind: 'exactVersion',
+      version,
+    }
+  }
+  const root = objects.PBXProject[project.hash.project.rootObject]
+  root.packageReferences = root.packageReferences ?? []
+  if (!root.packageReferences.some((ref) => ref.value === packageId)) {
+    root.packageReferences.push({ value: packageId, comment: packageComment })
+  }
+
+  const app = entries('PBXNativeTarget').find(
+    ([, value]) =>
+      unquote(value.productType) === 'com.apple.product-type.application'
+  )
+  if (!app) throw new Error('munim-maps: no app target in the Xcode project')
+  const [targetId, target] = app
+
+  let productId = entries('XCSwiftPackageProductDependency').find(
+    ([, value]) =>
+      value.package === packageId &&
+      unquote(value.productName) === GOOGLE_MAPS_3D_PRODUCT
+  )?.[0]
+  if (!productId) {
+    productId = project.generateUuid()
+    section('XCSwiftPackageProductDependency')[productId] = {
+      isa: 'XCSwiftPackageProductDependency',
+      package: packageId,
+      package_comment: packageComment,
+      productName: GOOGLE_MAPS_3D_PRODUCT,
+    }
+    section('XCSwiftPackageProductDependency')[`${productId}_comment`] =
+      GOOGLE_MAPS_3D_PRODUCT
+  }
+  target.packageProductDependencies = target.packageProductDependencies ?? []
+  if (
+    !target.packageProductDependencies.some((ref) => ref.value === productId)
+  ) {
+    target.packageProductDependencies.push({
+      value: productId,
+      comment: GOOGLE_MAPS_3D_PRODUCT,
+    })
+  }
+
+  const frameworks = project.pbxFrameworksBuildPhaseObj(targetId)
+  if (!frameworks)
+    throw new Error('munim-maps: the app target has no Frameworks build phase')
+  const linked = frameworks.files.some((file) => {
+    const buildFile = section('PBXBuildFile')[file.value]
+    return buildFile && buildFile.productRef === productId
+  })
+  if (!linked) {
+    const buildFileId = project.generateUuid()
+    section('PBXBuildFile')[buildFileId] = {
+      isa: 'PBXBuildFile',
+      productRef: productId,
+      productRef_comment: GOOGLE_MAPS_3D_PRODUCT,
+    }
+    section('PBXBuildFile')[`${buildFileId}_comment`] =
+      `${GOOGLE_MAPS_3D_PRODUCT} in Frameworks`
+    frameworks.files.push({
+      value: buildFileId,
+      comment: `${GOOGLE_MAPS_3D_PRODUCT} in Frameworks`,
+    })
+  }
+  return project
+}
+
+/** Removes what `addGoogleMaps3dPackage` added (the 3D map turned off). */
+function removeGoogleMaps3dPackage(project) {
+  const objects = project.hash.project.objects
+  const unquote = (value) => String(value ?? '').replace(/^"(.*)"$/, '$1')
+  const packages = objects.XCRemoteSwiftPackageReference ?? {}
+  const packageIds = Object.keys(packages).filter(
+    (key) =>
+      !key.endsWith('_comment') &&
+      unquote(packages[key].repositoryURL) === GOOGLE_MAPS_3D_PACKAGE
+  )
+  if (packageIds.length === 0) return project
+  const products = objects.XCSwiftPackageProductDependency ?? {}
+  const productIds = Object.keys(products).filter(
+    (key) =>
+      !key.endsWith('_comment') && packageIds.includes(products[key].package)
+  )
+  const buildFiles = objects.PBXBuildFile ?? {}
+  const buildFileIds = Object.keys(buildFiles).filter(
+    (key) =>
+      !key.endsWith('_comment') &&
+      productIds.includes(buildFiles[key].productRef)
+  )
+  const drop = (table, ids) => {
+    for (const id of ids) {
+      delete table[id]
+      delete table[`${id}_comment`]
+    }
+  }
+  drop(packages, packageIds)
+  drop(products, productIds)
+  drop(buildFiles, buildFileIds)
+  for (const [key, value] of Object.entries(objects.PBXProject ?? {})) {
+    if (key.endsWith('_comment') || !value.packageReferences) continue
+    value.packageReferences = value.packageReferences.filter(
+      (ref) => !packageIds.includes(ref.value)
+    )
+  }
+  for (const [key, value] of Object.entries(objects.PBXNativeTarget ?? {})) {
+    if (key.endsWith('_comment') || !value.packageProductDependencies) continue
+    value.packageProductDependencies = value.packageProductDependencies.filter(
+      (ref) => !productIds.includes(ref.value)
+    )
+  }
+  for (const [key, value] of Object.entries(
+    objects.PBXFrameworksBuildPhase ?? {}
+  )) {
+    if (key.endsWith('_comment') || !value.files) continue
+    value.files = value.files.filter(
+      (file) => !buildFileIds.includes(file.value)
+    )
+  }
+  return project
+}
+
+function withGoogleMaps3dPackage(config, options) {
+  const enabled =
+    options.googleMaps3d && providersFor(options, 'ios').includes('google')
+  return withXcodeProject(config, (c) => {
+    if (enabled) addGoogleMaps3dPackage(c.modResults)
+    else removeGoogleMaps3dPackage(c.modResults)
+    return c
+  })
+}
+
 module.exports = function withMunimMaps(config, options = {}) {
   checkBundledCesium(config, options)
   checkBundledMapLibre(config, options)
   config = withMunimMapsIos(config, options)
+  config = withGoogleMaps3dPackage(config, options)
   config = withMunimMapsAndroid(config, options)
   return config
 }
 
 module.exports.addMapboxMaven = addMapboxMaven
+module.exports.addGoogleMaps3dPackage = addGoogleMaps3dPackage
+module.exports.removeGoogleMaps3dPackage = removeGoogleMaps3dPackage

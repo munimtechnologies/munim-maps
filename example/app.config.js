@@ -78,11 +78,36 @@ function withLocalVehicleServer(config) {
   })
 }
 
-module.exports = ({ config }) => withLocalVehicleServer(withReactNativeMapsGoogle({
+// @rnmapbox/maps (Android only here, see react-native.config.js) resolves
+// the Mapbox SDK from Mapbox's Maven repository, which munim-maps' plugin
+// only adds with its own Mapbox engine.
+function withMapboxMaven(config) {
+  if (providers.includes('mapbox')) return config
+  let plugins
+  try {
+    plugins = require('expo/config-plugins')
+  } catch {
+    plugins = require('@expo/config-plugins')
+  }
+  return plugins.withProjectBuildGradle(config, (c) => {
+    const url = 'https://api.mapbox.com/downloads/v2/releases/maven'
+    if (!c.modResults.contents.includes(url)) {
+      c.modResults.contents += `\nallprojects {\n  repositories {\n    maven { url '${url}' }\n  }\n}\n`
+    }
+    return c
+  })
+}
+
+module.exports = ({ config }) => withMapboxMaven(withLocalVehicleServer(withReactNativeMapsGoogle({
   ...config,
   // The Google screen's web-service check (Places, Geocoding, Routes) needs
   // the key in JavaScript; it is only in local builds, never committed.
-  extra: { ...(config.extra ?? {}), googleMapsApiKey: keys.GOOGLE_MAPS_API_KEY || undefined },
+  // The @rnmapbox/maps screen (Android) sets its token from here too.
+  extra: {
+    ...(config.extra ?? {}),
+    googleMapsApiKey: keys.GOOGLE_MAPS_API_KEY || undefined,
+    mapboxAccessToken: keys.MAPBOX_ACCESS_TOKEN || undefined,
+  },
   plugins: [
     ...(config.plugins ?? []),
     [
@@ -92,9 +117,9 @@ module.exports = ({ config }) => withLocalVehicleServer(withReactNativeMapsGoogl
         googleMapsApiKey: keys.GOOGLE_MAPS_API_KEY || undefined,
         mapboxAccessToken: keys.MAPBOX_ACCESS_TOKEN || undefined,
         cesiumIonToken: keys.CESIUM_ION_TOKEN || undefined,
-        // Android: Google's photorealistic 3D SDK for google={{ mode: '3d' }}.
+        // Google's photorealistic 3D SDK for google={{ mode: '3d' }} (iOS and Android).
         googleMaps3d: true,
       },
     ],
   ],
-}))
+})))
