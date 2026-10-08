@@ -38,6 +38,12 @@ import com.munimmaps.engines.google.Google3DMode
 import com.munimmaps.models.ModelAssets
 import java.io.File
 import java.security.MessageDigest
+import org.json.JSONObject
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.tan
 
 /**
  * The Google engine's photorealistic 3D mode on the Maps 3D SDK for Android:
@@ -66,6 +72,10 @@ class GoogleMap3DMode(
   private val nativePolylines = mutableMapOf<String, Polyline>()
   private val nativePolygons = mutableMapOf<String, Polygon>()
   private val modelUrls = mutableMapOf<String, String>()
+  /** Model heights in metres from their glTF POSITION bounds, for `screenSize`. */
+  private val modelHeights = mutableMapOf<String, Double>()
+  /** The scale last given to each screen-sized model. */
+  private val lastScales = mutableMapOf<String, Double>()
   private var destroyed = false
   private var resumed = false
   private var lastCamera: Camera? = null
@@ -115,6 +125,7 @@ class GoogleMap3DMode(
           // Before the map is ready this is the SDK's default camera, not ours.
           if (mapReady) knownCamera = camera
           host.cameraChanged(munim(camera), false)
+          updateScales()
         }
         googleMap3D.setOnMapSteadyListener { steady ->
           host.emit("map3dSteady", GOut.obj("steady" to steady))
@@ -198,6 +209,7 @@ class GoogleMap3DMode(
   private fun moveCamera(map: GoogleMap3D, camera: Camera, durationMs: Long) {
     if (durationMs > 0) map.flyCameraTo(FlyToOptions(camera, durationMs)) else map.setCamera(camera)
     knownCamera = camera
+    updateScales()
     // A flight reports its end camera when the animation ends.
     if (durationMs <= 0) host.cameraChanged(munim(camera), true)
   }
@@ -217,10 +229,11 @@ class GoogleMap3DMode(
 
   /** A URL Google can load: http(s) as is, anything else copied to a file. */
   private fun modelUrl(uri: String, completion: (String?) -> Unit) {
-    if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("file://")) return completion(uri)
+    if (uri.startsWith("file://")) return completion(uri)
     modelUrls[uri]?.let { return completion(it) }
     ModelAssets.load(context, uri) { result ->
       val bytes = result.getOrNull() ?: return@load completion(null)
+      glbHeight(bytes)?.let { modelHeights[uri] = it }
       val name = MessageDigest.getInstance("SHA-1").digest(uri.toByteArray()).joinToString("") { "%02x".format(it) }
       val file = File(context.cacheDir, "munim-maps-3d-$name.glb")
       if (!file.exists()) file.writeBytes(bytes)
@@ -244,7 +257,88 @@ class GoogleMap3DMode(
    */
   private fun orientation(heading: Double) = Orientation((heading + 180.0).mod(360.0), -90.0, 0.0)
 
-  private fun scale(m: NativeMapModel): Double = options["modelScale"].double(1.0) * (if (m.scale > 0) m.scale else 1.0)
+  /**
+   * `scale` × `google.modelScale`, and for `screenSize` the scale that makes
+   * the model that many points tall at its distance from Google's camera
+   * (35° vertical field of view), as on iOS and in the 3D layer.
+   */
+  private fun scale(m: NativeMapModel, latitude: Double = m.latitude, longitude: Double = m.longitude,
+                    altitude: Double = m.altitude): Double {
+    var scale = options["modelScale"].double(1.0) * (if (m.scale > 0) m.scale else 1.0)
+    val height = modelHeights[m.uri] ?: return scale
+    val c = knownCamera ?: lastCamera ?: return scale
+    val viewPoints = mapView.height / context.resources.displayMetrics.density
+    if (m.screenSize <= 0 || height <= 0 || viewPoints <= 0) return scale
+    val center = c.center ?: return scale
+    val tilt = Math.toRadians(c.tilt ?: 0.0)
+    val heading = Math.toRadians(c.heading ?: 0.0)
+    val range = c.range ?: 1000.0
+    val back = range * sin(tilt)
+    val metresPerDegree = 111_320.0
+    val north = (latitude - center.latitude) * metresPerDegree
+    val east = (longitude - center.longitude) * metresPerDegree * cos(Math.toRadians(center.latitude))
+    val eyeNorth = -back * cos(heading)
+    val eyeEast = -back * sin(heading)
+    val eyeUp = range * cos(tilt)
+    val dn = north - eyeNorth
+    val de = east - eyeEast
+    val du = altitude - eyeUp
+    val depth = max(1.0, sqrt(dn * dn + de * de + du * du))
+    val metresPerPoint = 2 * depth * tan(Math.toRadians(35.0) / 2) / viewPoints
+    scale *= m.screenSize * metresPerPoint / height
+    return scale
+  }
+
+  /**
+   * Screen-sized models follow the camera's distance (on camera changes).
+   * The Maps 3D SDK (0.2.0) keeps drawing a model at the scale it was added
+   * with (setting `scale` later changes nothing on screen, checked on a
+   * Galaxy), so a model whose scale changes is added again.
+   */
+  private fun updateScales() {
+    val map = map?.takeIf { mapReady } ?: return
+    if (models.none { it.screenSize > 0 }) return
+    for (m in models) {
+      if (m.screenSize <= 0) continue
+      val (key, model) = nativeModels[m.id] ?: continue
+      val s = scale(m)
+      val old = lastScales[m.id]
+      if (old != null && kotlin.math.abs(s / max(old, 1e-9) - 1) < 0.03) continue
+      val url = model.url ?: continue
+      val position = model.position ?: position(m, m.latitude, m.longitude, m.altitude)
+      val orientation = model.orientation ?: orientation(m.heading)
+      model.remove()
+      val added = map.addModel(ModelOptions(m.id, position, url, altitudeMode(m), Vector3D(s, s, s), orientation))
+      added.setClickListener { host.modelPressed(m.id) }
+      nativeModels[m.id] = key to added
+      lastScales[m.id] = s
+    }
+  }
+
+  /** The height of a GLB's meshes (glTF is Y-up), or null if it can't be read. */
+  private fun glbHeight(bytes: ByteArray): Double? = runCatching {
+    if (bytes.size < 20 || bytes[0] != 'g'.code.toByte() || bytes[1] != 'l'.code.toByte()) return null
+    val length = (bytes[12].toInt() and 0xff) or ((bytes[13].toInt() and 0xff) shl 8) or
+      ((bytes[14].toInt() and 0xff) shl 16) or ((bytes[15].toInt() and 0xff) shl 24)
+    val gltf = JSONObject(String(bytes, 20, length, Charsets.UTF_8))
+    val accessors = gltf.optJSONArray("accessors") ?: return null
+    val meshes = gltf.optJSONArray("meshes") ?: return null
+    var lo = Double.POSITIVE_INFINITY
+    var hi = Double.NEGATIVE_INFINITY
+    for (i in 0 until meshes.length()) {
+      val primitives = meshes.getJSONObject(i).optJSONArray("primitives") ?: continue
+      for (j in 0 until primitives.length()) {
+        val index = primitives.getJSONObject(j).optJSONObject("attributes")?.optInt("POSITION", -1) ?: -1
+        if (index < 0) continue
+        val accessor = accessors.getJSONObject(index)
+        val min = accessor.optJSONArray("min") ?: continue
+        val maxs = accessor.optJSONArray("max") ?: continue
+        lo = minOf(lo, min.getDouble(1))
+        hi = maxOf(hi, maxs.getDouble(1))
+      }
+    }
+    if (hi > lo) hi - lo else null
+  }.getOrNull()
 
   private fun applyModels() {
     val map = map?.takeIf { mapReady } ?: return
@@ -254,16 +348,24 @@ class GoogleMap3DMode(
       host.error("Google 3D draws glTF models only; built-in shapes, pictures and labels need the 2D map with the munim overlay")
     }
     for ((id, m) in wanted) {
-      val key = "${m.uri}|${m.latitude}|${m.longitude}|${m.altitude}|${m.heading}|${m.scale}|${m.altitudeReference}"
+      val key = "${m.uri}|${m.latitude}|${m.longitude}|${m.altitude}|${m.heading}|${m.scale}|${m.screenSize}|${m.altitudeReference}"
       val existing = nativeModels[id]
       if (existing != null && existing.first == key) continue
       if (existing != null && existing.second.url == modelUrls[m.uri]) {
-        existing.second.position = position(m, m.latitude, m.longitude, m.altitude)
-        existing.second.orientation = orientation(m.heading)
         val s = scale(m)
-        existing.second.scale = Vector3D(s, s, s)
-        existing.second.altitudeMode = altitudeMode(m)
-        nativeModels[id] = key to existing.second
+        if (lastScales[id]?.let { kotlin.math.abs(s / max(it, 1e-9) - 1) < 1e-6 } == true &&
+          existing.second.altitudeMode == altitudeMode(m)) {
+          existing.second.position = position(m, m.latitude, m.longitude, m.altitude)
+          existing.second.orientation = orientation(m.heading)
+          nativeModels[id] = key to existing.second
+          continue
+        }
+        existing.second.remove()
+        lastScales[id] = s
+        val model = map.addModel(ModelOptions(id, position(m, m.latitude, m.longitude, m.altitude), existing.second.url,
+          altitudeMode(m), Vector3D(s, s, s), orientation(m.heading)))
+        model.setClickListener { host.modelPressed(id) }
+        nativeModels[id] = key to model
         continue
       }
       modelUrl(m.uri) { url ->
@@ -271,6 +373,7 @@ class GoogleMap3DMode(
         if (destroyed || this.map !== map) return@modelUrl
         nativeModels.remove(id)?.second?.remove()
         val s = scale(m)
+        lastScales[id] = s
         val model = map.addModel(ModelOptions(id, position(m, m.latitude, m.longitude, m.altitude), url,
           altitudeMode(m), Vector3D(s, s, s), orientation(m.heading)))
         model.setClickListener { host.modelPressed(id) }
