@@ -237,11 +237,13 @@ export interface GoogleFeatureLayer {
 
 export interface GoogleMapOptions {
   /**
-   * `'3d'`: Google's photorealistic 3D map (the Maps 3D SDK; Android, built
-   * in with `munimMaps.googleMaps3d=true` / the Expo plugin's
-   * `googleMaps3d: true`; the key needs the Map Tiles API and the Maps 3D
-   * SDK for Android). Models are Google's own glTF models there, and
-   * polylines, polygons and markers are drawn natively. Default `'2d'`.
+   * `'3d'`: Google's photorealistic 3D map (the Maps 3D SDK for Android and
+   * for iOS, built in with the Expo plugin's `googleMaps3d: true`, or
+   * `munimMaps.googleMaps3d=true` in gradle.properties and
+   * `"munimMaps.googleMaps3d": "true"` in ios/Podfile.properties.json; the
+   * key needs the Map Tiles API and the Maps 3D SDK for Android / iOS).
+   * Models are Google's own glTF models there, and polylines, polygons and
+   * markers are drawn natively. Default `'2d'`.
    */
   mode?: '2d' | '3d'
   /**
@@ -252,7 +254,12 @@ export interface GoogleMapOptions {
   modelRendering?: 'auto' | 'native' | 'overlay'
   /** 3D mode: `'hybrid'` (default, with labels) or `'satellite'`. */
   map3dMode?: 'hybrid' | 'satellite'
-  /** 3D mode: multiplies every model's `scale` (Google 3D models are in metres; `screenSize` does not apply). */
+  /**
+   * 3D mode: multiplies every model's `scale` (Google 3D models are in
+   * metres). On iOS `screenSize` is approximated from the camera's distance
+   * to the model and `tint` recolours the model's `paint*` materials; on
+   * Android neither applies.
+   */
   modelScale?: number
   /**
    * A cloud-based map style's Map ID (Google Cloud console): cloud styling,
@@ -630,6 +637,8 @@ export function googleMap(map: ProviderCommandTarget) {
       rounds = 1
     ) => call('flyAround', { ...camera, duration: durationMs, rounds }),
     stopCameraAnimation: () => call('stopCameraAnimation'),
+    /** 3D mode (iOS): how munim-maps drives the SwiftUI 3D map (camera log, models, flights), for bug reports. */
+    map3dDiagnostics: () => call<Record<string, unknown>>('map3dDiagnostics'),
     getCamera3d: () => call<GoogleCamera3D>('getCamera3d'),
     setCamera3d: (camera: Partial<GoogleCamera3D>) =>
       call('setCamera3d', camera),

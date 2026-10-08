@@ -160,13 +160,14 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
   const [traffic, setTraffic] = useState(false)
   const [layers, setLayers] = useState(true)
   const [tiles, setTiles] = useState(false)
-  // Google's photorealistic 3D map (Android, Maps 3D SDK): models drawn natively.
+  // Google's photorealistic 3D map (Maps 3D SDK, iOS and Android): models drawn natively.
   // munimmapsexample://google/3d(/checks) starts in it.
   const [photo3d, setPhoto3d] = useState(props.photo3d ?? false)
   const [status, setStatus] = useState('')
   const seen = useRef<Record<string, number>>({})
   const readyRef = useRef(false)
   const errorsRef = useRef<string[]>([])
+  const diagnostics = useRef<unknown>(null)
 
   const google: GoogleMapOptions = useMemo(
     () => ({
@@ -243,7 +244,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
 
     const finish = () => {
       const passed = results.filter((r) => r.ok).length
-      const summary = { provider: 'google', mode: photo3d ? '3d' : '2d', platform: Platform.OS, finishedAt: new Date().toISOString(), passed, failed: results.length - passed, results, events: seen.current }
+      const summary = { provider: 'google', mode: photo3d ? '3d' : '2d', platform: Platform.OS, finishedAt: new Date().toISOString(), passed, failed: results.length - passed, results, events: seen.current, diagnostics: diagnostics.current ?? undefined }
       console.log(`MUNIM_MAPS_GOOGLE summary ${JSON.stringify({ mode: summary.mode, passed, failed: results.length - passed })}`)
       try {
         const file = new File(Paths.document, photo3d ? 'munim-maps-google-3d-checks.json' : 'munim-maps-google-checks.json')
@@ -259,7 +260,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
 
     await check('map ready', async () => readyRef.current)
     if (photo3d) {
-      // Google's photorealistic 3D map (Android, Maps 3D SDK): its camera,
+      // Google's photorealistic 3D map (Maps 3D SDK, iOS and Android): its camera,
       // flights, and the models it draws itself (modelRendering auto).
       const near = (a: number, b: number, tolerance: number) => Math.abs(a - b) <= tolerance
       const angle = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180)
@@ -316,6 +317,10 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
         throw new Error(errorsRef.current.join(' | '))
       })
       await g.setCamera3d({ latitude: 41.8826, longitude: -87.6278, altitude: 180, heading: 30, tilt: 60, range: 900 })
+      if (Platform.OS === 'ios') {
+        // How the SwiftUI map reported its camera (iOS), for the report.
+        diagnostics.current = await g.map3dDiagnostics().catch(() => null)
+      }
       finish()
       return
     }
