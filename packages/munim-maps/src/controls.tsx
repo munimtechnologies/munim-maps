@@ -1,9 +1,5 @@
 import { useMemo } from 'react'
-import {
-  Platform,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native'
+import { Platform, type StyleProp, type ViewStyle } from 'react-native'
 import { getHostComponent } from 'react-native-nitro-modules'
 import MapControlConfig from '../nitrogen/generated/shared/json/MapControlConfig.json'
 import type {
