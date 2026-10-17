@@ -423,7 +423,7 @@ export function MapLibreScreen(props: { topInset: number; panel: boolean; autoCh
       const file = new File(Paths.document, 'munim-maps-maplibre-check.json')
       if (file.exists) file.delete()
       file.create()
-      file.write(JSON.stringify(report, null, 2))
+      file.writeSync(JSON.stringify(report, null, 2))
     } catch (error) {
       console.warn('MUNIM_MAPLIBRE_CHECK could not write the report', error)
     }

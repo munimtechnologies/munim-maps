@@ -20,8 +20,8 @@
       [
         "expo-build-properties",
         {
-          "ios": {
-            "enableSceneSupport": true
+          "android": {
+            "extraProguardRules": "# react-native-maps brings WorkManager 2.9 (Room 2.5); R8, on by default in Expo SDK 58 release builds, breaks Room's lookup of WorkManager's generated database class.\n-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class androidx.work.impl.WorkDatabase_Impl { *; }"
           }
         }
       ]

@@ -7,14 +7,15 @@
 
 #pragma once
 
-#include <optional>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/NitroHash.hpp>
-#include <NitroModules/CachedProp.hpp>
-#include <react/renderer/core/ConcreteComponentDescriptor.h>
-#include <react/renderer/core/PropsParserContext.h>
+#include <NitroModules/ReactProp.hpp>
+#include <NitroModules/ViewComponentDescriptor.hpp>
+#include <NitroModules/ViewPropsHolderState.hpp>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
+#include <react/renderer/core/PropsParserContext.h>
+#include <react/renderer/core/RawProps.h>
+
+#include <string>
 
 #include "MapProvider.hpp"
 #include <string>
@@ -72,69 +73,203 @@ namespace margelo::nitro::munimmaps::views {
                             const react::RawProps& rawProps);
 
   public:
-    CachedProp<MapProvider> provider;
-    CachedProp<std::string> styleUrl;
-    CachedProp<std::string> providerOptions;
-    CachedProp<std::vector<NativeMapModel>> models;
-    CachedProp<std::vector<NativeMapZone>> zones;
-    CachedProp<std::vector<NativeMapPath>> paths;
-    CachedProp<MapOcclusion> occlusion;
-    CachedProp<std::string> buildingTilesUrl;
-    CachedProp<bool> followTerrain;
-    CachedProp<MapCamera> initialCamera;
-    CachedProp<MapStyle> mapStyle;
-    CachedProp<MapElevation> elevation;
-    CachedProp<bool> globe;
-    CachedProp<MapColorScheme> colorScheme;
-    CachedProp<bool> showsBuildings;
-    CachedProp<bool> showsUserLocation;
-    CachedProp<MapModelLighting> lighting;
-    CachedProp<double> maxCameraDistance;
-    CachedProp<std::vector<NativeMarker>> markers;
-    CachedProp<std::vector<NativePolyline>> polylines;
-    CachedProp<std::vector<NativePolygon>> polygons;
-    CachedProp<std::vector<NativeCircle>> circles;
-    CachedProp<std::vector<NativeTileOverlay>> tileOverlays;
-    CachedProp<std::vector<NativeClusterStyle>> clusterStyles;
-    CachedProp<FeatureVisibility> compassVisibility;
-    CachedProp<FeatureVisibility> scaleVisibility;
-    CachedProp<bool> showsUserTrackingButton;
-    CachedProp<FeatureVisibility> pitchButtonVisibility;
-    CachedProp<std::string> mapScope;
-    CachedProp<bool> showsTraffic;
-    CachedProp<std::string> pointsOfInterest;
-    CachedProp<UserTrackingMode> userTrackingMode;
-    CachedProp<bool> zoomEnabled;
-    CachedProp<bool> scrollEnabled;
-    CachedProp<bool> rotateEnabled;
-    CachedProp<bool> pitchEnabled;
-    CachedProp<double> minCameraDistance;
-    CachedProp<double> maxCameraDistanceLimit;
-    CachedProp<MapRegion> cameraBoundary;
-    CachedProp<EdgeInsets> mapPadding;
-    CachedProp<std::string> selectableMapFeatures;
-    CachedProp<SelectionAccessory> selectionAccessory;
-    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onModelPress;
-    CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraChange;
-    CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraMove;
-    CachedProp<std::optional<std::function<void()>>> onMapReady;
-    CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> onPress;
-    CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> onLongPress;
-    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerPress;
-    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerDeselect;
-    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onCalloutPress;
-    CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>> onCalloutAccessoryPress;
-    CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>> onClusterPress;
-    CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> onOverlayPress;
-    CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
-    CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
-    CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDrag;
-    CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
-    CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> onUserTrackingModeChange;
-    CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;
-    CachedProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>> onProviderEvent;
-    CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
-    CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> hybridRef;
+    nitro::ReactProp<MapProvider> provider;
+    nitro::ReactProp<std::string> styleUrl;
+    nitro::ReactProp<std::string> providerOptions;
+    nitro::ReactProp<std::vector<NativeMapModel>> models;
+    nitro::ReactProp<std::vector<NativeMapZone>> zones;
+    nitro::ReactProp<std::vector<NativeMapPath>> paths;
+    nitro::ReactProp<MapOcclusion> occlusion;
+    nitro::ReactProp<std::string> buildingTilesUrl;
+    nitro::ReactProp<bool> followTerrain;
+    nitro::ReactProp<MapCamera> initialCamera;
+    nitro::ReactProp<MapStyle> mapStyle;
+    nitro::ReactProp<MapElevation> elevation;
+    nitro::ReactProp<bool> globe;
+    nitro::ReactProp<MapColorScheme> colorScheme;
+    nitro::ReactProp<bool> showsBuildings;
+    nitro::ReactProp<bool> showsUserLocation;
+    nitro::ReactProp<MapModelLighting> lighting;
+    nitro::ReactProp<double> maxCameraDistance;
+    nitro::ReactProp<std::vector<NativeMarker>> markers;
+    nitro::ReactProp<std::vector<NativePolyline>> polylines;
+    nitro::ReactProp<std::vector<NativePolygon>> polygons;
+    nitro::ReactProp<std::vector<NativeCircle>> circles;
+    nitro::ReactProp<std::vector<NativeTileOverlay>> tileOverlays;
+    nitro::ReactProp<std::vector<NativeClusterStyle>> clusterStyles;
+    nitro::ReactProp<FeatureVisibility> compassVisibility;
+    nitro::ReactProp<FeatureVisibility> scaleVisibility;
+    nitro::ReactProp<bool> showsUserTrackingButton;
+    nitro::ReactProp<FeatureVisibility> pitchButtonVisibility;
+    nitro::ReactProp<std::string> mapScope;
+    nitro::ReactProp<bool> showsTraffic;
+    nitro::ReactProp<std::string> pointsOfInterest;
+    nitro::ReactProp<UserTrackingMode> userTrackingMode;
+    nitro::ReactProp<bool> zoomEnabled;
+    nitro::ReactProp<bool> scrollEnabled;
+    nitro::ReactProp<bool> rotateEnabled;
+    nitro::ReactProp<bool> pitchEnabled;
+    nitro::ReactProp<double> minCameraDistance;
+    nitro::ReactProp<double> maxCameraDistanceLimit;
+    nitro::ReactProp<MapRegion> cameraBoundary;
+    nitro::ReactProp<EdgeInsets> mapPadding;
+    nitro::ReactProp<std::string> selectableMapFeatures;
+    nitro::ReactProp<SelectionAccessory> selectionAccessory;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>> onModelPress;
+    nitro::ReactProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraChange;
+    nitro::ReactProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> onCameraMove;
+    nitro::ReactProp<std::optional<std::function<void()>>> onMapReady;
+    nitro::ReactProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> onPress;
+    nitro::ReactProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> onLongPress;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerPress;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>> onMarkerDeselect;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>> onCalloutPress;
+    nitro::ReactProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>> onCalloutAccessoryPress;
+    nitro::ReactProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>> onClusterPress;
+    nitro::ReactProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> onOverlayPress;
+    nitro::ReactProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragStart;
+    nitro::ReactProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDragEnd;
+    nitro::ReactProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> onMarkerDrag;
+    nitro::ReactProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> onUserLocationChange;
+    nitro::ReactProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> onUserTrackingModeChange;
+    nitro::ReactProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> onMapFeaturePress;
+    nitro::ReactProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>> onProviderEvent;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
+    nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> hybridRef;
+
+    [[nodiscard]]
+    bool hasSameProps(const HybridMunimMapViewProps& other) const noexcept {
+      return provider.hasSameValue(other.provider) &&
+             styleUrl.hasSameValue(other.styleUrl) &&
+             providerOptions.hasSameValue(other.providerOptions) &&
+             models.hasSameValue(other.models) &&
+             zones.hasSameValue(other.zones) &&
+             paths.hasSameValue(other.paths) &&
+             occlusion.hasSameValue(other.occlusion) &&
+             buildingTilesUrl.hasSameValue(other.buildingTilesUrl) &&
+             followTerrain.hasSameValue(other.followTerrain) &&
+             initialCamera.hasSameValue(other.initialCamera) &&
+             mapStyle.hasSameValue(other.mapStyle) &&
+             elevation.hasSameValue(other.elevation) &&
+             globe.hasSameValue(other.globe) &&
+             colorScheme.hasSameValue(other.colorScheme) &&
+             showsBuildings.hasSameValue(other.showsBuildings) &&
+             showsUserLocation.hasSameValue(other.showsUserLocation) &&
+             lighting.hasSameValue(other.lighting) &&
+             maxCameraDistance.hasSameValue(other.maxCameraDistance) &&
+             markers.hasSameValue(other.markers) &&
+             polylines.hasSameValue(other.polylines) &&
+             polygons.hasSameValue(other.polygons) &&
+             circles.hasSameValue(other.circles) &&
+             tileOverlays.hasSameValue(other.tileOverlays) &&
+             clusterStyles.hasSameValue(other.clusterStyles) &&
+             compassVisibility.hasSameValue(other.compassVisibility) &&
+             scaleVisibility.hasSameValue(other.scaleVisibility) &&
+             showsUserTrackingButton.hasSameValue(other.showsUserTrackingButton) &&
+             pitchButtonVisibility.hasSameValue(other.pitchButtonVisibility) &&
+             mapScope.hasSameValue(other.mapScope) &&
+             showsTraffic.hasSameValue(other.showsTraffic) &&
+             pointsOfInterest.hasSameValue(other.pointsOfInterest) &&
+             userTrackingMode.hasSameValue(other.userTrackingMode) &&
+             zoomEnabled.hasSameValue(other.zoomEnabled) &&
+             scrollEnabled.hasSameValue(other.scrollEnabled) &&
+             rotateEnabled.hasSameValue(other.rotateEnabled) &&
+             pitchEnabled.hasSameValue(other.pitchEnabled) &&
+             minCameraDistance.hasSameValue(other.minCameraDistance) &&
+             maxCameraDistanceLimit.hasSameValue(other.maxCameraDistanceLimit) &&
+             cameraBoundary.hasSameValue(other.cameraBoundary) &&
+             mapPadding.hasSameValue(other.mapPadding) &&
+             selectableMapFeatures.hasSameValue(other.selectableMapFeatures) &&
+             selectionAccessory.hasSameValue(other.selectionAccessory) &&
+             onModelPress.hasSameValue(other.onModelPress) &&
+             onCameraChange.hasSameValue(other.onCameraChange) &&
+             onCameraMove.hasSameValue(other.onCameraMove) &&
+             onMapReady.hasSameValue(other.onMapReady) &&
+             onPress.hasSameValue(other.onPress) &&
+             onLongPress.hasSameValue(other.onLongPress) &&
+             onMarkerPress.hasSameValue(other.onMarkerPress) &&
+             onMarkerDeselect.hasSameValue(other.onMarkerDeselect) &&
+             onCalloutPress.hasSameValue(other.onCalloutPress) &&
+             onCalloutAccessoryPress.hasSameValue(other.onCalloutAccessoryPress) &&
+             onClusterPress.hasSameValue(other.onClusterPress) &&
+             onOverlayPress.hasSameValue(other.onOverlayPress) &&
+             onMarkerDragStart.hasSameValue(other.onMarkerDragStart) &&
+             onMarkerDragEnd.hasSameValue(other.onMarkerDragEnd) &&
+             onMarkerDrag.hasSameValue(other.onMarkerDrag) &&
+             onUserLocationChange.hasSameValue(other.onUserLocationChange) &&
+             onUserTrackingModeChange.hasSameValue(other.onUserTrackingModeChange) &&
+             onMapFeaturePress.hasSameValue(other.onMapFeaturePress) &&
+             onProviderEvent.hasSameValue(other.onProviderEvent) &&
+             onError.hasSameValue(other.onError) &&
+             hybridRef.hasSameValue(other.hybridRef);
+    }
+
+    [[nodiscard]]
+    bool hasAnyProvidedProps() const noexcept {
+      return provider.isProvided() ||
+             styleUrl.isProvided() ||
+             providerOptions.isProvided() ||
+             models.isProvided() ||
+             zones.isProvided() ||
+             paths.isProvided() ||
+             occlusion.isProvided() ||
+             buildingTilesUrl.isProvided() ||
+             followTerrain.isProvided() ||
+             initialCamera.isProvided() ||
+             mapStyle.isProvided() ||
+             elevation.isProvided() ||
+             globe.isProvided() ||
+             colorScheme.isProvided() ||
+             showsBuildings.isProvided() ||
+             showsUserLocation.isProvided() ||
+             lighting.isProvided() ||
+             maxCameraDistance.isProvided() ||
+             markers.isProvided() ||
+             polylines.isProvided() ||
+             polygons.isProvided() ||
+             circles.isProvided() ||
+             tileOverlays.isProvided() ||
+             clusterStyles.isProvided() ||
+             compassVisibility.isProvided() ||
+             scaleVisibility.isProvided() ||
+             showsUserTrackingButton.isProvided() ||
+             pitchButtonVisibility.isProvided() ||
+             mapScope.isProvided() ||
+             showsTraffic.isProvided() ||
+             pointsOfInterest.isProvided() ||
+             userTrackingMode.isProvided() ||
+             zoomEnabled.isProvided() ||
+             scrollEnabled.isProvided() ||
+             rotateEnabled.isProvided() ||
+             pitchEnabled.isProvided() ||
+             minCameraDistance.isProvided() ||
+             maxCameraDistanceLimit.isProvided() ||
+             cameraBoundary.isProvided() ||
+             mapPadding.isProvided() ||
+             selectableMapFeatures.isProvided() ||
+             selectionAccessory.isProvided() ||
+             onModelPress.isProvided() ||
+             onCameraChange.isProvided() ||
+             onCameraMove.isProvided() ||
+             onMapReady.isProvided() ||
+             onPress.isProvided() ||
+             onLongPress.isProvided() ||
+             onMarkerPress.isProvided() ||
+             onMarkerDeselect.isProvided() ||
+             onCalloutPress.isProvided() ||
+             onCalloutAccessoryPress.isProvided() ||
+             onClusterPress.isProvided() ||
+             onOverlayPress.isProvided() ||
+             onMarkerDragStart.isProvided() ||
+             onMarkerDragEnd.isProvided() ||
+             onMarkerDrag.isProvided() ||
+             onUserLocationChange.isProvided() ||
+             onUserTrackingModeChange.isProvided() ||
+             onMapFeaturePress.isProvided() ||
+             onProviderEvent.isProvided() ||
+             onError.isProvided() ||
+             hybridRef.isProvided();
+    }
 
   private:
     static bool filterObjectKeys(const std::string& propName);
@@ -143,32 +278,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * State for the "MunimMapView" View.
    */
-  class HybridMunimMapViewState final {
-  public:
-    HybridMunimMapViewState() = default;
-    explicit HybridMunimMapViewState(const std::shared_ptr<HybridMunimMapViewProps>& props):
-      _props(props) {}
-
-  public:
-    [[nodiscard]]
-    const std::shared_ptr<HybridMunimMapViewProps>& getProps() const {
-      return _props;
-    }
-
-  public:
-#ifdef ANDROID
-  HybridMunimMapViewState(const HybridMunimMapViewState& /* previousState */, folly::dynamic /* data */) {}
-  folly::dynamic getDynamic() const {
-    throw std::runtime_error("HybridMunimMapViewState does not support folly!");
-  }
-  react::MapBuffer getMapBuffer() const {
-    throw std::runtime_error("HybridMunimMapViewState does not support MapBuffer!");
-  };
-#endif
-
-  private:
-    std::shared_ptr<HybridMunimMapViewProps> _props;
-  };
+  using HybridMunimMapViewState = nitro::ViewPropsHolderState<HybridMunimMapViewProps>;
 
   /**
    * The Shadow Node for the "MunimMapView" View.
@@ -181,21 +291,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * The Component Descriptor for the "MunimMapView" View.
    */
-  class HybridMunimMapViewComponentDescriptor final: public react::ConcreteComponentDescriptor<HybridMunimMapViewShadowNode> {
-  public:
-    explicit HybridMunimMapViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters);
-
-  public:
-    /**
-     * A faster path for cloning props - reuses the caching logic from `HybridMunimMapViewProps`.
-     */
-    std::shared_ptr<const react::Props> cloneProps(const react::PropsParserContext& context,
-                                                   const std::shared_ptr<const react::Props>& props,
-                                                   react::RawProps rawProps) const override;
-#ifdef ANDROID
-    void adopt(react::ShadowNode& shadowNode) const override;
-#endif
-  };
+  using HybridMunimMapViewComponentDescriptor = nitro::ViewComponentDescriptor<HybridMunimMapViewShadowNode>;
 
   /* The actual view for "MunimMapView" needs to be implemented in platform-specific code. */
 

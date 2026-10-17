@@ -15,285 +15,364 @@ namespace margelo::nitro::munimmaps::views {
 using namespace facebook;
 using ConcreteStateData = react::ConcreteState<HybridMunimMapViewState>;
 
-void JHybridMunimMapViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> /* class */,
-                                           jni::alias_ref<JHybridMunimMapViewSpec::JavaPart> javaView,
-                                           jni::alias_ref<JStateWrapper::javaobject> stateWrapperInterface) {
-  std::shared_ptr<JHybridMunimMapViewSpec> hybridView = javaView->getJHybridMunimMapViewSpec();
-
-  // Get concrete StateWrapperImpl from passed StateWrapper interface object
-  jobject rawStateWrapper = stateWrapperInterface.get();
-  if (!stateWrapperInterface->isInstanceOf(react::StateWrapperImpl::javaClassStatic())) [[unlikely]] {
-      throw std::runtime_error("StateWrapper is not a StateWrapperImpl");
+std::shared_ptr<const HybridMunimMapViewProps> JHybridMunimMapViewStateUpdater::getPropsFromStateWrapper(
+    jni::alias_ref<JStateWrapper::javaobject> stateWrapper) {
+  if (stateWrapper.get() == nullptr) {
+    return nullptr;
   }
-  auto stateWrapper = jni::alias_ref<react::StateWrapperImpl::javaobject>{
-            static_cast<react::StateWrapperImpl::javaobject>(rawStateWrapper)};
-  std::shared_ptr<const react::State> state = stateWrapper->cthis()->getState();
+  // Get concrete StateWrapperImpl from passed StateWrapper interface object
+  jobject rawStateWrapper = stateWrapper.get();
+  if (!stateWrapper->isInstanceOf(react::StateWrapperImpl::javaClassStatic())) [[unlikely]] {
+    throw std::runtime_error("StateWrapper is not a StateWrapperImpl");
+  }
+  auto stateWrapperImpl = jni::alias_ref<react::StateWrapperImpl::javaobject>{
+    static_cast<react::StateWrapperImpl::javaobject>(rawStateWrapper)
+  };
+  std::shared_ptr<const react::State> state = stateWrapperImpl->cthis()->getState();
+  if (state == nullptr) {
+    return nullptr;
+  }
   auto concreteState = std::static_pointer_cast<const ConcreteStateData>(state);
   const HybridMunimMapViewState& data = concreteState->getData();
-  const std::shared_ptr<HybridMunimMapViewProps>& props = data.getProps();
+  const std::shared_ptr<const HybridMunimMapViewProps>& props = data.getProps();
   if (props == nullptr) [[unlikely]] {
-    // Props aren't set yet!
     throw std::runtime_error("HybridMunimMapViewState's data doesn't contain any props!");
   }
+  return props;
+}
 
-  // Update all props if they are dirty
-  if (props->provider.isDirty) {
-    hybridView->setProvider(props->provider.value);
-    props->provider.isDirty = false;
+void JHybridMunimMapViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> /* class */,
+                                           jni::alias_ref<JHybridMunimMapViewSpec::JavaPart> javaView,
+                                           jni::alias_ref<JStateWrapper::javaobject> newState,
+                                           jni::alias_ref<JStateWrapper::javaobject> oldState) {
+  std::shared_ptr<JHybridMunimMapViewSpec> hybridView = javaView->getJHybridMunimMapViewSpec();
+  std::shared_ptr<const HybridMunimMapViewProps> newProps = getPropsFromStateWrapper(newState);
+  std::shared_ptr<const HybridMunimMapViewProps> oldProps = getPropsFromStateWrapper(oldState);
+  if (newProps == nullptr) [[unlikely]] {
+    throw std::runtime_error("Current StateWrapper doesn't contain any props!");
   }
-  if (props->styleUrl.isDirty) {
-    hybridView->setStyleUrl(props->styleUrl.value);
-    props->styleUrl.isDirty = false;
+
+  // Update only props that differ from the previous State snapshot.
+  if (oldProps == nullptr
+        ? newProps->provider.isProvided()
+        : !newProps->provider.hasSameValue(oldProps->provider)) {
+    hybridView->setProvider(newProps->provider.get());
   }
-  if (props->providerOptions.isDirty) {
-    hybridView->setProviderOptions(props->providerOptions.value);
-    props->providerOptions.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->styleUrl.isProvided()
+        : !newProps->styleUrl.hasSameValue(oldProps->styleUrl)) {
+    hybridView->setStyleUrl(newProps->styleUrl.get());
   }
-  if (props->models.isDirty) {
-    hybridView->setModels(props->models.value);
-    props->models.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->providerOptions.isProvided()
+        : !newProps->providerOptions.hasSameValue(oldProps->providerOptions)) {
+    hybridView->setProviderOptions(newProps->providerOptions.get());
   }
-  if (props->zones.isDirty) {
-    hybridView->setZones(props->zones.value);
-    props->zones.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->models.isProvided()
+        : !newProps->models.hasSameValue(oldProps->models)) {
+    hybridView->setModels(newProps->models.get());
   }
-  if (props->paths.isDirty) {
-    hybridView->setPaths(props->paths.value);
-    props->paths.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->zones.isProvided()
+        : !newProps->zones.hasSameValue(oldProps->zones)) {
+    hybridView->setZones(newProps->zones.get());
   }
-  if (props->occlusion.isDirty) {
-    hybridView->setOcclusion(props->occlusion.value);
-    props->occlusion.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->paths.isProvided()
+        : !newProps->paths.hasSameValue(oldProps->paths)) {
+    hybridView->setPaths(newProps->paths.get());
   }
-  if (props->buildingTilesUrl.isDirty) {
-    hybridView->setBuildingTilesUrl(props->buildingTilesUrl.value);
-    props->buildingTilesUrl.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->occlusion.isProvided()
+        : !newProps->occlusion.hasSameValue(oldProps->occlusion)) {
+    hybridView->setOcclusion(newProps->occlusion.get());
   }
-  if (props->followTerrain.isDirty) {
-    hybridView->setFollowTerrain(props->followTerrain.value);
-    props->followTerrain.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->buildingTilesUrl.isProvided()
+        : !newProps->buildingTilesUrl.hasSameValue(oldProps->buildingTilesUrl)) {
+    hybridView->setBuildingTilesUrl(newProps->buildingTilesUrl.get());
   }
-  if (props->initialCamera.isDirty) {
-    hybridView->setInitialCamera(props->initialCamera.value);
-    props->initialCamera.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->followTerrain.isProvided()
+        : !newProps->followTerrain.hasSameValue(oldProps->followTerrain)) {
+    hybridView->setFollowTerrain(newProps->followTerrain.get());
   }
-  if (props->mapStyle.isDirty) {
-    hybridView->setMapStyle(props->mapStyle.value);
-    props->mapStyle.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->initialCamera.isProvided()
+        : !newProps->initialCamera.hasSameValue(oldProps->initialCamera)) {
+    hybridView->setInitialCamera(newProps->initialCamera.get());
   }
-  if (props->elevation.isDirty) {
-    hybridView->setElevation(props->elevation.value);
-    props->elevation.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->mapStyle.isProvided()
+        : !newProps->mapStyle.hasSameValue(oldProps->mapStyle)) {
+    hybridView->setMapStyle(newProps->mapStyle.get());
   }
-  if (props->globe.isDirty) {
-    hybridView->setGlobe(props->globe.value);
-    props->globe.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->elevation.isProvided()
+        : !newProps->elevation.hasSameValue(oldProps->elevation)) {
+    hybridView->setElevation(newProps->elevation.get());
   }
-  if (props->colorScheme.isDirty) {
-    hybridView->setColorScheme(props->colorScheme.value);
-    props->colorScheme.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->globe.isProvided()
+        : !newProps->globe.hasSameValue(oldProps->globe)) {
+    hybridView->setGlobe(newProps->globe.get());
   }
-  if (props->showsBuildings.isDirty) {
-    hybridView->setShowsBuildings(props->showsBuildings.value);
-    props->showsBuildings.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->colorScheme.isProvided()
+        : !newProps->colorScheme.hasSameValue(oldProps->colorScheme)) {
+    hybridView->setColorScheme(newProps->colorScheme.get());
   }
-  if (props->showsUserLocation.isDirty) {
-    hybridView->setShowsUserLocation(props->showsUserLocation.value);
-    props->showsUserLocation.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->showsBuildings.isProvided()
+        : !newProps->showsBuildings.hasSameValue(oldProps->showsBuildings)) {
+    hybridView->setShowsBuildings(newProps->showsBuildings.get());
   }
-  if (props->lighting.isDirty) {
-    hybridView->setLighting(props->lighting.value);
-    props->lighting.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->showsUserLocation.isProvided()
+        : !newProps->showsUserLocation.hasSameValue(oldProps->showsUserLocation)) {
+    hybridView->setShowsUserLocation(newProps->showsUserLocation.get());
   }
-  if (props->maxCameraDistance.isDirty) {
-    hybridView->setMaxCameraDistance(props->maxCameraDistance.value);
-    props->maxCameraDistance.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->lighting.isProvided()
+        : !newProps->lighting.hasSameValue(oldProps->lighting)) {
+    hybridView->setLighting(newProps->lighting.get());
   }
-  if (props->markers.isDirty) {
-    hybridView->setMarkers(props->markers.value);
-    props->markers.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->maxCameraDistance.isProvided()
+        : !newProps->maxCameraDistance.hasSameValue(oldProps->maxCameraDistance)) {
+    hybridView->setMaxCameraDistance(newProps->maxCameraDistance.get());
   }
-  if (props->polylines.isDirty) {
-    hybridView->setPolylines(props->polylines.value);
-    props->polylines.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->markers.isProvided()
+        : !newProps->markers.hasSameValue(oldProps->markers)) {
+    hybridView->setMarkers(newProps->markers.get());
   }
-  if (props->polygons.isDirty) {
-    hybridView->setPolygons(props->polygons.value);
-    props->polygons.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->polylines.isProvided()
+        : !newProps->polylines.hasSameValue(oldProps->polylines)) {
+    hybridView->setPolylines(newProps->polylines.get());
   }
-  if (props->circles.isDirty) {
-    hybridView->setCircles(props->circles.value);
-    props->circles.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->polygons.isProvided()
+        : !newProps->polygons.hasSameValue(oldProps->polygons)) {
+    hybridView->setPolygons(newProps->polygons.get());
   }
-  if (props->tileOverlays.isDirty) {
-    hybridView->setTileOverlays(props->tileOverlays.value);
-    props->tileOverlays.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->circles.isProvided()
+        : !newProps->circles.hasSameValue(oldProps->circles)) {
+    hybridView->setCircles(newProps->circles.get());
   }
-  if (props->clusterStyles.isDirty) {
-    hybridView->setClusterStyles(props->clusterStyles.value);
-    props->clusterStyles.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->tileOverlays.isProvided()
+        : !newProps->tileOverlays.hasSameValue(oldProps->tileOverlays)) {
+    hybridView->setTileOverlays(newProps->tileOverlays.get());
   }
-  if (props->compassVisibility.isDirty) {
-    hybridView->setCompassVisibility(props->compassVisibility.value);
-    props->compassVisibility.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->clusterStyles.isProvided()
+        : !newProps->clusterStyles.hasSameValue(oldProps->clusterStyles)) {
+    hybridView->setClusterStyles(newProps->clusterStyles.get());
   }
-  if (props->scaleVisibility.isDirty) {
-    hybridView->setScaleVisibility(props->scaleVisibility.value);
-    props->scaleVisibility.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->compassVisibility.isProvided()
+        : !newProps->compassVisibility.hasSameValue(oldProps->compassVisibility)) {
+    hybridView->setCompassVisibility(newProps->compassVisibility.get());
   }
-  if (props->showsUserTrackingButton.isDirty) {
-    hybridView->setShowsUserTrackingButton(props->showsUserTrackingButton.value);
-    props->showsUserTrackingButton.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->scaleVisibility.isProvided()
+        : !newProps->scaleVisibility.hasSameValue(oldProps->scaleVisibility)) {
+    hybridView->setScaleVisibility(newProps->scaleVisibility.get());
   }
-  if (props->pitchButtonVisibility.isDirty) {
-    hybridView->setPitchButtonVisibility(props->pitchButtonVisibility.value);
-    props->pitchButtonVisibility.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->showsUserTrackingButton.isProvided()
+        : !newProps->showsUserTrackingButton.hasSameValue(oldProps->showsUserTrackingButton)) {
+    hybridView->setShowsUserTrackingButton(newProps->showsUserTrackingButton.get());
   }
-  if (props->mapScope.isDirty) {
-    hybridView->setMapScope(props->mapScope.value);
-    props->mapScope.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->pitchButtonVisibility.isProvided()
+        : !newProps->pitchButtonVisibility.hasSameValue(oldProps->pitchButtonVisibility)) {
+    hybridView->setPitchButtonVisibility(newProps->pitchButtonVisibility.get());
   }
-  if (props->showsTraffic.isDirty) {
-    hybridView->setShowsTraffic(props->showsTraffic.value);
-    props->showsTraffic.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->mapScope.isProvided()
+        : !newProps->mapScope.hasSameValue(oldProps->mapScope)) {
+    hybridView->setMapScope(newProps->mapScope.get());
   }
-  if (props->pointsOfInterest.isDirty) {
-    hybridView->setPointsOfInterest(props->pointsOfInterest.value);
-    props->pointsOfInterest.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->showsTraffic.isProvided()
+        : !newProps->showsTraffic.hasSameValue(oldProps->showsTraffic)) {
+    hybridView->setShowsTraffic(newProps->showsTraffic.get());
   }
-  if (props->userTrackingMode.isDirty) {
-    hybridView->setUserTrackingMode(props->userTrackingMode.value);
-    props->userTrackingMode.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->pointsOfInterest.isProvided()
+        : !newProps->pointsOfInterest.hasSameValue(oldProps->pointsOfInterest)) {
+    hybridView->setPointsOfInterest(newProps->pointsOfInterest.get());
   }
-  if (props->zoomEnabled.isDirty) {
-    hybridView->setZoomEnabled(props->zoomEnabled.value);
-    props->zoomEnabled.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->userTrackingMode.isProvided()
+        : !newProps->userTrackingMode.hasSameValue(oldProps->userTrackingMode)) {
+    hybridView->setUserTrackingMode(newProps->userTrackingMode.get());
   }
-  if (props->scrollEnabled.isDirty) {
-    hybridView->setScrollEnabled(props->scrollEnabled.value);
-    props->scrollEnabled.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->zoomEnabled.isProvided()
+        : !newProps->zoomEnabled.hasSameValue(oldProps->zoomEnabled)) {
+    hybridView->setZoomEnabled(newProps->zoomEnabled.get());
   }
-  if (props->rotateEnabled.isDirty) {
-    hybridView->setRotateEnabled(props->rotateEnabled.value);
-    props->rotateEnabled.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->scrollEnabled.isProvided()
+        : !newProps->scrollEnabled.hasSameValue(oldProps->scrollEnabled)) {
+    hybridView->setScrollEnabled(newProps->scrollEnabled.get());
   }
-  if (props->pitchEnabled.isDirty) {
-    hybridView->setPitchEnabled(props->pitchEnabled.value);
-    props->pitchEnabled.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->rotateEnabled.isProvided()
+        : !newProps->rotateEnabled.hasSameValue(oldProps->rotateEnabled)) {
+    hybridView->setRotateEnabled(newProps->rotateEnabled.get());
   }
-  if (props->minCameraDistance.isDirty) {
-    hybridView->setMinCameraDistance(props->minCameraDistance.value);
-    props->minCameraDistance.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->pitchEnabled.isProvided()
+        : !newProps->pitchEnabled.hasSameValue(oldProps->pitchEnabled)) {
+    hybridView->setPitchEnabled(newProps->pitchEnabled.get());
   }
-  if (props->maxCameraDistanceLimit.isDirty) {
-    hybridView->setMaxCameraDistanceLimit(props->maxCameraDistanceLimit.value);
-    props->maxCameraDistanceLimit.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->minCameraDistance.isProvided()
+        : !newProps->minCameraDistance.hasSameValue(oldProps->minCameraDistance)) {
+    hybridView->setMinCameraDistance(newProps->minCameraDistance.get());
   }
-  if (props->cameraBoundary.isDirty) {
-    hybridView->setCameraBoundary(props->cameraBoundary.value);
-    props->cameraBoundary.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->maxCameraDistanceLimit.isProvided()
+        : !newProps->maxCameraDistanceLimit.hasSameValue(oldProps->maxCameraDistanceLimit)) {
+    hybridView->setMaxCameraDistanceLimit(newProps->maxCameraDistanceLimit.get());
   }
-  if (props->mapPadding.isDirty) {
-    hybridView->setMapPadding(props->mapPadding.value);
-    props->mapPadding.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->cameraBoundary.isProvided()
+        : !newProps->cameraBoundary.hasSameValue(oldProps->cameraBoundary)) {
+    hybridView->setCameraBoundary(newProps->cameraBoundary.get());
   }
-  if (props->selectableMapFeatures.isDirty) {
-    hybridView->setSelectableMapFeatures(props->selectableMapFeatures.value);
-    props->selectableMapFeatures.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->mapPadding.isProvided()
+        : !newProps->mapPadding.hasSameValue(oldProps->mapPadding)) {
+    hybridView->setMapPadding(newProps->mapPadding.get());
   }
-  if (props->selectionAccessory.isDirty) {
-    hybridView->setSelectionAccessory(props->selectionAccessory.value);
-    props->selectionAccessory.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->selectableMapFeatures.isProvided()
+        : !newProps->selectableMapFeatures.hasSameValue(oldProps->selectableMapFeatures)) {
+    hybridView->setSelectableMapFeatures(newProps->selectableMapFeatures.get());
   }
-  if (props->onModelPress.isDirty) {
-    hybridView->setOnModelPress(props->onModelPress.value);
-    props->onModelPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->selectionAccessory.isProvided()
+        : !newProps->selectionAccessory.hasSameValue(oldProps->selectionAccessory)) {
+    hybridView->setSelectionAccessory(newProps->selectionAccessory.get());
   }
-  if (props->onCameraChange.isDirty) {
-    hybridView->setOnCameraChange(props->onCameraChange.value);
-    props->onCameraChange.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onModelPress.isProvided()
+        : !newProps->onModelPress.hasSameValue(oldProps->onModelPress)) {
+    hybridView->setOnModelPress(newProps->onModelPress.get());
   }
-  if (props->onCameraMove.isDirty) {
-    hybridView->setOnCameraMove(props->onCameraMove.value);
-    props->onCameraMove.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onCameraChange.isProvided()
+        : !newProps->onCameraChange.hasSameValue(oldProps->onCameraChange)) {
+    hybridView->setOnCameraChange(newProps->onCameraChange.get());
   }
-  if (props->onMapReady.isDirty) {
-    hybridView->setOnMapReady(props->onMapReady.value);
-    props->onMapReady.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onCameraMove.isProvided()
+        : !newProps->onCameraMove.hasSameValue(oldProps->onCameraMove)) {
+    hybridView->setOnCameraMove(newProps->onCameraMove.get());
   }
-  if (props->onPress.isDirty) {
-    hybridView->setOnPress(props->onPress.value);
-    props->onPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMapReady.isProvided()
+        : !newProps->onMapReady.hasSameValue(oldProps->onMapReady)) {
+    hybridView->setOnMapReady(newProps->onMapReady.get());
   }
-  if (props->onLongPress.isDirty) {
-    hybridView->setOnLongPress(props->onLongPress.value);
-    props->onLongPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onPress.isProvided()
+        : !newProps->onPress.hasSameValue(oldProps->onPress)) {
+    hybridView->setOnPress(newProps->onPress.get());
   }
-  if (props->onMarkerPress.isDirty) {
-    hybridView->setOnMarkerPress(props->onMarkerPress.value);
-    props->onMarkerPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onLongPress.isProvided()
+        : !newProps->onLongPress.hasSameValue(oldProps->onLongPress)) {
+    hybridView->setOnLongPress(newProps->onLongPress.get());
   }
-  if (props->onMarkerDeselect.isDirty) {
-    hybridView->setOnMarkerDeselect(props->onMarkerDeselect.value);
-    props->onMarkerDeselect.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMarkerPress.isProvided()
+        : !newProps->onMarkerPress.hasSameValue(oldProps->onMarkerPress)) {
+    hybridView->setOnMarkerPress(newProps->onMarkerPress.get());
   }
-  if (props->onCalloutPress.isDirty) {
-    hybridView->setOnCalloutPress(props->onCalloutPress.value);
-    props->onCalloutPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMarkerDeselect.isProvided()
+        : !newProps->onMarkerDeselect.hasSameValue(oldProps->onMarkerDeselect)) {
+    hybridView->setOnMarkerDeselect(newProps->onMarkerDeselect.get());
   }
-  if (props->onCalloutAccessoryPress.isDirty) {
-    hybridView->setOnCalloutAccessoryPress(props->onCalloutAccessoryPress.value);
-    props->onCalloutAccessoryPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onCalloutPress.isProvided()
+        : !newProps->onCalloutPress.hasSameValue(oldProps->onCalloutPress)) {
+    hybridView->setOnCalloutPress(newProps->onCalloutPress.get());
   }
-  if (props->onClusterPress.isDirty) {
-    hybridView->setOnClusterPress(props->onClusterPress.value);
-    props->onClusterPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onCalloutAccessoryPress.isProvided()
+        : !newProps->onCalloutAccessoryPress.hasSameValue(oldProps->onCalloutAccessoryPress)) {
+    hybridView->setOnCalloutAccessoryPress(newProps->onCalloutAccessoryPress.get());
   }
-  if (props->onOverlayPress.isDirty) {
-    hybridView->setOnOverlayPress(props->onOverlayPress.value);
-    props->onOverlayPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onClusterPress.isProvided()
+        : !newProps->onClusterPress.hasSameValue(oldProps->onClusterPress)) {
+    hybridView->setOnClusterPress(newProps->onClusterPress.get());
   }
-  if (props->onMarkerDragStart.isDirty) {
-    hybridView->setOnMarkerDragStart(props->onMarkerDragStart.value);
-    props->onMarkerDragStart.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onOverlayPress.isProvided()
+        : !newProps->onOverlayPress.hasSameValue(oldProps->onOverlayPress)) {
+    hybridView->setOnOverlayPress(newProps->onOverlayPress.get());
   }
-  if (props->onMarkerDragEnd.isDirty) {
-    hybridView->setOnMarkerDragEnd(props->onMarkerDragEnd.value);
-    props->onMarkerDragEnd.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMarkerDragStart.isProvided()
+        : !newProps->onMarkerDragStart.hasSameValue(oldProps->onMarkerDragStart)) {
+    hybridView->setOnMarkerDragStart(newProps->onMarkerDragStart.get());
   }
-  if (props->onMarkerDrag.isDirty) {
-    hybridView->setOnMarkerDrag(props->onMarkerDrag.value);
-    props->onMarkerDrag.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMarkerDragEnd.isProvided()
+        : !newProps->onMarkerDragEnd.hasSameValue(oldProps->onMarkerDragEnd)) {
+    hybridView->setOnMarkerDragEnd(newProps->onMarkerDragEnd.get());
   }
-  if (props->onUserLocationChange.isDirty) {
-    hybridView->setOnUserLocationChange(props->onUserLocationChange.value);
-    props->onUserLocationChange.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMarkerDrag.isProvided()
+        : !newProps->onMarkerDrag.hasSameValue(oldProps->onMarkerDrag)) {
+    hybridView->setOnMarkerDrag(newProps->onMarkerDrag.get());
   }
-  if (props->onUserTrackingModeChange.isDirty) {
-    hybridView->setOnUserTrackingModeChange(props->onUserTrackingModeChange.value);
-    props->onUserTrackingModeChange.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onUserLocationChange.isProvided()
+        : !newProps->onUserLocationChange.hasSameValue(oldProps->onUserLocationChange)) {
+    hybridView->setOnUserLocationChange(newProps->onUserLocationChange.get());
   }
-  if (props->onMapFeaturePress.isDirty) {
-    hybridView->setOnMapFeaturePress(props->onMapFeaturePress.value);
-    props->onMapFeaturePress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onUserTrackingModeChange.isProvided()
+        : !newProps->onUserTrackingModeChange.hasSameValue(oldProps->onUserTrackingModeChange)) {
+    hybridView->setOnUserTrackingModeChange(newProps->onUserTrackingModeChange.get());
   }
-  if (props->onProviderEvent.isDirty) {
-    hybridView->setOnProviderEvent(props->onProviderEvent.value);
-    props->onProviderEvent.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onMapFeaturePress.isProvided()
+        : !newProps->onMapFeaturePress.hasSameValue(oldProps->onMapFeaturePress)) {
+    hybridView->setOnMapFeaturePress(newProps->onMapFeaturePress.get());
   }
-  if (props->onError.isDirty) {
-    hybridView->setOnError(props->onError.value);
-    props->onError.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onProviderEvent.isProvided()
+        : !newProps->onProviderEvent.hasSameValue(oldProps->onProviderEvent)) {
+    hybridView->setOnProviderEvent(newProps->onProviderEvent.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onError.isProvided()
+        : !newProps->onError.hasSameValue(oldProps->onError)) {
+    hybridView->setOnError(newProps->onError.get());
   }
 
   // Update hybridRef if it changed
-  if (props->hybridRef.isDirty) {
+  if (oldProps == nullptr
+        ? newProps->hybridRef.isProvided()
+        : !newProps->hybridRef.hasSameValue(oldProps->hybridRef)) {
     // hybridRef changed - call it with new this
-    const auto& maybeFunc = props->hybridRef.value;
+    const auto& maybeFunc = newProps->hybridRef.get();
     if (maybeFunc.has_value()) {
       maybeFunc.value()(hybridView);
     }
-    props->hybridRef.isDirty = false;
   }
 }
 

@@ -206,7 +206,7 @@ export function ProvidersScreen(props: {
       const file = new File(Paths.document, `munim-maps-shared-checks-${provider}.json`)
       if (file.exists) file.delete()
       file.create()
-      file.write(JSON.stringify(report, null, 2))
+      file.writeSync(JSON.stringify(report, null, 2))
     } catch (error) {
       console.warn('MUNIM_MAPS_SHARED could not write the report', error)
     }

@@ -7,18 +7,22 @@
 
 #include "HybridMapControlComponent.hpp"
 
-#include <string>
-#include <exception>
-#include <utility>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/JSIConverter.hpp>
-#include <NitroModules/PropNameIDCache.hpp>
-#include <react/renderer/core/RawValue.h>
-#include <react/renderer/core/ShadowNode.h>
-#include <react/renderer/core/ComponentDescriptor.h>
-#include <react/renderer/components/view/ViewProps.h>
+#include <NitroModules/NitroHash.hpp>
+#include <NitroModules/ReactProp.hpp>
+
+// munim-maps: margelo/nitro#1656 (see scripts/patch-nitro-viewprops.js)
+#ifdef ANDROID
+#if __has_include(<cxxreact/ReactNativeVersion.h>)
+#include <cxxreact/ReactNativeVersion.h>
+#endif
+#if defined(REACT_NATIVE_VERSION_MINOR) && REACT_NATIVE_VERSION_MAJOR == 0 && REACT_NATIVE_VERSION_MINOR >= 84 && REACT_NATIVE_VERSION_MINOR < 87
+#include <react/featureflags/ReactNativeFeatureFlags.h>
+#endif
+#endif
 
 namespace margelo::nitro::munimmaps::views {
+
+  using namespace facebook;
 
   extern const char HybridMapControlComponentName[] = "MapControl";
 
@@ -26,56 +30,22 @@ namespace margelo::nitro::munimmaps::views {
                                                const HybridMapControlProps& sourceProps,
                                                const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    kind([&]() -> CachedProp<MapControlKind> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("kind", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.kind;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapControlKind>::fromRawValue(*runtime, value, sourceProps.kind);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapControl.kind: ") + exc.what());
-      }
-    }()),
-    mapScope([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("mapScope", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.mapScope;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.mapScope);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapControl.mapScope: ") + exc.what());
-      }
-    }()),
-    visibility([&]() -> CachedProp<FeatureVisibility> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("visibility", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.visibility;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.visibility);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapControl.visibility: ") + exc.what());
-      }
-    }()),
-    scaleAlignment([&]() -> CachedProp<MapScaleAlignment> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("scaleAlignment", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.scaleAlignment;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapScaleAlignment>::fromRawValue(*runtime, value, sourceProps.scaleAlignment);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapControl.scaleAlignment: ") + exc.what());
-      }
-    }()),
-    hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMapControlSpec>& /* ref */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.hybridRef;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMapControlSpec>& /* ref */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.hybridRef);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapControl.hybridRef: ") + exc.what());
-      }
-    }()) { }
+    kind(nitro::ReactProp<MapControlKind>::fromRawValue("MapControl", "kind", rawProps, sourceProps.kind)),
+    mapScope(nitro::ReactProp<std::string>::fromRawValue("MapControl", "mapScope", rawProps, sourceProps.mapScope)),
+    visibility(nitro::ReactProp<FeatureVisibility>::fromRawValue("MapControl", "visibility", rawProps, sourceProps.visibility)),
+    scaleAlignment(nitro::ReactProp<MapScaleAlignment>::fromRawValue("MapControl", "scaleAlignment", rawProps, sourceProps.scaleAlignment)),
+    hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMapControlSpec>& /* ref */)>>>::fromRawValue("MapControl", "hybridRef", rawProps, sourceProps.hybridRef)) {
+    // munim-maps: margelo/nitro#1656: React Native no longer fills Props::rawProps for us.
+#if defined(ANDROID) && defined(RN_SERIALIZABLE_STATE) && defined(REACT_NATIVE_VERSION_MINOR)
+#if REACT_NATIVE_VERSION_MAJOR > 0 || REACT_NATIVE_VERSION_MINOR >= 87
+    initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+#elif REACT_NATIVE_VERSION_MINOR >= 84
+    if (facebook::react::ReactNativeFeatureFlags::enableExclusivePropsUpdateAndroid()) {
+      initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+    }
+#endif
+#endif
+  }
 
   bool HybridMapControlProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
@@ -87,30 +57,5 @@ namespace margelo::nitro::munimmaps::views {
       default: return false;
     }
   }
-
-  HybridMapControlComponentDescriptor::HybridMapControlComponentDescriptor(const react::ComponentDescriptorParameters& parameters)
-    : ConcreteComponentDescriptor(parameters,
-                                  react::RawPropsParser()) {}
-
-  std::shared_ptr<const react::Props> HybridMapControlComponentDescriptor::cloneProps(const react::PropsParserContext& context,
-                                                                                      const std::shared_ptr<const react::Props>& props,
-                                                                                      react::RawProps rawProps) const {
-    // 1. Prepare raw props parser
-    rawProps.parse(rawPropsParser_);
-    // 2. Copy props with Nitro's cached copy constructor
-    return HybridMapControlShadowNode::Props(context, /* & */ rawProps, props);
-  }
-
-#ifdef ANDROID
-  void HybridMapControlComponentDescriptor::adopt(react::ShadowNode& shadowNode) const {
-    // This is called immediately after `ShadowNode` is created, cloned or in progress.
-    // On Android, we need to wrap props in our state, which gets routed through Java and later unwrapped in JNI/C++.
-    auto& concreteShadowNode = static_cast<HybridMapControlShadowNode&>(shadowNode);
-    const std::shared_ptr<const HybridMapControlProps>& constProps = concreteShadowNode.getConcreteSharedProps();
-    const std::shared_ptr<HybridMapControlProps>& props = std::const_pointer_cast<HybridMapControlProps>(constProps);
-    HybridMapControlState state{props};
-    concreteShadowNode.setStateData(std::move(state));
-  }
-#endif
 
 } // namespace margelo::nitro::munimmaps::views

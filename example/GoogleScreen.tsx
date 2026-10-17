@@ -187,7 +187,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
       polygons: { park: { geodesic: false } },
       tileOverlays: { osm: { tileSize: 256, fadeIn: true, userAgent: 'munim-maps-example' } },
       groundOverlays: layers
-        ? [{ id: 'ground', imageUri: Image.resolveAssetSource(AVATAR).uri, position: { latitude: 41.8768, longitude: -87.6305 }, width: 120, bearing: 20, opacity: 0.8, tappable: true }]
+        ? [{ id: 'ground', imageUri: Image.resolveAssetSource(AVATAR)?.uri ?? '', position: { latitude: 41.8768, longitude: -87.6305 }, width: 120, bearing: 20, opacity: 0.8, tappable: true }]
         : [],
       heatmaps: layers ? [{ id: 'heat', points: heatPoints(), radius: 30, opacity: 0.8 }] : [],
       geoJsonLayers: layers ? [{ id: 'sketch', geojson: GEOJSON, style: { strokeColor: '#00C7BE', strokeWidth: 3 } }] : [],
@@ -250,7 +250,7 @@ export function GoogleScreen(props: { topInset: number; autoCheck: boolean; phot
         const file = new File(Paths.document, photo3d ? 'munim-maps-google-3d-checks.json' : 'munim-maps-google-checks.json')
         if (file.exists) file.delete()
         file.create()
-        file.write(JSON.stringify(summary, null, 2))
+        file.writeSync(JSON.stringify(summary, null, 2))
       } catch (error) {
         console.warn('MUNIM_MAPS_GOOGLE could not write the report', error)
       }

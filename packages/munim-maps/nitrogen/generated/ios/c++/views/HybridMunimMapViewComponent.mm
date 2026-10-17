@@ -37,6 +37,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 @implementation HybridMunimMapViewComponent {
   std::shared_ptr<HybridMunimMapViewSpecSwift> _hybridView;
+  BOOL _didDropView;
 }
 
 + (void) load {
@@ -50,6 +51,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 - (instancetype) init {
   if (self = [super init]) {
+    _props = HybridMunimMapViewShadowNode::defaultSharedProps();
     std::shared_ptr<HybridMunimMapViewSpec> hybridView = NitroMunimMaps::NitroMunimMapsAutolinking::createMunimMapView();
     _hybridView = std::dynamic_pointer_cast<HybridMunimMapViewSpecSwift>(hybridView);
     [self updateView];
@@ -69,340 +71,421 @@ using namespace margelo::nitro::munimmaps::views;
   [self setContentView:view];
 }
 
+- (void) notifyOnDropView {
+  // A recycled component can later be invalidated. Notify only once per mount.
+  if (_didDropView) {
+    return;
+  }
+  NitroMunimMaps::HybridMunimMapViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  swiftPart.onDropView();
+  _didDropView = YES;
+}
+
 - (void) updateProps:(const std::shared_ptr<const react::Props>&)props
             oldProps:(const std::shared_ptr<const react::Props>&)oldProps {
+  // A props update marks a newly mounted or still-active component.
+  _didDropView = NO;
+
   // 1. Downcast props
-  const auto& newViewPropsConst = *std::static_pointer_cast<HybridMunimMapViewProps const>(props);
-  auto& newViewProps = const_cast<HybridMunimMapViewProps&>(newViewPropsConst);
+  const auto& newViewProps = *std::static_pointer_cast<const HybridMunimMapViewProps>(props);
+  const auto* oldViewProps = static_cast<const HybridMunimMapViewProps*>(oldProps.get());
   NitroMunimMaps::HybridMunimMapViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
-  // 2. Update each prop individually
-  swiftPart.beforeUpdate();
+  // 2. Update only props that differ from the previous Props snapshot.
+  const bool hasTransactionPropChanges = oldViewProps == nullptr
+      ? newViewProps.hasAnyProvidedProps()
+      : !newViewProps.hasSameProps(*oldViewProps);
+  if (hasTransactionPropChanges) {
+    swiftPart.beforeUpdate();
 
-  // provider: enum
-  if (newViewProps.provider.isDirty) {
-    swiftPart.setProvider(static_cast<int>(newViewProps.provider.value));
-    newViewProps.provider.isDirty = false;
-  }
-  // styleUrl: string
-  if (newViewProps.styleUrl.isDirty) {
-    swiftPart.setStyleUrl(newViewProps.styleUrl.value);
-    newViewProps.styleUrl.isDirty = false;
-  }
-  // providerOptions: string
-  if (newViewProps.providerOptions.isDirty) {
-    swiftPart.setProviderOptions(newViewProps.providerOptions.value);
-    newViewProps.providerOptions.isDirty = false;
-  }
-  // models: array
-  if (newViewProps.models.isDirty) {
-    swiftPart.setModels(newViewProps.models.value);
-    newViewProps.models.isDirty = false;
-  }
-  // zones: array
-  if (newViewProps.zones.isDirty) {
-    swiftPart.setZones(newViewProps.zones.value);
-    newViewProps.zones.isDirty = false;
-  }
-  // paths: array
-  if (newViewProps.paths.isDirty) {
-    swiftPart.setPaths(newViewProps.paths.value);
-    newViewProps.paths.isDirty = false;
-  }
-  // occlusion: enum
-  if (newViewProps.occlusion.isDirty) {
-    swiftPart.setOcclusion(static_cast<int>(newViewProps.occlusion.value));
-    newViewProps.occlusion.isDirty = false;
-  }
-  // buildingTilesUrl: string
-  if (newViewProps.buildingTilesUrl.isDirty) {
-    swiftPart.setBuildingTilesUrl(newViewProps.buildingTilesUrl.value);
-    newViewProps.buildingTilesUrl.isDirty = false;
-  }
-  // followTerrain: boolean
-  if (newViewProps.followTerrain.isDirty) {
-    swiftPart.setFollowTerrain(newViewProps.followTerrain.value);
-    newViewProps.followTerrain.isDirty = false;
-  }
-  // initialCamera: struct
-  if (newViewProps.initialCamera.isDirty) {
-    swiftPart.setInitialCamera(newViewProps.initialCamera.value);
-    newViewProps.initialCamera.isDirty = false;
-  }
-  // mapStyle: enum
-  if (newViewProps.mapStyle.isDirty) {
-    swiftPart.setMapStyle(static_cast<int>(newViewProps.mapStyle.value));
-    newViewProps.mapStyle.isDirty = false;
-  }
-  // elevation: enum
-  if (newViewProps.elevation.isDirty) {
-    swiftPart.setElevation(static_cast<int>(newViewProps.elevation.value));
-    newViewProps.elevation.isDirty = false;
-  }
-  // globe: boolean
-  if (newViewProps.globe.isDirty) {
-    swiftPart.setGlobe(newViewProps.globe.value);
-    newViewProps.globe.isDirty = false;
-  }
-  // colorScheme: enum
-  if (newViewProps.colorScheme.isDirty) {
-    swiftPart.setColorScheme(static_cast<int>(newViewProps.colorScheme.value));
-    newViewProps.colorScheme.isDirty = false;
-  }
-  // showsBuildings: boolean
-  if (newViewProps.showsBuildings.isDirty) {
-    swiftPart.setShowsBuildings(newViewProps.showsBuildings.value);
-    newViewProps.showsBuildings.isDirty = false;
-  }
-  // showsUserLocation: boolean
-  if (newViewProps.showsUserLocation.isDirty) {
-    swiftPart.setShowsUserLocation(newViewProps.showsUserLocation.value);
-    newViewProps.showsUserLocation.isDirty = false;
-  }
-  // lighting: enum
-  if (newViewProps.lighting.isDirty) {
-    swiftPart.setLighting(static_cast<int>(newViewProps.lighting.value));
-    newViewProps.lighting.isDirty = false;
-  }
-  // maxCameraDistance: number
-  if (newViewProps.maxCameraDistance.isDirty) {
-    swiftPart.setMaxCameraDistance(newViewProps.maxCameraDistance.value);
-    newViewProps.maxCameraDistance.isDirty = false;
-  }
-  // markers: array
-  if (newViewProps.markers.isDirty) {
-    swiftPart.setMarkers(newViewProps.markers.value);
-    newViewProps.markers.isDirty = false;
-  }
-  // polylines: array
-  if (newViewProps.polylines.isDirty) {
-    swiftPart.setPolylines(newViewProps.polylines.value);
-    newViewProps.polylines.isDirty = false;
-  }
-  // polygons: array
-  if (newViewProps.polygons.isDirty) {
-    swiftPart.setPolygons(newViewProps.polygons.value);
-    newViewProps.polygons.isDirty = false;
-  }
-  // circles: array
-  if (newViewProps.circles.isDirty) {
-    swiftPart.setCircles(newViewProps.circles.value);
-    newViewProps.circles.isDirty = false;
-  }
-  // tileOverlays: array
-  if (newViewProps.tileOverlays.isDirty) {
-    swiftPart.setTileOverlays(newViewProps.tileOverlays.value);
-    newViewProps.tileOverlays.isDirty = false;
-  }
-  // clusterStyles: array
-  if (newViewProps.clusterStyles.isDirty) {
-    swiftPart.setClusterStyles(newViewProps.clusterStyles.value);
-    newViewProps.clusterStyles.isDirty = false;
-  }
-  // compassVisibility: enum
-  if (newViewProps.compassVisibility.isDirty) {
-    swiftPart.setCompassVisibility(static_cast<int>(newViewProps.compassVisibility.value));
-    newViewProps.compassVisibility.isDirty = false;
-  }
-  // scaleVisibility: enum
-  if (newViewProps.scaleVisibility.isDirty) {
-    swiftPart.setScaleVisibility(static_cast<int>(newViewProps.scaleVisibility.value));
-    newViewProps.scaleVisibility.isDirty = false;
-  }
-  // showsUserTrackingButton: boolean
-  if (newViewProps.showsUserTrackingButton.isDirty) {
-    swiftPart.setShowsUserTrackingButton(newViewProps.showsUserTrackingButton.value);
-    newViewProps.showsUserTrackingButton.isDirty = false;
-  }
-  // pitchButtonVisibility: enum
-  if (newViewProps.pitchButtonVisibility.isDirty) {
-    swiftPart.setPitchButtonVisibility(static_cast<int>(newViewProps.pitchButtonVisibility.value));
-    newViewProps.pitchButtonVisibility.isDirty = false;
-  }
-  // mapScope: string
-  if (newViewProps.mapScope.isDirty) {
-    swiftPart.setMapScope(newViewProps.mapScope.value);
-    newViewProps.mapScope.isDirty = false;
-  }
-  // showsTraffic: boolean
-  if (newViewProps.showsTraffic.isDirty) {
-    swiftPart.setShowsTraffic(newViewProps.showsTraffic.value);
-    newViewProps.showsTraffic.isDirty = false;
-  }
-  // pointsOfInterest: string
-  if (newViewProps.pointsOfInterest.isDirty) {
-    swiftPart.setPointsOfInterest(newViewProps.pointsOfInterest.value);
-    newViewProps.pointsOfInterest.isDirty = false;
-  }
-  // userTrackingMode: enum
-  if (newViewProps.userTrackingMode.isDirty) {
-    swiftPart.setUserTrackingMode(static_cast<int>(newViewProps.userTrackingMode.value));
-    newViewProps.userTrackingMode.isDirty = false;
-  }
-  // zoomEnabled: boolean
-  if (newViewProps.zoomEnabled.isDirty) {
-    swiftPart.setZoomEnabled(newViewProps.zoomEnabled.value);
-    newViewProps.zoomEnabled.isDirty = false;
-  }
-  // scrollEnabled: boolean
-  if (newViewProps.scrollEnabled.isDirty) {
-    swiftPart.setScrollEnabled(newViewProps.scrollEnabled.value);
-    newViewProps.scrollEnabled.isDirty = false;
-  }
-  // rotateEnabled: boolean
-  if (newViewProps.rotateEnabled.isDirty) {
-    swiftPart.setRotateEnabled(newViewProps.rotateEnabled.value);
-    newViewProps.rotateEnabled.isDirty = false;
-  }
-  // pitchEnabled: boolean
-  if (newViewProps.pitchEnabled.isDirty) {
-    swiftPart.setPitchEnabled(newViewProps.pitchEnabled.value);
-    newViewProps.pitchEnabled.isDirty = false;
-  }
-  // minCameraDistance: number
-  if (newViewProps.minCameraDistance.isDirty) {
-    swiftPart.setMinCameraDistance(newViewProps.minCameraDistance.value);
-    newViewProps.minCameraDistance.isDirty = false;
-  }
-  // maxCameraDistanceLimit: number
-  if (newViewProps.maxCameraDistanceLimit.isDirty) {
-    swiftPart.setMaxCameraDistanceLimit(newViewProps.maxCameraDistanceLimit.value);
-    newViewProps.maxCameraDistanceLimit.isDirty = false;
-  }
-  // cameraBoundary: struct
-  if (newViewProps.cameraBoundary.isDirty) {
-    swiftPart.setCameraBoundary(newViewProps.cameraBoundary.value);
-    newViewProps.cameraBoundary.isDirty = false;
-  }
-  // mapPadding: struct
-  if (newViewProps.mapPadding.isDirty) {
-    swiftPart.setMapPadding(newViewProps.mapPadding.value);
-    newViewProps.mapPadding.isDirty = false;
-  }
-  // selectableMapFeatures: string
-  if (newViewProps.selectableMapFeatures.isDirty) {
-    swiftPart.setSelectableMapFeatures(newViewProps.selectableMapFeatures.value);
-    newViewProps.selectableMapFeatures.isDirty = false;
-  }
-  // selectionAccessory: enum
-  if (newViewProps.selectionAccessory.isDirty) {
-    swiftPart.setSelectionAccessory(static_cast<int>(newViewProps.selectionAccessory.value));
-    newViewProps.selectionAccessory.isDirty = false;
-  }
-  // onModelPress: optional
-  if (newViewProps.onModelPress.isDirty) {
-    swiftPart.setOnModelPress(newViewProps.onModelPress.value);
-    newViewProps.onModelPress.isDirty = false;
-  }
-  // onCameraChange: optional
-  if (newViewProps.onCameraChange.isDirty) {
-    swiftPart.setOnCameraChange(newViewProps.onCameraChange.value);
-    newViewProps.onCameraChange.isDirty = false;
-  }
-  // onCameraMove: optional
-  if (newViewProps.onCameraMove.isDirty) {
-    swiftPart.setOnCameraMove(newViewProps.onCameraMove.value);
-    newViewProps.onCameraMove.isDirty = false;
-  }
-  // onMapReady: optional
-  if (newViewProps.onMapReady.isDirty) {
-    swiftPart.setOnMapReady(newViewProps.onMapReady.value);
-    newViewProps.onMapReady.isDirty = false;
-  }
-  // onPress: optional
-  if (newViewProps.onPress.isDirty) {
-    swiftPart.setOnPress(newViewProps.onPress.value);
-    newViewProps.onPress.isDirty = false;
-  }
-  // onLongPress: optional
-  if (newViewProps.onLongPress.isDirty) {
-    swiftPart.setOnLongPress(newViewProps.onLongPress.value);
-    newViewProps.onLongPress.isDirty = false;
-  }
-  // onMarkerPress: optional
-  if (newViewProps.onMarkerPress.isDirty) {
-    swiftPart.setOnMarkerPress(newViewProps.onMarkerPress.value);
-    newViewProps.onMarkerPress.isDirty = false;
-  }
-  // onMarkerDeselect: optional
-  if (newViewProps.onMarkerDeselect.isDirty) {
-    swiftPart.setOnMarkerDeselect(newViewProps.onMarkerDeselect.value);
-    newViewProps.onMarkerDeselect.isDirty = false;
-  }
-  // onCalloutPress: optional
-  if (newViewProps.onCalloutPress.isDirty) {
-    swiftPart.setOnCalloutPress(newViewProps.onCalloutPress.value);
-    newViewProps.onCalloutPress.isDirty = false;
-  }
-  // onCalloutAccessoryPress: optional
-  if (newViewProps.onCalloutAccessoryPress.isDirty) {
-    swiftPart.setOnCalloutAccessoryPress(newViewProps.onCalloutAccessoryPress.value);
-    newViewProps.onCalloutAccessoryPress.isDirty = false;
-  }
-  // onClusterPress: optional
-  if (newViewProps.onClusterPress.isDirty) {
-    swiftPart.setOnClusterPress(newViewProps.onClusterPress.value);
-    newViewProps.onClusterPress.isDirty = false;
-  }
-  // onOverlayPress: optional
-  if (newViewProps.onOverlayPress.isDirty) {
-    swiftPart.setOnOverlayPress(newViewProps.onOverlayPress.value);
-    newViewProps.onOverlayPress.isDirty = false;
-  }
-  // onMarkerDragStart: optional
-  if (newViewProps.onMarkerDragStart.isDirty) {
-    swiftPart.setOnMarkerDragStart(newViewProps.onMarkerDragStart.value);
-    newViewProps.onMarkerDragStart.isDirty = false;
-  }
-  // onMarkerDragEnd: optional
-  if (newViewProps.onMarkerDragEnd.isDirty) {
-    swiftPart.setOnMarkerDragEnd(newViewProps.onMarkerDragEnd.value);
-    newViewProps.onMarkerDragEnd.isDirty = false;
-  }
-  // onMarkerDrag: optional
-  if (newViewProps.onMarkerDrag.isDirty) {
-    swiftPart.setOnMarkerDrag(newViewProps.onMarkerDrag.value);
-    newViewProps.onMarkerDrag.isDirty = false;
-  }
-  // onUserLocationChange: optional
-  if (newViewProps.onUserLocationChange.isDirty) {
-    swiftPart.setOnUserLocationChange(newViewProps.onUserLocationChange.value);
-    newViewProps.onUserLocationChange.isDirty = false;
-  }
-  // onUserTrackingModeChange: optional
-  if (newViewProps.onUserTrackingModeChange.isDirty) {
-    swiftPart.setOnUserTrackingModeChange(newViewProps.onUserTrackingModeChange.value);
-    newViewProps.onUserTrackingModeChange.isDirty = false;
-  }
-  // onMapFeaturePress: optional
-  if (newViewProps.onMapFeaturePress.isDirty) {
-    swiftPart.setOnMapFeaturePress(newViewProps.onMapFeaturePress.value);
-    newViewProps.onMapFeaturePress.isDirty = false;
-  }
-  // onProviderEvent: optional
-  if (newViewProps.onProviderEvent.isDirty) {
-    swiftPart.setOnProviderEvent(newViewProps.onProviderEvent.value);
-    newViewProps.onProviderEvent.isDirty = false;
-  }
-  // onError: optional
-  if (newViewProps.onError.isDirty) {
-    swiftPart.setOnError(newViewProps.onError.value);
-    newViewProps.onError.isDirty = false;
-  }
-
-  swiftPart.afterUpdate();
-
-  // 3. Update hybridRef if it changed
-  if (newViewProps.hybridRef.isDirty) {
-    // hybridRef changed - call it with new this
-    const auto& maybeFunc = newViewProps.hybridRef.value;
-    if (maybeFunc.has_value()) {
-      maybeFunc.value()(_hybridView);
+    // provider: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.provider.isProvided()
+          : !newViewProps.provider.hasSameValue(oldViewProps->provider)) {
+      swiftPart.setProvider(static_cast<int>(newViewProps.provider.get()));
     }
-    newViewProps.hybridRef.isDirty = false;
+    // styleUrl: string
+    if (oldViewProps == nullptr
+          ? newViewProps.styleUrl.isProvided()
+          : !newViewProps.styleUrl.hasSameValue(oldViewProps->styleUrl)) {
+      swiftPart.setStyleUrl(newViewProps.styleUrl.get());
+    }
+    // providerOptions: string
+    if (oldViewProps == nullptr
+          ? newViewProps.providerOptions.isProvided()
+          : !newViewProps.providerOptions.hasSameValue(oldViewProps->providerOptions)) {
+      swiftPart.setProviderOptions(newViewProps.providerOptions.get());
+    }
+    // models: array
+    if (oldViewProps == nullptr
+          ? newViewProps.models.isProvided()
+          : !newViewProps.models.hasSameValue(oldViewProps->models)) {
+      swiftPart.setModels(newViewProps.models.get());
+    }
+    // zones: array
+    if (oldViewProps == nullptr
+          ? newViewProps.zones.isProvided()
+          : !newViewProps.zones.hasSameValue(oldViewProps->zones)) {
+      swiftPart.setZones(newViewProps.zones.get());
+    }
+    // paths: array
+    if (oldViewProps == nullptr
+          ? newViewProps.paths.isProvided()
+          : !newViewProps.paths.hasSameValue(oldViewProps->paths)) {
+      swiftPart.setPaths(newViewProps.paths.get());
+    }
+    // occlusion: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.occlusion.isProvided()
+          : !newViewProps.occlusion.hasSameValue(oldViewProps->occlusion)) {
+      swiftPart.setOcclusion(static_cast<int>(newViewProps.occlusion.get()));
+    }
+    // buildingTilesUrl: string
+    if (oldViewProps == nullptr
+          ? newViewProps.buildingTilesUrl.isProvided()
+          : !newViewProps.buildingTilesUrl.hasSameValue(oldViewProps->buildingTilesUrl)) {
+      swiftPart.setBuildingTilesUrl(newViewProps.buildingTilesUrl.get());
+    }
+    // followTerrain: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.followTerrain.isProvided()
+          : !newViewProps.followTerrain.hasSameValue(oldViewProps->followTerrain)) {
+      swiftPart.setFollowTerrain(newViewProps.followTerrain.get());
+    }
+    // initialCamera: struct
+    if (oldViewProps == nullptr
+          ? newViewProps.initialCamera.isProvided()
+          : !newViewProps.initialCamera.hasSameValue(oldViewProps->initialCamera)) {
+      swiftPart.setInitialCamera(newViewProps.initialCamera.get());
+    }
+    // mapStyle: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.mapStyle.isProvided()
+          : !newViewProps.mapStyle.hasSameValue(oldViewProps->mapStyle)) {
+      swiftPart.setMapStyle(static_cast<int>(newViewProps.mapStyle.get()));
+    }
+    // elevation: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.elevation.isProvided()
+          : !newViewProps.elevation.hasSameValue(oldViewProps->elevation)) {
+      swiftPart.setElevation(static_cast<int>(newViewProps.elevation.get()));
+    }
+    // globe: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.globe.isProvided()
+          : !newViewProps.globe.hasSameValue(oldViewProps->globe)) {
+      swiftPart.setGlobe(newViewProps.globe.get());
+    }
+    // colorScheme: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.colorScheme.isProvided()
+          : !newViewProps.colorScheme.hasSameValue(oldViewProps->colorScheme)) {
+      swiftPart.setColorScheme(static_cast<int>(newViewProps.colorScheme.get()));
+    }
+    // showsBuildings: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showsBuildings.isProvided()
+          : !newViewProps.showsBuildings.hasSameValue(oldViewProps->showsBuildings)) {
+      swiftPart.setShowsBuildings(newViewProps.showsBuildings.get());
+    }
+    // showsUserLocation: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showsUserLocation.isProvided()
+          : !newViewProps.showsUserLocation.hasSameValue(oldViewProps->showsUserLocation)) {
+      swiftPart.setShowsUserLocation(newViewProps.showsUserLocation.get());
+    }
+    // lighting: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.lighting.isProvided()
+          : !newViewProps.lighting.hasSameValue(oldViewProps->lighting)) {
+      swiftPart.setLighting(static_cast<int>(newViewProps.lighting.get()));
+    }
+    // maxCameraDistance: number
+    if (oldViewProps == nullptr
+          ? newViewProps.maxCameraDistance.isProvided()
+          : !newViewProps.maxCameraDistance.hasSameValue(oldViewProps->maxCameraDistance)) {
+      swiftPart.setMaxCameraDistance(newViewProps.maxCameraDistance.get());
+    }
+    // markers: array
+    if (oldViewProps == nullptr
+          ? newViewProps.markers.isProvided()
+          : !newViewProps.markers.hasSameValue(oldViewProps->markers)) {
+      swiftPart.setMarkers(newViewProps.markers.get());
+    }
+    // polylines: array
+    if (oldViewProps == nullptr
+          ? newViewProps.polylines.isProvided()
+          : !newViewProps.polylines.hasSameValue(oldViewProps->polylines)) {
+      swiftPart.setPolylines(newViewProps.polylines.get());
+    }
+    // polygons: array
+    if (oldViewProps == nullptr
+          ? newViewProps.polygons.isProvided()
+          : !newViewProps.polygons.hasSameValue(oldViewProps->polygons)) {
+      swiftPart.setPolygons(newViewProps.polygons.get());
+    }
+    // circles: array
+    if (oldViewProps == nullptr
+          ? newViewProps.circles.isProvided()
+          : !newViewProps.circles.hasSameValue(oldViewProps->circles)) {
+      swiftPart.setCircles(newViewProps.circles.get());
+    }
+    // tileOverlays: array
+    if (oldViewProps == nullptr
+          ? newViewProps.tileOverlays.isProvided()
+          : !newViewProps.tileOverlays.hasSameValue(oldViewProps->tileOverlays)) {
+      swiftPart.setTileOverlays(newViewProps.tileOverlays.get());
+    }
+    // clusterStyles: array
+    if (oldViewProps == nullptr
+          ? newViewProps.clusterStyles.isProvided()
+          : !newViewProps.clusterStyles.hasSameValue(oldViewProps->clusterStyles)) {
+      swiftPart.setClusterStyles(newViewProps.clusterStyles.get());
+    }
+    // compassVisibility: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.compassVisibility.isProvided()
+          : !newViewProps.compassVisibility.hasSameValue(oldViewProps->compassVisibility)) {
+      swiftPart.setCompassVisibility(static_cast<int>(newViewProps.compassVisibility.get()));
+    }
+    // scaleVisibility: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.scaleVisibility.isProvided()
+          : !newViewProps.scaleVisibility.hasSameValue(oldViewProps->scaleVisibility)) {
+      swiftPart.setScaleVisibility(static_cast<int>(newViewProps.scaleVisibility.get()));
+    }
+    // showsUserTrackingButton: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showsUserTrackingButton.isProvided()
+          : !newViewProps.showsUserTrackingButton.hasSameValue(oldViewProps->showsUserTrackingButton)) {
+      swiftPart.setShowsUserTrackingButton(newViewProps.showsUserTrackingButton.get());
+    }
+    // pitchButtonVisibility: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.pitchButtonVisibility.isProvided()
+          : !newViewProps.pitchButtonVisibility.hasSameValue(oldViewProps->pitchButtonVisibility)) {
+      swiftPart.setPitchButtonVisibility(static_cast<int>(newViewProps.pitchButtonVisibility.get()));
+    }
+    // mapScope: string
+    if (oldViewProps == nullptr
+          ? newViewProps.mapScope.isProvided()
+          : !newViewProps.mapScope.hasSameValue(oldViewProps->mapScope)) {
+      swiftPart.setMapScope(newViewProps.mapScope.get());
+    }
+    // showsTraffic: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showsTraffic.isProvided()
+          : !newViewProps.showsTraffic.hasSameValue(oldViewProps->showsTraffic)) {
+      swiftPart.setShowsTraffic(newViewProps.showsTraffic.get());
+    }
+    // pointsOfInterest: string
+    if (oldViewProps == nullptr
+          ? newViewProps.pointsOfInterest.isProvided()
+          : !newViewProps.pointsOfInterest.hasSameValue(oldViewProps->pointsOfInterest)) {
+      swiftPart.setPointsOfInterest(newViewProps.pointsOfInterest.get());
+    }
+    // userTrackingMode: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.userTrackingMode.isProvided()
+          : !newViewProps.userTrackingMode.hasSameValue(oldViewProps->userTrackingMode)) {
+      swiftPart.setUserTrackingMode(static_cast<int>(newViewProps.userTrackingMode.get()));
+    }
+    // zoomEnabled: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.zoomEnabled.isProvided()
+          : !newViewProps.zoomEnabled.hasSameValue(oldViewProps->zoomEnabled)) {
+      swiftPart.setZoomEnabled(newViewProps.zoomEnabled.get());
+    }
+    // scrollEnabled: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.scrollEnabled.isProvided()
+          : !newViewProps.scrollEnabled.hasSameValue(oldViewProps->scrollEnabled)) {
+      swiftPart.setScrollEnabled(newViewProps.scrollEnabled.get());
+    }
+    // rotateEnabled: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.rotateEnabled.isProvided()
+          : !newViewProps.rotateEnabled.hasSameValue(oldViewProps->rotateEnabled)) {
+      swiftPart.setRotateEnabled(newViewProps.rotateEnabled.get());
+    }
+    // pitchEnabled: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.pitchEnabled.isProvided()
+          : !newViewProps.pitchEnabled.hasSameValue(oldViewProps->pitchEnabled)) {
+      swiftPart.setPitchEnabled(newViewProps.pitchEnabled.get());
+    }
+    // minCameraDistance: number
+    if (oldViewProps == nullptr
+          ? newViewProps.minCameraDistance.isProvided()
+          : !newViewProps.minCameraDistance.hasSameValue(oldViewProps->minCameraDistance)) {
+      swiftPart.setMinCameraDistance(newViewProps.minCameraDistance.get());
+    }
+    // maxCameraDistanceLimit: number
+    if (oldViewProps == nullptr
+          ? newViewProps.maxCameraDistanceLimit.isProvided()
+          : !newViewProps.maxCameraDistanceLimit.hasSameValue(oldViewProps->maxCameraDistanceLimit)) {
+      swiftPart.setMaxCameraDistanceLimit(newViewProps.maxCameraDistanceLimit.get());
+    }
+    // cameraBoundary: struct
+    if (oldViewProps == nullptr
+          ? newViewProps.cameraBoundary.isProvided()
+          : !newViewProps.cameraBoundary.hasSameValue(oldViewProps->cameraBoundary)) {
+      swiftPart.setCameraBoundary(newViewProps.cameraBoundary.get());
+    }
+    // mapPadding: struct
+    if (oldViewProps == nullptr
+          ? newViewProps.mapPadding.isProvided()
+          : !newViewProps.mapPadding.hasSameValue(oldViewProps->mapPadding)) {
+      swiftPart.setMapPadding(newViewProps.mapPadding.get());
+    }
+    // selectableMapFeatures: string
+    if (oldViewProps == nullptr
+          ? newViewProps.selectableMapFeatures.isProvided()
+          : !newViewProps.selectableMapFeatures.hasSameValue(oldViewProps->selectableMapFeatures)) {
+      swiftPart.setSelectableMapFeatures(newViewProps.selectableMapFeatures.get());
+    }
+    // selectionAccessory: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.selectionAccessory.isProvided()
+          : !newViewProps.selectionAccessory.hasSameValue(oldViewProps->selectionAccessory)) {
+      swiftPart.setSelectionAccessory(static_cast<int>(newViewProps.selectionAccessory.get()));
+    }
+    // onModelPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onModelPress.isProvided()
+          : !newViewProps.onModelPress.hasSameValue(oldViewProps->onModelPress)) {
+      swiftPart.setOnModelPress(newViewProps.onModelPress.get());
+    }
+    // onCameraChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onCameraChange.isProvided()
+          : !newViewProps.onCameraChange.hasSameValue(oldViewProps->onCameraChange)) {
+      swiftPart.setOnCameraChange(newViewProps.onCameraChange.get());
+    }
+    // onCameraMove: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onCameraMove.isProvided()
+          : !newViewProps.onCameraMove.hasSameValue(oldViewProps->onCameraMove)) {
+      swiftPart.setOnCameraMove(newViewProps.onCameraMove.get());
+    }
+    // onMapReady: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMapReady.isProvided()
+          : !newViewProps.onMapReady.hasSameValue(oldViewProps->onMapReady)) {
+      swiftPart.setOnMapReady(newViewProps.onMapReady.get());
+    }
+    // onPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onPress.isProvided()
+          : !newViewProps.onPress.hasSameValue(oldViewProps->onPress)) {
+      swiftPart.setOnPress(newViewProps.onPress.get());
+    }
+    // onLongPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onLongPress.isProvided()
+          : !newViewProps.onLongPress.hasSameValue(oldViewProps->onLongPress)) {
+      swiftPart.setOnLongPress(newViewProps.onLongPress.get());
+    }
+    // onMarkerPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMarkerPress.isProvided()
+          : !newViewProps.onMarkerPress.hasSameValue(oldViewProps->onMarkerPress)) {
+      swiftPart.setOnMarkerPress(newViewProps.onMarkerPress.get());
+    }
+    // onMarkerDeselect: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMarkerDeselect.isProvided()
+          : !newViewProps.onMarkerDeselect.hasSameValue(oldViewProps->onMarkerDeselect)) {
+      swiftPart.setOnMarkerDeselect(newViewProps.onMarkerDeselect.get());
+    }
+    // onCalloutPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onCalloutPress.isProvided()
+          : !newViewProps.onCalloutPress.hasSameValue(oldViewProps->onCalloutPress)) {
+      swiftPart.setOnCalloutPress(newViewProps.onCalloutPress.get());
+    }
+    // onCalloutAccessoryPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onCalloutAccessoryPress.isProvided()
+          : !newViewProps.onCalloutAccessoryPress.hasSameValue(oldViewProps->onCalloutAccessoryPress)) {
+      swiftPart.setOnCalloutAccessoryPress(newViewProps.onCalloutAccessoryPress.get());
+    }
+    // onClusterPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onClusterPress.isProvided()
+          : !newViewProps.onClusterPress.hasSameValue(oldViewProps->onClusterPress)) {
+      swiftPart.setOnClusterPress(newViewProps.onClusterPress.get());
+    }
+    // onOverlayPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onOverlayPress.isProvided()
+          : !newViewProps.onOverlayPress.hasSameValue(oldViewProps->onOverlayPress)) {
+      swiftPart.setOnOverlayPress(newViewProps.onOverlayPress.get());
+    }
+    // onMarkerDragStart: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMarkerDragStart.isProvided()
+          : !newViewProps.onMarkerDragStart.hasSameValue(oldViewProps->onMarkerDragStart)) {
+      swiftPart.setOnMarkerDragStart(newViewProps.onMarkerDragStart.get());
+    }
+    // onMarkerDragEnd: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMarkerDragEnd.isProvided()
+          : !newViewProps.onMarkerDragEnd.hasSameValue(oldViewProps->onMarkerDragEnd)) {
+      swiftPart.setOnMarkerDragEnd(newViewProps.onMarkerDragEnd.get());
+    }
+    // onMarkerDrag: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMarkerDrag.isProvided()
+          : !newViewProps.onMarkerDrag.hasSameValue(oldViewProps->onMarkerDrag)) {
+      swiftPart.setOnMarkerDrag(newViewProps.onMarkerDrag.get());
+    }
+    // onUserLocationChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onUserLocationChange.isProvided()
+          : !newViewProps.onUserLocationChange.hasSameValue(oldViewProps->onUserLocationChange)) {
+      swiftPart.setOnUserLocationChange(newViewProps.onUserLocationChange.get());
+    }
+    // onUserTrackingModeChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onUserTrackingModeChange.isProvided()
+          : !newViewProps.onUserTrackingModeChange.hasSameValue(oldViewProps->onUserTrackingModeChange)) {
+      swiftPart.setOnUserTrackingModeChange(newViewProps.onUserTrackingModeChange.get());
+    }
+    // onMapFeaturePress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onMapFeaturePress.isProvided()
+          : !newViewProps.onMapFeaturePress.hasSameValue(oldViewProps->onMapFeaturePress)) {
+      swiftPart.setOnMapFeaturePress(newViewProps.onMapFeaturePress.get());
+    }
+    // onProviderEvent: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onProviderEvent.isProvided()
+          : !newViewProps.onProviderEvent.hasSameValue(oldViewProps->onProviderEvent)) {
+      swiftPart.setOnProviderEvent(newViewProps.onProviderEvent.get());
+    }
+    // onError: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onError.isProvided()
+          : !newViewProps.onError.hasSameValue(oldViewProps->onError)) {
+      swiftPart.setOnError(newViewProps.onError.get());
+    }
+
+    // Update hybridRef if it changed
+    if (oldViewProps == nullptr
+          ? newViewProps.hybridRef.isProvided()
+          : !newViewProps.hybridRef.hasSameValue(oldViewProps->hybridRef)) {
+      // hybridRef changed - call it with new this
+      const auto& maybeFunc = newViewProps.hybridRef.get();
+      if (maybeFunc.has_value()) {
+        maybeFunc.value()(_hybridView);
+      }
+    }
+
+    swiftPart.afterUpdate();
   }
 
-  // 4. Continue in base class
+  // 3. Continue in base class
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -411,6 +494,7 @@ using namespace margelo::nitro::munimmaps::views;
 }
 
 - (void)prepareForRecycle {
+  [self notifyOnDropView];
   [super prepareForRecycle];
   NitroMunimMaps::HybridMunimMapViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.maybePrepareForRecycle();
@@ -418,8 +502,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 #ifdef ENABLE_RCT_COMPONENT_VIEW_INVALIDATE
 - (void)invalidate {
-  NitroMunimMaps::HybridMunimMapViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
-  swiftPart.onDropView();
+  [self notifyOnDropView];
   [super invalidate];
 }
 #endif

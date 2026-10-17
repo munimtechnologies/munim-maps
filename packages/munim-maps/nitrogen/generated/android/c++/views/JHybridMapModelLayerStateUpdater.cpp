@@ -15,93 +15,124 @@ namespace margelo::nitro::munimmaps::views {
 using namespace facebook;
 using ConcreteStateData = react::ConcreteState<HybridMapModelLayerState>;
 
-void JHybridMapModelLayerStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> /* class */,
-                                           jni::alias_ref<JHybridMapModelLayerSpec::JavaPart> javaView,
-                                           jni::alias_ref<JStateWrapper::javaobject> stateWrapperInterface) {
-  std::shared_ptr<JHybridMapModelLayerSpec> hybridView = javaView->getJHybridMapModelLayerSpec();
-
-  // Get concrete StateWrapperImpl from passed StateWrapper interface object
-  jobject rawStateWrapper = stateWrapperInterface.get();
-  if (!stateWrapperInterface->isInstanceOf(react::StateWrapperImpl::javaClassStatic())) [[unlikely]] {
-      throw std::runtime_error("StateWrapper is not a StateWrapperImpl");
+std::shared_ptr<const HybridMapModelLayerProps> JHybridMapModelLayerStateUpdater::getPropsFromStateWrapper(
+    jni::alias_ref<JStateWrapper::javaobject> stateWrapper) {
+  if (stateWrapper.get() == nullptr) {
+    return nullptr;
   }
-  auto stateWrapper = jni::alias_ref<react::StateWrapperImpl::javaobject>{
-            static_cast<react::StateWrapperImpl::javaobject>(rawStateWrapper)};
-  std::shared_ptr<const react::State> state = stateWrapper->cthis()->getState();
+  // Get concrete StateWrapperImpl from passed StateWrapper interface object
+  jobject rawStateWrapper = stateWrapper.get();
+  if (!stateWrapper->isInstanceOf(react::StateWrapperImpl::javaClassStatic())) [[unlikely]] {
+    throw std::runtime_error("StateWrapper is not a StateWrapperImpl");
+  }
+  auto stateWrapperImpl = jni::alias_ref<react::StateWrapperImpl::javaobject>{
+    static_cast<react::StateWrapperImpl::javaobject>(rawStateWrapper)
+  };
+  std::shared_ptr<const react::State> state = stateWrapperImpl->cthis()->getState();
+  if (state == nullptr) {
+    return nullptr;
+  }
   auto concreteState = std::static_pointer_cast<const ConcreteStateData>(state);
   const HybridMapModelLayerState& data = concreteState->getData();
-  const std::shared_ptr<HybridMapModelLayerProps>& props = data.getProps();
+  const std::shared_ptr<const HybridMapModelLayerProps>& props = data.getProps();
   if (props == nullptr) [[unlikely]] {
-    // Props aren't set yet!
     throw std::runtime_error("HybridMapModelLayerState's data doesn't contain any props!");
   }
+  return props;
+}
 
-  // Update all props if they are dirty
-  if (props->models.isDirty) {
-    hybridView->setModels(props->models.value);
-    props->models.isDirty = false;
+void JHybridMapModelLayerStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> /* class */,
+                                           jni::alias_ref<JHybridMapModelLayerSpec::JavaPart> javaView,
+                                           jni::alias_ref<JStateWrapper::javaobject> newState,
+                                           jni::alias_ref<JStateWrapper::javaobject> oldState) {
+  std::shared_ptr<JHybridMapModelLayerSpec> hybridView = javaView->getJHybridMapModelLayerSpec();
+  std::shared_ptr<const HybridMapModelLayerProps> newProps = getPropsFromStateWrapper(newState);
+  std::shared_ptr<const HybridMapModelLayerProps> oldProps = getPropsFromStateWrapper(oldState);
+  if (newProps == nullptr) [[unlikely]] {
+    throw std::runtime_error("Current StateWrapper doesn't contain any props!");
   }
-  if (props->zones.isDirty) {
-    hybridView->setZones(props->zones.value);
-    props->zones.isDirty = false;
+
+  // Update only props that differ from the previous State snapshot.
+  if (oldProps == nullptr
+        ? newProps->models.isProvided()
+        : !newProps->models.hasSameValue(oldProps->models)) {
+    hybridView->setModels(newProps->models.get());
   }
-  if (props->paths.isDirty) {
-    hybridView->setPaths(props->paths.value);
-    props->paths.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->zones.isProvided()
+        : !newProps->zones.hasSameValue(oldProps->zones)) {
+    hybridView->setZones(newProps->zones.get());
   }
-  if (props->occlusion.isDirty) {
-    hybridView->setOcclusion(props->occlusion.value);
-    props->occlusion.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->paths.isProvided()
+        : !newProps->paths.hasSameValue(oldProps->paths)) {
+    hybridView->setPaths(newProps->paths.get());
   }
-  if (props->buildingTilesUrl.isDirty) {
-    hybridView->setBuildingTilesUrl(props->buildingTilesUrl.value);
-    props->buildingTilesUrl.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->occlusion.isProvided()
+        : !newProps->occlusion.hasSameValue(oldProps->occlusion)) {
+    hybridView->setOcclusion(newProps->occlusion.get());
   }
-  if (props->followTerrain.isDirty) {
-    hybridView->setFollowTerrain(props->followTerrain.value);
-    props->followTerrain.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->buildingTilesUrl.isProvided()
+        : !newProps->buildingTilesUrl.hasSameValue(oldProps->buildingTilesUrl)) {
+    hybridView->setBuildingTilesUrl(newProps->buildingTilesUrl.get());
   }
-  if (props->mapTestID.isDirty) {
-    hybridView->setMapTestID(props->mapTestID.value);
-    props->mapTestID.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->followTerrain.isProvided()
+        : !newProps->followTerrain.hasSameValue(oldProps->followTerrain)) {
+    hybridView->setFollowTerrain(newProps->followTerrain.get());
   }
-  if (props->lighting.isDirty) {
-    hybridView->setLighting(props->lighting.value);
-    props->lighting.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->mapTestID.isProvided()
+        : !newProps->mapTestID.hasSameValue(oldProps->mapTestID)) {
+    hybridView->setMapTestID(newProps->mapTestID.get());
   }
-  if (props->maxCameraDistance.isDirty) {
-    hybridView->setMaxCameraDistance(props->maxCameraDistance.value);
-    props->maxCameraDistance.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->lighting.isProvided()
+        : !newProps->lighting.hasSameValue(oldProps->lighting)) {
+    hybridView->setLighting(newProps->lighting.get());
   }
-  if (props->realisticElevation.isDirty) {
-    hybridView->setRealisticElevation(props->realisticElevation.value);
-    props->realisticElevation.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->maxCameraDistance.isProvided()
+        : !newProps->maxCameraDistance.hasSameValue(oldProps->maxCameraDistance)) {
+    hybridView->setMaxCameraDistance(newProps->maxCameraDistance.get());
   }
-  if (props->globe.isDirty) {
-    hybridView->setGlobe(props->globe.value);
-    props->globe.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->realisticElevation.isProvided()
+        : !newProps->realisticElevation.hasSameValue(oldProps->realisticElevation)) {
+    hybridView->setRealisticElevation(newProps->realisticElevation.get());
   }
-  if (props->onModelPress.isDirty) {
-    hybridView->setOnModelPress(props->onModelPress.value);
-    props->onModelPress.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->globe.isProvided()
+        : !newProps->globe.hasSameValue(oldProps->globe)) {
+    hybridView->setGlobe(newProps->globe.get());
   }
-  if (props->onAttachChange.isDirty) {
-    hybridView->setOnAttachChange(props->onAttachChange.value);
-    props->onAttachChange.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onModelPress.isProvided()
+        : !newProps->onModelPress.hasSameValue(oldProps->onModelPress)) {
+    hybridView->setOnModelPress(newProps->onModelPress.get());
   }
-  if (props->onError.isDirty) {
-    hybridView->setOnError(props->onError.value);
-    props->onError.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->onAttachChange.isProvided()
+        : !newProps->onAttachChange.hasSameValue(oldProps->onAttachChange)) {
+    hybridView->setOnAttachChange(newProps->onAttachChange.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->onError.isProvided()
+        : !newProps->onError.hasSameValue(oldProps->onError)) {
+    hybridView->setOnError(newProps->onError.get());
   }
 
   // Update hybridRef if it changed
-  if (props->hybridRef.isDirty) {
+  if (oldProps == nullptr
+        ? newProps->hybridRef.isProvided()
+        : !newProps->hybridRef.hasSameValue(oldProps->hybridRef)) {
     // hybridRef changed - call it with new this
-    const auto& maybeFunc = props->hybridRef.value;
+    const auto& maybeFunc = newProps->hybridRef.get();
     if (maybeFunc.has_value()) {
       maybeFunc.value()(hybridView);
     }
-    props->hybridRef.isDirty = false;
   }
 }
 

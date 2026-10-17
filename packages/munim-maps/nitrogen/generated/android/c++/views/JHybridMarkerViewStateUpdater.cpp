@@ -15,49 +15,69 @@ namespace margelo::nitro::munimmaps::views {
 using namespace facebook;
 using ConcreteStateData = react::ConcreteState<HybridMarkerViewState>;
 
-void JHybridMarkerViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> /* class */,
-                                           jni::alias_ref<JHybridMarkerViewSpec::JavaPart> javaView,
-                                           jni::alias_ref<JStateWrapper::javaobject> stateWrapperInterface) {
-  std::shared_ptr<JHybridMarkerViewSpec> hybridView = javaView->getJHybridMarkerViewSpec();
-
-  // Get concrete StateWrapperImpl from passed StateWrapper interface object
-  jobject rawStateWrapper = stateWrapperInterface.get();
-  if (!stateWrapperInterface->isInstanceOf(react::StateWrapperImpl::javaClassStatic())) [[unlikely]] {
-      throw std::runtime_error("StateWrapper is not a StateWrapperImpl");
+std::shared_ptr<const HybridMarkerViewProps> JHybridMarkerViewStateUpdater::getPropsFromStateWrapper(
+    jni::alias_ref<JStateWrapper::javaobject> stateWrapper) {
+  if (stateWrapper.get() == nullptr) {
+    return nullptr;
   }
-  auto stateWrapper = jni::alias_ref<react::StateWrapperImpl::javaobject>{
-            static_cast<react::StateWrapperImpl::javaobject>(rawStateWrapper)};
-  std::shared_ptr<const react::State> state = stateWrapper->cthis()->getState();
+  // Get concrete StateWrapperImpl from passed StateWrapper interface object
+  jobject rawStateWrapper = stateWrapper.get();
+  if (!stateWrapper->isInstanceOf(react::StateWrapperImpl::javaClassStatic())) [[unlikely]] {
+    throw std::runtime_error("StateWrapper is not a StateWrapperImpl");
+  }
+  auto stateWrapperImpl = jni::alias_ref<react::StateWrapperImpl::javaobject>{
+    static_cast<react::StateWrapperImpl::javaobject>(rawStateWrapper)
+  };
+  std::shared_ptr<const react::State> state = stateWrapperImpl->cthis()->getState();
+  if (state == nullptr) {
+    return nullptr;
+  }
   auto concreteState = std::static_pointer_cast<const ConcreteStateData>(state);
   const HybridMarkerViewState& data = concreteState->getData();
-  const std::shared_ptr<HybridMarkerViewProps>& props = data.getProps();
+  const std::shared_ptr<const HybridMarkerViewProps>& props = data.getProps();
   if (props == nullptr) [[unlikely]] {
-    // Props aren't set yet!
     throw std::runtime_error("HybridMarkerViewState's data doesn't contain any props!");
   }
+  return props;
+}
 
-  // Update all props if they are dirty
-  if (props->marker.isDirty) {
-    hybridView->setMarker(props->marker.value);
-    props->marker.isDirty = false;
+void JHybridMarkerViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass> /* class */,
+                                           jni::alias_ref<JHybridMarkerViewSpec::JavaPart> javaView,
+                                           jni::alias_ref<JStateWrapper::javaobject> newState,
+                                           jni::alias_ref<JStateWrapper::javaobject> oldState) {
+  std::shared_ptr<JHybridMarkerViewSpec> hybridView = javaView->getJHybridMarkerViewSpec();
+  std::shared_ptr<const HybridMarkerViewProps> newProps = getPropsFromStateWrapper(newState);
+  std::shared_ptr<const HybridMarkerViewProps> oldProps = getPropsFromStateWrapper(oldState);
+  if (newProps == nullptr) [[unlikely]] {
+    throw std::runtime_error("Current StateWrapper doesn't contain any props!");
   }
-  if (props->tracksViewChanges.isDirty) {
-    hybridView->setTracksViewChanges(props->tracksViewChanges.value);
-    props->tracksViewChanges.isDirty = false;
+
+  // Update only props that differ from the previous State snapshot.
+  if (oldProps == nullptr
+        ? newProps->marker.isProvided()
+        : !newProps->marker.hasSameValue(oldProps->marker)) {
+    hybridView->setMarker(newProps->marker.get());
   }
-  if (props->renderKey.isDirty) {
-    hybridView->setRenderKey(props->renderKey.value);
-    props->renderKey.isDirty = false;
+  if (oldProps == nullptr
+        ? newProps->tracksViewChanges.isProvided()
+        : !newProps->tracksViewChanges.hasSameValue(oldProps->tracksViewChanges)) {
+    hybridView->setTracksViewChanges(newProps->tracksViewChanges.get());
+  }
+  if (oldProps == nullptr
+        ? newProps->renderKey.isProvided()
+        : !newProps->renderKey.hasSameValue(oldProps->renderKey)) {
+    hybridView->setRenderKey(newProps->renderKey.get());
   }
 
   // Update hybridRef if it changed
-  if (props->hybridRef.isDirty) {
+  if (oldProps == nullptr
+        ? newProps->hybridRef.isProvided()
+        : !newProps->hybridRef.hasSameValue(oldProps->hybridRef)) {
     // hybridRef changed - call it with new this
-    const auto& maybeFunc = props->hybridRef.value;
+    const auto& maybeFunc = newProps->hybridRef.get();
     if (maybeFunc.has_value()) {
       maybeFunc.value()(hybridView);
     }
-    props->hybridRef.isDirty = false;
   }
 }
 

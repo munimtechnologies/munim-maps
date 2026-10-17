@@ -7,14 +7,15 @@
 
 #pragma once
 
-#include <optional>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/NitroHash.hpp>
-#include <NitroModules/CachedProp.hpp>
-#include <react/renderer/core/ConcreteComponentDescriptor.h>
-#include <react/renderer/core/PropsParserContext.h>
+#include <NitroModules/ReactProp.hpp>
+#include <NitroModules/ViewComponentDescriptor.hpp>
+#include <NitroModules/ViewPropsHolderState.hpp>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
+#include <react/renderer/core/PropsParserContext.h>
+#include <react/renderer/core/RawProps.h>
+
+#include <string>
 
 #include "NativeMapModel.hpp"
 #include <vector>
@@ -48,21 +49,59 @@ namespace margelo::nitro::munimmaps::views {
                              const react::RawProps& rawProps);
 
   public:
-    CachedProp<std::vector<NativeMapModel>> models;
-    CachedProp<std::vector<NativeMapZone>> zones;
-    CachedProp<std::vector<NativeMapPath>> paths;
-    CachedProp<MapOcclusion> occlusion;
-    CachedProp<std::string> buildingTilesUrl;
-    CachedProp<bool> followTerrain;
-    CachedProp<std::string> mapTestID;
-    CachedProp<MapModelLighting> lighting;
-    CachedProp<double> maxCameraDistance;
-    CachedProp<bool> realisticElevation;
-    CachedProp<bool> globe;
-    CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> onModelPress;
-    CachedProp<std::optional<std::function<void(bool /* attached */)>>> onAttachChange;
-    CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
-    CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMapModelLayerSpec>& /* ref */)>>> hybridRef;
+    nitro::ReactProp<std::vector<NativeMapModel>> models;
+    nitro::ReactProp<std::vector<NativeMapZone>> zones;
+    nitro::ReactProp<std::vector<NativeMapPath>> paths;
+    nitro::ReactProp<MapOcclusion> occlusion;
+    nitro::ReactProp<std::string> buildingTilesUrl;
+    nitro::ReactProp<bool> followTerrain;
+    nitro::ReactProp<std::string> mapTestID;
+    nitro::ReactProp<MapModelLighting> lighting;
+    nitro::ReactProp<double> maxCameraDistance;
+    nitro::ReactProp<bool> realisticElevation;
+    nitro::ReactProp<bool> globe;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>> onModelPress;
+    nitro::ReactProp<std::optional<std::function<void(bool /* attached */)>>> onAttachChange;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
+    nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMapModelLayerSpec>& /* ref */)>>> hybridRef;
+
+    [[nodiscard]]
+    bool hasSameProps(const HybridMapModelLayerProps& other) const noexcept {
+      return models.hasSameValue(other.models) &&
+             zones.hasSameValue(other.zones) &&
+             paths.hasSameValue(other.paths) &&
+             occlusion.hasSameValue(other.occlusion) &&
+             buildingTilesUrl.hasSameValue(other.buildingTilesUrl) &&
+             followTerrain.hasSameValue(other.followTerrain) &&
+             mapTestID.hasSameValue(other.mapTestID) &&
+             lighting.hasSameValue(other.lighting) &&
+             maxCameraDistance.hasSameValue(other.maxCameraDistance) &&
+             realisticElevation.hasSameValue(other.realisticElevation) &&
+             globe.hasSameValue(other.globe) &&
+             onModelPress.hasSameValue(other.onModelPress) &&
+             onAttachChange.hasSameValue(other.onAttachChange) &&
+             onError.hasSameValue(other.onError) &&
+             hybridRef.hasSameValue(other.hybridRef);
+    }
+
+    [[nodiscard]]
+    bool hasAnyProvidedProps() const noexcept {
+      return models.isProvided() ||
+             zones.isProvided() ||
+             paths.isProvided() ||
+             occlusion.isProvided() ||
+             buildingTilesUrl.isProvided() ||
+             followTerrain.isProvided() ||
+             mapTestID.isProvided() ||
+             lighting.isProvided() ||
+             maxCameraDistance.isProvided() ||
+             realisticElevation.isProvided() ||
+             globe.isProvided() ||
+             onModelPress.isProvided() ||
+             onAttachChange.isProvided() ||
+             onError.isProvided() ||
+             hybridRef.isProvided();
+    }
 
   private:
     static bool filterObjectKeys(const std::string& propName);
@@ -71,32 +110,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * State for the "MapModelLayer" View.
    */
-  class HybridMapModelLayerState final {
-  public:
-    HybridMapModelLayerState() = default;
-    explicit HybridMapModelLayerState(const std::shared_ptr<HybridMapModelLayerProps>& props):
-      _props(props) {}
-
-  public:
-    [[nodiscard]]
-    const std::shared_ptr<HybridMapModelLayerProps>& getProps() const {
-      return _props;
-    }
-
-  public:
-#ifdef ANDROID
-  HybridMapModelLayerState(const HybridMapModelLayerState& /* previousState */, folly::dynamic /* data */) {}
-  folly::dynamic getDynamic() const {
-    throw std::runtime_error("HybridMapModelLayerState does not support folly!");
-  }
-  react::MapBuffer getMapBuffer() const {
-    throw std::runtime_error("HybridMapModelLayerState does not support MapBuffer!");
-  };
-#endif
-
-  private:
-    std::shared_ptr<HybridMapModelLayerProps> _props;
-  };
+  using HybridMapModelLayerState = nitro::ViewPropsHolderState<HybridMapModelLayerProps>;
 
   /**
    * The Shadow Node for the "MapModelLayer" View.
@@ -109,21 +123,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * The Component Descriptor for the "MapModelLayer" View.
    */
-  class HybridMapModelLayerComponentDescriptor final: public react::ConcreteComponentDescriptor<HybridMapModelLayerShadowNode> {
-  public:
-    explicit HybridMapModelLayerComponentDescriptor(const react::ComponentDescriptorParameters& parameters);
-
-  public:
-    /**
-     * A faster path for cloning props - reuses the caching logic from `HybridMapModelLayerProps`.
-     */
-    std::shared_ptr<const react::Props> cloneProps(const react::PropsParserContext& context,
-                                                   const std::shared_ptr<const react::Props>& props,
-                                                   react::RawProps rawProps) const override;
-#ifdef ANDROID
-    void adopt(react::ShadowNode& shadowNode) const override;
-#endif
-  };
+  using HybridMapModelLayerComponentDescriptor = nitro::ViewComponentDescriptor<HybridMapModelLayerShadowNode>;
 
   /* The actual view for "MapModelLayer" needs to be implemented in platform-specific code. */
 

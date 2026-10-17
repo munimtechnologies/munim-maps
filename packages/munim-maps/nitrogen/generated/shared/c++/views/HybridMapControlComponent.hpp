@@ -7,14 +7,15 @@
 
 #pragma once
 
-#include <optional>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/NitroHash.hpp>
-#include <NitroModules/CachedProp.hpp>
-#include <react/renderer/core/ConcreteComponentDescriptor.h>
-#include <react/renderer/core/PropsParserContext.h>
+#include <NitroModules/ReactProp.hpp>
+#include <NitroModules/ViewComponentDescriptor.hpp>
+#include <NitroModules/ViewPropsHolderState.hpp>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
+#include <react/renderer/core/PropsParserContext.h>
+#include <react/renderer/core/RawProps.h>
+
+#include <string>
 
 #include "MapControlKind.hpp"
 #include <string>
@@ -45,11 +46,29 @@ namespace margelo::nitro::munimmaps::views {
                           const react::RawProps& rawProps);
 
   public:
-    CachedProp<MapControlKind> kind;
-    CachedProp<std::string> mapScope;
-    CachedProp<FeatureVisibility> visibility;
-    CachedProp<MapScaleAlignment> scaleAlignment;
-    CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMapControlSpec>& /* ref */)>>> hybridRef;
+    nitro::ReactProp<MapControlKind> kind;
+    nitro::ReactProp<std::string> mapScope;
+    nitro::ReactProp<FeatureVisibility> visibility;
+    nitro::ReactProp<MapScaleAlignment> scaleAlignment;
+    nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMapControlSpec>& /* ref */)>>> hybridRef;
+
+    [[nodiscard]]
+    bool hasSameProps(const HybridMapControlProps& other) const noexcept {
+      return kind.hasSameValue(other.kind) &&
+             mapScope.hasSameValue(other.mapScope) &&
+             visibility.hasSameValue(other.visibility) &&
+             scaleAlignment.hasSameValue(other.scaleAlignment) &&
+             hybridRef.hasSameValue(other.hybridRef);
+    }
+
+    [[nodiscard]]
+    bool hasAnyProvidedProps() const noexcept {
+      return kind.isProvided() ||
+             mapScope.isProvided() ||
+             visibility.isProvided() ||
+             scaleAlignment.isProvided() ||
+             hybridRef.isProvided();
+    }
 
   private:
     static bool filterObjectKeys(const std::string& propName);
@@ -58,32 +77,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * State for the "MapControl" View.
    */
-  class HybridMapControlState final {
-  public:
-    HybridMapControlState() = default;
-    explicit HybridMapControlState(const std::shared_ptr<HybridMapControlProps>& props):
-      _props(props) {}
-
-  public:
-    [[nodiscard]]
-    const std::shared_ptr<HybridMapControlProps>& getProps() const {
-      return _props;
-    }
-
-  public:
-#ifdef ANDROID
-  HybridMapControlState(const HybridMapControlState& /* previousState */, folly::dynamic /* data */) {}
-  folly::dynamic getDynamic() const {
-    throw std::runtime_error("HybridMapControlState does not support folly!");
-  }
-  react::MapBuffer getMapBuffer() const {
-    throw std::runtime_error("HybridMapControlState does not support MapBuffer!");
-  };
-#endif
-
-  private:
-    std::shared_ptr<HybridMapControlProps> _props;
-  };
+  using HybridMapControlState = nitro::ViewPropsHolderState<HybridMapControlProps>;
 
   /**
    * The Shadow Node for the "MapControl" View.
@@ -96,21 +90,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * The Component Descriptor for the "MapControl" View.
    */
-  class HybridMapControlComponentDescriptor final: public react::ConcreteComponentDescriptor<HybridMapControlShadowNode> {
-  public:
-    explicit HybridMapControlComponentDescriptor(const react::ComponentDescriptorParameters& parameters);
-
-  public:
-    /**
-     * A faster path for cloning props - reuses the caching logic from `HybridMapControlProps`.
-     */
-    std::shared_ptr<const react::Props> cloneProps(const react::PropsParserContext& context,
-                                                   const std::shared_ptr<const react::Props>& props,
-                                                   react::RawProps rawProps) const override;
-#ifdef ANDROID
-    void adopt(react::ShadowNode& shadowNode) const override;
-#endif
-  };
+  using HybridMapControlComponentDescriptor = nitro::ViewComponentDescriptor<HybridMapControlShadowNode>;
 
   /* The actual view for "MapControl" needs to be implemented in platform-specific code. */
 

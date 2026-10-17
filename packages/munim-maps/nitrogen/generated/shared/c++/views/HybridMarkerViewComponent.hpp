@@ -7,14 +7,15 @@
 
 #pragma once
 
-#include <optional>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/NitroHash.hpp>
-#include <NitroModules/CachedProp.hpp>
-#include <react/renderer/core/ConcreteComponentDescriptor.h>
-#include <react/renderer/core/PropsParserContext.h>
+#include <NitroModules/ReactProp.hpp>
+#include <NitroModules/ViewComponentDescriptor.hpp>
+#include <NitroModules/ViewPropsHolderState.hpp>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
+#include <react/renderer/core/PropsParserContext.h>
+#include <react/renderer/core/RawProps.h>
+
+#include <string>
 
 #include "NativeMarker.hpp"
 #include <memory>
@@ -42,10 +43,26 @@ namespace margelo::nitro::munimmaps::views {
                           const react::RawProps& rawProps);
 
   public:
-    CachedProp<NativeMarker> marker;
-    CachedProp<bool> tracksViewChanges;
-    CachedProp<double> renderKey;
-    CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMarkerViewSpec>& /* ref */)>>> hybridRef;
+    nitro::ReactProp<NativeMarker> marker;
+    nitro::ReactProp<bool> tracksViewChanges;
+    nitro::ReactProp<double> renderKey;
+    nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMarkerViewSpec>& /* ref */)>>> hybridRef;
+
+    [[nodiscard]]
+    bool hasSameProps(const HybridMarkerViewProps& other) const noexcept {
+      return marker.hasSameValue(other.marker) &&
+             tracksViewChanges.hasSameValue(other.tracksViewChanges) &&
+             renderKey.hasSameValue(other.renderKey) &&
+             hybridRef.hasSameValue(other.hybridRef);
+    }
+
+    [[nodiscard]]
+    bool hasAnyProvidedProps() const noexcept {
+      return marker.isProvided() ||
+             tracksViewChanges.isProvided() ||
+             renderKey.isProvided() ||
+             hybridRef.isProvided();
+    }
 
   private:
     static bool filterObjectKeys(const std::string& propName);
@@ -54,32 +71,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * State for the "MarkerView" View.
    */
-  class HybridMarkerViewState final {
-  public:
-    HybridMarkerViewState() = default;
-    explicit HybridMarkerViewState(const std::shared_ptr<HybridMarkerViewProps>& props):
-      _props(props) {}
-
-  public:
-    [[nodiscard]]
-    const std::shared_ptr<HybridMarkerViewProps>& getProps() const {
-      return _props;
-    }
-
-  public:
-#ifdef ANDROID
-  HybridMarkerViewState(const HybridMarkerViewState& /* previousState */, folly::dynamic /* data */) {}
-  folly::dynamic getDynamic() const {
-    throw std::runtime_error("HybridMarkerViewState does not support folly!");
-  }
-  react::MapBuffer getMapBuffer() const {
-    throw std::runtime_error("HybridMarkerViewState does not support MapBuffer!");
-  };
-#endif
-
-  private:
-    std::shared_ptr<HybridMarkerViewProps> _props;
-  };
+  using HybridMarkerViewState = nitro::ViewPropsHolderState<HybridMarkerViewProps>;
 
   /**
    * The Shadow Node for the "MarkerView" View.
@@ -92,21 +84,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * The Component Descriptor for the "MarkerView" View.
    */
-  class HybridMarkerViewComponentDescriptor final: public react::ConcreteComponentDescriptor<HybridMarkerViewShadowNode> {
-  public:
-    explicit HybridMarkerViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters);
-
-  public:
-    /**
-     * A faster path for cloning props - reuses the caching logic from `HybridMarkerViewProps`.
-     */
-    std::shared_ptr<const react::Props> cloneProps(const react::PropsParserContext& context,
-                                                   const std::shared_ptr<const react::Props>& props,
-                                                   react::RawProps rawProps) const override;
-#ifdef ANDROID
-    void adopt(react::ShadowNode& shadowNode) const override;
-#endif
-  };
+  using HybridMarkerViewComponentDescriptor = nitro::ViewComponentDescriptor<HybridMarkerViewShadowNode>;
 
   /* The actual view for "MarkerView" needs to be implemented in platform-specific code. */
 

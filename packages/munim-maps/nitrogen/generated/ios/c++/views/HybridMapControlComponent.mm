@@ -37,6 +37,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 @implementation HybridMapControlComponent {
   std::shared_ptr<HybridMapControlSpecSwift> _hybridView;
+  BOOL _didDropView;
 }
 
 + (void) load {
@@ -50,6 +51,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 - (instancetype) init {
   if (self = [super init]) {
+    _props = HybridMapControlShadowNode::defaultSharedProps();
     std::shared_ptr<HybridMapControlSpec> hybridView = NitroMunimMaps::NitroMunimMapsAutolinking::createMapControl();
     _hybridView = std::dynamic_pointer_cast<HybridMapControlSpecSwift>(hybridView);
     [self updateView];
@@ -69,50 +71,73 @@ using namespace margelo::nitro::munimmaps::views;
   [self setContentView:view];
 }
 
+- (void) notifyOnDropView {
+  // A recycled component can later be invalidated. Notify only once per mount.
+  if (_didDropView) {
+    return;
+  }
+  NitroMunimMaps::HybridMapControlSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  swiftPart.onDropView();
+  _didDropView = YES;
+}
+
 - (void) updateProps:(const std::shared_ptr<const react::Props>&)props
             oldProps:(const std::shared_ptr<const react::Props>&)oldProps {
+  // A props update marks a newly mounted or still-active component.
+  _didDropView = NO;
+
   // 1. Downcast props
-  const auto& newViewPropsConst = *std::static_pointer_cast<HybridMapControlProps const>(props);
-  auto& newViewProps = const_cast<HybridMapControlProps&>(newViewPropsConst);
+  const auto& newViewProps = *std::static_pointer_cast<const HybridMapControlProps>(props);
+  const auto* oldViewProps = static_cast<const HybridMapControlProps*>(oldProps.get());
   NitroMunimMaps::HybridMapControlSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
-  // 2. Update each prop individually
-  swiftPart.beforeUpdate();
+  // 2. Update only props that differ from the previous Props snapshot.
+  const bool hasTransactionPropChanges = oldViewProps == nullptr
+      ? newViewProps.hasAnyProvidedProps()
+      : !newViewProps.hasSameProps(*oldViewProps);
+  if (hasTransactionPropChanges) {
+    swiftPart.beforeUpdate();
 
-  // kind: enum
-  if (newViewProps.kind.isDirty) {
-    swiftPart.setKind(static_cast<int>(newViewProps.kind.value));
-    newViewProps.kind.isDirty = false;
-  }
-  // mapScope: string
-  if (newViewProps.mapScope.isDirty) {
-    swiftPart.setMapScope(newViewProps.mapScope.value);
-    newViewProps.mapScope.isDirty = false;
-  }
-  // visibility: enum
-  if (newViewProps.visibility.isDirty) {
-    swiftPart.setVisibility(static_cast<int>(newViewProps.visibility.value));
-    newViewProps.visibility.isDirty = false;
-  }
-  // scaleAlignment: enum
-  if (newViewProps.scaleAlignment.isDirty) {
-    swiftPart.setScaleAlignment(static_cast<int>(newViewProps.scaleAlignment.value));
-    newViewProps.scaleAlignment.isDirty = false;
-  }
-
-  swiftPart.afterUpdate();
-
-  // 3. Update hybridRef if it changed
-  if (newViewProps.hybridRef.isDirty) {
-    // hybridRef changed - call it with new this
-    const auto& maybeFunc = newViewProps.hybridRef.value;
-    if (maybeFunc.has_value()) {
-      maybeFunc.value()(_hybridView);
+    // kind: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.kind.isProvided()
+          : !newViewProps.kind.hasSameValue(oldViewProps->kind)) {
+      swiftPart.setKind(static_cast<int>(newViewProps.kind.get()));
     }
-    newViewProps.hybridRef.isDirty = false;
+    // mapScope: string
+    if (oldViewProps == nullptr
+          ? newViewProps.mapScope.isProvided()
+          : !newViewProps.mapScope.hasSameValue(oldViewProps->mapScope)) {
+      swiftPart.setMapScope(newViewProps.mapScope.get());
+    }
+    // visibility: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.visibility.isProvided()
+          : !newViewProps.visibility.hasSameValue(oldViewProps->visibility)) {
+      swiftPart.setVisibility(static_cast<int>(newViewProps.visibility.get()));
+    }
+    // scaleAlignment: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.scaleAlignment.isProvided()
+          : !newViewProps.scaleAlignment.hasSameValue(oldViewProps->scaleAlignment)) {
+      swiftPart.setScaleAlignment(static_cast<int>(newViewProps.scaleAlignment.get()));
+    }
+
+    // Update hybridRef if it changed
+    if (oldViewProps == nullptr
+          ? newViewProps.hybridRef.isProvided()
+          : !newViewProps.hybridRef.hasSameValue(oldViewProps->hybridRef)) {
+      // hybridRef changed - call it with new this
+      const auto& maybeFunc = newViewProps.hybridRef.get();
+      if (maybeFunc.has_value()) {
+        maybeFunc.value()(_hybridView);
+      }
+    }
+
+    swiftPart.afterUpdate();
   }
 
-  // 4. Continue in base class
+  // 3. Continue in base class
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -121,6 +146,7 @@ using namespace margelo::nitro::munimmaps::views;
 }
 
 - (void)prepareForRecycle {
+  [self notifyOnDropView];
   [super prepareForRecycle];
   NitroMunimMaps::HybridMapControlSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.maybePrepareForRecycle();
@@ -128,8 +154,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 #ifdef ENABLE_RCT_COMPONENT_VIEW_INVALIDATE
 - (void)invalidate {
-  NitroMunimMaps::HybridMapControlSpec_cxx& swiftPart = _hybridView->getSwiftPart();
-  swiftPart.onDropView();
+  [self notifyOnDropView];
   [super invalidate];
 }
 #endif

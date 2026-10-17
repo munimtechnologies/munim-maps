@@ -47,7 +47,7 @@
     "build": "npm run typecheck && tsc",
     "prepack": "npm run build",
     "typescript": "tsc",
-    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js && node scripts/patch-nitro-vector-args.js",
+    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js && node scripts/patch-nitro-viewprops.js && node scripts/patch-nitro-vector-args.js",
     "specs": "npm run codegen"
   },
   "keywords": [
@@ -101,23 +101,23 @@
     ]
   },
   "devDependencies": {
-    "@react-native/babel-preset": "0.86.3",
-    "@react-native/eslint-config": "0.86.3",
-    "@types/react": "^19.2.15",
+    "@react-native/babel-preset": "0.88.0",
+    "@react-native/eslint-config": "0.88.0",
+    "@types/react": "^19.3.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "nitrogen": "0.36.5",
+    "nitrogen": "0.37.1",
     "prettier": "^3.8.3",
-    "react": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-nitro-modules": "0.36.5",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-nitro-modules": "0.37.1",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": ">=0.78",
-    "react-native-nitro-modules": ">=0.36.5 <1"
+    "react-native-nitro-modules": ">=0.37.1 <1"
   },
   "eslintConfig": {
     "root": true,
