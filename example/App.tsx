@@ -452,7 +452,7 @@ function writeReport(report: SelfTestReport) {
     const file = new File(Paths.document, 'munim-maps-selftest.json')
     if (file.exists) file.delete()
     file.create()
-    file.write(JSON.stringify(report, null, 2))
+    file.writeSync(JSON.stringify(report, null, 2))
   } catch (error) {
     console.warn('MUNIM_MAPS could not write the self-test report', error)
   }
@@ -557,7 +557,7 @@ function Example() {
     if (ran.current) return
     ran.current = true
     // munimmapsexample://mapbox (/checks runs the Mapbox checks), also while running.
-    const openMapbox = (url: string | null) => {
+    const openMapbox = (url: string | null | undefined) => {
       if (!url || !/:\/\/mapbox/.test(url)) return false
       setLaunching(false)
       setMapboxChecks(url.includes('checks') ? true : url.includes('native') ? 'native' : false)

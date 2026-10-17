@@ -7,18 +7,22 @@
 
 #include "HybridMarkerViewComponent.hpp"
 
-#include <string>
-#include <exception>
-#include <utility>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/JSIConverter.hpp>
-#include <NitroModules/PropNameIDCache.hpp>
-#include <react/renderer/core/RawValue.h>
-#include <react/renderer/core/ShadowNode.h>
-#include <react/renderer/core/ComponentDescriptor.h>
-#include <react/renderer/components/view/ViewProps.h>
+#include <NitroModules/NitroHash.hpp>
+#include <NitroModules/ReactProp.hpp>
+
+// munim-maps: margelo/nitro#1656 (see scripts/patch-nitro-viewprops.js)
+#ifdef ANDROID
+#if __has_include(<cxxreact/ReactNativeVersion.h>)
+#include <cxxreact/ReactNativeVersion.h>
+#endif
+#if defined(REACT_NATIVE_VERSION_MINOR) && REACT_NATIVE_VERSION_MAJOR == 0 && REACT_NATIVE_VERSION_MINOR >= 84 && REACT_NATIVE_VERSION_MINOR < 87
+#include <react/featureflags/ReactNativeFeatureFlags.h>
+#endif
+#endif
 
 namespace margelo::nitro::munimmaps::views {
+
+  using namespace facebook;
 
   extern const char HybridMarkerViewComponentName[] = "MarkerView";
 
@@ -26,46 +30,21 @@ namespace margelo::nitro::munimmaps::views {
                                                const HybridMarkerViewProps& sourceProps,
                                                const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    marker([&]() -> CachedProp<NativeMarker> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("marker", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.marker;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<NativeMarker>::fromRawValue(*runtime, value, sourceProps.marker);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MarkerView.marker: ") + exc.what());
-      }
-    }()),
-    tracksViewChanges([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("tracksViewChanges", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.tracksViewChanges;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.tracksViewChanges);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MarkerView.tracksViewChanges: ") + exc.what());
-      }
-    }()),
-    renderKey([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("renderKey", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.renderKey;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.renderKey);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MarkerView.renderKey: ") + exc.what());
-      }
-    }()),
-    hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMarkerViewSpec>& /* ref */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.hybridRef;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMarkerViewSpec>& /* ref */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.hybridRef);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MarkerView.hybridRef: ") + exc.what());
-      }
-    }()) { }
+    marker(nitro::ReactProp<NativeMarker>::fromRawValue("MarkerView", "marker", rawProps, sourceProps.marker)),
+    tracksViewChanges(nitro::ReactProp<bool>::fromRawValue("MarkerView", "tracksViewChanges", rawProps, sourceProps.tracksViewChanges)),
+    renderKey(nitro::ReactProp<double>::fromRawValue("MarkerView", "renderKey", rawProps, sourceProps.renderKey)),
+    hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMarkerViewSpec>& /* ref */)>>>::fromRawValue("MarkerView", "hybridRef", rawProps, sourceProps.hybridRef)) {
+    // munim-maps: margelo/nitro#1656: React Native no longer fills Props::rawProps for us.
+#if defined(ANDROID) && defined(RN_SERIALIZABLE_STATE) && defined(REACT_NATIVE_VERSION_MINOR)
+#if REACT_NATIVE_VERSION_MAJOR > 0 || REACT_NATIVE_VERSION_MINOR >= 87
+    initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+#elif REACT_NATIVE_VERSION_MINOR >= 84
+    if (facebook::react::ReactNativeFeatureFlags::enableExclusivePropsUpdateAndroid()) {
+      initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+    }
+#endif
+#endif
+  }
 
   bool HybridMarkerViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
@@ -76,30 +55,5 @@ namespace margelo::nitro::munimmaps::views {
       default: return false;
     }
   }
-
-  HybridMarkerViewComponentDescriptor::HybridMarkerViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters)
-    : ConcreteComponentDescriptor(parameters,
-                                  react::RawPropsParser()) {}
-
-  std::shared_ptr<const react::Props> HybridMarkerViewComponentDescriptor::cloneProps(const react::PropsParserContext& context,
-                                                                                      const std::shared_ptr<const react::Props>& props,
-                                                                                      react::RawProps rawProps) const {
-    // 1. Prepare raw props parser
-    rawProps.parse(rawPropsParser_);
-    // 2. Copy props with Nitro's cached copy constructor
-    return HybridMarkerViewShadowNode::Props(context, /* & */ rawProps, props);
-  }
-
-#ifdef ANDROID
-  void HybridMarkerViewComponentDescriptor::adopt(react::ShadowNode& shadowNode) const {
-    // This is called immediately after `ShadowNode` is created, cloned or in progress.
-    // On Android, we need to wrap props in our state, which gets routed through Java and later unwrapped in JNI/C++.
-    auto& concreteShadowNode = static_cast<HybridMarkerViewShadowNode&>(shadowNode);
-    const std::shared_ptr<const HybridMarkerViewProps>& constProps = concreteShadowNode.getConcreteSharedProps();
-    const std::shared_ptr<HybridMarkerViewProps>& props = std::const_pointer_cast<HybridMarkerViewProps>(constProps);
-    HybridMarkerViewState state{props};
-    concreteShadowNode.setStateData(std::move(state));
-  }
-#endif
 
 } // namespace margelo::nitro::munimmaps::views

@@ -7,18 +7,22 @@
 
 #include "HybridLookAroundViewComponent.hpp"
 
-#include <string>
-#include <exception>
-#include <utility>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/JSIConverter.hpp>
-#include <NitroModules/PropNameIDCache.hpp>
-#include <react/renderer/core/RawValue.h>
-#include <react/renderer/core/ShadowNode.h>
-#include <react/renderer/core/ComponentDescriptor.h>
-#include <react/renderer/components/view/ViewProps.h>
+#include <NitroModules/NitroHash.hpp>
+#include <NitroModules/ReactProp.hpp>
+
+// munim-maps: margelo/nitro#1656 (see scripts/patch-nitro-viewprops.js)
+#ifdef ANDROID
+#if __has_include(<cxxreact/ReactNativeVersion.h>)
+#include <cxxreact/ReactNativeVersion.h>
+#endif
+#if defined(REACT_NATIVE_VERSION_MINOR) && REACT_NATIVE_VERSION_MAJOR == 0 && REACT_NATIVE_VERSION_MINOR >= 84 && REACT_NATIVE_VERSION_MINOR < 87
+#include <react/featureflags/ReactNativeFeatureFlags.h>
+#endif
+#endif
 
 namespace margelo::nitro::munimmaps::views {
+
+  using namespace facebook;
 
   extern const char HybridLookAroundViewComponentName[] = "LookAroundView";
 
@@ -26,116 +30,28 @@ namespace margelo::nitro::munimmaps::views {
                                                        const HybridLookAroundViewProps& sourceProps,
                                                        const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    latitude([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("latitude", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.latitude;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.latitude);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.latitude: ") + exc.what());
-      }
-    }()),
-    longitude([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("longitude", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.longitude;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.longitude);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.longitude: ") + exc.what());
-      }
-    }()),
-    mapItemId([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("mapItemId", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.mapItemId;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.mapItemId);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.mapItemId: ") + exc.what());
-      }
-    }()),
-    showsRoadLabels([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("showsRoadLabels", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsRoadLabels;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsRoadLabels);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.showsRoadLabels: ") + exc.what());
-      }
-    }()),
-    pointsOfInterest([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("pointsOfInterest", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.pointsOfInterest;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.pointsOfInterest);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.pointsOfInterest: ") + exc.what());
-      }
-    }()),
-    navigationEnabled([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("navigationEnabled", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.navigationEnabled;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.navigationEnabled);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.navigationEnabled: ") + exc.what());
-      }
-    }()),
-    badgePosition([&]() -> CachedProp<LookAroundBadgePosition> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("badgePosition", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.badgePosition;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<LookAroundBadgePosition>::fromRawValue(*runtime, value, sourceProps.badgePosition);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.badgePosition: ") + exc.what());
-      }
-    }()),
-    onSceneChange([&]() -> CachedProp<std::optional<std::function<void(bool /* available */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onSceneChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onSceneChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(bool /* available */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onSceneChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.onSceneChange: ") + exc.what());
-      }
-    }()),
-    onFullScreenChange([&]() -> CachedProp<std::optional<std::function<void(bool /* fullScreen */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onFullScreenChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onFullScreenChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(bool /* fullScreen */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onFullScreenChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.onFullScreenChange: ") + exc.what());
-      }
-    }()),
-    onError([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onError", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onError;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* message */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onError);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.onError: ") + exc.what());
-      }
-    }()),
-    hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridLookAroundViewSpec>& /* ref */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.hybridRef;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridLookAroundViewSpec>& /* ref */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.hybridRef);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("LookAroundView.hybridRef: ") + exc.what());
-      }
-    }()) { }
+    latitude(nitro::ReactProp<double>::fromRawValue("LookAroundView", "latitude", rawProps, sourceProps.latitude)),
+    longitude(nitro::ReactProp<double>::fromRawValue("LookAroundView", "longitude", rawProps, sourceProps.longitude)),
+    mapItemId(nitro::ReactProp<std::string>::fromRawValue("LookAroundView", "mapItemId", rawProps, sourceProps.mapItemId)),
+    showsRoadLabels(nitro::ReactProp<bool>::fromRawValue("LookAroundView", "showsRoadLabels", rawProps, sourceProps.showsRoadLabels)),
+    pointsOfInterest(nitro::ReactProp<std::string>::fromRawValue("LookAroundView", "pointsOfInterest", rawProps, sourceProps.pointsOfInterest)),
+    navigationEnabled(nitro::ReactProp<bool>::fromRawValue("LookAroundView", "navigationEnabled", rawProps, sourceProps.navigationEnabled)),
+    badgePosition(nitro::ReactProp<LookAroundBadgePosition>::fromRawValue("LookAroundView", "badgePosition", rawProps, sourceProps.badgePosition)),
+    onSceneChange(nitro::ReactProp<std::optional<std::function<void(bool /* available */)>>>::fromRawValue("LookAroundView", "onSceneChange", rawProps, sourceProps.onSceneChange)),
+    onFullScreenChange(nitro::ReactProp<std::optional<std::function<void(bool /* fullScreen */)>>>::fromRawValue("LookAroundView", "onFullScreenChange", rawProps, sourceProps.onFullScreenChange)),
+    onError(nitro::ReactProp<std::optional<std::function<void(const std::string& /* message */)>>>::fromRawValue("LookAroundView", "onError", rawProps, sourceProps.onError)),
+    hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridLookAroundViewSpec>& /* ref */)>>>::fromRawValue("LookAroundView", "hybridRef", rawProps, sourceProps.hybridRef)) {
+    // munim-maps: margelo/nitro#1656: React Native no longer fills Props::rawProps for us.
+#if defined(ANDROID) && defined(RN_SERIALIZABLE_STATE) && defined(REACT_NATIVE_VERSION_MINOR)
+#if REACT_NATIVE_VERSION_MAJOR > 0 || REACT_NATIVE_VERSION_MINOR >= 87
+    initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+#elif REACT_NATIVE_VERSION_MINOR >= 84
+    if (facebook::react::ReactNativeFeatureFlags::enableExclusivePropsUpdateAndroid()) {
+      initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+    }
+#endif
+#endif
+  }
 
   bool HybridLookAroundViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
@@ -153,30 +69,5 @@ namespace margelo::nitro::munimmaps::views {
       default: return false;
     }
   }
-
-  HybridLookAroundViewComponentDescriptor::HybridLookAroundViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters)
-    : ConcreteComponentDescriptor(parameters,
-                                  react::RawPropsParser()) {}
-
-  std::shared_ptr<const react::Props> HybridLookAroundViewComponentDescriptor::cloneProps(const react::PropsParserContext& context,
-                                                                                          const std::shared_ptr<const react::Props>& props,
-                                                                                          react::RawProps rawProps) const {
-    // 1. Prepare raw props parser
-    rawProps.parse(rawPropsParser_);
-    // 2. Copy props with Nitro's cached copy constructor
-    return HybridLookAroundViewShadowNode::Props(context, /* & */ rawProps, props);
-  }
-
-#ifdef ANDROID
-  void HybridLookAroundViewComponentDescriptor::adopt(react::ShadowNode& shadowNode) const {
-    // This is called immediately after `ShadowNode` is created, cloned or in progress.
-    // On Android, we need to wrap props in our state, which gets routed through Java and later unwrapped in JNI/C++.
-    auto& concreteShadowNode = static_cast<HybridLookAroundViewShadowNode&>(shadowNode);
-    const std::shared_ptr<const HybridLookAroundViewProps>& constProps = concreteShadowNode.getConcreteSharedProps();
-    const std::shared_ptr<HybridLookAroundViewProps>& props = std::const_pointer_cast<HybridLookAroundViewProps>(constProps);
-    HybridLookAroundViewState state{props};
-    concreteShadowNode.setStateData(std::move(state));
-  }
-#endif
 
 } // namespace margelo::nitro::munimmaps::views

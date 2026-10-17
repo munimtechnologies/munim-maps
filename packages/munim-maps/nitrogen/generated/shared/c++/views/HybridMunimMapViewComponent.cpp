@@ -7,18 +7,22 @@
 
 #include "HybridMunimMapViewComponent.hpp"
 
-#include <string>
-#include <exception>
-#include <utility>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/JSIConverter.hpp>
-#include <NitroModules/PropNameIDCache.hpp>
-#include <react/renderer/core/RawValue.h>
-#include <react/renderer/core/ShadowNode.h>
-#include <react/renderer/core/ComponentDescriptor.h>
-#include <react/renderer/components/view/ViewProps.h>
+#include <NitroModules/NitroHash.hpp>
+#include <NitroModules/ReactProp.hpp>
+
+// munim-maps: margelo/nitro#1656 (see scripts/patch-nitro-viewprops.js)
+#ifdef ANDROID
+#if __has_include(<cxxreact/ReactNativeVersion.h>)
+#include <cxxreact/ReactNativeVersion.h>
+#endif
+#if defined(REACT_NATIVE_VERSION_MINOR) && REACT_NATIVE_VERSION_MAJOR == 0 && REACT_NATIVE_VERSION_MINOR >= 84 && REACT_NATIVE_VERSION_MINOR < 87
+#include <react/featureflags/ReactNativeFeatureFlags.h>
+#endif
+#endif
 
 namespace margelo::nitro::munimmaps::views {
+
+  using namespace facebook;
 
   extern const char HybridMunimMapViewComponentName[] = "MunimMapView";
 
@@ -26,636 +30,80 @@ namespace margelo::nitro::munimmaps::views {
                                                    const HybridMunimMapViewProps& sourceProps,
                                                    const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    provider([&]() -> CachedProp<MapProvider> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("provider", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.provider;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapProvider>::fromRawValue(*runtime, value, sourceProps.provider);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.provider: ") + exc.what());
-      }
-    }()),
-    styleUrl([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("styleUrl", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.styleUrl;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.styleUrl);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.styleUrl: ") + exc.what());
-      }
-    }()),
-    providerOptions([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("providerOptions", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.providerOptions;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.providerOptions);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.providerOptions: ") + exc.what());
-      }
-    }()),
-    models([&]() -> CachedProp<std::vector<NativeMapModel>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("models", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.models;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMapModel>>::fromRawValue(*runtime, value, sourceProps.models);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.models: ") + exc.what());
-      }
-    }()),
-    zones([&]() -> CachedProp<std::vector<NativeMapZone>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("zones", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.zones;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMapZone>>::fromRawValue(*runtime, value, sourceProps.zones);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.zones: ") + exc.what());
-      }
-    }()),
-    paths([&]() -> CachedProp<std::vector<NativeMapPath>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("paths", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.paths;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMapPath>>::fromRawValue(*runtime, value, sourceProps.paths);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.paths: ") + exc.what());
-      }
-    }()),
-    occlusion([&]() -> CachedProp<MapOcclusion> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("occlusion", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.occlusion;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapOcclusion>::fromRawValue(*runtime, value, sourceProps.occlusion);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.occlusion: ") + exc.what());
-      }
-    }()),
-    buildingTilesUrl([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("buildingTilesUrl", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.buildingTilesUrl;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.buildingTilesUrl);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.buildingTilesUrl: ") + exc.what());
-      }
-    }()),
-    followTerrain([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("followTerrain", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.followTerrain;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.followTerrain);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.followTerrain: ") + exc.what());
-      }
-    }()),
-    initialCamera([&]() -> CachedProp<MapCamera> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("initialCamera", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.initialCamera;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapCamera>::fromRawValue(*runtime, value, sourceProps.initialCamera);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.initialCamera: ") + exc.what());
-      }
-    }()),
-    mapStyle([&]() -> CachedProp<MapStyle> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("mapStyle", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.mapStyle;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapStyle>::fromRawValue(*runtime, value, sourceProps.mapStyle);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.mapStyle: ") + exc.what());
-      }
-    }()),
-    elevation([&]() -> CachedProp<MapElevation> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("elevation", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.elevation;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapElevation>::fromRawValue(*runtime, value, sourceProps.elevation);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.elevation: ") + exc.what());
-      }
-    }()),
-    globe([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("globe", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.globe;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.globe);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.globe: ") + exc.what());
-      }
-    }()),
-    colorScheme([&]() -> CachedProp<MapColorScheme> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("colorScheme", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.colorScheme;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapColorScheme>::fromRawValue(*runtime, value, sourceProps.colorScheme);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.colorScheme: ") + exc.what());
-      }
-    }()),
-    showsBuildings([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("showsBuildings", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsBuildings;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsBuildings);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsBuildings: ") + exc.what());
-      }
-    }()),
-    showsUserLocation([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("showsUserLocation", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsUserLocation;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsUserLocation);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsUserLocation: ") + exc.what());
-      }
-    }()),
-    lighting([&]() -> CachedProp<MapModelLighting> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("lighting", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.lighting;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapModelLighting>::fromRawValue(*runtime, value, sourceProps.lighting);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.lighting: ") + exc.what());
-      }
-    }()),
-    maxCameraDistance([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("maxCameraDistance", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.maxCameraDistance;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.maxCameraDistance);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.maxCameraDistance: ") + exc.what());
-      }
-    }()),
-    markers([&]() -> CachedProp<std::vector<NativeMarker>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("markers", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.markers;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMarker>>::fromRawValue(*runtime, value, sourceProps.markers);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.markers: ") + exc.what());
-      }
-    }()),
-    polylines([&]() -> CachedProp<std::vector<NativePolyline>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("polylines", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.polylines;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativePolyline>>::fromRawValue(*runtime, value, sourceProps.polylines);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.polylines: ") + exc.what());
-      }
-    }()),
-    polygons([&]() -> CachedProp<std::vector<NativePolygon>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("polygons", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.polygons;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativePolygon>>::fromRawValue(*runtime, value, sourceProps.polygons);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.polygons: ") + exc.what());
-      }
-    }()),
-    circles([&]() -> CachedProp<std::vector<NativeCircle>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("circles", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.circles;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeCircle>>::fromRawValue(*runtime, value, sourceProps.circles);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.circles: ") + exc.what());
-      }
-    }()),
-    tileOverlays([&]() -> CachedProp<std::vector<NativeTileOverlay>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("tileOverlays", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.tileOverlays;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeTileOverlay>>::fromRawValue(*runtime, value, sourceProps.tileOverlays);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.tileOverlays: ") + exc.what());
-      }
-    }()),
-    clusterStyles([&]() -> CachedProp<std::vector<NativeClusterStyle>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("clusterStyles", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.clusterStyles;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeClusterStyle>>::fromRawValue(*runtime, value, sourceProps.clusterStyles);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.clusterStyles: ") + exc.what());
-      }
-    }()),
-    compassVisibility([&]() -> CachedProp<FeatureVisibility> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("compassVisibility", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.compassVisibility;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.compassVisibility);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.compassVisibility: ") + exc.what());
-      }
-    }()),
-    scaleVisibility([&]() -> CachedProp<FeatureVisibility> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("scaleVisibility", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.scaleVisibility;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.scaleVisibility);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.scaleVisibility: ") + exc.what());
-      }
-    }()),
-    showsUserTrackingButton([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("showsUserTrackingButton", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsUserTrackingButton;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsUserTrackingButton);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsUserTrackingButton: ") + exc.what());
-      }
-    }()),
-    pitchButtonVisibility([&]() -> CachedProp<FeatureVisibility> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("pitchButtonVisibility", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.pitchButtonVisibility;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<FeatureVisibility>::fromRawValue(*runtime, value, sourceProps.pitchButtonVisibility);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.pitchButtonVisibility: ") + exc.what());
-      }
-    }()),
-    mapScope([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("mapScope", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.mapScope;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.mapScope);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.mapScope: ") + exc.what());
-      }
-    }()),
-    showsTraffic([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("showsTraffic", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.showsTraffic;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.showsTraffic);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.showsTraffic: ") + exc.what());
-      }
-    }()),
-    pointsOfInterest([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("pointsOfInterest", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.pointsOfInterest;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.pointsOfInterest);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.pointsOfInterest: ") + exc.what());
-      }
-    }()),
-    userTrackingMode([&]() -> CachedProp<UserTrackingMode> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("userTrackingMode", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.userTrackingMode;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<UserTrackingMode>::fromRawValue(*runtime, value, sourceProps.userTrackingMode);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.userTrackingMode: ") + exc.what());
-      }
-    }()),
-    zoomEnabled([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("zoomEnabled", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.zoomEnabled;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.zoomEnabled);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.zoomEnabled: ") + exc.what());
-      }
-    }()),
-    scrollEnabled([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("scrollEnabled", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.scrollEnabled;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.scrollEnabled);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.scrollEnabled: ") + exc.what());
-      }
-    }()),
-    rotateEnabled([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("rotateEnabled", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.rotateEnabled;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.rotateEnabled);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.rotateEnabled: ") + exc.what());
-      }
-    }()),
-    pitchEnabled([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("pitchEnabled", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.pitchEnabled;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.pitchEnabled);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.pitchEnabled: ") + exc.what());
-      }
-    }()),
-    minCameraDistance([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("minCameraDistance", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.minCameraDistance;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.minCameraDistance);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.minCameraDistance: ") + exc.what());
-      }
-    }()),
-    maxCameraDistanceLimit([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("maxCameraDistanceLimit", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.maxCameraDistanceLimit;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.maxCameraDistanceLimit);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.maxCameraDistanceLimit: ") + exc.what());
-      }
-    }()),
-    cameraBoundary([&]() -> CachedProp<MapRegion> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("cameraBoundary", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.cameraBoundary;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapRegion>::fromRawValue(*runtime, value, sourceProps.cameraBoundary);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.cameraBoundary: ") + exc.what());
-      }
-    }()),
-    mapPadding([&]() -> CachedProp<EdgeInsets> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("mapPadding", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.mapPadding;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<EdgeInsets>::fromRawValue(*runtime, value, sourceProps.mapPadding);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.mapPadding: ") + exc.what());
-      }
-    }()),
-    selectableMapFeatures([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("selectableMapFeatures", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.selectableMapFeatures;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.selectableMapFeatures);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.selectableMapFeatures: ") + exc.what());
-      }
-    }()),
-    selectionAccessory([&]() -> CachedProp<SelectionAccessory> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("selectionAccessory", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.selectionAccessory;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<SelectionAccessory>::fromRawValue(*runtime, value, sourceProps.selectionAccessory);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.selectionAccessory: ") + exc.what());
-      }
-    }()),
-    onModelPress([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onModelPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onModelPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onModelPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onModelPress: ") + exc.what());
-      }
-    }()),
-    onCameraChange([&]() -> CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onCameraChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onCameraChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onCameraChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onCameraChange: ") + exc.what());
-      }
-    }()),
-    onCameraMove([&]() -> CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onCameraMove", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onCameraMove;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MapCamera& /* camera */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onCameraMove);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onCameraMove: ") + exc.what());
-      }
-    }()),
-    onMapReady([&]() -> CachedProp<std::optional<std::function<void()>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMapReady", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMapReady;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void()>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMapReady);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMapReady: ") + exc.what());
-      }
-    }()),
-    onPress([&]() -> CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onPress: ") + exc.what());
-      }
-    }()),
-    onLongPress([&]() -> CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onLongPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onLongPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onLongPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onLongPress: ") + exc.what());
-      }
-    }()),
-    onMarkerPress([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMarkerPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMarkerPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMarkerPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMarkerPress: ") + exc.what());
-      }
-    }()),
-    onMarkerDeselect([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMarkerDeselect", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMarkerDeselect;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMarkerDeselect);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMarkerDeselect: ") + exc.what());
-      }
-    }()),
-    onCalloutPress([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onCalloutPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onCalloutPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onCalloutPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onCalloutPress: ") + exc.what());
-      }
-    }()),
-    onCalloutAccessoryPress([&]() -> CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onCalloutAccessoryPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onCalloutAccessoryPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onCalloutAccessoryPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onCalloutAccessoryPress: ") + exc.what());
-      }
-    }()),
-    onClusterPress([&]() -> CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onClusterPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onClusterPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onClusterPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onClusterPress: ") + exc.what());
-      }
-    }()),
-    onOverlayPress([&]() -> CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onOverlayPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onOverlayPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onOverlayPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onOverlayPress: ") + exc.what());
-      }
-    }()),
-    onMarkerDragStart([&]() -> CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMarkerDragStart", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMarkerDragStart;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMarkerDragStart);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMarkerDragStart: ") + exc.what());
-      }
-    }()),
-    onMarkerDragEnd([&]() -> CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMarkerDragEnd", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMarkerDragEnd;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMarkerDragEnd);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMarkerDragEnd: ") + exc.what());
-      }
-    }()),
-    onMarkerDrag([&]() -> CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMarkerDrag", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMarkerDrag;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMarkerDrag);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMarkerDrag: ") + exc.what());
-      }
-    }()),
-    onUserLocationChange([&]() -> CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onUserLocationChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onUserLocationChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onUserLocationChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onUserLocationChange: ") + exc.what());
-      }
-    }()),
-    onUserTrackingModeChange([&]() -> CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onUserTrackingModeChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onUserTrackingModeChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onUserTrackingModeChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onUserTrackingModeChange: ") + exc.what());
-      }
-    }()),
-    onMapFeaturePress([&]() -> CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMapFeaturePress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMapFeaturePress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMapFeaturePress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onMapFeaturePress: ") + exc.what());
-      }
-    }()),
-    onProviderEvent([&]() -> CachedProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onProviderEvent", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onProviderEvent;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onProviderEvent);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onProviderEvent: ") + exc.what());
-      }
-    }()),
-    onError([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onError", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onError;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* message */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onError);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.onError: ") + exc.what());
-      }
-    }()),
-    hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.hybridRef;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.hybridRef);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MunimMapView.hybridRef: ") + exc.what());
-      }
-    }()) { }
+    provider(nitro::ReactProp<MapProvider>::fromRawValue("MunimMapView", "provider", rawProps, sourceProps.provider)),
+    styleUrl(nitro::ReactProp<std::string>::fromRawValue("MunimMapView", "styleUrl", rawProps, sourceProps.styleUrl)),
+    providerOptions(nitro::ReactProp<std::string>::fromRawValue("MunimMapView", "providerOptions", rawProps, sourceProps.providerOptions)),
+    models(nitro::ReactProp<std::vector<NativeMapModel>>::fromRawValue("MunimMapView", "models", rawProps, sourceProps.models)),
+    zones(nitro::ReactProp<std::vector<NativeMapZone>>::fromRawValue("MunimMapView", "zones", rawProps, sourceProps.zones)),
+    paths(nitro::ReactProp<std::vector<NativeMapPath>>::fromRawValue("MunimMapView", "paths", rawProps, sourceProps.paths)),
+    occlusion(nitro::ReactProp<MapOcclusion>::fromRawValue("MunimMapView", "occlusion", rawProps, sourceProps.occlusion)),
+    buildingTilesUrl(nitro::ReactProp<std::string>::fromRawValue("MunimMapView", "buildingTilesUrl", rawProps, sourceProps.buildingTilesUrl)),
+    followTerrain(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "followTerrain", rawProps, sourceProps.followTerrain)),
+    initialCamera(nitro::ReactProp<MapCamera>::fromRawValue("MunimMapView", "initialCamera", rawProps, sourceProps.initialCamera)),
+    mapStyle(nitro::ReactProp<MapStyle>::fromRawValue("MunimMapView", "mapStyle", rawProps, sourceProps.mapStyle)),
+    elevation(nitro::ReactProp<MapElevation>::fromRawValue("MunimMapView", "elevation", rawProps, sourceProps.elevation)),
+    globe(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "globe", rawProps, sourceProps.globe)),
+    colorScheme(nitro::ReactProp<MapColorScheme>::fromRawValue("MunimMapView", "colorScheme", rawProps, sourceProps.colorScheme)),
+    showsBuildings(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsBuildings", rawProps, sourceProps.showsBuildings)),
+    showsUserLocation(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsUserLocation", rawProps, sourceProps.showsUserLocation)),
+    lighting(nitro::ReactProp<MapModelLighting>::fromRawValue("MunimMapView", "lighting", rawProps, sourceProps.lighting)),
+    maxCameraDistance(nitro::ReactProp<double>::fromRawValue("MunimMapView", "maxCameraDistance", rawProps, sourceProps.maxCameraDistance)),
+    markers(nitro::ReactProp<std::vector<NativeMarker>>::fromRawValue("MunimMapView", "markers", rawProps, sourceProps.markers)),
+    polylines(nitro::ReactProp<std::vector<NativePolyline>>::fromRawValue("MunimMapView", "polylines", rawProps, sourceProps.polylines)),
+    polygons(nitro::ReactProp<std::vector<NativePolygon>>::fromRawValue("MunimMapView", "polygons", rawProps, sourceProps.polygons)),
+    circles(nitro::ReactProp<std::vector<NativeCircle>>::fromRawValue("MunimMapView", "circles", rawProps, sourceProps.circles)),
+    tileOverlays(nitro::ReactProp<std::vector<NativeTileOverlay>>::fromRawValue("MunimMapView", "tileOverlays", rawProps, sourceProps.tileOverlays)),
+    clusterStyles(nitro::ReactProp<std::vector<NativeClusterStyle>>::fromRawValue("MunimMapView", "clusterStyles", rawProps, sourceProps.clusterStyles)),
+    compassVisibility(nitro::ReactProp<FeatureVisibility>::fromRawValue("MunimMapView", "compassVisibility", rawProps, sourceProps.compassVisibility)),
+    scaleVisibility(nitro::ReactProp<FeatureVisibility>::fromRawValue("MunimMapView", "scaleVisibility", rawProps, sourceProps.scaleVisibility)),
+    showsUserTrackingButton(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsUserTrackingButton", rawProps, sourceProps.showsUserTrackingButton)),
+    pitchButtonVisibility(nitro::ReactProp<FeatureVisibility>::fromRawValue("MunimMapView", "pitchButtonVisibility", rawProps, sourceProps.pitchButtonVisibility)),
+    mapScope(nitro::ReactProp<std::string>::fromRawValue("MunimMapView", "mapScope", rawProps, sourceProps.mapScope)),
+    showsTraffic(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsTraffic", rawProps, sourceProps.showsTraffic)),
+    pointsOfInterest(nitro::ReactProp<std::string>::fromRawValue("MunimMapView", "pointsOfInterest", rawProps, sourceProps.pointsOfInterest)),
+    userTrackingMode(nitro::ReactProp<UserTrackingMode>::fromRawValue("MunimMapView", "userTrackingMode", rawProps, sourceProps.userTrackingMode)),
+    zoomEnabled(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "zoomEnabled", rawProps, sourceProps.zoomEnabled)),
+    scrollEnabled(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "scrollEnabled", rawProps, sourceProps.scrollEnabled)),
+    rotateEnabled(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "rotateEnabled", rawProps, sourceProps.rotateEnabled)),
+    pitchEnabled(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "pitchEnabled", rawProps, sourceProps.pitchEnabled)),
+    minCameraDistance(nitro::ReactProp<double>::fromRawValue("MunimMapView", "minCameraDistance", rawProps, sourceProps.minCameraDistance)),
+    maxCameraDistanceLimit(nitro::ReactProp<double>::fromRawValue("MunimMapView", "maxCameraDistanceLimit", rawProps, sourceProps.maxCameraDistanceLimit)),
+    cameraBoundary(nitro::ReactProp<MapRegion>::fromRawValue("MunimMapView", "cameraBoundary", rawProps, sourceProps.cameraBoundary)),
+    mapPadding(nitro::ReactProp<EdgeInsets>::fromRawValue("MunimMapView", "mapPadding", rawProps, sourceProps.mapPadding)),
+    selectableMapFeatures(nitro::ReactProp<std::string>::fromRawValue("MunimMapView", "selectableMapFeatures", rawProps, sourceProps.selectableMapFeatures)),
+    selectionAccessory(nitro::ReactProp<SelectionAccessory>::fromRawValue("MunimMapView", "selectionAccessory", rawProps, sourceProps.selectionAccessory)),
+    onModelPress(nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue("MunimMapView", "onModelPress", rawProps, sourceProps.onModelPress)),
+    onCameraChange(nitro::ReactProp<std::optional<std::function<void(const MapCamera& /* camera */)>>>::fromRawValue("MunimMapView", "onCameraChange", rawProps, sourceProps.onCameraChange)),
+    onCameraMove(nitro::ReactProp<std::optional<std::function<void(const MapCamera& /* camera */)>>>::fromRawValue("MunimMapView", "onCameraMove", rawProps, sourceProps.onCameraMove)),
+    onMapReady(nitro::ReactProp<std::optional<std::function<void()>>>::fromRawValue("MunimMapView", "onMapReady", rawProps, sourceProps.onMapReady)),
+    onPress(nitro::ReactProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>>::fromRawValue("MunimMapView", "onPress", rawProps, sourceProps.onPress)),
+    onLongPress(nitro::ReactProp<std::optional<std::function<void(const MapPressEvent& /* event */)>>>::fromRawValue("MunimMapView", "onLongPress", rawProps, sourceProps.onLongPress)),
+    onMarkerPress(nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue("MunimMapView", "onMarkerPress", rawProps, sourceProps.onMarkerPress)),
+    onMarkerDeselect(nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue("MunimMapView", "onMarkerDeselect", rawProps, sourceProps.onMarkerDeselect)),
+    onCalloutPress(nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue("MunimMapView", "onCalloutPress", rawProps, sourceProps.onCalloutPress)),
+    onCalloutAccessoryPress(nitro::ReactProp<std::optional<std::function<void(const CalloutAccessoryEvent& /* event */)>>>::fromRawValue("MunimMapView", "onCalloutAccessoryPress", rawProps, sourceProps.onCalloutAccessoryPress)),
+    onClusterPress(nitro::ReactProp<std::optional<std::function<void(const ClusterPressEvent& /* event */)>>>::fromRawValue("MunimMapView", "onClusterPress", rawProps, sourceProps.onClusterPress)),
+    onOverlayPress(nitro::ReactProp<std::optional<std::function<void(const OverlayPressEvent& /* event */)>>>::fromRawValue("MunimMapView", "onOverlayPress", rawProps, sourceProps.onOverlayPress)),
+    onMarkerDragStart(nitro::ReactProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue("MunimMapView", "onMarkerDragStart", rawProps, sourceProps.onMarkerDragStart)),
+    onMarkerDragEnd(nitro::ReactProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue("MunimMapView", "onMarkerDragEnd", rawProps, sourceProps.onMarkerDragEnd)),
+    onMarkerDrag(nitro::ReactProp<std::optional<std::function<void(const MarkerDragEvent& /* event */)>>>::fromRawValue("MunimMapView", "onMarkerDrag", rawProps, sourceProps.onMarkerDrag)),
+    onUserLocationChange(nitro::ReactProp<std::optional<std::function<void(const UserLocationEvent& /* location */)>>>::fromRawValue("MunimMapView", "onUserLocationChange", rawProps, sourceProps.onUserLocationChange)),
+    onUserTrackingModeChange(nitro::ReactProp<std::optional<std::function<void(UserTrackingMode /* mode */)>>>::fromRawValue("MunimMapView", "onUserTrackingModeChange", rawProps, sourceProps.onUserTrackingModeChange)),
+    onMapFeaturePress(nitro::ReactProp<std::optional<std::function<void(const MapFeatureEvent& /* feature */)>>>::fromRawValue("MunimMapView", "onMapFeaturePress", rawProps, sourceProps.onMapFeaturePress)),
+    onProviderEvent(nitro::ReactProp<std::optional<std::function<void(const ProviderEvent& /* event */)>>>::fromRawValue("MunimMapView", "onProviderEvent", rawProps, sourceProps.onProviderEvent)),
+    onError(nitro::ReactProp<std::optional<std::function<void(const std::string& /* message */)>>>::fromRawValue("MunimMapView", "onError", rawProps, sourceProps.onError)),
+    hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMunimMapViewSpec>& /* ref */)>>>::fromRawValue("MunimMapView", "hybridRef", rawProps, sourceProps.hybridRef)) {
+    // munim-maps: margelo/nitro#1656: React Native no longer fills Props::rawProps for us.
+#if defined(ANDROID) && defined(RN_SERIALIZABLE_STATE) && defined(REACT_NATIVE_VERSION_MINOR)
+#if REACT_NATIVE_VERSION_MAJOR > 0 || REACT_NATIVE_VERSION_MINOR >= 87
+    initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+#elif REACT_NATIVE_VERSION_MINOR >= 84
+    if (facebook::react::ReactNativeFeatureFlags::enableExclusivePropsUpdateAndroid()) {
+      initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+    }
+#endif
+#endif
+  }
 
   bool HybridMunimMapViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
@@ -725,30 +173,5 @@ namespace margelo::nitro::munimmaps::views {
       default: return false;
     }
   }
-
-  HybridMunimMapViewComponentDescriptor::HybridMunimMapViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters)
-    : ConcreteComponentDescriptor(parameters,
-                                  react::RawPropsParser()) {}
-
-  std::shared_ptr<const react::Props> HybridMunimMapViewComponentDescriptor::cloneProps(const react::PropsParserContext& context,
-                                                                                        const std::shared_ptr<const react::Props>& props,
-                                                                                        react::RawProps rawProps) const {
-    // 1. Prepare raw props parser
-    rawProps.parse(rawPropsParser_);
-    // 2. Copy props with Nitro's cached copy constructor
-    return HybridMunimMapViewShadowNode::Props(context, /* & */ rawProps, props);
-  }
-
-#ifdef ANDROID
-  void HybridMunimMapViewComponentDescriptor::adopt(react::ShadowNode& shadowNode) const {
-    // This is called immediately after `ShadowNode` is created, cloned or in progress.
-    // On Android, we need to wrap props in our state, which gets routed through Java and later unwrapped in JNI/C++.
-    auto& concreteShadowNode = static_cast<HybridMunimMapViewShadowNode&>(shadowNode);
-    const std::shared_ptr<const HybridMunimMapViewProps>& constProps = concreteShadowNode.getConcreteSharedProps();
-    const std::shared_ptr<HybridMunimMapViewProps>& props = std::const_pointer_cast<HybridMunimMapViewProps>(constProps);
-    HybridMunimMapViewState state{props};
-    concreteShadowNode.setStateData(std::move(state));
-  }
-#endif
 
 } // namespace margelo::nitro::munimmaps::views

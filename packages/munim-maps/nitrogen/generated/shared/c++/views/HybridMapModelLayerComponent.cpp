@@ -7,18 +7,22 @@
 
 #include "HybridMapModelLayerComponent.hpp"
 
-#include <string>
-#include <exception>
-#include <utility>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/JSIConverter.hpp>
-#include <NitroModules/PropNameIDCache.hpp>
-#include <react/renderer/core/RawValue.h>
-#include <react/renderer/core/ShadowNode.h>
-#include <react/renderer/core/ComponentDescriptor.h>
-#include <react/renderer/components/view/ViewProps.h>
+#include <NitroModules/NitroHash.hpp>
+#include <NitroModules/ReactProp.hpp>
+
+// munim-maps: margelo/nitro#1656 (see scripts/patch-nitro-viewprops.js)
+#ifdef ANDROID
+#if __has_include(<cxxreact/ReactNativeVersion.h>)
+#include <cxxreact/ReactNativeVersion.h>
+#endif
+#if defined(REACT_NATIVE_VERSION_MINOR) && REACT_NATIVE_VERSION_MAJOR == 0 && REACT_NATIVE_VERSION_MINOR >= 84 && REACT_NATIVE_VERSION_MINOR < 87
+#include <react/featureflags/ReactNativeFeatureFlags.h>
+#endif
+#endif
 
 namespace margelo::nitro::munimmaps::views {
+
+  using namespace facebook;
 
   extern const char HybridMapModelLayerComponentName[] = "MapModelLayer";
 
@@ -26,156 +30,32 @@ namespace margelo::nitro::munimmaps::views {
                                                      const HybridMapModelLayerProps& sourceProps,
                                                      const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    models([&]() -> CachedProp<std::vector<NativeMapModel>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("models", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.models;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMapModel>>::fromRawValue(*runtime, value, sourceProps.models);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.models: ") + exc.what());
-      }
-    }()),
-    zones([&]() -> CachedProp<std::vector<NativeMapZone>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("zones", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.zones;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMapZone>>::fromRawValue(*runtime, value, sourceProps.zones);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.zones: ") + exc.what());
-      }
-    }()),
-    paths([&]() -> CachedProp<std::vector<NativeMapPath>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("paths", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.paths;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::vector<NativeMapPath>>::fromRawValue(*runtime, value, sourceProps.paths);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.paths: ") + exc.what());
-      }
-    }()),
-    occlusion([&]() -> CachedProp<MapOcclusion> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("occlusion", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.occlusion;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapOcclusion>::fromRawValue(*runtime, value, sourceProps.occlusion);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.occlusion: ") + exc.what());
-      }
-    }()),
-    buildingTilesUrl([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("buildingTilesUrl", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.buildingTilesUrl;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.buildingTilesUrl);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.buildingTilesUrl: ") + exc.what());
-      }
-    }()),
-    followTerrain([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("followTerrain", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.followTerrain;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.followTerrain);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.followTerrain: ") + exc.what());
-      }
-    }()),
-    mapTestID([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("mapTestID", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.mapTestID;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.mapTestID);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.mapTestID: ") + exc.what());
-      }
-    }()),
-    lighting([&]() -> CachedProp<MapModelLighting> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("lighting", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.lighting;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<MapModelLighting>::fromRawValue(*runtime, value, sourceProps.lighting);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.lighting: ") + exc.what());
-      }
-    }()),
-    maxCameraDistance([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("maxCameraDistance", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.maxCameraDistance;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.maxCameraDistance);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.maxCameraDistance: ") + exc.what());
-      }
-    }()),
-    realisticElevation([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("realisticElevation", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.realisticElevation;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.realisticElevation);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.realisticElevation: ") + exc.what());
-      }
-    }()),
-    globe([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("globe", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.globe;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.globe);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.globe: ") + exc.what());
-      }
-    }()),
-    onModelPress([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* id */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onModelPress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onModelPress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onModelPress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.onModelPress: ") + exc.what());
-      }
-    }()),
-    onAttachChange([&]() -> CachedProp<std::optional<std::function<void(bool /* attached */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onAttachChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onAttachChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(bool /* attached */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onAttachChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.onAttachChange: ") + exc.what());
-      }
-    }()),
-    onError([&]() -> CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onError", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onError;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::string& /* message */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onError);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.onError: ") + exc.what());
-      }
-    }()),
-    hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMapModelLayerSpec>& /* ref */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.hybridRef;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridMapModelLayerSpec>& /* ref */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.hybridRef);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("MapModelLayer.hybridRef: ") + exc.what());
-      }
-    }()) { }
+    models(nitro::ReactProp<std::vector<NativeMapModel>>::fromRawValue("MapModelLayer", "models", rawProps, sourceProps.models)),
+    zones(nitro::ReactProp<std::vector<NativeMapZone>>::fromRawValue("MapModelLayer", "zones", rawProps, sourceProps.zones)),
+    paths(nitro::ReactProp<std::vector<NativeMapPath>>::fromRawValue("MapModelLayer", "paths", rawProps, sourceProps.paths)),
+    occlusion(nitro::ReactProp<MapOcclusion>::fromRawValue("MapModelLayer", "occlusion", rawProps, sourceProps.occlusion)),
+    buildingTilesUrl(nitro::ReactProp<std::string>::fromRawValue("MapModelLayer", "buildingTilesUrl", rawProps, sourceProps.buildingTilesUrl)),
+    followTerrain(nitro::ReactProp<bool>::fromRawValue("MapModelLayer", "followTerrain", rawProps, sourceProps.followTerrain)),
+    mapTestID(nitro::ReactProp<std::string>::fromRawValue("MapModelLayer", "mapTestID", rawProps, sourceProps.mapTestID)),
+    lighting(nitro::ReactProp<MapModelLighting>::fromRawValue("MapModelLayer", "lighting", rawProps, sourceProps.lighting)),
+    maxCameraDistance(nitro::ReactProp<double>::fromRawValue("MapModelLayer", "maxCameraDistance", rawProps, sourceProps.maxCameraDistance)),
+    realisticElevation(nitro::ReactProp<bool>::fromRawValue("MapModelLayer", "realisticElevation", rawProps, sourceProps.realisticElevation)),
+    globe(nitro::ReactProp<bool>::fromRawValue("MapModelLayer", "globe", rawProps, sourceProps.globe)),
+    onModelPress(nitro::ReactProp<std::optional<std::function<void(const std::string& /* id */)>>>::fromRawValue("MapModelLayer", "onModelPress", rawProps, sourceProps.onModelPress)),
+    onAttachChange(nitro::ReactProp<std::optional<std::function<void(bool /* attached */)>>>::fromRawValue("MapModelLayer", "onAttachChange", rawProps, sourceProps.onAttachChange)),
+    onError(nitro::ReactProp<std::optional<std::function<void(const std::string& /* message */)>>>::fromRawValue("MapModelLayer", "onError", rawProps, sourceProps.onError)),
+    hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridMapModelLayerSpec>& /* ref */)>>>::fromRawValue("MapModelLayer", "hybridRef", rawProps, sourceProps.hybridRef)) {
+    // munim-maps: margelo/nitro#1656: React Native no longer fills Props::rawProps for us.
+#if defined(ANDROID) && defined(RN_SERIALIZABLE_STATE) && defined(REACT_NATIVE_VERSION_MINOR)
+#if REACT_NATIVE_VERSION_MAJOR > 0 || REACT_NATIVE_VERSION_MINOR >= 87
+    initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+#elif REACT_NATIVE_VERSION_MINOR >= 84
+    if (facebook::react::ReactNativeFeatureFlags::enableExclusivePropsUpdateAndroid()) {
+      initializeDynamicProps(sourceProps, rawProps, filterObjectKeys);
+    }
+#endif
+#endif
+  }
 
   bool HybridMapModelLayerProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
@@ -197,30 +77,5 @@ namespace margelo::nitro::munimmaps::views {
       default: return false;
     }
   }
-
-  HybridMapModelLayerComponentDescriptor::HybridMapModelLayerComponentDescriptor(const react::ComponentDescriptorParameters& parameters)
-    : ConcreteComponentDescriptor(parameters,
-                                  react::RawPropsParser()) {}
-
-  std::shared_ptr<const react::Props> HybridMapModelLayerComponentDescriptor::cloneProps(const react::PropsParserContext& context,
-                                                                                         const std::shared_ptr<const react::Props>& props,
-                                                                                         react::RawProps rawProps) const {
-    // 1. Prepare raw props parser
-    rawProps.parse(rawPropsParser_);
-    // 2. Copy props with Nitro's cached copy constructor
-    return HybridMapModelLayerShadowNode::Props(context, /* & */ rawProps, props);
-  }
-
-#ifdef ANDROID
-  void HybridMapModelLayerComponentDescriptor::adopt(react::ShadowNode& shadowNode) const {
-    // This is called immediately after `ShadowNode` is created, cloned or in progress.
-    // On Android, we need to wrap props in our state, which gets routed through Java and later unwrapped in JNI/C++.
-    auto& concreteShadowNode = static_cast<HybridMapModelLayerShadowNode&>(shadowNode);
-    const std::shared_ptr<const HybridMapModelLayerProps>& constProps = concreteShadowNode.getConcreteSharedProps();
-    const std::shared_ptr<HybridMapModelLayerProps>& props = std::const_pointer_cast<HybridMapModelLayerProps>(constProps);
-    HybridMapModelLayerState state{props};
-    concreteShadowNode.setStateData(std::move(state));
-  }
-#endif
 
 } // namespace margelo::nitro::munimmaps::views

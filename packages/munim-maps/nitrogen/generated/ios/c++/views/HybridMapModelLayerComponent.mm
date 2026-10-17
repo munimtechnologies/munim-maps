@@ -37,6 +37,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 @implementation HybridMapModelLayerComponent {
   std::shared_ptr<HybridMapModelLayerSpecSwift> _hybridView;
+  BOOL _didDropView;
 }
 
 + (void) load {
@@ -50,6 +51,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 - (instancetype) init {
   if (self = [super init]) {
+    _props = HybridMapModelLayerShadowNode::defaultSharedProps();
     std::shared_ptr<HybridMapModelLayerSpec> hybridView = NitroMunimMaps::NitroMunimMapsAutolinking::createMapModelLayer();
     _hybridView = std::dynamic_pointer_cast<HybridMapModelLayerSpecSwift>(hybridView);
     [self updateView];
@@ -69,100 +71,133 @@ using namespace margelo::nitro::munimmaps::views;
   [self setContentView:view];
 }
 
+- (void) notifyOnDropView {
+  // A recycled component can later be invalidated. Notify only once per mount.
+  if (_didDropView) {
+    return;
+  }
+  NitroMunimMaps::HybridMapModelLayerSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  swiftPart.onDropView();
+  _didDropView = YES;
+}
+
 - (void) updateProps:(const std::shared_ptr<const react::Props>&)props
             oldProps:(const std::shared_ptr<const react::Props>&)oldProps {
+  // A props update marks a newly mounted or still-active component.
+  _didDropView = NO;
+
   // 1. Downcast props
-  const auto& newViewPropsConst = *std::static_pointer_cast<HybridMapModelLayerProps const>(props);
-  auto& newViewProps = const_cast<HybridMapModelLayerProps&>(newViewPropsConst);
+  const auto& newViewProps = *std::static_pointer_cast<const HybridMapModelLayerProps>(props);
+  const auto* oldViewProps = static_cast<const HybridMapModelLayerProps*>(oldProps.get());
   NitroMunimMaps::HybridMapModelLayerSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
-  // 2. Update each prop individually
-  swiftPart.beforeUpdate();
+  // 2. Update only props that differ from the previous Props snapshot.
+  const bool hasTransactionPropChanges = oldViewProps == nullptr
+      ? newViewProps.hasAnyProvidedProps()
+      : !newViewProps.hasSameProps(*oldViewProps);
+  if (hasTransactionPropChanges) {
+    swiftPart.beforeUpdate();
 
-  // models: array
-  if (newViewProps.models.isDirty) {
-    swiftPart.setModels(newViewProps.models.value);
-    newViewProps.models.isDirty = false;
-  }
-  // zones: array
-  if (newViewProps.zones.isDirty) {
-    swiftPart.setZones(newViewProps.zones.value);
-    newViewProps.zones.isDirty = false;
-  }
-  // paths: array
-  if (newViewProps.paths.isDirty) {
-    swiftPart.setPaths(newViewProps.paths.value);
-    newViewProps.paths.isDirty = false;
-  }
-  // occlusion: enum
-  if (newViewProps.occlusion.isDirty) {
-    swiftPart.setOcclusion(static_cast<int>(newViewProps.occlusion.value));
-    newViewProps.occlusion.isDirty = false;
-  }
-  // buildingTilesUrl: string
-  if (newViewProps.buildingTilesUrl.isDirty) {
-    swiftPart.setBuildingTilesUrl(newViewProps.buildingTilesUrl.value);
-    newViewProps.buildingTilesUrl.isDirty = false;
-  }
-  // followTerrain: boolean
-  if (newViewProps.followTerrain.isDirty) {
-    swiftPart.setFollowTerrain(newViewProps.followTerrain.value);
-    newViewProps.followTerrain.isDirty = false;
-  }
-  // mapTestID: string
-  if (newViewProps.mapTestID.isDirty) {
-    swiftPart.setMapTestID(newViewProps.mapTestID.value);
-    newViewProps.mapTestID.isDirty = false;
-  }
-  // lighting: enum
-  if (newViewProps.lighting.isDirty) {
-    swiftPart.setLighting(static_cast<int>(newViewProps.lighting.value));
-    newViewProps.lighting.isDirty = false;
-  }
-  // maxCameraDistance: number
-  if (newViewProps.maxCameraDistance.isDirty) {
-    swiftPart.setMaxCameraDistance(newViewProps.maxCameraDistance.value);
-    newViewProps.maxCameraDistance.isDirty = false;
-  }
-  // realisticElevation: boolean
-  if (newViewProps.realisticElevation.isDirty) {
-    swiftPart.setRealisticElevation(newViewProps.realisticElevation.value);
-    newViewProps.realisticElevation.isDirty = false;
-  }
-  // globe: boolean
-  if (newViewProps.globe.isDirty) {
-    swiftPart.setGlobe(newViewProps.globe.value);
-    newViewProps.globe.isDirty = false;
-  }
-  // onModelPress: optional
-  if (newViewProps.onModelPress.isDirty) {
-    swiftPart.setOnModelPress(newViewProps.onModelPress.value);
-    newViewProps.onModelPress.isDirty = false;
-  }
-  // onAttachChange: optional
-  if (newViewProps.onAttachChange.isDirty) {
-    swiftPart.setOnAttachChange(newViewProps.onAttachChange.value);
-    newViewProps.onAttachChange.isDirty = false;
-  }
-  // onError: optional
-  if (newViewProps.onError.isDirty) {
-    swiftPart.setOnError(newViewProps.onError.value);
-    newViewProps.onError.isDirty = false;
-  }
-
-  swiftPart.afterUpdate();
-
-  // 3. Update hybridRef if it changed
-  if (newViewProps.hybridRef.isDirty) {
-    // hybridRef changed - call it with new this
-    const auto& maybeFunc = newViewProps.hybridRef.value;
-    if (maybeFunc.has_value()) {
-      maybeFunc.value()(_hybridView);
+    // models: array
+    if (oldViewProps == nullptr
+          ? newViewProps.models.isProvided()
+          : !newViewProps.models.hasSameValue(oldViewProps->models)) {
+      swiftPart.setModels(newViewProps.models.get());
     }
-    newViewProps.hybridRef.isDirty = false;
+    // zones: array
+    if (oldViewProps == nullptr
+          ? newViewProps.zones.isProvided()
+          : !newViewProps.zones.hasSameValue(oldViewProps->zones)) {
+      swiftPart.setZones(newViewProps.zones.get());
+    }
+    // paths: array
+    if (oldViewProps == nullptr
+          ? newViewProps.paths.isProvided()
+          : !newViewProps.paths.hasSameValue(oldViewProps->paths)) {
+      swiftPart.setPaths(newViewProps.paths.get());
+    }
+    // occlusion: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.occlusion.isProvided()
+          : !newViewProps.occlusion.hasSameValue(oldViewProps->occlusion)) {
+      swiftPart.setOcclusion(static_cast<int>(newViewProps.occlusion.get()));
+    }
+    // buildingTilesUrl: string
+    if (oldViewProps == nullptr
+          ? newViewProps.buildingTilesUrl.isProvided()
+          : !newViewProps.buildingTilesUrl.hasSameValue(oldViewProps->buildingTilesUrl)) {
+      swiftPart.setBuildingTilesUrl(newViewProps.buildingTilesUrl.get());
+    }
+    // followTerrain: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.followTerrain.isProvided()
+          : !newViewProps.followTerrain.hasSameValue(oldViewProps->followTerrain)) {
+      swiftPart.setFollowTerrain(newViewProps.followTerrain.get());
+    }
+    // mapTestID: string
+    if (oldViewProps == nullptr
+          ? newViewProps.mapTestID.isProvided()
+          : !newViewProps.mapTestID.hasSameValue(oldViewProps->mapTestID)) {
+      swiftPart.setMapTestID(newViewProps.mapTestID.get());
+    }
+    // lighting: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.lighting.isProvided()
+          : !newViewProps.lighting.hasSameValue(oldViewProps->lighting)) {
+      swiftPart.setLighting(static_cast<int>(newViewProps.lighting.get()));
+    }
+    // maxCameraDistance: number
+    if (oldViewProps == nullptr
+          ? newViewProps.maxCameraDistance.isProvided()
+          : !newViewProps.maxCameraDistance.hasSameValue(oldViewProps->maxCameraDistance)) {
+      swiftPart.setMaxCameraDistance(newViewProps.maxCameraDistance.get());
+    }
+    // realisticElevation: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.realisticElevation.isProvided()
+          : !newViewProps.realisticElevation.hasSameValue(oldViewProps->realisticElevation)) {
+      swiftPart.setRealisticElevation(newViewProps.realisticElevation.get());
+    }
+    // globe: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.globe.isProvided()
+          : !newViewProps.globe.hasSameValue(oldViewProps->globe)) {
+      swiftPart.setGlobe(newViewProps.globe.get());
+    }
+    // onModelPress: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onModelPress.isProvided()
+          : !newViewProps.onModelPress.hasSameValue(oldViewProps->onModelPress)) {
+      swiftPart.setOnModelPress(newViewProps.onModelPress.get());
+    }
+    // onAttachChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onAttachChange.isProvided()
+          : !newViewProps.onAttachChange.hasSameValue(oldViewProps->onAttachChange)) {
+      swiftPart.setOnAttachChange(newViewProps.onAttachChange.get());
+    }
+    // onError: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onError.isProvided()
+          : !newViewProps.onError.hasSameValue(oldViewProps->onError)) {
+      swiftPart.setOnError(newViewProps.onError.get());
+    }
+
+    // Update hybridRef if it changed
+    if (oldViewProps == nullptr
+          ? newViewProps.hybridRef.isProvided()
+          : !newViewProps.hybridRef.hasSameValue(oldViewProps->hybridRef)) {
+      // hybridRef changed - call it with new this
+      const auto& maybeFunc = newViewProps.hybridRef.get();
+      if (maybeFunc.has_value()) {
+        maybeFunc.value()(_hybridView);
+      }
+    }
+
+    swiftPart.afterUpdate();
   }
 
-  // 4. Continue in base class
+  // 3. Continue in base class
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -171,6 +206,7 @@ using namespace margelo::nitro::munimmaps::views;
 }
 
 - (void)prepareForRecycle {
+  [self notifyOnDropView];
   [super prepareForRecycle];
   NitroMunimMaps::HybridMapModelLayerSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.maybePrepareForRecycle();
@@ -178,8 +214,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 #ifdef ENABLE_RCT_COMPONENT_VIEW_INVALIDATE
 - (void)invalidate {
-  NitroMunimMaps::HybridMapModelLayerSpec_cxx& swiftPart = _hybridView->getSwiftPart();
-  swiftPart.onDropView();
+  [self notifyOnDropView];
   [super invalidate];
 }
 #endif

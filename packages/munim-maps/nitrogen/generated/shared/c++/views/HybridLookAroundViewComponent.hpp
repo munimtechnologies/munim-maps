@@ -7,14 +7,15 @@
 
 #pragma once
 
-#include <optional>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/NitroHash.hpp>
-#include <NitroModules/CachedProp.hpp>
-#include <react/renderer/core/ConcreteComponentDescriptor.h>
-#include <react/renderer/core/PropsParserContext.h>
+#include <NitroModules/ReactProp.hpp>
+#include <NitroModules/ViewComponentDescriptor.hpp>
+#include <NitroModules/ViewPropsHolderState.hpp>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
+#include <react/renderer/core/PropsParserContext.h>
+#include <react/renderer/core/RawProps.h>
+
+#include <string>
 
 #include <string>
 #include "LookAroundBadgePosition.hpp"
@@ -43,17 +44,47 @@ namespace margelo::nitro::munimmaps::views {
                               const react::RawProps& rawProps);
 
   public:
-    CachedProp<double> latitude;
-    CachedProp<double> longitude;
-    CachedProp<std::string> mapItemId;
-    CachedProp<bool> showsRoadLabels;
-    CachedProp<std::string> pointsOfInterest;
-    CachedProp<bool> navigationEnabled;
-    CachedProp<LookAroundBadgePosition> badgePosition;
-    CachedProp<std::optional<std::function<void(bool /* available */)>>> onSceneChange;
-    CachedProp<std::optional<std::function<void(bool /* fullScreen */)>>> onFullScreenChange;
-    CachedProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
-    CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridLookAroundViewSpec>& /* ref */)>>> hybridRef;
+    nitro::ReactProp<double> latitude;
+    nitro::ReactProp<double> longitude;
+    nitro::ReactProp<std::string> mapItemId;
+    nitro::ReactProp<bool> showsRoadLabels;
+    nitro::ReactProp<std::string> pointsOfInterest;
+    nitro::ReactProp<bool> navigationEnabled;
+    nitro::ReactProp<LookAroundBadgePosition> badgePosition;
+    nitro::ReactProp<std::optional<std::function<void(bool /* available */)>>> onSceneChange;
+    nitro::ReactProp<std::optional<std::function<void(bool /* fullScreen */)>>> onFullScreenChange;
+    nitro::ReactProp<std::optional<std::function<void(const std::string& /* message */)>>> onError;
+    nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridLookAroundViewSpec>& /* ref */)>>> hybridRef;
+
+    [[nodiscard]]
+    bool hasSameProps(const HybridLookAroundViewProps& other) const noexcept {
+      return latitude.hasSameValue(other.latitude) &&
+             longitude.hasSameValue(other.longitude) &&
+             mapItemId.hasSameValue(other.mapItemId) &&
+             showsRoadLabels.hasSameValue(other.showsRoadLabels) &&
+             pointsOfInterest.hasSameValue(other.pointsOfInterest) &&
+             navigationEnabled.hasSameValue(other.navigationEnabled) &&
+             badgePosition.hasSameValue(other.badgePosition) &&
+             onSceneChange.hasSameValue(other.onSceneChange) &&
+             onFullScreenChange.hasSameValue(other.onFullScreenChange) &&
+             onError.hasSameValue(other.onError) &&
+             hybridRef.hasSameValue(other.hybridRef);
+    }
+
+    [[nodiscard]]
+    bool hasAnyProvidedProps() const noexcept {
+      return latitude.isProvided() ||
+             longitude.isProvided() ||
+             mapItemId.isProvided() ||
+             showsRoadLabels.isProvided() ||
+             pointsOfInterest.isProvided() ||
+             navigationEnabled.isProvided() ||
+             badgePosition.isProvided() ||
+             onSceneChange.isProvided() ||
+             onFullScreenChange.isProvided() ||
+             onError.isProvided() ||
+             hybridRef.isProvided();
+    }
 
   private:
     static bool filterObjectKeys(const std::string& propName);
@@ -62,32 +93,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * State for the "LookAroundView" View.
    */
-  class HybridLookAroundViewState final {
-  public:
-    HybridLookAroundViewState() = default;
-    explicit HybridLookAroundViewState(const std::shared_ptr<HybridLookAroundViewProps>& props):
-      _props(props) {}
-
-  public:
-    [[nodiscard]]
-    const std::shared_ptr<HybridLookAroundViewProps>& getProps() const {
-      return _props;
-    }
-
-  public:
-#ifdef ANDROID
-  HybridLookAroundViewState(const HybridLookAroundViewState& /* previousState */, folly::dynamic /* data */) {}
-  folly::dynamic getDynamic() const {
-    throw std::runtime_error("HybridLookAroundViewState does not support folly!");
-  }
-  react::MapBuffer getMapBuffer() const {
-    throw std::runtime_error("HybridLookAroundViewState does not support MapBuffer!");
-  };
-#endif
-
-  private:
-    std::shared_ptr<HybridLookAroundViewProps> _props;
-  };
+  using HybridLookAroundViewState = nitro::ViewPropsHolderState<HybridLookAroundViewProps>;
 
   /**
    * The Shadow Node for the "LookAroundView" View.
@@ -100,21 +106,7 @@ namespace margelo::nitro::munimmaps::views {
   /**
    * The Component Descriptor for the "LookAroundView" View.
    */
-  class HybridLookAroundViewComponentDescriptor final: public react::ConcreteComponentDescriptor<HybridLookAroundViewShadowNode> {
-  public:
-    explicit HybridLookAroundViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters);
-
-  public:
-    /**
-     * A faster path for cloning props - reuses the caching logic from `HybridLookAroundViewProps`.
-     */
-    std::shared_ptr<const react::Props> cloneProps(const react::PropsParserContext& context,
-                                                   const std::shared_ptr<const react::Props>& props,
-                                                   react::RawProps rawProps) const override;
-#ifdef ANDROID
-    void adopt(react::ShadowNode& shadowNode) const override;
-#endif
-  };
+  using HybridLookAroundViewComponentDescriptor = nitro::ViewComponentDescriptor<HybridLookAroundViewShadowNode>;
 
   /* The actual view for "LookAroundView" needs to be implemented in platform-specific code. */
 

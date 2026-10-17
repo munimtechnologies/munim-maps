@@ -522,7 +522,7 @@ export function MapLibreWebScreen(props: { topInset: number; autoChecks: boolean
       const file = new File(Paths.document, 'munim-maps-maplibre-web-checks.json')
       if (file.exists) file.delete()
       file.create()
-      file.write(JSON.stringify(report, null, 2))
+      file.writeSync(JSON.stringify(report, null, 2))
     } catch (error) {
       console.warn('MUNIM_MAPLIBRE_WEB_CHECK could not write the report', error)
     }

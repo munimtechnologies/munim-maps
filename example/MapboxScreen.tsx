@@ -183,7 +183,7 @@ function writeReport(report: object) {
     const file = new File(Paths.document, 'munim-maps-mapbox-checks.json')
     if (file.exists) file.delete()
     file.create()
-    file.write(JSON.stringify({ platform: Platform.OS, time: new Date().toISOString(), ...report }, null, 2))
+    file.writeSync(JSON.stringify({ platform: Platform.OS, time: new Date().toISOString(), ...report }, null, 2))
   } catch (error) {
     console.warn('MUNIM_MAPS_MAPBOX could not write the report', error)
   }

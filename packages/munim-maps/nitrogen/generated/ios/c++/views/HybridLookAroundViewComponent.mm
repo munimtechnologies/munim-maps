@@ -37,6 +37,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 @implementation HybridLookAroundViewComponent {
   std::shared_ptr<HybridLookAroundViewSpecSwift> _hybridView;
+  BOOL _didDropView;
 }
 
 + (void) load {
@@ -50,6 +51,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 - (instancetype) init {
   if (self = [super init]) {
+    _props = HybridLookAroundViewShadowNode::defaultSharedProps();
     std::shared_ptr<HybridLookAroundViewSpec> hybridView = NitroMunimMaps::NitroMunimMapsAutolinking::createLookAroundView();
     _hybridView = std::dynamic_pointer_cast<HybridLookAroundViewSpecSwift>(hybridView);
     [self updateView];
@@ -69,80 +71,109 @@ using namespace margelo::nitro::munimmaps::views;
   [self setContentView:view];
 }
 
+- (void) notifyOnDropView {
+  // A recycled component can later be invalidated. Notify only once per mount.
+  if (_didDropView) {
+    return;
+  }
+  NitroMunimMaps::HybridLookAroundViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  swiftPart.onDropView();
+  _didDropView = YES;
+}
+
 - (void) updateProps:(const std::shared_ptr<const react::Props>&)props
             oldProps:(const std::shared_ptr<const react::Props>&)oldProps {
+  // A props update marks a newly mounted or still-active component.
+  _didDropView = NO;
+
   // 1. Downcast props
-  const auto& newViewPropsConst = *std::static_pointer_cast<HybridLookAroundViewProps const>(props);
-  auto& newViewProps = const_cast<HybridLookAroundViewProps&>(newViewPropsConst);
+  const auto& newViewProps = *std::static_pointer_cast<const HybridLookAroundViewProps>(props);
+  const auto* oldViewProps = static_cast<const HybridLookAroundViewProps*>(oldProps.get());
   NitroMunimMaps::HybridLookAroundViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
-  // 2. Update each prop individually
-  swiftPart.beforeUpdate();
+  // 2. Update only props that differ from the previous Props snapshot.
+  const bool hasTransactionPropChanges = oldViewProps == nullptr
+      ? newViewProps.hasAnyProvidedProps()
+      : !newViewProps.hasSameProps(*oldViewProps);
+  if (hasTransactionPropChanges) {
+    swiftPart.beforeUpdate();
 
-  // latitude: number
-  if (newViewProps.latitude.isDirty) {
-    swiftPart.setLatitude(newViewProps.latitude.value);
-    newViewProps.latitude.isDirty = false;
-  }
-  // longitude: number
-  if (newViewProps.longitude.isDirty) {
-    swiftPart.setLongitude(newViewProps.longitude.value);
-    newViewProps.longitude.isDirty = false;
-  }
-  // mapItemId: string
-  if (newViewProps.mapItemId.isDirty) {
-    swiftPart.setMapItemId(newViewProps.mapItemId.value);
-    newViewProps.mapItemId.isDirty = false;
-  }
-  // showsRoadLabels: boolean
-  if (newViewProps.showsRoadLabels.isDirty) {
-    swiftPart.setShowsRoadLabels(newViewProps.showsRoadLabels.value);
-    newViewProps.showsRoadLabels.isDirty = false;
-  }
-  // pointsOfInterest: string
-  if (newViewProps.pointsOfInterest.isDirty) {
-    swiftPart.setPointsOfInterest(newViewProps.pointsOfInterest.value);
-    newViewProps.pointsOfInterest.isDirty = false;
-  }
-  // navigationEnabled: boolean
-  if (newViewProps.navigationEnabled.isDirty) {
-    swiftPart.setNavigationEnabled(newViewProps.navigationEnabled.value);
-    newViewProps.navigationEnabled.isDirty = false;
-  }
-  // badgePosition: enum
-  if (newViewProps.badgePosition.isDirty) {
-    swiftPart.setBadgePosition(static_cast<int>(newViewProps.badgePosition.value));
-    newViewProps.badgePosition.isDirty = false;
-  }
-  // onSceneChange: optional
-  if (newViewProps.onSceneChange.isDirty) {
-    swiftPart.setOnSceneChange(newViewProps.onSceneChange.value);
-    newViewProps.onSceneChange.isDirty = false;
-  }
-  // onFullScreenChange: optional
-  if (newViewProps.onFullScreenChange.isDirty) {
-    swiftPart.setOnFullScreenChange(newViewProps.onFullScreenChange.value);
-    newViewProps.onFullScreenChange.isDirty = false;
-  }
-  // onError: optional
-  if (newViewProps.onError.isDirty) {
-    swiftPart.setOnError(newViewProps.onError.value);
-    newViewProps.onError.isDirty = false;
-  }
-
-  swiftPart.afterUpdate();
-
-  // 3. Update hybridRef if it changed
-  if (newViewProps.hybridRef.isDirty) {
-    // hybridRef changed - call it with new this
-    const auto& maybeFunc = newViewProps.hybridRef.value;
-    if (maybeFunc.has_value()) {
-      maybeFunc.value()(_hybridView);
+    // latitude: number
+    if (oldViewProps == nullptr
+          ? newViewProps.latitude.isProvided()
+          : !newViewProps.latitude.hasSameValue(oldViewProps->latitude)) {
+      swiftPart.setLatitude(newViewProps.latitude.get());
     }
-    newViewProps.hybridRef.isDirty = false;
+    // longitude: number
+    if (oldViewProps == nullptr
+          ? newViewProps.longitude.isProvided()
+          : !newViewProps.longitude.hasSameValue(oldViewProps->longitude)) {
+      swiftPart.setLongitude(newViewProps.longitude.get());
+    }
+    // mapItemId: string
+    if (oldViewProps == nullptr
+          ? newViewProps.mapItemId.isProvided()
+          : !newViewProps.mapItemId.hasSameValue(oldViewProps->mapItemId)) {
+      swiftPart.setMapItemId(newViewProps.mapItemId.get());
+    }
+    // showsRoadLabels: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showsRoadLabels.isProvided()
+          : !newViewProps.showsRoadLabels.hasSameValue(oldViewProps->showsRoadLabels)) {
+      swiftPart.setShowsRoadLabels(newViewProps.showsRoadLabels.get());
+    }
+    // pointsOfInterest: string
+    if (oldViewProps == nullptr
+          ? newViewProps.pointsOfInterest.isProvided()
+          : !newViewProps.pointsOfInterest.hasSameValue(oldViewProps->pointsOfInterest)) {
+      swiftPart.setPointsOfInterest(newViewProps.pointsOfInterest.get());
+    }
+    // navigationEnabled: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.navigationEnabled.isProvided()
+          : !newViewProps.navigationEnabled.hasSameValue(oldViewProps->navigationEnabled)) {
+      swiftPart.setNavigationEnabled(newViewProps.navigationEnabled.get());
+    }
+    // badgePosition: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.badgePosition.isProvided()
+          : !newViewProps.badgePosition.hasSameValue(oldViewProps->badgePosition)) {
+      swiftPart.setBadgePosition(static_cast<int>(newViewProps.badgePosition.get()));
+    }
+    // onSceneChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onSceneChange.isProvided()
+          : !newViewProps.onSceneChange.hasSameValue(oldViewProps->onSceneChange)) {
+      swiftPart.setOnSceneChange(newViewProps.onSceneChange.get());
+    }
+    // onFullScreenChange: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onFullScreenChange.isProvided()
+          : !newViewProps.onFullScreenChange.hasSameValue(oldViewProps->onFullScreenChange)) {
+      swiftPart.setOnFullScreenChange(newViewProps.onFullScreenChange.get());
+    }
+    // onError: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.onError.isProvided()
+          : !newViewProps.onError.hasSameValue(oldViewProps->onError)) {
+      swiftPart.setOnError(newViewProps.onError.get());
+    }
+
+    // Update hybridRef if it changed
+    if (oldViewProps == nullptr
+          ? newViewProps.hybridRef.isProvided()
+          : !newViewProps.hybridRef.hasSameValue(oldViewProps->hybridRef)) {
+      // hybridRef changed - call it with new this
+      const auto& maybeFunc = newViewProps.hybridRef.get();
+      if (maybeFunc.has_value()) {
+        maybeFunc.value()(_hybridView);
+      }
+    }
+
+    swiftPart.afterUpdate();
   }
 
-  // 4. Continue in base class
+  // 3. Continue in base class
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -151,6 +182,7 @@ using namespace margelo::nitro::munimmaps::views;
 }
 
 - (void)prepareForRecycle {
+  [self notifyOnDropView];
   [super prepareForRecycle];
   NitroMunimMaps::HybridLookAroundViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.maybePrepareForRecycle();
@@ -158,8 +190,7 @@ using namespace margelo::nitro::munimmaps::views;
 
 #ifdef ENABLE_RCT_COMPONENT_VIEW_INVALIDATE
 - (void)invalidate {
-  NitroMunimMaps::HybridLookAroundViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
-  swiftPart.onDropView();
+  [self notifyOnDropView];
   [super invalidate];
 }
 #endif

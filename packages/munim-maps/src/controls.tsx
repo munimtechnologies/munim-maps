@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import {
   Platform,
-  StyleSheet,
   type StyleProp,
   type ViewStyle,
 } from 'react-native'
@@ -41,8 +40,8 @@ function Control(
     scaleAlignment?: MapScaleAlignment
   }
 ) {
-  const style = useMemo(
-    () => StyleSheet.compose(SIZES[props.kind], props.style),
+  const style = useMemo<StyleProp<ViewStyle>>(
+    () => [SIZES[props.kind], props.style],
     [props.kind, props.style]
   )
   if (Platform.OS !== 'ios') return null
