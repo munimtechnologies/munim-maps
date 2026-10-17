@@ -4,6 +4,43 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-16
+
+React Native 0.88, Nitro Modules 0.37.1 and Expo SDK 58.
+
+### Changed
+
+- React Native 0.88 and Nitro Modules 0.37.1. The bindings are regenerated with nitrogen 0.37.1, and `react-native-nitro-modules` >= 0.37.1 is now required, because the view bindings use Nitro 0.37's `ReactProp`. Apps on React Native 0.83 or older with static CocoaPods cannot build Nitro 0.37 for iOS (margelo/nitro#1573) and should stay on 0.5.x.
+- Example app: Expo SDK 58 (`react-native-maps` 1.29.11, `expo-maps` 58, `@rnmapbox/maps` 10.3.8). It writes check reports with `File.writeSync()` now that `File.write()` is asynchronous, and drops the `enableSceneSupport` workaround, which SDK 58 applies itself.
+
+### Fixed
+
+- Android on React Native 0.87 and newer: a map's base view props (`opacity`, `backgroundColor`, `transform` from `style`) no longer reached the native view, because React Native stopped filling a Nitro Hybrid View's raw props (margelo/nitro#1656). `scripts/patch-nitro-viewprops.js` (the workaround munim-xr ships, mirroring the unreleased margelo/nitro#1661) now runs after `nitrogen` for every munim-maps view.
+- `MapControl`'s style type-checks with React Native 0.88's generated `StyleSheet` types.
+
+### Documentation
+
+- Apps that also use react-native-maps on Android: R8, which Expo SDK 58 turns on for release builds, breaks the WorkManager database that react-native-maps brings in, so the app stops at launch. `docs/providers.md` gives the two keep rules; the example passes them through `expo-build-properties`.
+
+Device checks, Release builds with every engine:
+- **iPad Air M3, iPadOS 27.0.1, with Google 3D:**
+  - MapKit self-test 47/47
+  - Google 30/30
+  - Google photorealistic 3D 6/6
+  - Mapbox 38/38
+  - MapLibre Native 27/27
+  - MapLibre GL JS 41/41
+  - Cesium 26/26
+  - shared region checks 5/5 on all five engines
+- **Galaxy A14, Android 15:**
+  - Google 30/30
+  - Google photorealistic 3D 6/6
+  - Mapbox 38/38
+  - MapLibre Native 27/27
+  - MapLibre GL JS 41/41
+  - Cesium 26/26
+  - shared region checks 5/5 on all four engines
+
 ## [0.5.2] - 2026-10-07
 
 ### Fixed
