@@ -36,7 +36,9 @@ def getExtOrIntegerDefault(name) {
 }
 
 // Map engines are opt-in, each with its SDK, from the app's
-// android/gradle.properties (the Expo config plugin's `providers` writes them):
+// android/gradle.properties. The Expo config plugin's `providers` writes
+// every one of them, `true` for the listed engines and `false` for the rest
+// (MapLibre included), so `providers: ["mapbox"]` builds Mapbox alone:
 //   munimMaps.google=true    Google Maps SDK for Android
 //   munimMaps.mapbox=true    Mapbox Maps SDK for Android
 //   munimMaps.maplibre=false MapLibre Native (on by default: no key needed)

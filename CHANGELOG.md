@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- **Android, Expo config plugin: `providers` is now the whole set of Android engines.** With a list (top level plus `android.providers`), the plugin writes every engine to `gradle.properties`: `true` for the listed ones and `false` for the rest, MapLibre and MapLibre GL JS (`maplibreWeb`) included. `{ "android": { "providers": ["mapbox"] } }` now builds Mapbox alone, with no MapLibre source set, SDK or GL JS page in the APK; before, the plugin only wrote the listed engines and MapLibre stayed on by default. Apps that list engines and also use `provider="maplibre"` on Android must add `"maplibre"` to the list. Without a list (or with an empty one) nothing changes: MapLibre with GL JS. New `maplibre: { web: false }` keeps MapLibre Native without the GL JS renderer.
+- Android's default `provider` is the first engine built in of Google, MapLibre, Mapbox and Cesium, so an app built with Mapbox alone defaults to Mapbox instead of a MapLibre placeholder.
+- `MarkerView` draws its children again only when something changed, instead of four times over 1.2 s after every React render: when the marker's props change (JavaScript keeps the same native marker while they are equal), when the children's elements or props change (`renderKey` is now a hash of them, callbacks ignored), when the children are resized, and when a picture in them finishes loading, however late (iOS watches the children's image views with KVO; Android checks `View.isDirty` on the children's view before each frame). The map only gets a picture that looks different from the last one. `tracksViewChanges` still draws 15 times a second, with the same check. A map that re-renders every second no longer redraws every avatar, and an avatar whose image loads more than 1.2 s after the last render no longer stays blank. `MarkerView` takes a ref (`MarkerViewRef`) with `redraw()`, for content that changes inside a child component's own state.
+
+### Added
+
+- `MunimMapView` `testID` (documented, but not passed on before): `accessibilityIdentifier` on iOS, the view's test id on Android, so end-to-end tests and `MapModelLayer`'s `mapTestID` find the map.
+- `npm test`: unit tests (Node's test runner) for colour parsing, `MarkerView`'s change detection and the config plugin's Android properties; CI runs them.
+
+### Fixed
+
+- Colours on MapKit (and every other engine) accept any CSS colour: `rgb()`, `rgba()`, `hsl()`, `hsla()`, `transparent`, CSS names, `#RGBA`, as well as `#RRGGBB` and `#RRGGBBAA`. MapKit's parser read hex only, so `fillColor: 'rgba(…)'` drew nothing there while Mapbox on Android drew it. JavaScript now turns every colour of markers, clusters, callout accessories, polylines (including `strokeColors` gradients), polygons, circles, models, zones and paths into hex (`src/colors.ts`), so every engine gets the same input.
+- `initialRegion` that arrives after the map is ready (a location that loads later) is applied, once, as in react-native-maps; before, only the value at `onMapReady` counted. Later changes are still ignored, and `region` and `initialCamera` still take precedence.
+
 ## [0.6.0] - 2026-10-16
 
 React Native 0.88, Nitro Modules 0.37.1 and Expo SDK 58.

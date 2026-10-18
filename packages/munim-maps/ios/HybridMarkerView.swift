@@ -13,12 +13,19 @@ final class HybridMarkerView: HybridMarkerViewSpec {
     host.owner = self
   }
 
+  // JavaScript passes `marker` on only when it changed (it keeps the same
+  // object otherwise), and `renderKey` is a hash of the children: each
+  // setter means something to draw.
   var marker = MarkerViewDefaults.marker { didSet { host.propsChanged() } }
-  var tracksViewChanges = false { didSet { host.trackingChanged() } }
-  var renderKey: Double = 0 { didSet { host.scheduleRedraws() } }
+  var tracksViewChanges = false {
+    didSet { if tracksViewChanges != oldValue { host.trackingChanged() } }
+  }
+  var renderKey: Double = 0 {
+    didSet { if renderKey != oldValue { host.contentChanged() } }
+  }
 
   func redraw() throws {
-    DispatchQueue.main.async { self.host.redraw() }
+    DispatchQueue.main.async { self.host.redraw(force: true) }
   }
 }
 
@@ -33,12 +40,23 @@ enum MarkerViewDefaults {
     leftCalloutAccessory: accessory, rightCalloutAccessory: accessory, calloutDetail: "")
 }
 
+/// Draws the children into the marker's picture when something changed:
+/// the marker's props, the children (JavaScript's `renderKey`), their size,
+/// or a picture in them (an image view's `image`, watched with KVO, so an
+/// image that loads seconds later still shows). Each change draws a few
+/// times over half a second, as Fabric mounts and lays the children out
+/// after the props arrive; the map only gets a new picture when it looks
+/// different. `tracksViewChanges` draws 15 times a second on top.
 private final class MarkerViewHost: UIView {
   weak var owner: HybridMarkerView?
   private weak var map: (any MunimMapEngine)?
   private var registeredId = ""
   private var trackTimer: Timer?
   private var pendingRedraws: [DispatchWorkItem] = []
+  /// The pixels of the last picture handed to the map.
+  private var lastPixels: Data?
+  private var lastSize: CGSize = .zero
+  private var imageObservations: [ObjectIdentifier: (view: Weak<UIImageView>, observation: NSKeyValueObservation)] = [:]
 
   override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? { nil }
 
@@ -47,33 +65,47 @@ private final class MarkerViewHost: UIView {
     if window != nil {
       register()
       trackingChanged()
+      scheduleRedraws()
     } else {
       unregister()
       trackTimer?.invalidate()
       trackTimer = nil
+      pendingRedraws.forEach { $0.cancel() }
+      pendingRedraws = []
     }
   }
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    scheduleRedraws()
+    // The children's size changed (the container is laid out at their size).
+    let size = superview?.bounds.size ?? bounds.size
+    if size != lastSize {
+      lastSize = size
+      scheduleRedraws()
+    }
   }
 
-  /// The children are drawn by Fabric after props arrive, and pictures load
-  /// later still, so draw a few times after every change.
+  /// The children are drawn by Fabric after props arrive, so draw a few
+  /// times after a change; unchanged pictures do not reach the map.
   func scheduleRedraws() {
     pendingRedraws.forEach { $0.cancel() }
-    pendingRedraws = [0.0, 0.1, 0.4, 1.2].map { delay in
+    pendingRedraws = [0.0, 0.15, 0.5].map { delay in
       let work = DispatchWorkItem { [weak self] in self?.redraw() }
       DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
       return work
     }
   }
 
+  func contentChanged() {
+    DispatchQueue.main.async { [weak self] in self?.scheduleRedraws() }
+  }
+
   func propsChanged() {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       if let id = self.owner?.marker.id, id != self.registeredId { self.unregister() }
+      // The new marker (position, anchor, title…) goes to the map with the
+      // current picture (setViewMarker replaces the one with this id).
       self.register()
       self.scheduleRedraws()
     }
@@ -91,6 +123,26 @@ private final class MarkerViewHost: UIView {
         self.trackTimer?.invalidate()
         self.trackTimer = nil
       }
+    }
+  }
+
+  /// Watches every image view in the children: a picture that finishes
+  /// loading (or changes) draws the marker again.
+  private func observeImages() {
+    guard let container = superview else { return }
+    imageObservations = imageObservations.filter { $0.value.view.value != nil }
+    var stack: [UIView] = [container]
+    while let view = stack.popLast() {
+      if let imageView = view as? UIImageView {
+        let key = ObjectIdentifier(imageView)
+        if imageObservations[key] == nil {
+          let observation = imageView.observe(\.image, options: [.new]) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.scheduleRedraws() }
+          }
+          imageObservations[key] = (Weak(imageView), observation)
+        }
+      }
+      stack.append(contentsOf: view.subviews)
     }
   }
 
@@ -114,13 +166,17 @@ private final class MarkerViewHost: UIView {
     guard let map = map ?? findMap() else { return }
     self.map = map
     registeredId = owner.marker.id
-    map.setViewMarker(owner.marker.core, image: snapshot())
+    let image = snapshot()
+    lastPixels = Self.pixels(image)
+    map.setViewMarker(owner.marker.core, image: image)
+    observeImages()
   }
 
   private func unregister() {
     guard !registeredId.isEmpty else { return }
     map?.removeViewMarker(registeredId)
     registeredId = ""
+    lastPixels = nil
   }
 
   /// Draws the React Native children: everything in the container except
@@ -137,17 +193,37 @@ private final class MarkerViewHost: UIView {
     }
   }
 
-  func redraw() {
+  /// The image's pixels, to tell whether a new picture looks different.
+  private static func pixels(_ image: UIImage?) -> Data? {
+    guard let data = image?.cgImage?.dataProvider?.data else { return nil }
+    return data as Data
+  }
+
+  /// Draws the children; the map gets the picture when it changed (or
+  /// always, with `force`).
+  func redraw(force: Bool = false) {
     guard window != nil else { return }
     if registeredId.isEmpty { register(); return }
-    map?.setViewMarkerImage(snapshot(), id: registeredId)
+    let image = snapshot()
+    observeImages()
+    let pixels = Self.pixels(image)
+    if !force, let pixels, pixels == lastPixels { return }
+    lastPixels = pixels
+    map?.setViewMarkerImage(image, id: registeredId)
   }
 
   deinit {
     trackTimer?.invalidate()
+    pendingRedraws.forEach { $0.cancel() }
     if !registeredId.isEmpty, let map {
       let id = registeredId
       DispatchQueue.main.async { map.removeViewMarker(id) }
     }
   }
+}
+
+/// A weak reference, to keep views in a dictionary without holding them.
+private final class Weak<Value: AnyObject> {
+  weak var value: Value?
+  init(_ value: Value) { self.value = value }
 }

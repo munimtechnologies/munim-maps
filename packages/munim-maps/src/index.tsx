@@ -66,6 +66,7 @@ import type {
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
 import { pointsOfInterestFilter } from './services'
+import { colorOr, normalizeColor } from './colors'
 import { resolveMapLibreRenderer } from './providers/maplibre'
 import {
   defaultProvider,
@@ -313,21 +314,22 @@ export function toNativeModel(
     width: model.size?.width ?? 10,
     height: model.size?.height ?? 10,
     length: model.size?.length ?? 10,
-    color: model.color ?? '#0A84FF',
-    tintColor: model.tint ?? '',
+    color: colorOr(model.color, '#0A84FF'),
+    tintColor: normalizeColor(model.tint),
     emissive: model.emissive ?? false,
     spinDegreesPerSecond: model.spinDegreesPerSecond ?? 0,
     playAnimations: model.playAnimations ?? true,
     screenSize: model.screenSize ?? (imageUri ? 44 : 0),
     groundShadow: model.groundShadow ?? !imageUri,
     imageUri,
-    imageBorderColor: model.imageBorder?.color ?? '',
+    imageBorderColor: normalizeColor(model.imageBorder?.color),
     imageBorderWidth: model.imageBorder?.width ?? 3,
     imageBadge: model.badge ?? '',
     liftPoints: model.lift ?? 0,
     label: model.label ?? '',
     stem: model.stem != null && model.stem !== false,
-    stemColor: typeof model.stem === 'string' ? model.stem : '#FFFFFF',
+    stemColor:
+      typeof model.stem === 'string' ? normalizeColor(model.stem) : '#FFFFFF',
     effect: model.effect ?? 'none',
     effectIntensity: model.effectIntensity ?? 1,
     motion: (model.motion?.keyframes ?? []).map((k) => ({
@@ -392,7 +394,7 @@ export function toNativeZone(zone: MapZone): NativeMapZone {
     id: zone.id,
     points,
     height: zone.height ?? 40,
-    color: zone.color ?? '#0A84FF40',
+    color: colorOr(zone.color, '#0A84FF40'),
     visible: zone.visible ?? true,
   }
 }
@@ -431,7 +433,7 @@ export function toNativePath(path: MapPath): NativeMapPath {
       longitude: c.longitude,
       altitude: c.altitude ?? 0,
     })),
-    color: path.color ?? '#FFFFFF',
+    color: colorOr(path.color, '#FFFFFF'),
     width: path.width ?? 2,
     closed: path.closed ?? false,
     altitudeReference: path.altitudeReference ?? 'ground',
@@ -584,8 +586,9 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   /**
    * The map engine: `'mapkit'` (Apple Maps, iOS), `'google'`, `'mapbox'`,
    * `'maplibre'` (open maps: OpenStreetMap data, no key) or `'cesium'`.
-   * Default `'mapkit'` on iOS; on Android `'google'` when its engine is
-   * built in, else `'maplibre'` (`configureMunimMaps` changes the default).
+   * Default `'mapkit'` on iOS; on Android the first engine built into the
+   * app of `'google'`, `'maplibre'`, `'mapbox'` and `'cesium'`
+   * (`configureMunimMaps` changes the default).
    * Engines are opt-in at build time; one that is not built in shows a
    * placeholder and reports `onError`. Options only one engine reads go in
    * that engine's prop (`google={{ mapId }}`, `mapbox={{ projection }}`…).
@@ -601,7 +604,12 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
    * `region` is needed.
    */
   initialCamera?: MapCamera
-  /** Where the map starts, as a region (react-native-maps' `initialRegion`). */
+  /**
+   * Where the map starts, as a region (react-native-maps' `initialRegion`).
+   * Like react-native-maps, the first one given is applied once, even when
+   * it arrives after the map is ready (a location loaded later); later
+   * changes are ignored. `region` and `initialCamera` take precedence.
+   */
   initialRegion?: MapRegion
   /**
    * A controlled region (react-native-maps' `region`): the map jumps to it
@@ -609,6 +617,12 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
    * the same state, and the map does not move again for it.
    */
   region?: MapRegion
+  /**
+   * Finds the map in end-to-end tests (`accessibilityIdentifier` on iOS,
+   * the view's test id on Android), and is the `mapTestID` a
+   * `MapModelLayer` can name.
+   */
+  testID?: string
   // 3D
   models?: MapModel[]
   zones?: MapZone[]
@@ -887,6 +901,10 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     latest.current = props
     const instance = useRef<MunimMapViewRef | null>(null)
     const ready = useRef(false)
+    // Whether the map has had its first position (`initialCamera`,
+    // `initialRegion` or `region`): an `initialRegion` that arrives later is
+    // applied once, like react-native-maps.
+    const placed = useRef(false)
     const moving = useRef(false)
     const reportedRegion = useRef<MapRegion | undefined>(undefined)
     const appliedRegion = useRef<MapRegion | undefined>(undefined)
@@ -944,6 +962,9 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
           } = latest.current
           const region =
             controlled ?? (initialCamera ? undefined : initialRegion)
+          if (controlled || initialCamera || initialRegion) {
+            placed.current = true
+          }
           if (region) showRegion(region)
           latest.current.onMapReady?.()
         }),
@@ -969,6 +990,22 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
       region?.longitude,
       region?.latitudeDelta,
       region?.longitudeDelta,
+    ])
+    // An `initialRegion` that arrives after the map is ready (and before
+    // any other first position): applied once.
+    const initialRegion = props.initialRegion
+    useEffect(() => {
+      if (!initialRegion || !ready.current || placed.current) return
+      placed.current = true
+      const { region: controlled, initialCamera } = latest.current
+      if (controlled || initialCamera) return
+      showRegion(initialRegion)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      initialRegion?.latitude,
+      initialRegion?.longitude,
+      initialRegion?.latitudeDelta,
+      initialRegion?.longitudeDelta,
     ])
     const onPress = useCallbackProp(props.onPress)
     const onLongPress = useCallbackProp(props.onLongPress)
@@ -1017,6 +1054,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     const map = (
       <NativeMunimMapView
         style={android ? StyleSheet.absoluteFill : props.style}
+        testID={props.testID}
         provider={provider}
         styleUrl={props.styleUrl ?? ''}
         providerOptions={providerOptionsJson(provider, props)}
@@ -1158,7 +1196,11 @@ export {
 } from './providers'
 export * from './providers/google'
 export * from './providers/cesium'
-export { MarkerView, type MarkerViewProperties } from './MarkerView'
+export {
+  MarkerView,
+  type MarkerViewProperties,
+  type MarkerViewRef,
+} from './MarkerView'
 export {
   LookAroundView,
   type LookAroundViewProperties,

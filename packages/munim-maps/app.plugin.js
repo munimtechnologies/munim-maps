@@ -2,7 +2,7 @@
 // app and writes their keys into the native config.
 //
 //   ["munim-maps", {
-//     "providers": ["google", "maplibre"],        // engines besides MapKit (iOS) / MapLibre (Android)
+//     "providers": ["google", "maplibre"],        // engines besides MapKit (iOS); on Android the whole set
 //     "ios": { "providers": ["mapbox"] },           // per platform, added to `providers`
 //     "android": { "providers": ["cesium"] },
 //     "googleMapsApiKey": "…" | { "ios": "…", "android": "…" },
@@ -10,13 +10,18 @@
 //     "cesiumIonToken": "…",
 //     "cesium": { "bundled": true },               // CesiumJS in the app (13 MB) instead of from jsDelivr
 //     "maplibre": { "bundledWeb": true },          // MapLibre GL JS + three.js in the app instead of from jsDelivr
+//     "maplibre": { "web": false },                // Android: MapLibre Native only, without the GL JS renderer
 //     "googleMaps3d": true                         // Google's photorealistic 3D SDK (iOS and Android)
 //   }]
 //
 // iOS: Podfile.properties.json `munimMaps.providers` (the podspec turns
 // those subspecs on) and `munimMaps.googleMaps3d`, Info.plist `MunimMapsGoogleMapsApiKey`,
 // `MBXAccessToken`, `MunimMapsCesiumIonToken`.
-// Android: gradle.properties `munimMaps.<provider>=true`, manifest
+// Android: gradle.properties `munimMaps.<provider>=true|false` (with a
+// `providers` list, top level or `android.providers`, the listed engines are
+// the only ones built in: every other one, MapLibre included, is written as
+// `false`; without one, or with an empty one, the library's default,
+// MapLibre only), manifest
 // `com.google.android.geo.API_KEY` and `munimmaps.cesium_ion_token`
 // meta-data, and the `mapbox_access_token` string resource.
 const path = require('path')
@@ -93,8 +98,93 @@ function cesiumBundled(options, providers) {
  * MapLibre is on by default on Android and opt-in on iOS.
  */
 function maplibreBundled(options, providers, platform) {
-  const on = platform === 'android' || providers.includes('maplibre')
+  const on =
+    platform === 'android'
+      ? androidEngines(options).maplibreWeb
+      : providers.includes('maplibre')
   return on && options.maplibre?.bundledWeb === true
+}
+
+/** The map engines the Android build has (`munimMaps.<engine>`). */
+const ANDROID_ENGINES = ['google', 'mapbox', 'maplibre', 'cesium']
+
+/**
+ * Whether the options list Android engines (top level or
+ * `android.providers`; an empty list, or MapKit alone, lists none).
+ */
+function listsAndroidProviders(options) {
+  return providersFor(options, 'android').length > 0
+}
+
+/**
+ * Which engines the Android build compiles in. A `providers` list (top level
+ * plus `android.providers`) is the whole set: the listed engines and no
+ * other, so `{ android: { providers: ['mapbox'] } }` leaves MapLibre and its
+ * SDK out of the APK. Without a list (or with an empty one), the library's
+ * default: MapLibre only.
+ * `maplibreWeb` (MapLibre GL JS, the `maplibre` provider's web renderer)
+ * comes with MapLibre unless `maplibre: { web: false }`.
+ */
+function androidEngines(options) {
+  const listed = listsAndroidProviders(options)
+  const providers = providersFor(options, 'android')
+  const engines = {}
+  for (const engine of ANDROID_ENGINES) {
+    engines[engine] = listed
+      ? providers.includes(engine)
+      : engine === 'maplibre'
+  }
+  engines.maplibreWeb = engines.maplibre && options.maplibre?.web !== false
+  return engines
+}
+
+/**
+ * The gradle.properties munim-maps' Android build reads, from the plugin's
+ * options: key to `'true'` / `'false'`, or `null` to leave the key out (the
+ * library's default applies). With a `providers` list every engine is
+ * written, on or off, so the list is authoritative even over the library's
+ * MapLibre default.
+ */
+function androidGradleProperties(options) {
+  const listed = listsAndroidProviders(options)
+  const providers = providersFor(options, 'android')
+  const engines = androidEngines(options)
+  const props = {}
+  for (const engine of ANDROID_ENGINES) {
+    props[`munimMaps.${engine}`] = listed ? String(engines[engine]) : null
+  }
+  props['munimMaps.maplibreWeb'] =
+    listed || options.maplibre?.web === false
+      ? String(engines.maplibreWeb)
+      : null
+  // Google's photorealistic 3D map SDK (google={{ mode: '3d' }}).
+  props['munimMaps.googleMaps3d'] =
+    options.googleMaps3d && providers.includes('google') ? 'true' : null
+  // CesiumJS in the APK (cesium: { bundled: true }).
+  props['munimMaps.cesiumBundled'] = cesiumBundled(options, providers)
+    ? 'true'
+    : null
+  // MapLibre GL JS and three.js in the APK (maplibre: { bundledWeb: true }).
+  props['munimMaps.maplibreBundled'] = maplibreBundled(
+    options,
+    providers,
+    'android'
+  )
+    ? 'true'
+    : null
+  return props
+}
+
+/** Writes `androidGradleProperties` into gradle.properties' parsed entries. */
+function applyGradleProperties(props, values) {
+  for (const [key, value] of Object.entries(values)) {
+    const index = props.findIndex(
+      (item) => item.type === 'property' && item.key === key
+    )
+    if (index >= 0) props.splice(index, 1)
+    if (value != null) props.push({ type: 'property', key, value })
+  }
+  return props
 }
 
 function keyFor(value, platform) {
@@ -162,56 +252,7 @@ function withMunimMapsIos(config, options) {
 function withMunimMapsAndroid(config, options) {
   const providers = providersFor(options, 'android')
   config = withGradleProperties(config, (c) => {
-    const props = c.modResults
-    for (const provider of PROVIDERS.filter((p) => p !== 'mapkit')) {
-      const key = `munimMaps.${provider}`
-      const index = props.findIndex(
-        (item) => item.type === 'property' && item.key === key
-      )
-      if (index >= 0) props.splice(index, 1)
-      if (providers.includes(provider)) {
-        props.push({ type: 'property', key, value: 'true' })
-      }
-    }
-    // Google's photorealistic 3D map SDK (google={{ mode: '3d' }}).
-    const index3d = props.findIndex(
-      (item) =>
-        item.type === 'property' && item.key === 'munimMaps.googleMaps3d'
-    )
-    if (index3d >= 0) props.splice(index3d, 1)
-    if (options.googleMaps3d && providers.includes('google')) {
-      props.push({
-        type: 'property',
-        key: 'munimMaps.googleMaps3d',
-        value: 'true',
-      })
-    }
-    // CesiumJS in the APK (cesium: { bundled: true }).
-    const indexCesium = props.findIndex(
-      (item) =>
-        item.type === 'property' && item.key === 'munimMaps.cesiumBundled'
-    )
-    if (indexCesium >= 0) props.splice(indexCesium, 1)
-    if (cesiumBundled(options, providers)) {
-      props.push({
-        type: 'property',
-        key: 'munimMaps.cesiumBundled',
-        value: 'true',
-      })
-    }
-    // MapLibre GL JS and three.js in the APK (maplibre: { bundledWeb: true }).
-    const indexMapLibre = props.findIndex(
-      (item) =>
-        item.type === 'property' && item.key === 'munimMaps.maplibreBundled'
-    )
-    if (indexMapLibre >= 0) props.splice(indexMapLibre, 1)
-    if (maplibreBundled(options, providers, 'android')) {
-      props.push({
-        type: 'property',
-        key: 'munimMaps.maplibreBundled',
-        value: 'true',
-      })
-    }
+    applyGradleProperties(c.modResults, androidGradleProperties(options))
     return c
   })
   config = withAndroidManifest(config, (c) => {
@@ -468,3 +509,5 @@ module.exports = function withMunimMaps(config, options = {}) {
 module.exports.addMapboxMaven = addMapboxMaven
 module.exports.addGoogleMaps3dPackage = addGoogleMaps3dPackage
 module.exports.removeGoogleMaps3dPackage = removeGoogleMaps3dPackage
+module.exports.androidGradleProperties = androidGradleProperties
+module.exports.applyGradleProperties = applyGradleProperties

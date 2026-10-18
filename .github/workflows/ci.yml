@@ -30,6 +30,7 @@ jobs:
         run: git diff --exit-code -- packages/munim-maps/nitrogen/generated
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
       - run: npm run typecheck:example
       - name: Vehicle catalogue (generated files, API)

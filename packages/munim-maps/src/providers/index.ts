@@ -122,11 +122,26 @@ export function isProviderAvailable(provider: MapProvider): boolean {
   return availableProviders().includes(provider)
 }
 
-/** The engine a `MunimMapView` without `provider` uses. */
+/** Android's default engine, in order of preference, among those built in. */
+const ANDROID_DEFAULT_ORDER: MapProvider[] = [
+  'google',
+  'maplibre',
+  'mapbox',
+  'cesium',
+]
+
+/**
+ * The engine a `MunimMapView` without `provider` uses: MapKit on iOS; on
+ * Android the first engine built into the app of Google Maps, MapLibre,
+ * Mapbox and Cesium (MapLibre when none is, which shows the placeholder).
+ */
 export function defaultProvider(): MapProvider {
   if (defaultOverride) return defaultOverride
   if (Platform.OS === 'android') {
-    return isProviderAvailable('google') ? 'google' : 'maplibre'
+    return (
+      ANDROID_DEFAULT_ORDER.find((provider) => isProviderAvailable(provider)) ??
+      'maplibre'
+    )
   }
   return 'mapkit'
 }

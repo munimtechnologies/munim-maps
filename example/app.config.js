@@ -4,8 +4,9 @@
 //   GOOGLE_MAPS_API_KEY=…
 //   MAPBOX_ACCESS_TOKEN=pk.…
 //   CESIUM_ION_TOKEN=…
-// Engines to build in besides MapKit (iOS) and MapLibre (Android):
-//   MUNIM_MAPS_PROVIDERS=google,mapbox npx expo prebuild
+// Engines to build in besides MapKit (iOS); on Android the list is the whole
+// set (MapLibre only without one, so list maplibre to keep it):
+//   MUNIM_MAPS_PROVIDERS=google,mapbox,maplibre npx expo prebuild
 // (or MUNIM_MAPS_PROVIDERS in one of the files above).
 const fs = require('fs')
 const os = require('os')

@@ -17,6 +17,7 @@ import type {
   NativePolyline,
   NativeTileOverlay,
 } from './specs/MapFeatures.nitro'
+import { colorOr, normalizeColor } from './colors'
 
 type LatLng = { latitude: number; longitude: number }
 
@@ -239,7 +240,7 @@ function toNativeAccessory(
     text: accessory.text ?? '',
     symbol: accessory.symbol ?? '',
     imageUri,
-    color: accessory.color ?? '',
+    color: normalizeColor(accessory.color),
   }
 }
 
@@ -248,8 +249,8 @@ export function toNativeClusterStyle(
 ): NativeClusterStyle {
   return {
     clusteringId: style.clusteringId,
-    color: style.color ?? '',
-    glyphColor: style.glyphColor ?? '',
+    color: normalizeColor(style.color),
+    glyphColor: normalizeColor(style.glyphColor),
     glyph: style.glyph ?? '',
     title: style.title ?? '',
     subtitle: style.subtitle ?? '',
@@ -265,8 +266,8 @@ export function toNativeMarker(marker: MapMarker): NativeMarker {
   const badges: MarkerBadge[] = (marker.badges ?? []).map((badge) => ({
     text: badge.text,
     position: badge.position ?? 'bottom',
-    color: badge.color ?? '',
-    textColor: badge.textColor ?? '',
+    color: normalizeColor(badge.color),
+    textColor: normalizeColor(badge.textColor),
   }))
   return {
     id: marker.id,
@@ -275,11 +276,11 @@ export function toNativeMarker(marker: MapMarker): NativeMarker {
     title: marker.title ?? '',
     subtitle: marker.subtitle ?? '',
     style,
-    color: marker.color ?? '',
+    color: normalizeColor(marker.color),
     glyph: marker.glyph ?? '',
     imageUri: resolveImage(marker.image),
     imageSize: marker.size ?? 0,
-    borderColor: marker.border?.color ?? '',
+    borderColor: normalizeColor(marker.border?.color),
     borderWidth: marker.border?.width ?? (style === 'avatar' ? 2 : 0),
     badges,
     anchorX: marker.anchor?.x ?? 0.5,
@@ -296,7 +297,7 @@ export function toNativeMarker(marker: MapMarker): NativeMarker {
     subtitleVisibility: marker.subtitleVisibility ?? 'adaptive',
     glyphSymbol: marker.glyphSymbol ?? '',
     selectedGlyphSymbol: marker.selectedGlyphSymbol ?? '',
-    glyphColor: marker.glyphColor ?? '',
+    glyphColor: normalizeColor(marker.glyphColor),
     animatesWhenAdded: marker.animatesWhenAdded ?? false,
     leftCalloutAccessory: toNativeAccessory(marker.calloutLeft),
     rightCalloutAccessory: toNativeAccessory(
@@ -313,13 +314,13 @@ export function toNativePolyline(line: MapPolyline): NativePolyline {
       latitude: c.latitude,
       longitude: c.longitude,
     })),
-    strokeColor: line.strokeColor ?? '#0A84FF',
+    strokeColor: colorOr(line.strokeColor, '#0A84FF'),
     strokeWidth: line.strokeWidth ?? 3,
     dashPattern: dash(line.dashPattern),
     geodesic: line.geodesic ?? false,
     lineCap: line.lineCap ?? 'round',
     zIndex: line.zIndex ?? 0,
-    strokeColors: (line.strokeColors ?? []).join(','),
+    strokeColors: (line.strokeColors ?? []).map(normalizeColor).join(','),
     strokeColorLocations: (line.strokeColorLocations ?? []).join(','),
     lineJoin: line.lineJoin ?? 'round',
     strokeStart: line.strokeStart ?? 0,
@@ -339,8 +340,8 @@ export function toNativePolygon(polygon: MapPolygon): NativePolygon {
     holes: (polygon.holes ?? []).map((ring) =>
       ring.map((c) => ({ latitude: c.latitude, longitude: c.longitude }))
     ),
-    strokeColor: polygon.strokeColor ?? '#0A84FF',
-    fillColor: polygon.fillColor ?? '#0A84FF33',
+    strokeColor: colorOr(polygon.strokeColor, '#0A84FF'),
+    fillColor: colorOr(polygon.fillColor, '#0A84FF33'),
     strokeWidth: polygon.strokeWidth ?? 2,
     dashPattern: dash(polygon.dashPattern),
     zIndex: polygon.zIndex ?? 0,
@@ -356,8 +357,8 @@ export function toNativeCircle(circle: MapCircle): NativeCircle {
     latitude: circle.center.latitude,
     longitude: circle.center.longitude,
     radius: circle.radius,
-    strokeColor: circle.strokeColor ?? '#0A84FF',
-    fillColor: circle.fillColor ?? '#0A84FF33',
+    strokeColor: colorOr(circle.strokeColor, '#0A84FF'),
+    fillColor: colorOr(circle.fillColor, '#0A84FF33'),
     strokeWidth: circle.strokeWidth ?? 2,
     dashPattern: dash(circle.dashPattern),
     zIndex: circle.zIndex ?? 0,

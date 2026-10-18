@@ -258,6 +258,8 @@ Pick engines and keys with the Expo config plugin:
 ["munim-maps", { "providers": ["google", "mapbox"], "googleMapsApiKey": "…", "mapboxAccessToken": "pk.…" }]
 ```
 
+On Android the list is the whole set of engines: the listed ones are built in and every other one is left out, MapLibre included (it is the only engine without a list), so `"android": { "providers": ["mapbox"] }` builds Mapbox alone, with no MapLibre SDK in the APK. Add `"maplibre"` to keep it.
+
 Without Expo: the `NitroMunimMaps/Google`, `/Mapbox`, `/MapLibre` and `/Cesium` subspecs on iOS, and `munimMaps.google=true` (and so on) in `android/gradle.properties`; with Mapbox on Android, add Mapbox's Maven repository to `allprojects.repositories` (the config plugin does it). The Google engine needs iOS 16, and an app that also uses react-native-maps needs `pod 'react-native-maps/Google'` once the GoogleMaps pod is in. Options only one engine has go in that engine's prop: `google={{ mapId }}`, `mapbox={{ projection: 'globe' }}`, `maplibre={{ … }}`, `cesium={{ terrain: 'world' }}`. `availableProviders()` tells you which engines the build has; one that is not built in shows a placeholder and reports `onError`.
 
 The same API on every engine, including:
@@ -845,6 +847,7 @@ Ref (`MapModelLayerRef`): `isAttached()`, `measureAlignment()`.
 | Prop | Type | Default |
 | --- | --- | --- |
 | `initialCamera` | `MapCamera` | required |
+| `testID` | `string` | | Finds the map in end-to-end tests; also the `mapTestID` a `MapModelLayer` can name |
 | `models` | `MapModel[]` | `[]` |
 | `zones` | `MapZone[]` | `[]` |
 | `paths` | `MapPath[]` | `[]` |
@@ -922,6 +925,7 @@ On iOS 26 and 27 MapKit shows no callout bubble for the balloon (`marker`) style
 - `MapPolyline`: `coordinates`, `strokeColor`, `strokeColors` (a gradient along the line, `MKGradientPolylineRenderer`) with `strokeColorLocations` (0...1, default evenly spaced), `strokeWidth`, `dashPattern` (`[4, 10]`), `geodesic`, `lineCap`, `lineJoin` (`'round'`, `'bevel'`, `'miter'`), `strokeStart` / `strokeEnd` (draw part of the line, 0...1; change `strokeEnd` over time to animate a route, it updates in place), `level`, `tappable`, `zIndex`.
 - `MapPolygon`: `coordinates`, `holes`, `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `lineJoin`, `level`, `tappable`, `zIndex`.
 - `MapCircle`: `center`, `radius` (metres), `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `level`, `tappable`, `zIndex`.
+- Colours (here, on markers, clusters, models, zones and paths) take any CSS colour: `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, `rgb()`, `rgba()`, `hsl()`, `hsla()`, `transparent` or a name such as `'tomato'`. JavaScript turns them into hex, so every engine reads the same colour.
 - `MapTileOverlay`: `urlTemplate` (`{z}/{x}/{y}`), `replacesMap`, `minimumZoom`, `maximumZoom`, `opacity`, `level`, `zIndex`.
 - `level`: `'aboveLabels'` (default for shapes) draws over MapKit's labels; `'aboveRoads'` (default for tiles) draws under labels and buildings, like Apple Maps' routes.
 - `tappable` (default `true`): taps on the shape fire `onOverlayPress` while that prop is set (the topmost shape wins: lines within a few points, polygons inside with holes cut out, circles inside the radius).
@@ -942,7 +946,7 @@ React Native views as a marker, like SwiftUI's `Annotation { … }`. Put it insi
 
 It takes the `MapMarker` fields that are not about the marker's look (`id`, `coordinate`, `anchor` (default the centre), `title`, `subtitle`, `callout…`, `zIndex`, `draggable`, `clusteringId`, `displayPriority`, `collisionMode`, `opacity`, `visible`), plus `tracksViewChanges`.
 
-How it works, and the trade-off: Nitro views can hold React Native children, but MapKit positions markers itself, so the children are laid out off screen and drawn into the picture of a real `MKAnnotationView`. That marker moves with the map in the same frame, clusters, collides, selects, drags and shows callouts like any other, and its events are the map's marker events. But it is a picture, not live views: buttons inside it do not get taps (the whole marker does), and changes show when the `MarkerView` re-renders (and for a second after, so images can load), or continuously with `tracksViewChanges` (15 redraws a second, so turn it off once the content is stable, as with react-native-maps).
+How it works, and the trade-off: Nitro views can hold React Native children, but MapKit positions markers itself, so the children are laid out off screen and drawn into the picture of a real `MKAnnotationView`. That marker moves with the map in the same frame, clusters, collides, selects, drags and shows callouts like any other, and its events are the map's marker events. But it is a picture, not live views: buttons inside it do not get taps (the whole marker does). The picture is drawn again only when something changed: the marker's props, the children's elements and props (a re-render that changes nothing draws nothing), their size, or a picture in them finishing loading, however late (iOS watches the image views, Android redraws when the children's view is invalidated). The map gets a new picture only when it looks different. With `tracksViewChanges` it is also drawn 15 times a second, for animations and anything else that changes on its own; turn it off once the content is stable, as with react-native-maps. State inside a child component that changes without the `MarkerView`'s props changing needs `tracksViewChanges`, or a ref: `ref.current?.redraw()` (`MarkerViewRef`).
 
 ### `MapCompass`, `MapScale`, `MapUserTrackingButton`
 
@@ -1027,7 +1031,7 @@ Functions, no map needed. All return promises and reject on Android.
 | `<Polyline>` / `<Polygon>` / `<Circle>` | `polylines` / `polygons` / `circles` |
 | `<UrlTile urlTemplate>` | `tileOverlays` |
 | `mapType="mutedStandard"` / `"hybridFlyover"` | `mapStyle="muted"` / `mapStyle="hybrid" elevation="realistic"` |
-| `region` / `initialRegion` | same names: `region` is controlled (store the region from `onRegionChangeComplete` in the same state) |
+| `region` / `initialRegion` | same names: `region` is controlled (store the region from `onRegionChangeComplete` in the same state); the first `initialRegion` is applied once, even when it arrives after the map is ready |
 | `onRegionChangeStart` / `onRegionChangeComplete` | same names; `onRegionChange` is `onCameraMove` (a `MapCamera` every frame) |
 | `<Marker draggable onDragStart onDrag onDragEnd>` | `draggable` + `onMarkerDragStart` / `onMarkerDrag` / `onMarkerDragEnd` on the map |
 | `animateToRegion(region, ms)` / `fitToCoordinates(coords, { edgePadding, animated })` | same names (`fitToCoordinates(coords, edgePadding, animated)`) |
@@ -1352,7 +1356,7 @@ The example app checks all of this on device: a self-test compares every model's
 
 - A balloon (`marker`) shows no callout bubble on iOS 26 and 27: MapKit enlarges it and shows the title under it. Use `pin`, `image` or another style for callouts with buttons.
 - No callouts at all: a `selectionAccessory` other than `'none'` makes MapKit skip classic callouts.
-- `MarkerView` content looks stale: it is a picture. Re-render the `MarkerView` or set `tracksViewChanges` while it changes.
+- `MarkerView` content looks stale: it is a picture, drawn again when its props, its children's props, their size or their pictures change. A change inside a child component's own state is not seen: set `tracksViewChanges` while it changes, or call the `MarkerView` ref's `redraw()`.
 
 ### User tracking stops
 
