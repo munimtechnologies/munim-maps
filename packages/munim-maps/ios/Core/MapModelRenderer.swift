@@ -986,9 +986,13 @@ private final class Entry {
     let up = local.act(SIMD3<Float>(0, 1, 0))
     var position = snapshot.scenePosition(
       latitude: pose.latitude, longitude: pose.longitude, altitude: groundLevel + altitude)
+    // The stem ends here, at the model's real spot, below any lift.
+    let anchor = position
     let focal = Float(snapshot.focalLength)
     if model.liftPoints != 0, let depth = snapshot.project(position)?.depth, depth > 0 {
-      position += up * (Float(model.liftPoints) * depth / focal)
+      // Up the screen, not away from the ground: seen from straight above, a
+      // lift away from the ground leaves an avatar covering what it rides.
+      position += snapshot.screenUp * (Float(model.liftPoints) * depth / focal)
     }
     root.simdPosition = position
     root.simdOrientation = local * simd_quatf(angle: Float(-pose.heading * .pi / 180), axis: SIMD3(0, 1, 0))
@@ -1015,7 +1019,7 @@ private final class Entry {
         MapModelNodes.setEffectSpeed(metersPerSecond / scale, in: effectNode)
       }
     }
-    placeStem(in: snapshot, top: position, ground: ground, up: up)
+    placeStem(in: snapshot, top: anchor, ground: ground, up: up)
     placeLabel(in: snapshot, base: position, up: up)
   }
 

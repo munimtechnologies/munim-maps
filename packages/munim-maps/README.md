@@ -1061,7 +1061,7 @@ Functions, no map needed. All return promises and reject on Android.
 | `badge` | | Short text in a pill under the picture, such as `5F`. |
 | `label` | | Text in a pill floating above any model. |
 | `stem` | `false` | A line from the ground up to the model. `true` or a colour. |
-| `lift` | `0` | Raises the model this many points above `altitude`, at any zoom. |
+| `lift` | `0` | Raises the model this many points up the screen, at any zoom and tilt, so an avatar over a vehicle leaves it in view even from straight above. The stem still ends at `altitude`. |
 | `screenSize` | `0` (44 for images) | Keeps the model this many points tall at any zoom. |
 | `spinDegreesPerSecond` | `0` | |
 | `playAnimations` | `true` | Loops animations embedded in a USDZ. |

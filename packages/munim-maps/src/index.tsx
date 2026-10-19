@@ -159,8 +159,9 @@ export interface MapModel {
    */
   stem?: boolean | string
   /**
-   * Raises the model this many points above `altitude` at any zoom, for
-   * example to float an avatar over a vehicle model. Default 0.
+   * Raises the model this many points up the screen at any zoom and tilt,
+   * for example to float an avatar over a vehicle model, which stays in view
+   * even from straight above. The stem still ends at `altitude`. Default 0.
    */
   lift?: number
   /** Text in a pill floating above the model, such as a name. */

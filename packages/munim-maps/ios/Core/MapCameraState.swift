@@ -162,6 +162,12 @@ public struct MapCameraState: Equatable {
     return transform
   }
 
+  /// Up the screen, in scene coordinates.
+  var screenUp: SIMD3<Float> {
+    let column = cameraTransform.columns.1
+    return simd_normalize(SIMD3(column.x, column.y, column.z))
+  }
+
   var nearPlane: Float { Float(max(0.5, distance * 0.01)) }
   var farPlane: Float {
     Float(globe ? distance + 2 * Self.earthRadius : max(10_000, distance * 60))

@@ -863,11 +863,16 @@ internal class ModelRenderer(
       val local = state.localOrientation(pose[0], pose[1])
       up = doubleArrayOf(local[1], local[4], local[7])
       var position = state.scenePosition(pose[0], pose[1], groundLevel + altitude)
+      // The stem ends here, at the model's real spot, below any lift.
+      val anchor = position
       if (model.liftPoints != 0.0) {
         val depth = frame.depth(position)
         if (depth != null && depth > 0) {
+          // Up the screen, not away from the ground: seen from straight above,
+          // a lift away from the ground leaves an avatar covering what it rides.
           val lift = model.liftPoints * frame.metersPerPoint(depth)
-          position = doubleArrayOf(position[0] + up[0] * lift, position[1] + up[1] * lift, position[2] + up[2] * lift)
+          val screenUp = frame.up
+          position = DoubleArray(3) { position[it] + screenUp[it] * lift }
         }
       }
       base = position
@@ -930,7 +935,7 @@ internal class ModelRenderer(
         }
         effect.update(frame.dt, body, s.toFloat(), frame.right, frame.up, frame.eyeF, true)
       }
-      placeStem(frame, position, ground, local)
+      placeStem(frame, anchor, ground, local)
       placeLabel(frame, position)
     }
 
