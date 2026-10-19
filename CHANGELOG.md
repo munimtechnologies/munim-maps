@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-18
+
+Fixes from moving Lackin onto munim-maps. Breaking for Android apps that list `providers` and also use MapLibre: see the first entry.
+
 ### Changed
 
 - **Android, Expo config plugin: `providers` is now the whole set of Android engines.** With a list (top level plus `android.providers`), the plugin writes every engine to `gradle.properties`: `true` for the listed ones and `false` for the rest, MapLibre and MapLibre GL JS (`maplibreWeb`) included. `{ "android": { "providers": ["mapbox"] } }` now builds Mapbox alone, with no MapLibre source set, SDK or GL JS page in the APK; before, the plugin only wrote the listed engines and MapLibre stayed on by default. Apps that list engines and also use `provider="maplibre"` on Android must add `"maplibre"` to the list. Without a list (or with an empty one) nothing changes: MapLibre with GL JS. New `maplibre: { web: false }` keeps MapLibre Native without the GL JS renderer.
