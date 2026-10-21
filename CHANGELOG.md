@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-21
+
+### Added
+
+- `MunimMapView` `showsUserHeading`: the heading cone on the user location dot all the time, like Apple Maps, without following the user (MapKit only shows it with `userTrackingMode` `'followWithHeading'`, which also turns and moves the map). MapKit only. It uses MapKit switches that are not public API: Apple Maps' `_setAlwaysShowHeadingIndicatorIfSupported:`, then the switch `'followWithHeading'` uses when that one is refused. Each is checked before it is called, so on an iOS without them the dot shows no cone; App Review may reject an app for them. MapKit hides the cone while the compass is inaccurate, as in Apple Maps. Tried on iOS 27 (iPhone 17 Pro) and iPadOS 27 (iPad Air M3).
+
 ## [0.7.0] - 2026-10-18
 
 Fixes from moving Lackin onto munim-maps. Breaking for Android apps that list `providers` and also use MapLibre: see the first entry.
