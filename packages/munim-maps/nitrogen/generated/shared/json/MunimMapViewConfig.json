@@ -20,6 +20,7 @@
     "colorScheme": true,
     "showsBuildings": true,
     "showsUserLocation": true,
+    "showsUserHeading": true,
     "lighting": true,
     "maxCameraDistance": true,
     "markers": true,

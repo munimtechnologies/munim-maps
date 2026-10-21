@@ -46,6 +46,7 @@ namespace margelo::nitro::munimmaps::views {
     colorScheme(nitro::ReactProp<MapColorScheme>::fromRawValue("MunimMapView", "colorScheme", rawProps, sourceProps.colorScheme)),
     showsBuildings(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsBuildings", rawProps, sourceProps.showsBuildings)),
     showsUserLocation(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsUserLocation", rawProps, sourceProps.showsUserLocation)),
+    showsUserHeading(nitro::ReactProp<bool>::fromRawValue("MunimMapView", "showsUserHeading", rawProps, sourceProps.showsUserHeading)),
     lighting(nitro::ReactProp<MapModelLighting>::fromRawValue("MunimMapView", "lighting", rawProps, sourceProps.lighting)),
     maxCameraDistance(nitro::ReactProp<double>::fromRawValue("MunimMapView", "maxCameraDistance", rawProps, sourceProps.maxCameraDistance)),
     markers(nitro::ReactProp<std::vector<NativeMarker>>::fromRawValue("MunimMapView", "markers", rawProps, sourceProps.markers)),
@@ -123,6 +124,7 @@ namespace margelo::nitro::munimmaps::views {
       case hashString("colorScheme"): return true;
       case hashString("showsBuildings"): return true;
       case hashString("showsUserLocation"): return true;
+      case hashString("showsUserHeading"): return true;
       case hashString("lighting"): return true;
       case hashString("maxCameraDistance"): return true;
       case hashString("markers"): return true;

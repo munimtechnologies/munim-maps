@@ -148,7 +148,16 @@ public final class MunimMapKitView: UIView {
     set {
       if newValue { locationAuthorization.requestIfNeeded() }
       mapView.showsUserLocation = newValue
+      applyUserHeading()
     }
+  }
+
+  /// The heading cone on the user location dot all the time, like Apple
+  /// Maps, without following the user. MapKit only shows it in
+  /// `.followWithHeading` otherwise. Uses MapKit switches that are not public
+  /// API; see `MapHeadingIndicator`.
+  public var showsUserHeading = false {
+    didSet { if oldValue != showsUserHeading { applyUserHeading() } }
   }
 
   /// The compass: `adaptive` (MapKit's, shown while the map is rotated),
@@ -665,7 +674,15 @@ public final class MunimMapKitView: UIView {
     }
   }
 
+  private func applyUserHeading() {
+    // `.followWithHeading` shows MapKit's own cone; leave it alone there.
+    guard mapView.userTrackingMode != .followWithHeading else { return }
+    MapHeadingIndicator.set(showsUserHeading && mapView.showsUserLocation, on: mapView)
+  }
+
   fileprivate func trackingModeChanged(_ mode: MKUserTrackingMode) {
+    // Leaving `.followWithHeading` turns MapKit's cone off.
+    applyUserHeading()
     if mode == .none, requestedTrackingMode != .none {
       let status = CLLocationManager().authorizationStatus
       trackingDroppedByMapKit = status == .notDetermined

@@ -104,6 +104,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     colorScheme = again(colorScheme)
     showsBuildings = again(showsBuildings)
     showsUserLocation = again(showsUserLocation)
+    showsUserHeading = again(showsUserHeading)
     compassVisibility = again(compassVisibility)
     scaleVisibility = again(scaleVisibility)
     showsUserTrackingButton = again(showsUserTrackingButton)
@@ -205,6 +206,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   var showsBuildings = true { didSet { map.showsBuildings = showsBuildings } }
   var showsUserLocation = false { didSet { map.showsUserLocation = showsUserLocation } }
+  var showsUserHeading = false { didSet { map.showsUserHeading = showsUserHeading } }
   var compassVisibility: FeatureVisibility = .adaptive { didSet { map.compassVisibility = compassVisibility.core } }
   var scaleVisibility: FeatureVisibility = .hidden { didSet { map.scaleVisibility = scaleVisibility.core } }
   var showsUserTrackingButton = false { didSet { map.showsUserTrackingButton = showsUserTrackingButton } }

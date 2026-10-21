@@ -315,6 +315,17 @@ open class HybridMunimMapViewSpec_cxx {
     }
   }
   
+  public final var showsUserHeading: Bool {
+    @inline(__always)
+    get {
+      return self.__implementation.showsUserHeading
+    }
+    @inline(__always)
+    set {
+      self.__implementation.showsUserHeading = newValue
+    }
+  }
+  
   public final var lighting: Int32 {
     @inline(__always)
     get {

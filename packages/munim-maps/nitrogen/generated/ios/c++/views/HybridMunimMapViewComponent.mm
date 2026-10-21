@@ -194,6 +194,12 @@ using namespace margelo::nitro::munimmaps::views;
           : !newViewProps.showsUserLocation.hasSameValue(oldViewProps->showsUserLocation)) {
       swiftPart.setShowsUserLocation(newViewProps.showsUserLocation.get());
     }
+    // showsUserHeading: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.showsUserHeading.isProvided()
+          : !newViewProps.showsUserHeading.hasSameValue(oldViewProps->showsUserHeading)) {
+      swiftPart.setShowsUserHeading(newViewProps.showsUserHeading.get());
+    }
     // lighting: enum
     if (oldViewProps == nullptr
           ? newViewProps.lighting.isProvided()

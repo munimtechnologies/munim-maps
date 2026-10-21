@@ -160,6 +160,8 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     set(value) { field = value; engine?.setShowsBuildings(value) }
   override var showsUserLocation: Boolean = false
     set(value) { field = value; engine?.setShowsUserLocation(value) }
+  /** MapKit only. */
+  override var showsUserHeading: Boolean = false
 
   override var markers: Array<NativeMarker> = emptyArray()
     set(value) { field = value; engine?.setMarkers(value) }

@@ -325,6 +325,12 @@ namespace margelo::nitro::munimmaps {
     inline void setShowsUserLocation(bool showsUserLocation) noexcept override {
       _swiftPart.setShowsUserLocation(std::forward<decltype(showsUserLocation)>(showsUserLocation));
     }
+    inline bool getShowsUserHeading() noexcept override {
+      return _swiftPart.getShowsUserHeading();
+    }
+    inline void setShowsUserHeading(bool showsUserHeading) noexcept override {
+      _swiftPart.setShowsUserHeading(std::forward<decltype(showsUserHeading)>(showsUserHeading));
+    }
     inline MapModelLighting getLighting() noexcept override {
       auto __result = _swiftPart.getLighting();
       return static_cast<MapModelLighting>(__result);

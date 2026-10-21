@@ -134,6 +134,11 @@ void JHybridMunimMapViewStateUpdater::updateViewProps(jni::alias_ref<jni::JClass
     hybridView->setShowsUserLocation(newProps->showsUserLocation.get());
   }
   if (oldProps == nullptr
+        ? newProps->showsUserHeading.isProvided()
+        : !newProps->showsUserHeading.hasSameValue(oldProps->showsUserHeading)) {
+    hybridView->setShowsUserHeading(newProps->showsUserHeading.get());
+  }
+  if (oldProps == nullptr
         ? newProps->lighting.isProvided()
         : !newProps->lighting.hasSameValue(oldProps->lighting)) {
     hybridView->setLighting(newProps->lighting.get());

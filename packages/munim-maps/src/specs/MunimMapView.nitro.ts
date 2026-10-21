@@ -155,6 +155,13 @@ export interface MunimMapViewProps extends HybridViewProps {
   colorScheme: MapColorScheme
   showsBuildings: boolean
   showsUserLocation: boolean
+  /**
+   * The heading cone on the user location dot all the time, like Apple
+   * Maps, without following the user. MapKit only. Uses MapKit switches that
+   * are not public API: they may stop working in an iOS update (the dot shows
+   * no cone) and App Review may reject an app for them. Default false.
+   */
+  showsUserHeading: boolean
   lighting: MapModelLighting
   maxCameraDistance: number
 

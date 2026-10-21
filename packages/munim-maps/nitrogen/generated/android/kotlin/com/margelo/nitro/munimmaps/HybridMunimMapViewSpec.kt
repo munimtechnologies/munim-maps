@@ -128,6 +128,12 @@ abstract class HybridMunimMapViewSpec: HybridView() {
   @get:Keep
   @set:DoNotStrip
   @set:Keep
+  abstract var showsUserHeading: Boolean
+  
+  @get:DoNotStrip
+  @get:Keep
+  @set:DoNotStrip
+  @set:Keep
   abstract var lighting: MapModelLighting
   
   @get:DoNotStrip

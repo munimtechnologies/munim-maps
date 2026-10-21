@@ -116,6 +116,8 @@ public protocol MunimMapEngine: AnyObject {
   var colorScheme: UIUserInterfaceStyle { get set }
   var showsBuildings: Bool { get set }
   var showsUserLocation: Bool { get set }
+  /// The heading cone on the user location dot without following the user.
+  var showsUserHeading: Bool { get set }
   var showsTraffic: Bool { get set }
   var pointOfInterestFilter: MKPointOfInterestFilter { get set }
 
@@ -319,6 +321,7 @@ public extension MunimMapEngine where Self: MunimMapEngineDefaults {
   var colorScheme: UIUserInterfaceStyle { get { .unspecified } set {} }
   var showsBuildings: Bool { get { true } set {} }
   var showsUserLocation: Bool { get { false } set { if newValue { reportUnsupported("showsUserLocation") } } }
+  var showsUserHeading: Bool { get { false } set {} }
   var showsTraffic: Bool { get { false } set {} }
   var pointOfInterestFilter: MKPointOfInterestFilter { get { .includingAll } set {} }
 

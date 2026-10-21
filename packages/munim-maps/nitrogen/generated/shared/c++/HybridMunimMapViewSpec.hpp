@@ -187,6 +187,8 @@ namespace margelo::nitro::munimmaps {
       virtual void setShowsBuildings(bool showsBuildings) = 0;
       virtual bool getShowsUserLocation() = 0;
       virtual void setShowsUserLocation(bool showsUserLocation) = 0;
+      virtual bool getShowsUserHeading() = 0;
+      virtual void setShowsUserHeading(bool showsUserHeading) = 0;
       virtual MapModelLighting getLighting() = 0;
       virtual void setLighting(MapModelLighting lighting) = 0;
       virtual double getMaxCameraDistance() = 0;

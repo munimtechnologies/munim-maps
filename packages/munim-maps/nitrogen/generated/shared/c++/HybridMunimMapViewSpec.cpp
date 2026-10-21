@@ -46,6 +46,8 @@ namespace margelo::nitro::munimmaps {
       prototype.registerHybridSetter("showsBuildings", &HybridMunimMapViewSpec::setShowsBuildings);
       prototype.registerHybridGetter("showsUserLocation", &HybridMunimMapViewSpec::getShowsUserLocation);
       prototype.registerHybridSetter("showsUserLocation", &HybridMunimMapViewSpec::setShowsUserLocation);
+      prototype.registerHybridGetter("showsUserHeading", &HybridMunimMapViewSpec::getShowsUserHeading);
+      prototype.registerHybridSetter("showsUserHeading", &HybridMunimMapViewSpec::setShowsUserHeading);
       prototype.registerHybridGetter("lighting", &HybridMunimMapViewSpec::getLighting);
       prototype.registerHybridSetter("lighting", &HybridMunimMapViewSpec::setLighting);
       prototype.registerHybridGetter("maxCameraDistance", &HybridMunimMapViewSpec::getMaxCameraDistance);

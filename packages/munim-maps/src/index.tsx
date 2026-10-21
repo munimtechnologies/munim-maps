@@ -672,6 +672,15 @@ export interface MunimMapViewProperties extends ProviderOptionProps {
   colorScheme?: MapColorScheme
   showsBuildings?: boolean
   showsUserLocation?: boolean
+  /**
+   * The heading cone on the user location dot all the time, like Apple
+   * Maps, without following the user (MapKit only shows it with
+   * `userTrackingMode` `'followWithHeading'`, which turns the map). MapKit
+   * only. Uses MapKit switches that are not public API: they may stop
+   * working in an iOS update (the dot shows no cone) and App Review may
+   * reject an app for them. Default false.
+   */
+  showsUserHeading?: boolean
   /** Shorthand for `compassVisibility` `'adaptive'` (true, default) or `'hidden'`. */
   showsCompass?: boolean
   /** Shorthand for `scaleVisibility` `'adaptive'` (true) or `'hidden'` (default). */
@@ -1072,6 +1081,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         colorScheme={props.colorScheme ?? 'system'}
         showsBuildings={props.showsBuildings ?? true}
         showsUserLocation={props.showsUserLocation ?? false}
+        showsUserHeading={props.showsUserHeading ?? false}
         lighting={props.lighting ?? 'auto'}
         maxCameraDistance={props.maxCameraDistance ?? 50_000}
         markers={markers}

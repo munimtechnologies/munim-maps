@@ -82,6 +82,8 @@ namespace margelo::nitro::munimmaps {
     void setShowsBuildings(bool showsBuildings) override;
     bool getShowsUserLocation() override;
     void setShowsUserLocation(bool showsUserLocation) override;
+    bool getShowsUserHeading() override;
+    void setShowsUserHeading(bool showsUserHeading) override;
     MapModelLighting getLighting() override;
     void setLighting(MapModelLighting lighting) override;
     double getMaxCameraDistance() override;

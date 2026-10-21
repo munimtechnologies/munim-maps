@@ -26,6 +26,7 @@ public protocol HybridMunimMapViewSpec_protocol: HybridObject, HybridView {
   var colorScheme: MapColorScheme { get set }
   var showsBuildings: Bool { get set }
   var showsUserLocation: Bool { get set }
+  var showsUserHeading: Bool { get set }
   var lighting: MapModelLighting { get set }
   var maxCameraDistance: Double { get set }
   var markers: [NativeMarker] { get set }

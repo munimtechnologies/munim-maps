@@ -460,6 +460,15 @@ namespace margelo::nitro::munimmaps {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* showsUserLocation */)>("setShowsUserLocation");
     method(_javaPart, showsUserLocation);
   }
+  bool JHybridMunimMapViewSpec::getShowsUserHeading() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("getShowsUserHeading");
+    auto __result = method(_javaPart);
+    return static_cast<bool>(__result);
+  }
+  void JHybridMunimMapViewSpec::setShowsUserHeading(bool showsUserHeading) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jboolean /* showsUserHeading */)>("setShowsUserHeading");
+    method(_javaPart, showsUserHeading);
+  }
   MapModelLighting JHybridMunimMapViewSpec::getLighting() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JMapModelLighting>()>("getLighting");
     auto __result = method(_javaPart);

@@ -89,6 +89,7 @@ namespace margelo::nitro::munimmaps::views {
     nitro::ReactProp<MapColorScheme> colorScheme;
     nitro::ReactProp<bool> showsBuildings;
     nitro::ReactProp<bool> showsUserLocation;
+    nitro::ReactProp<bool> showsUserHeading;
     nitro::ReactProp<MapModelLighting> lighting;
     nitro::ReactProp<double> maxCameraDistance;
     nitro::ReactProp<std::vector<NativeMarker>> markers;
@@ -155,6 +156,7 @@ namespace margelo::nitro::munimmaps::views {
              colorScheme.hasSameValue(other.colorScheme) &&
              showsBuildings.hasSameValue(other.showsBuildings) &&
              showsUserLocation.hasSameValue(other.showsUserLocation) &&
+             showsUserHeading.hasSameValue(other.showsUserHeading) &&
              lighting.hasSameValue(other.lighting) &&
              maxCameraDistance.hasSameValue(other.maxCameraDistance) &&
              markers.hasSameValue(other.markers) &&
@@ -222,6 +224,7 @@ namespace margelo::nitro::munimmaps::views {
              colorScheme.isProvided() ||
              showsBuildings.isProvided() ||
              showsUserLocation.isProvided() ||
+             showsUserHeading.isProvided() ||
              lighting.isProvided() ||
              maxCameraDistance.isProvided() ||
              markers.isProvided() ||
