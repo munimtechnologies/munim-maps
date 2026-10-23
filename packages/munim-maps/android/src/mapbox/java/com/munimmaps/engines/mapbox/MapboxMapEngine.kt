@@ -27,6 +27,7 @@ import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.CoordinateBounds
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.MapInitOptions
+import com.mapbox.maps.plugin.Plugin
 import com.mapbox.maps.MapView
 import com.mapbox.maps.MapboxDelicateApi
 import com.mapbox.maps.MapboxExperimental
@@ -179,7 +180,14 @@ class MapboxMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   internal var overlayPressEnabled = false
 
   init {
-    mapView = MapView(context, MapInitOptions(context, styleUri = null, textureView = false))
+    // Without Mapbox's lifecycle plugin: the view below follows its window
+    // (start on attach, stop on detach, onDestroy only in destroy()). The
+    // plugin follows the ViewTreeLifecycleOwner instead, and react-native-screens
+    // destroys a screen's fragment view when a full-screen route covers it, so
+    // the plugin called onDestroy on a map React Native later shows again,
+    // leaving it black.
+    val plugins = MapInitOptions.defaultPluginList.filter { it.id != Plugin.MAPBOX_LIFECYCLE_PLUGIN_ID }
+    mapView = MapView(context, MapInitOptions(context, plugins = plugins, styleUri = null, textureView = false))
     root = object : FrameLayout(context) {
       override fun onAttachedToWindow() {
         super.onAttachedToWindow()
