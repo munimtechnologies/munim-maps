@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-01
+
+Circles and polygons that glide (#2).
+
+### Added
+
+- `animationDuration` on `MapCircle` and `MapPolygon` (#2): when a circle's `center` or `radius`, or a polygon's `coordinates` and `holes`, change, the shape glides to the new geometry over that many milliseconds, drawn natively every frame, on every engine (MapKit, Google Maps, Mapbox, MapLibre, MapLibre GL JS and Cesium, iOS and Android). Set it to about the update interval and a zone updated once a second moves and shrinks continuously. A new value while a shape is gliding starts from where it is drawn; the same props again carry on. Polygons glide vertex by vertex, so only when every ring keeps its vertex count; otherwise they jump. Colours and widths change at once. The default, 0, draws each update as it comes, as before. iOS and Android run one transition driver for the native engines (a `CADisplayLink`, or a `Choreographer` callback, active only while a shape glides); Cesium and MapLibre GL JS glide on their page with `requestAnimationFrame`. In Swift, `MunimMapContainerView.setCircles` / `setPolygons` and the SwiftUI `MunimMap` glide them too.
+
+### Changed
+
+- MapKit circles and polygons change in place: new geometry or a new style redraws the overlay's renderer instead of removing the overlay and adding a new one, so a moving shape or a colour change no longer flickers. Only a new `zIndex` or `level` replaces the overlay.
+- MapLibre (iOS and Android) updates polygon and circle sources in place when only their geometry changed, instead of removing and adding every shape layer. Mapbox on iOS only sends the sources and layers that changed. Cesium keeps a shape's entities when its props did not change, instead of rebuilding every shape of that kind.
+
+### Fixed
+
+- Android, Mapbox: polylines, polygons, circles and tile overlays keep their colours under Mapbox Standard's dusk and night light (`*-emissive-strength: 1`, as on iOS). At night they were drawn almost black.
+- Android, Mapbox: a map shown again after a full-screen route covered it (react-native-screens) was black. The view no longer uses Mapbox's lifecycle plugin, which destroyed it with the covered screen; the engine starts, stops and destroys it itself.
+
 ## [0.7.1] - 2026-10-21
 
 ### Added
