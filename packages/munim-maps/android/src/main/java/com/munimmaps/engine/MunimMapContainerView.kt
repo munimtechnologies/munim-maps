@@ -3,6 +3,8 @@ package com.munimmaps.engine
 import android.content.Context
 import android.widget.FrameLayout
 import com.margelo.nitro.munimmaps.MapProvider
+import com.margelo.nitro.munimmaps.NativeCircle
+import com.margelo.nitro.munimmaps.NativePolygon
 
 /**
  * Shows one map engine at a time, filling itself, and swaps engines when the
@@ -16,6 +18,21 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
   var engine: MunimMapEngine? = null
     private set
 
+  private val shapeTransitions = MunimShapeTransitions(
+    drawCircles = { engine?.setCircles(it) },
+    drawPolygons = { engine?.setPolygons(it) },
+  )
+
+  /** Sets the engine's circles, gliding the ones with an `animationDuration` from where they are drawn now. */
+  fun setCircles(circles: Array<NativeCircle>) {
+    shapeTransitions.setCircles(circles, passThrough = engine?.animatesShapeTransitions ?: false)
+  }
+
+  /** Sets the engine's polygons; see [setCircles]. */
+  fun setPolygons(polygons: Array<NativePolygon>) {
+    shapeTransitions.setPolygons(polygons, passThrough = engine?.animatesShapeTransitions ?: false)
+  }
+
   /**
    * Replaces the engine when [provider] (or, for providers with more than one
    * renderer, the one [options] ask for) differs; returns the new one, or
@@ -25,6 +42,7 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
     val variant = MunimMapEngines.variant(provider, options)
     val current = engine
     if (current != null && current.provider == provider && current.variant == variant) return null
+    shapeTransitions.finish()
     engine?.let {
       removeView(it.view)
       it.destroy()
@@ -37,6 +55,7 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
   }
 
   fun destroy() {
+    shapeTransitions.finish()
     engine?.destroy()
     engine = null
     removeAllViews()

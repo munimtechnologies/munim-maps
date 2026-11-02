@@ -59,10 +59,11 @@ namespace margelo::nitro::munimmaps {
     LineJoin lineJoin     SWIFT_PRIVATE;
     OverlayLevel level     SWIFT_PRIVATE;
     bool tappable     SWIFT_PRIVATE;
+    double animationDuration     SWIFT_PRIVATE;
 
   public:
     NativePolygon() = default;
-    explicit NativePolygon(std::string id, std::vector<MapCoordinate> coordinates, std::vector<std::vector<MapCoordinate>> holes, std::string strokeColor, std::string fillColor, double strokeWidth, std::string dashPattern, double zIndex, LineJoin lineJoin, OverlayLevel level, bool tappable): id(id), coordinates(coordinates), holes(holes), strokeColor(strokeColor), fillColor(fillColor), strokeWidth(strokeWidth), dashPattern(dashPattern), zIndex(zIndex), lineJoin(lineJoin), level(level), tappable(tappable) {}
+    explicit NativePolygon(std::string id, std::vector<MapCoordinate> coordinates, std::vector<std::vector<MapCoordinate>> holes, std::string strokeColor, std::string fillColor, double strokeWidth, std::string dashPattern, double zIndex, LineJoin lineJoin, OverlayLevel level, bool tappable, double animationDuration): id(id), coordinates(coordinates), holes(holes), strokeColor(strokeColor), fillColor(fillColor), strokeWidth(strokeWidth), dashPattern(dashPattern), zIndex(zIndex), lineJoin(lineJoin), level(level), tappable(tappable), animationDuration(animationDuration) {}
 
   public:
     friend bool operator==(const NativePolygon& lhs, const NativePolygon& rhs) = default;
@@ -88,7 +89,8 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex"))),
         JSIConverter<margelo::nitro::munimmaps::LineJoin>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineJoin"))),
         JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level"))),
-        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "animationDuration")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::NativePolygon& arg) {
@@ -104,6 +106,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "lineJoin"), JSIConverter<margelo::nitro::munimmaps::LineJoin>::toJSI(runtime, arg.lineJoin));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "level"), JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::toJSI(runtime, arg.level));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "tappable"), JSIConverter<bool>::toJSI(runtime, arg.tappable));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "animationDuration"), JSIConverter<double>::toJSI(runtime, arg.animationDuration));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -125,6 +128,7 @@ namespace margelo::nitro {
       if (!JSIConverter<margelo::nitro::munimmaps::LineJoin>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "lineJoin")))) return false;
       if (!JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "animationDuration")))) return false;
       return true;
     }
   };

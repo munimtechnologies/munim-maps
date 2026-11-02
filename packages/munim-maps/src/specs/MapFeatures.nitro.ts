@@ -190,6 +190,8 @@ export interface NativePolygon {
   lineJoin: LineJoin
   level: OverlayLevel
   tappable: boolean
+  /** Glide to new coordinates over this many ms (0 = jump). */
+  animationDuration: number
 }
 
 export interface NativeCircle {
@@ -205,6 +207,8 @@ export interface NativeCircle {
   zIndex: number
   level: OverlayLevel
   tappable: boolean
+  /** Glide to a new centre and radius over this many ms (0 = jump). */
+  animationDuration: number
 }
 
 export interface NativeTileOverlay {

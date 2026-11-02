@@ -166,6 +166,8 @@ internal class MapboxShapes(private val engine: MapboxMapEngine) {
       paint.put("line-color", color)
       dashes(p.dashPattern, p.strokeWidth)?.let { paint.put("line-dasharray", it) }
     }
+    // Full colour under Standard's dusk and night light, as on iOS.
+    paint.put("line-emissive-strength", 1)
     val layer = JSONObject()
       .put("id", layerId).put("type", "line").put("source", layerId)
       .put("layout", JSONObject().put("line-cap", cap(p.lineCap)).put("line-join", join(p.lineJoin)))
@@ -184,11 +186,12 @@ internal class MapboxShapes(private val engine: MapboxMapEngine) {
     val slot = slot(level, replacing)
     val fillLayer = JSONObject()
       .put("id", "$layerId-fill").put("type", "fill").put("source", layerId)
-      .put("paint", JSONObject().put("fill-color", MapboxColors.css(fill, "rgba(10, 132, 255, 0.2)")))
+      .put("paint", JSONObject().put("fill-color", MapboxColors.css(fill, "rgba(10, 132, 255, 0.2)")).put("fill-emissive-strength", 1))
       .put("slot", slot)
     val layers = mutableListOf(fillLayer)
     if (strokeWidth > 0) {
       val paint = JSONObject().put("line-color", MapboxColors.css(stroke, "rgba(10, 132, 255, 1)")).put("line-width", strokeWidth)
+        .put("line-emissive-strength", 1)
       dashes(dashPattern, strokeWidth)?.let { paint.put("line-dasharray", it) }
       layers.add(JSONObject()
         .put("id", "$layerId-line").put("type", "line").put("source", layerId)
@@ -208,7 +211,7 @@ internal class MapboxShapes(private val engine: MapboxMapEngine) {
     if (t.maximumZoom > 0) source.put("maxzoom", t.maximumZoom)
     val layer = JSONObject()
       .put("id", layerId).put("type", "raster").put("source", layerId)
-      .put("paint", JSONObject().put("raster-opacity", t.opacity.coerceIn(0.0, 1.0)).put("raster-fade-duration", 0))
+      .put("paint", JSONObject().put("raster-opacity", t.opacity.coerceIn(0.0, 1.0)).put("raster-fade-duration", 0).put("raster-emissive-strength", 1))
       .put("slot", slot(t.level, replacing || t.replacesMap))
     return Shape("tiles:${t.id}", t.id, "tileOverlay", t.zIndex, (if (t.replacesMap) 0 else 100) + index, source, listOf(layer), false)
   }

@@ -55,6 +55,8 @@ namespace margelo::nitro::munimmaps {
       jni::local_ref<JOverlayLevel> level = this->getFieldValue(fieldLevel);
       static const auto fieldTappable = clazz->getField<jboolean>("tappable");
       jboolean tappable = this->getFieldValue(fieldTappable);
+      static const auto fieldAnimationDuration = clazz->getField<double>("animationDuration");
+      double animationDuration = this->getFieldValue(fieldAnimationDuration);
       return NativeCircle(
         id->toStdString(),
         latitude,
@@ -66,7 +68,8 @@ namespace margelo::nitro::munimmaps {
         dashPattern->toStdString(),
         zIndex,
         level->toCpp(),
-        static_cast<bool>(tappable)
+        static_cast<bool>(tappable),
+        animationDuration
       );
     }
 
@@ -76,7 +79,7 @@ namespace margelo::nitro::munimmaps {
      */
     [[maybe_unused]]
     static jni::local_ref<JNativeCircle::javaobject> fromCpp(const NativeCircle& value) {
-      using JSignature = JNativeCircle(jni::alias_ref<jni::JString>, double, double, double, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JString>, double, jni::alias_ref<JOverlayLevel>, jboolean);
+      using JSignature = JNativeCircle(jni::alias_ref<jni::JString>, double, double, double, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JString>, double, jni::alias_ref<JOverlayLevel>, jboolean, double);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -91,7 +94,8 @@ namespace margelo::nitro::munimmaps {
         jni::make_jstring(value.dashPattern),
         value.zIndex,
         JOverlayLevel::fromCpp(value.level),
-        value.tappable
+        value.tappable,
+        value.animationDuration
       );
     }
   };

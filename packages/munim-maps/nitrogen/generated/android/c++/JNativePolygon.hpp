@@ -60,6 +60,8 @@ namespace margelo::nitro::munimmaps {
       jni::local_ref<JOverlayLevel> level = this->getFieldValue(fieldLevel);
       static const auto fieldTappable = clazz->getField<jboolean>("tappable");
       jboolean tappable = this->getFieldValue(fieldTappable);
+      static const auto fieldAnimationDuration = clazz->getField<double>("animationDuration");
+      double animationDuration = this->getFieldValue(fieldAnimationDuration);
       return NativePolygon(
         id->toStdString(),
         [&](auto&& __input) {
@@ -98,7 +100,8 @@ namespace margelo::nitro::munimmaps {
         zIndex,
         lineJoin->toCpp(),
         level->toCpp(),
-        static_cast<bool>(tappable)
+        static_cast<bool>(tappable),
+        animationDuration
       );
     }
 
@@ -108,7 +111,7 @@ namespace margelo::nitro::munimmaps {
      */
     [[maybe_unused]]
     static jni::local_ref<JNativePolygon::javaobject> fromCpp(const NativePolygon& value) {
-      using JSignature = JNativePolygon(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JMapCoordinate>>, jni::alias_ref<jni::JArrayClass<jni::JArrayClass<JMapCoordinate>>>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JString>, double, jni::alias_ref<JLineJoin>, jni::alias_ref<JOverlayLevel>, jboolean);
+      using JSignature = JNativePolygon(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JMapCoordinate>>, jni::alias_ref<jni::JArrayClass<jni::JArrayClass<JMapCoordinate>>>, jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JString>, double, jni::alias_ref<JLineJoin>, jni::alias_ref<JOverlayLevel>, jboolean, double);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -150,7 +153,8 @@ namespace margelo::nitro::munimmaps {
         value.zIndex,
         JLineJoin::fromCpp(value.lineJoin),
         JOverlayLevel::fromCpp(value.level),
-        value.tappable
+        value.tappable,
+        value.animationDuration
       );
     }
   };

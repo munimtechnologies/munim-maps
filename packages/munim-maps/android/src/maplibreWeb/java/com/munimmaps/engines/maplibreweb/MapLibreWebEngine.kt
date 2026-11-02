@@ -464,6 +464,8 @@ class MapLibreWebEngine(context: Context) : MunimMapEngine, MapCameraSource {
   override fun setPolylines(polylines: Array<NativePolyline>) = set("polylines", polylines)
   override fun setPolygons(polygons: Array<NativePolygon>) = set("polygons", polygons)
   override fun setCircles(circles: Array<NativeCircle>) = set("circles", circles)
+  /** The page glides circles and polygons itself (`animationDuration`). */
+  override val animatesShapeTransitions get() = true
   override fun setTileOverlays(overlays: Array<NativeTileOverlay>) = set("tileOverlays", overlays)
   override fun setClusterStyles(styles: Array<NativeClusterStyle>) = set("clusterStyles", styles)
 

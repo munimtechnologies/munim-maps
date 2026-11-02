@@ -195,6 +195,7 @@ extension NativePolygon {
     polygon.lineJoin = MunimLineJoin(rawValue: lineJoin.stringValue) ?? .round
     polygon.level = level.core
     polygon.tappable = tappable
+    polygon.animationDuration = animationDuration
     return polygon
   }
 }
@@ -207,6 +208,7 @@ extension NativeCircle {
       dashPattern: dashPattern, zIndex: zIndex)
     circle.level = level.core
     circle.tappable = tappable
+    circle.animationDuration = animationDuration
     return circle
   }
 }

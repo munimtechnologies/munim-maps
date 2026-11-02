@@ -749,6 +749,52 @@
 
   let shapeLayerIds = []
   let shapeSourceIds = []
+  /** Everything but polygon and circle geometry, as last drawn. */
+  let shapeSignature
+
+  function signature() {
+    const parts = (shapes.polyline || []).map((s) => JSON.stringify(s))
+    for (const s of shapes.polygon || []) parts.push(JSON.stringify(Object.assign({}, s, { coordinates: (s.coordinates || []).length > 2, holes: undefined })))
+    for (const s of shapes.circle || []) parts.push(JSON.stringify(Object.assign({}, s, { latitude: 0, longitude: 0, radius: 0 })))
+    return parts.join('\n')
+  }
+
+  /** New polygon and circle geometry into the existing sources. */
+  function moveShapes(kinds) {
+    const map = M.map
+    for (const kind of kinds) {
+      for (const s of shapes[kind] || []) {
+        let built
+        try {
+          built = shapeLayers(kind, s)
+        } catch (e) {
+          continue
+        }
+        for (const [id, source] of Object.entries(built.sources)) {
+          const existing = map.getSource(id)
+          if (existing) existing.setData(source.data)
+        }
+      }
+    }
+  }
+
+  /** Draws the shapes: in place when only polygon and circle geometry changed. */
+  function applyShapes() {
+    const map = M.map
+    if (!map || !M.styleLoaded(map)) return
+    const next = signature()
+    if (next === shapeSignature && shapeSourceIds.length) {
+      moveShapes(['polygon', 'circle'])
+      return
+    }
+    drawShapes()
+  }
+
+  // Polygons and circles with an animationDuration glide between props.
+  const tween = window.munimShapeTween.create((kind, list) => {
+    shapes[kind] = list
+    applyShapes()
+  })
   /** Tappable shape layers: layer id -> { id, kind }. */
   let tappable = new Map()
 
@@ -771,6 +817,7 @@
     for (const id of shapeSourceIds) if (map.getSource(id)) map.removeSource(id)
     shapeLayerIds = []
     shapeSourceIds = []
+    shapeSignature = signature()
     tappable = new Map()
     const all = []
     for (const kind of ['polygon', 'circle', 'polyline']) for (const s of shapes[kind] || []) all.push({ kind, s })
@@ -856,20 +903,21 @@
   M.on('clusterStyles', updateClusters)
   M.on('polylines', (list) => {
     shapes.polyline = list || []
-    drawShapes()
+    applyShapes()
   })
   M.on('polygons', (list) => {
-    shapes.polygon = list || []
-    drawShapes()
+    shapes.polygon = tween.set('polygon', list)
+    applyShapes()
   })
   M.on('circles', (list) => {
-    shapes.circle = list || []
-    drawShapes()
+    shapes.circle = tween.set('circle', list)
+    applyShapes()
   })
   M.on('tileOverlays', () => drawTiles())
   M.on('overlayPress', () => {})
   M.mapHooks.push(() => {
-    shapes = { polyline: M.state.polylines || [], polygon: M.state.polygons || [], circle: M.state.circles || [] }
+    tween.reset()
+    shapes = { polyline: M.state.polylines || [], polygon: tween.set('polygon', M.state.polygons), circle: tween.set('circle', M.state.circles) }
   })
 
   M.method('selectMarker', (a) => M.selectMarker(a.id, false))

@@ -172,8 +172,8 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
 
   var markers: [NativeMarker] = [] { didSet { map.markers = markers.map(\.core) } }
   var polylines: [NativePolyline] = [] { didSet { map.polylines = polylines.map(\.core) } }
-  var polygons: [NativePolygon] = [] { didSet { map.polygons = polygons.map(\.core) } }
-  var circles: [NativeCircle] = [] { didSet { map.circles = circles.map(\.core) } }
+  var polygons: [NativePolygon] = [] { didSet { container.setPolygons(polygons.map(\.core)) } }
+  var circles: [NativeCircle] = [] { didSet { container.setCircles(circles.map(\.core)) } }
   var tileOverlays: [NativeTileOverlay] = [] { didSet { map.tileOverlays = tileOverlays.map(\.core) } }
   var clusterStyles: [NativeClusterStyle] = [] { didSet { map.clusterStyles = clusterStyles.map(\.core) } }
   var selectionAccessory: SelectionAccessory = .none {

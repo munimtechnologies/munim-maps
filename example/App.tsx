@@ -37,6 +37,7 @@ import { MapboxScreen } from './MapboxScreen'
 import { MapLibreScreen } from './MapLibre'
 import { MapLibreWebScreen } from './MapLibreWeb'
 import { CesiumScreen } from './Cesium'
+import { ShapeGlideScreen } from './ShapeGlide'
 
 const avatars = [
   require('./assets/avatar-a.png'),
@@ -67,7 +68,7 @@ const vehicles = {
   propPlane: VEHICLES['plane-prop'],
 }
 
-type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'layer-rnmapbox' | 'layer-rnmaps-google' | 'google' | 'mapbox' | 'maplibre' | 'maplibreweb' | 'cesium'
+type Mode = TestMode | 'elevation' | 'lag' | 'features' | 'space' | 'providers' | 'layer3d' | 'layer-rnmapbox' | 'layer-rnmaps-google' | 'google' | 'mapbox' | 'maplibre' | 'maplibreweb' | 'cesium' | 'glide'
 
 // @rnmapbox/maps is only built into the Android app (react-native.config.js).
 const RnMapboxHost: ComponentType<HostMapProps> | null =
@@ -461,6 +462,9 @@ function writeReport(report: SelfTestReport) {
 function Example() {
   const insets = useSafeAreaInsets()
   // Android has no MapKit, react-native-maps or expo-maps screens: it starts on the engine picker.
+  const [glideJump, setGlideJump] = useState(false)
+  const [glideCheck, setGlideCheck] = useState(false)
+  const [glideEngine, setGlideEngine] = useState<string | undefined>()
   const [mode, setMode] = useState<Mode>(Platform.OS === 'android' ? 'providers' : 'munim')
   const [providerLink, setProviderLink] = useState<MapProvider | undefined>(undefined)
   const [layer3dCheck, setLayer3dCheck] = useState(false)
@@ -564,8 +568,19 @@ function Example() {
       setMode('mapbox')
       return true
     }
+    // munimmapsexample://glide/<provider>: circles and polygons that glide.
+    const openGlide = (url: string | null | undefined) => {
+      const glide = /:\/\/glide(?:\/(\w+))?/.exec(url ?? '')
+      if (!glide) return false
+      setLaunching(false)
+      setGlideEngine(glide[1])
+      setGlideJump(/\/jump/.test(url ?? ''))
+      setGlideCheck(/\/check/.test(url ?? ''))
+      setMode('glide')
+      return true
+    }
     const subscription = Linking.addEventListener('url', (event) => {
-      if (openMapbox(event.url)) return
+      if (openGlide(event.url) || openMapbox(event.url)) return
       const provider = /providers(?:\/(\w+))?/.exec(event.url)
       if (provider) {
         setProviderLink(provider[1] as MapProvider | undefined)
@@ -573,7 +588,7 @@ function Example() {
       }
     })
     void Linking.getInitialURL().then((url) => {
-      if (openMapbox(url)) return
+      if (openGlide(url) || openMapbox(url)) return
       if (url?.includes('nopanel')) setPanel(false)
       // munimmapsexample://layer/<rnmapbox|rnmaps-google>[/check|/pan|/pan45|/pan45pad][/tex]:
       // MapModelLayer over another library's map (Android).
@@ -880,6 +895,8 @@ function Example() {
         <MapLibreWebScreen topInset={insets.top} autoChecks={mapLibreWebChecks} start={mapLibreWebStart} onExit={() => setMode('providers')} />
       ) : mode === 'cesium' ? (
         <CesiumScreen topInset={insets.top} autoChecks={cesiumChecks} onExit={() => setMode('providers')} />
+      ) : mode === 'glide' ? (
+        <ShapeGlideScreen key={`${glideEngine ?? 'default'}-${glideJump}-${glideCheck}`} initial={glideEngine as MapProvider | 'maplibreweb' | undefined} jump={glideJump} check={glideCheck} topInset={insets.top} />
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
@@ -1074,7 +1091,7 @@ function Example() {
         </View>
       )}
 
-      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode.startsWith('layer-') || mode === 'google' || mode === 'mapbox' || mode === 'maplibre' || mode === 'maplibreweb' || mode === 'cesium') && styles.hidden]}>
+      <View style={[styles.panel, { top: insets.top + 8 }, (!panel || mode === 'providers' || mode === 'layer3d' || mode.startsWith('layer-') || mode === 'google' || mode === 'mapbox' || mode === 'maplibre' || mode === 'maplibreweb' || mode === 'cesium' || mode === 'glide') && styles.hidden]}>
         <View style={styles.row}>
           <Toggle label="MunimMapView" on={mode === 'munim'} onPress={() => setMode('munim')} />
           <Toggle label="react-native-maps" on={mode === 'rnmaps'} onPress={() => setMode('rnmaps')} />

@@ -50,7 +50,10 @@ data class NativeCircle(
   val level: OverlayLevel,
   @DoNotStrip
   @Keep
-  val tappable: Boolean
+  val tappable: Boolean,
+  @DoNotStrip
+  @Keep
+  val animationDuration: Double
 ) {
   /* primary constructor */
 
@@ -68,6 +71,7 @@ data class NativeCircle(
       && Objects.deepEquals(this.zIndex, other.zIndex)
       && Objects.deepEquals(this.level, other.level)
       && Objects.deepEquals(this.tappable, other.tappable)
+      && Objects.deepEquals(this.animationDuration, other.animationDuration)
   }
 
   override fun hashCode(): Int {
@@ -82,7 +86,8 @@ data class NativeCircle(
       dashPattern,
       zIndex,
       level,
-      tappable
+      tappable,
+      animationDuration
     ).contentDeepHashCode()
   }
 
@@ -94,8 +99,8 @@ data class NativeCircle(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(id: String, latitude: Double, longitude: Double, radius: Double, strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double, level: OverlayLevel, tappable: Boolean): NativeCircle {
-      return NativeCircle(id, latitude, longitude, radius, strokeColor, fillColor, strokeWidth, dashPattern, zIndex, level, tappable)
+    private fun fromCpp(id: String, latitude: Double, longitude: Double, radius: Double, strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double, level: OverlayLevel, tappable: Boolean, animationDuration: Double): NativeCircle {
+      return NativeCircle(id, latitude, longitude, radius, strokeColor, fillColor, strokeWidth, dashPattern, zIndex, level, tappable, animationDuration)
     }
   }
 }

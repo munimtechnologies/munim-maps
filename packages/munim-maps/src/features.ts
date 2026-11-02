@@ -169,6 +169,14 @@ export interface MapPolygon extends OverlayOptions {
   dashPattern?: number[]
   lineJoin?: LineJoin
   zIndex?: number
+  /**
+   * When `coordinates` (or `holes`) change, glide to the new shape over this
+   * many milliseconds, drawn natively every frame. Set it to about your update
+   * interval for continuous motion. Vertices move pairwise, so the polygon
+   * (and each hole) must keep its vertex count; otherwise it jumps. Default 0:
+   * jump straight to the new shape.
+   */
+  animationDuration?: number
 }
 
 export interface MapCircle extends OverlayOptions {
@@ -181,6 +189,13 @@ export interface MapCircle extends OverlayOptions {
   strokeWidth?: number
   dashPattern?: number[]
   zIndex?: number
+  /**
+   * When `center` or `radius` change, glide to the new circle over this many
+   * milliseconds, drawn natively every frame. Set it to about your update
+   * interval (say 1000 for once a second) for continuous motion. Default 0:
+   * jump straight to the new circle.
+   */
+  animationDuration?: number
 }
 
 export interface MapTileOverlay {
@@ -330,6 +345,11 @@ export function toNativePolyline(line: MapPolyline): NativePolyline {
   }
 }
 
+/** A transition length in ms: finite and not negative, else 0. */
+function duration(ms: number | undefined): number {
+  return typeof ms === 'number' && Number.isFinite(ms) && ms > 0 ? ms : 0
+}
+
 export function toNativePolygon(polygon: MapPolygon): NativePolygon {
   return {
     id: polygon.id,
@@ -348,6 +368,7 @@ export function toNativePolygon(polygon: MapPolygon): NativePolygon {
     lineJoin: polygon.lineJoin ?? 'round',
     level: polygon.level ?? 'aboveLabels',
     tappable: polygon.tappable ?? true,
+    animationDuration: duration(polygon.animationDuration),
   }
 }
 
@@ -364,6 +385,7 @@ export function toNativeCircle(circle: MapCircle): NativeCircle {
     zIndex: circle.zIndex ?? 0,
     level: circle.level ?? 'aboveLabels',
     tappable: circle.tappable ?? true,
+    animationDuration: duration(circle.animationDuration),
   }
 }
 

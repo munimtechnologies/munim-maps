@@ -98,6 +98,8 @@ internal class MapLibreFeatures(
   private var markerSources = HashSet<String>()
   private var shapeLayers = ArrayList<String>()
   private var shapeSources = ArrayList<String>()
+  /** Everything but polygon and circle geometry; while it stays the same, new geometry updates the sources in place. */
+  private var shapeSignature: List<Any>? = null
   private var tileLayers = ArrayList<String>()
   private var hiddenForTiles = ArrayList<String>()
   /** Text font for marker titles, from the style's own labels. */
@@ -135,6 +137,7 @@ internal class MapLibreFeatures(
     markerSources.clear()
     shapeLayers.clear()
     shapeSources.clear()
+    shapeSignature = null
     tileLayers.clear()
     hiddenForTiles.clear()
     val layers = style.layers
@@ -514,8 +517,41 @@ internal class MapLibreFeatures(
 
   private data class Shape(val id: String, val kind: String, val z: Double, val level: OverlayLevel, val apply: (Style, String) -> Unit)
 
+  /** Compared with `==` (the Nitro structs compare arrays by content). */
+  private fun currentShapeSignature(): List<Any> = buildList {
+    addAll(polylines)
+    polygons.forEach {
+      add(it.coordinates.size >= 3)
+      add(it.copy(coordinates = emptyArray(), holes = emptyArray()))
+    }
+    circles.forEach { add(it.copy(latitude = 0.0, longitude = 0.0, radius = 0.0)) }
+  }
+
+  /** Only polygon and circle geometry changed: new shapes into their sources (rebuilding the layers would flicker). */
+  private fun moveShapes(style: Style) {
+    for (p in polygons) {
+      if (p.coordinates.size < 3) continue
+      val id = "munim-shape|polygon|${p.id}"
+      (style.getSource(id) as? GeoJsonSource)?.setGeoJson(fillFeature(id, listOf(p.coordinates.toList()) + p.holes.map { it.toList() }).toString())
+    }
+    for (c in circles) {
+      val id = "munim-shape|circle|${c.id}"
+      (style.getSource(id) as? GeoJsonSource)?.setGeoJson(fillFeature(id, listOf(Geo.circle(c.latitude, c.longitude, c.radius))).toString())
+    }
+  }
+
+  private fun fillFeature(id: String, rings: List<List<MapCoordinate>>): JSONObject =
+    JSONObject().put("type", "Feature").put("properties", JSONObject().put("id", id))
+      .put("geometry", JSONObject().put("type", "Polygon").put("coordinates", JSONArray(rings.filter { it.size >= 3 }.map(::ring))))
+
   private fun applyShapes() {
     val style = style ?: return
+    val signature = currentShapeSignature()
+    if (signature == shapeSignature && shapeSources.isNotEmpty()) {
+      moveShapes(style)
+      return
+    }
+    shapeSignature = signature
     shapeLayers.forEach { if (style.getLayer(it) != null) style.removeLayer(it) }
     shapeSources.forEach { if (style.getSource(it) != null) style.removeSource(it) }
     shapeLayers.clear()

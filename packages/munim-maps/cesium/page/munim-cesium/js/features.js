@@ -502,12 +502,13 @@
     hideCallout()
     shapes = undefined
     shapeEntities = new Map()
+    tween.reset()
   })
 
   // MARK: Shapes
 
   let shapes
-  let shapeEntities = new Map() // `${kind}:${id}` -> [entities]
+  let shapeEntities = new Map() // `${kind}:${id}` -> { entities, live, look, json }
 
   function shapeSource() {
     if (!shapes) {
@@ -592,13 +593,19 @@
     return coords.map((c) => C.Cartesian3.fromDegrees(c.longitude, c.latitude))
   }
 
+  /**
+   * A shape's outline. `coords` is a list of coordinates, or a function
+   * returning them (a gliding shape, drawn from its current geometry).
+   */
   function strokeEntity(id, kind, coords, color, width, pattern, zIndex, closed) {
-    const list = closed && coords.length > 2 ? [...coords, coords[0]] : coords
+    const close = (list) => (closed && list.length > 2 ? [...list, list[0]] : list)
+    const live = typeof coords === 'function'
+    const list = live ? close(coords()) : close(coords)
     if (list.length < 2 || !(width > 0)) return undefined
     return {
       id: `munim-${kind}-stroke:${id}:${Math.random().toString(36).slice(2, 7)}`,
       polyline: {
-        positions: positions(list),
+        positions: live ? new C.CallbackProperty(() => positions(close(coords())), false) : positions(list),
         width,
         material: lineMaterial(color, width, pattern),
         clampToGround: true,
@@ -608,87 +615,153 @@
     }
   }
 
+  function circleRing(latitude, longitude, radius) {
+    const ring = []
+    const d = radius / 6371008.8
+    const lat = M.toRad(latitude)
+    const lon = M.toRad(longitude)
+    for (let i = 0; i < 72; i++) {
+      const b = (i / 72) * Math.PI * 2
+      const la = Math.asin(Math.sin(lat) * Math.cos(d) + Math.cos(lat) * Math.sin(d) * Math.cos(b))
+      const lo = lon + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(lat), Math.cos(d) - Math.sin(lat) * Math.sin(la))
+      ring.push({ latitude: M.toDeg(la), longitude: M.toDeg(lo) })
+    }
+    return ring
+  }
+
+  function hierarchy(coords, holes) {
+    return new C.PolygonHierarchy(positions(coords), holes.map((h) => new C.PolygonHierarchy(positions(h))))
+  }
+
+  /**
+   * Entity specs for one shape. With `live` (a gliding polygon or circle)
+   * the geometry is read from `live.s` every frame, so moving it is just
+   * changing `live.s`.
+   */
+  function shapeSpecs(kind, s, live) {
+    const specs = []
+    const zIndex = Math.round(M.num(s.zIndex, 0))
+    const dynamic = (get) => new C.CallbackProperty(get, false)
+    if (kind === 'polyline') {
+      const coords = trim(s.coordinates || [], M.num(s.strokeStart, 0), M.num(s.strokeEnd, 1))
+      if (coords.length < 2) return specs
+      const colors = String(s.strokeColors || '')
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean)
+      const locations = String(s.strokeColorLocations || '')
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .map(Number)
+      const gradient = colors.length > 1 ? gradientImage(colors, locations.length === colors.length ? locations : undefined) : undefined
+      specs.push({
+        id: `munim-polyline:${s.id}`,
+        polyline: {
+          positions: positions(coords),
+          width: M.num(s.strokeWidth, 3),
+          material: lineMaterial(M.color(s.strokeColor, '#0A84FF'), s.strokeWidth, s.dashPattern, gradient),
+          clampToGround: true,
+          zIndex,
+          arcType: s.geodesic ? C.ArcType.GEODESIC : C.ArcType.RHUMB,
+        },
+      })
+    } else if (kind === 'polygon') {
+      const coords = s.coordinates || []
+      if (coords.length < 3) return specs
+      const holes = (s.holes || []).filter((h) => h.length > 2)
+      const liveHoles = () => (live.s.holes || []).filter((h) => h.length > 2)
+      specs.push({
+        id: `munim-polygon:${s.id}`,
+        polygon: {
+          hierarchy: live ? dynamic(() => hierarchy(live.s.coordinates || [], liveHoles())) : hierarchy(coords, holes),
+          material: M.color(s.fillColor, '#0A84FF33'),
+          zIndex,
+          arcType: C.ArcType.GEODESIC,
+        },
+      })
+      const stroke = M.color(s.strokeColor, '#0A84FF')
+      const width = M.num(s.strokeWidth, 1)
+      const rings = [coords, ...holes]
+      rings.forEach((ring, i) => {
+        const source = live ? () => (i === 0 ? live.s.coordinates || [] : liveHoles()[i - 1] || []) : ring
+        const e = strokeEntity(s.id, 'polygon', source, stroke, width, s.dashPattern, zIndex, true)
+        if (e) specs.push(e)
+      })
+    } else if (kind === 'circle') {
+      const radius = () => Math.max(0.1, M.num((live ? live.s : s).radius, 100))
+      const center = () => C.Cartesian3.fromDegrees((live ? live.s : s).longitude, (live ? live.s : s).latitude)
+      const Position = C.CallbackPositionProperty || C.CallbackProperty
+      specs.push({
+        id: `munim-circle:${s.id}`,
+        position: live ? new Position(center, false) : center(),
+        ellipse: {
+          semiMajorAxis: live ? dynamic(radius) : radius(),
+          semiMinorAxis: live ? dynamic(radius) : radius(),
+          material: M.color(s.fillColor, '#0A84FF33'),
+          zIndex,
+        },
+      })
+      const ring = () => {
+        const c = live ? live.s : s
+        return circleRing(c.latitude, c.longitude, radius())
+      }
+      const e = strokeEntity(s.id, 'circle', live ? ring : ring(), M.color(s.strokeColor, '#0A84FF'), M.num(s.strokeWidth, 1), s.dashPattern, zIndex, true)
+      if (e) specs.push(e)
+    }
+    return specs
+  }
+
+  /** What a shape looks like apart from polygon and circle geometry. */
+  function look(kind, s) {
+    if (kind === 'circle') return JSON.stringify(Object.assign({}, s, { latitude: 0, longitude: 0, radius: 0 }))
+    if (kind === 'polygon') return JSON.stringify(Object.assign({}, s, { coordinates: (s.coordinates || []).length > 2, holes: (s.holes || []).map((h) => h.length > 2) }))
+    return JSON.stringify(s)
+  }
+
+  // Polygons and circles with an animationDuration glide between props:
+  // their entities read the geometry through callbacks, updated each frame.
+  const tween = window.munimShapeTween.create((kind, list) => {
+    for (const s of list) {
+      const entry = shapeEntities.get(`${kind}:${s.id}`)
+      if (entry && entry.live) entry.live.s = s
+    }
+    M.requestRender()
+  })
+
   function setShapes(kind, list) {
     const source = shapeSource()
-    for (const [key, entities] of shapeEntities) {
-      if (key.startsWith(kind + ':')) {
-        for (const e of entities) source.entities.remove(e)
+    if (kind !== 'polyline') list = tween.set(kind, list)
+    const wanted = new Set()
+    for (const s of list || []) {
+      const key = `${kind}:${s.id}`
+      if (wanted.has(key)) continue
+      wanted.add(key)
+      const animated = kind !== 'polyline' && M.num(s.animationDuration, 0) > 0
+      const existing = shapeEntities.get(key)
+      if (existing) {
+        if (existing.live && animated && existing.look === look(kind, s)) {
+          // Only the geometry changed: the callbacks pick it up.
+          existing.live.s = s
+          continue
+        }
+        if (!existing.live && existing.json === JSON.stringify(s)) continue
+        for (const e of existing.entities) source.entities.remove(e)
         shapeEntities.delete(key)
       }
-    }
-    for (const s of list || []) {
-      const specs = []
-      const zIndex = Math.round(M.num(s.zIndex, 0))
-      if (kind === 'polyline') {
-        const coords = trim(s.coordinates || [], M.num(s.strokeStart, 0), M.num(s.strokeEnd, 1))
-        if (coords.length < 2) continue
-        const colors = String(s.strokeColors || '')
-          .split(',')
-          .map((x) => x.trim())
-          .filter(Boolean)
-        const locations = String(s.strokeColorLocations || '')
-          .split(',')
-          .map((x) => x.trim())
-          .filter(Boolean)
-          .map(Number)
-        const gradient = colors.length > 1 ? gradientImage(colors, locations.length === colors.length ? locations : undefined) : undefined
-        specs.push({
-          id: `munim-polyline:${s.id}`,
-          polyline: {
-            positions: positions(coords),
-            width: M.num(s.strokeWidth, 3),
-            material: lineMaterial(M.color(s.strokeColor, '#0A84FF'), s.strokeWidth, s.dashPattern, gradient),
-            clampToGround: true,
-            zIndex,
-            arcType: s.geodesic ? C.ArcType.GEODESIC : C.ArcType.RHUMB,
-          },
-        })
-      } else if (kind === 'polygon') {
-        const coords = s.coordinates || []
-        if (coords.length < 3) continue
-        const holes = (s.holes || []).filter((h) => h.length > 2)
-        specs.push({
-          id: `munim-polygon:${s.id}`,
-          polygon: {
-            hierarchy: new C.PolygonHierarchy(positions(coords), holes.map((h) => new C.PolygonHierarchy(positions(h)))),
-            material: M.color(s.fillColor, '#0A84FF33'),
-            zIndex,
-            arcType: C.ArcType.GEODESIC,
-          },
-        })
-        const stroke = M.color(s.strokeColor, '#0A84FF')
-        const width = M.num(s.strokeWidth, 1)
-        for (const ring of [coords, ...holes]) {
-          const e = strokeEntity(s.id, 'polygon', ring, stroke, width, s.dashPattern, zIndex, true)
-          if (e) specs.push(e)
-        }
-      } else if (kind === 'circle') {
-        const center = C.Cartesian3.fromDegrees(s.longitude, s.latitude)
-        const radius = Math.max(0.1, M.num(s.radius, 100))
-        specs.push({
-          id: `munim-circle:${s.id}`,
-          position: center,
-          ellipse: { semiMajorAxis: radius, semiMinorAxis: radius, material: M.color(s.fillColor, '#0A84FF33'), zIndex },
-        })
-        const ring = []
-        for (let i = 0; i < 72; i++) {
-          const b = (i / 72) * Math.PI * 2
-          const d = radius / 6371008.8
-          const lat = M.toRad(s.latitude)
-          const lon = M.toRad(s.longitude)
-          const la = Math.asin(Math.sin(lat) * Math.cos(d) + Math.cos(lat) * Math.sin(d) * Math.cos(b))
-          const lo = lon + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(lat), Math.cos(d) - Math.sin(lat) * Math.sin(la))
-          ring.push({ latitude: M.toDeg(la), longitude: M.toDeg(lo) })
-        }
-        const e = strokeEntity(s.id, 'circle', ring, M.color(s.strokeColor, '#0A84FF'), M.num(s.strokeWidth, 1), s.dashPattern, zIndex, true)
-        if (e) specs.push(e)
-      }
-      const entities = specs.map((spec) => {
+      const live = animated ? { s } : undefined
+      const entities = shapeSpecs(kind, s, live).map((spec) => {
         const entity = source.entities.add(spec)
         entity._munim = { kind: 'overlay', overlayKind: kind, id: s.id, tappable: s.tappable !== false }
         return entity
       })
-      shapeEntities.set(`${kind}:${s.id}`, entities)
+      shapeEntities.set(key, { entities, live, look: animated ? look(kind, s) : undefined, json: animated ? undefined : JSON.stringify(s) })
+    }
+    for (const [key, entry] of shapeEntities) {
+      if (key.startsWith(`${kind}:`) && !wanted.has(key)) {
+        for (const e of entry.entities) source.entities.remove(e)
+        shapeEntities.delete(key)
+      }
     }
   }
 

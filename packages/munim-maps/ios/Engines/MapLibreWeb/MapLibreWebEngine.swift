@@ -313,6 +313,8 @@ final class MapLibreWebEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
   var polylines: [MunimPolyline] = [] { didSet { set("polylines", polylines) } }
   var polygons: [MunimPolygon] = [] { didSet { set("polygons", polygons) } }
   var circles: [MunimCircle] = [] { didSet { set("circles", circles) } }
+  /// The page glides circles and polygons itself (`animationDuration`).
+  var animatesShapeTransitions: Bool { true }
   var tileOverlays: [MunimTileOverlay] = [] { didSet { set("tileOverlays", tileOverlays) } }
   var clusterStyles: [MunimClusterStyle] = [] { didSet { set("clusterStyles", clusterStyles) } }
 

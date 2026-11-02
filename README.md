@@ -221,6 +221,7 @@ layer.onModelPress = { id in print(id) }
 - 🎛️ **Controls**: compass and scale that are always visible or adaptive, MapKit's tracking and 2D/3D buttons, and standalone `MapCompass`, `MapScale` and `MapUserTrackingButton` you can place anywhere
 - 🪪 **Place cards**: tap a place on Apple's map and get Apple's own place card (`selectionAccessory`, iOS 18+)
 - 🧷 **React Native views as markers**: `<MarkerView>` turns any React Native view into a real MapKit marker that clusters, collides and selects
+- 🎯 **Moving and shrinking zones**: `animationDuration` on circles and polygons glides them between updates, natively every frame, so a zone updated once a second moves smoothly
 - 🌈 **Routes and overlays**: gradient polylines, `strokeStart` / `strokeEnd` to animate a route being drawn, line joins, overlays under or over labels, and `onOverlayPress` for taps on lines and shapes
 - 🔎 **MapKit services**: search and autocomplete, points of interest, directions and travel times, geocoding, places by id, Apple Maps hand-off and map images, without a map on screen ([details](#-mapkit-services))
 - 👀 **Look Around**: `<LookAroundView>` embeds Apple's street-level imagery, and `lookAroundSnapshot()` makes a picture of it
@@ -923,8 +924,9 @@ On iOS 26 and 27 MapKit shows no callout bubble for the balloon (`marker`) style
 ### `MapPolyline`, `MapPolygon`, `MapCircle`, `MapTileOverlay`
 
 - `MapPolyline`: `coordinates`, `strokeColor`, `strokeColors` (a gradient along the line, `MKGradientPolylineRenderer`) with `strokeColorLocations` (0...1, default evenly spaced), `strokeWidth`, `dashPattern` (`[4, 10]`), `geodesic`, `lineCap`, `lineJoin` (`'round'`, `'bevel'`, `'miter'`), `strokeStart` / `strokeEnd` (draw part of the line, 0...1; change `strokeEnd` over time to animate a route, it updates in place), `level`, `tappable`, `zIndex`.
-- `MapPolygon`: `coordinates`, `holes`, `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `lineJoin`, `level`, `tappable`, `zIndex`.
-- `MapCircle`: `center`, `radius` (metres), `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `level`, `tappable`, `zIndex`.
+- `MapPolygon`: `coordinates`, `holes`, `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `lineJoin`, `level`, `tappable`, `zIndex`, `animationDuration`.
+- `MapCircle`: `center`, `radius` (metres), `strokeColor`, `fillColor`, `strokeWidth`, `dashPattern`, `level`, `tappable`, `zIndex`, `animationDuration`.
+- `animationDuration` (ms, default 0): when a circle's `center` or `radius`, or a polygon's `coordinates` and `holes`, change, the shape glides to the new geometry over this long, drawn natively every frame ([Moving and shrinking zones](#moving-and-shrinking-zones)). Polygons glide only when every ring keeps its vertex count; otherwise they jump.
 - Colours (here, on markers, clusters, models, zones and paths) take any CSS colour: `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, `rgb()`, `rgba()`, `hsl()`, `hsla()`, `transparent` or a name such as `'tomato'`. JavaScript turns them into hex, so every engine reads the same colour.
 - `MapTileOverlay`: `urlTemplate` (`{z}/{x}/{y}`), `replacesMap`, `minimumZoom`, `maximumZoom`, `opacity`, `level`, `zIndex`.
 - `level`: `'aboveLabels'` (default for shapes) draws over MapKit's labels; `'aboveRoads'` (default for tiles) draws under labels and buildings, like Apple Maps' routes.
@@ -1165,6 +1167,25 @@ const [route] = await directions({ from: 'currentLocation', to: place, transport
 ```
 
 Animate it being drawn by stepping `strokeEnd` from 0 to 1; the line updates in place.
+
+### Moving and shrinking zones
+
+A game zone that moves or shrinks only needs a new `center` and `radius` now and then. Give it an `animationDuration` and the map glides it there, drawn natively every frame; set it to about your update interval and the motion is continuous:
+
+```tsx
+// Recomputed once a second.
+const zone = zoneShapeAt(Date.now())
+
+<MunimMapView
+  circles={[{ id: 'zone', center: zone.center, radius: zone.radius, fillColor: '#FF453A22', animationDuration: 1000 }]}
+  polygons={[{ id: 'safe', coordinates: zone.corners, animationDuration: 1000 }]}
+/>
+```
+
+- A new value while a shape is still gliding starts from where it is drawn, so updates that come early or late never jump. The same props again do not restart it.
+- Colours and widths change at once; only the geometry glides. Polygons move vertex by vertex, so they glide only when the polygon and each hole keep their vertex counts (a polygon with a different count jumps).
+- Shapes change in place on every engine (MapKit no longer replaces the overlay when a circle or polygon changes, which also stops style changes from flickering). Nothing runs between transitions: a display link (iOS), `Choreographer` (Android) or `requestAnimationFrame` (Cesium and MapLibre GL JS, which glide on their page) runs only while a shape is gliding.
+- `animationDuration` 0 (the default) draws each update as it comes, as before.
 
 ### Place cards
 

@@ -10,6 +10,24 @@ public final class MunimMapContainerView: UIView {
     engine = MunimMapEngines.make(provider)
     super.init(frame: .zero)
     install(engine.view)
+    shapeTransitions.draw = { [weak self] circles, polygons in
+      guard let engine = self?.engine else { return }
+      if let circles { engine.circles = circles }
+      if let polygons { engine.polygons = polygons }
+    }
+  }
+
+  private let shapeTransitions = MunimShapeTransitions { _, _ in }
+
+  /// Sets the engine's circles, gliding the ones with an
+  /// `animationDuration` from where they are drawn now.
+  public func setCircles(_ circles: [MunimCircle]) {
+    shapeTransitions.setCircles(circles, passThrough: engine.animatesShapeTransitions)
+  }
+
+  /// Sets the engine's polygons; see `setCircles`.
+  public func setPolygons(_ polygons: [MunimPolygon]) {
+    shapeTransitions.setPolygons(polygons, passThrough: engine.animatesShapeTransitions)
   }
 
   public required init?(coder: NSCoder) {
@@ -26,6 +44,7 @@ public final class MunimMapContainerView: UIView {
   public func setProvider(_ provider: MunimMapProvider, options: [String: Any] = [:]) -> MunimMapEngine? {
     let variant = MunimMapEngines.variant(for: provider, options: options)
     guard provider != engine.provider || variant != engine.variant else { return nil }
+    shapeTransitions.finish()
     engine.view.removeFromSuperview()
     engine = MunimMapEngines.make(provider, options: options)
     install(engine.view)

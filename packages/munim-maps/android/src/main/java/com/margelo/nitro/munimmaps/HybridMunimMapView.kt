@@ -46,8 +46,8 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     applyModelLayer(e)
     e.setMarkers(markers)
     e.setPolylines(polylines)
-    e.setPolygons(polygons)
-    e.setCircles(circles)
+    container.setPolygons(polygons)
+    container.setCircles(circles)
     e.setTileOverlays(tileOverlays)
     e.setClusterStyles(clusterStyles)
     e.setMapStyle(mapStyle)
@@ -168,9 +168,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var polylines: Array<NativePolyline> = emptyArray()
     set(value) { field = value; engine?.setPolylines(value) }
   override var polygons: Array<NativePolygon> = emptyArray()
-    set(value) { field = value; engine?.setPolygons(value) }
+    set(value) { field = value; if (engine != null) container.setPolygons(value) }
   override var circles: Array<NativeCircle> = emptyArray()
-    set(value) { field = value; engine?.setCircles(value) }
+    set(value) { field = value; if (engine != null) container.setCircles(value) }
   override var tileOverlays: Array<NativeTileOverlay> = emptyArray()
     set(value) { field = value; engine?.setTileOverlays(value) }
   override var clusterStyles: Array<NativeClusterStyle> = emptyArray()

@@ -97,6 +97,10 @@ public protocol MunimMapEngine: AnyObject {
   var polylines: [MunimPolyline] { get set }
   var polygons: [MunimPolygon] { get set }
   var circles: [MunimCircle] { get set }
+  /// True when the engine glides circles and polygons to new geometry
+  /// itself (`animationDuration`); otherwise `MunimMapContainerView` sends
+  /// it every frame of the transition.
+  var animatesShapeTransitions: Bool { get }
   var tileOverlays: [MunimTileOverlay] { get set }
   var clusterStyles: [MunimClusterStyle] { get set }
   /// A marker drawn from a React Native view (`MarkerView`): `image` is the
@@ -300,6 +304,10 @@ public extension MunimMapEngine {
 /// implements everything (MapKit) leaves it out, so the compiler reports any
 /// requirement it misses instead of silently using a default.
 public protocol MunimMapEngineDefaults {}
+
+public extension MunimMapEngine {
+  var animatesShapeTransitions: Bool { false }
+}
 
 public extension MunimMapEngine where Self: MunimMapEngineDefaults {
   var styleURL: String { get { "" } set {} }

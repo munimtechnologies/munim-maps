@@ -52,10 +52,11 @@ namespace margelo::nitro::munimmaps {
     double zIndex     SWIFT_PRIVATE;
     OverlayLevel level     SWIFT_PRIVATE;
     bool tappable     SWIFT_PRIVATE;
+    double animationDuration     SWIFT_PRIVATE;
 
   public:
     NativeCircle() = default;
-    explicit NativeCircle(std::string id, double latitude, double longitude, double radius, std::string strokeColor, std::string fillColor, double strokeWidth, std::string dashPattern, double zIndex, OverlayLevel level, bool tappable): id(id), latitude(latitude), longitude(longitude), radius(radius), strokeColor(strokeColor), fillColor(fillColor), strokeWidth(strokeWidth), dashPattern(dashPattern), zIndex(zIndex), level(level), tappable(tappable) {}
+    explicit NativeCircle(std::string id, double latitude, double longitude, double radius, std::string strokeColor, std::string fillColor, double strokeWidth, std::string dashPattern, double zIndex, OverlayLevel level, bool tappable, double animationDuration): id(id), latitude(latitude), longitude(longitude), radius(radius), strokeColor(strokeColor), fillColor(fillColor), strokeWidth(strokeWidth), dashPattern(dashPattern), zIndex(zIndex), level(level), tappable(tappable), animationDuration(animationDuration) {}
 
   public:
     friend bool operator==(const NativeCircle& lhs, const NativeCircle& rhs) = default;
@@ -81,7 +82,8 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "dashPattern"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex"))),
         JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level"))),
-        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "animationDuration")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::munimmaps::NativeCircle& arg) {
@@ -97,6 +99,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "zIndex"), JSIConverter<double>::toJSI(runtime, arg.zIndex));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "level"), JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::toJSI(runtime, arg.level));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "tappable"), JSIConverter<bool>::toJSI(runtime, arg.tappable));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "animationDuration"), JSIConverter<double>::toJSI(runtime, arg.animationDuration));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -118,6 +121,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "zIndex")))) return false;
       if (!JSIConverter<margelo::nitro::munimmaps::OverlayLevel>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "level")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "tappable")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "animationDuration")))) return false;
       return true;
     }
   };

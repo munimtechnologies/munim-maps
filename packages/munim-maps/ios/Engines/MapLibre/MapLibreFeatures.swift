@@ -52,6 +52,9 @@ final class MapLibreFeatures {
   private var markerSources = Set<String>()
   private var shapeLayers: [String] = []
   private var shapeSources: [String] = []
+  /// Everything about the shapes but polygon and circle geometry; while it
+  /// stays the same, new geometry updates the sources in place.
+  private var shapeSignature = ""
   private var tileLayers: [String] = []
   private var hiddenForTiles: [String] = []
   private var titleFont: [String]?
@@ -69,6 +72,7 @@ final class MapLibreFeatures {
     markerSources.removeAll()
     shapeLayers.removeAll()
     shapeSources.removeAll()
+    shapeSignature = ""
     tileLayers.removeAll()
     hiddenForTiles.removeAll()
     firstLabelLayer = style.layers.first { $0 is MLNSymbolStyleLayer }?.identifier
@@ -419,8 +423,47 @@ final class MapLibreFeatures {
     MapLibreStyleSpec.expression(value)
   }
 
+  private func currentShapeSignature() -> String {
+    var parts = polylines.map { "\($0)" }
+    for p in polygons {
+      var look = p
+      look.coordinates = []
+      look.holes = []
+      parts.append("polygon \(p.coordinates.count >= 3) \(look)")
+    }
+    for c in circles {
+      var look = c
+      look.latitude = 0
+      look.longitude = 0
+      look.radius = 0
+      parts.append("circle \(look)")
+    }
+    return parts.joined(separator: "\n")
+  }
+
+  /// Only polygon and circle geometry changed: give their sources the new
+  /// shapes (a gliding shape changes every frame; rebuilding the layers
+  /// would flicker).
+  private func moveShapes(_ style: MLNStyle) {
+    for p in polygons where p.coordinates.count >= 3 {
+      let id = "munim-shape|polygon|\(p.id)"
+      (style.source(withIdentifier: id) as? MLNShapeSource)?.shape = fillFeature(id: id, rings: [p.coordinates] + p.holes)
+    }
+    for c in circles {
+      let id = "munim-shape|circle|\(c.id)"
+      let ring = MapLibreGeo.circle(latitude: c.latitude, longitude: c.longitude, radius: c.radius)
+      (style.source(withIdentifier: id) as? MLNShapeSource)?.shape = fillFeature(id: id, rings: [ring])
+    }
+  }
+
   func applyShapes() {
     guard let style else { return }
+    let signature = currentShapeSignature()
+    if signature == shapeSignature, !shapeSources.isEmpty {
+      moveShapes(style)
+      return
+    }
+    shapeSignature = signature
     for id in shapeLayers { if let layer = style.layer(withIdentifier: id) { style.removeLayer(layer) } }
     for id in shapeSources { if let source = style.source(withIdentifier: id) { style.removeSource(source) } }
     shapeLayers.removeAll()
@@ -481,12 +524,17 @@ final class MapLibreFeatures {
     insert(style, layer, below: below)
   }
 
-  private func addFill(_ style: MLNStyle, id: String, rings: [[CLLocationCoordinate2D]], fill: String, stroke: String,
-                       width: Double, dash: String, join: MunimLineJoin, below: MLNStyleLayer) {
-    guard let outer = rings.first, outer.count >= 3 else { return }
+  private func fillFeature(id: String, rings: [[CLLocationCoordinate2D]]) -> MLNPolygonFeature? {
+    guard let outer = rings.first, outer.count >= 3 else { return nil }
     let holes = rings.dropFirst().filter { $0.count >= 3 }.map { MLNPolygon(coordinates: $0, count: UInt($0.count)) }
     let feature = MLNPolygonFeature(coordinates: outer, count: UInt(outer.count), interiorPolygons: holes)
     feature.attributes = ["id": id]
+    return feature
+  }
+
+  private func addFill(_ style: MLNStyle, id: String, rings: [[CLLocationCoordinate2D]], fill: String, stroke: String,
+                       width: Double, dash: String, join: MunimLineJoin, below: MLNStyleLayer) {
+    guard let feature = fillFeature(id: id, rings: rings) else { return }
     let source = addSource(style, id: id, shape: feature)
     let fillLayer = MLNFillStyleLayer(identifier: "\(id)|fill", source: source)
     fillLayer.fillColor = NSExpression(forConstantValue: color(fill, UIColor.systemBlue.withAlphaComponent(0.2)))

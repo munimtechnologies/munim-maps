@@ -138,6 +138,12 @@ interface MunimMapEngine {
   fun setPolylines(polylines: Array<NativePolyline>) { if (polylines.isNotEmpty()) reportUnsupported("polylines") }
   fun setPolygons(polygons: Array<NativePolygon>) { if (polygons.isNotEmpty()) reportUnsupported("polygons") }
   fun setCircles(circles: Array<NativeCircle>) { if (circles.isNotEmpty()) reportUnsupported("circles") }
+  /**
+   * True when the engine glides circles and polygons to new geometry itself
+   * (`animationDuration`); otherwise [MunimMapContainerView] sends it every
+   * frame of the transition.
+   */
+  val animatesShapeTransitions: Boolean get() = false
   fun setTileOverlays(overlays: Array<NativeTileOverlay>) { if (overlays.isNotEmpty()) reportUnsupported("tileOverlays") }
   fun setClusterStyles(styles: Array<NativeClusterStyle>) {}
   /**

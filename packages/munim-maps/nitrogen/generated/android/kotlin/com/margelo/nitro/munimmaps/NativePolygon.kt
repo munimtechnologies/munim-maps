@@ -50,7 +50,10 @@ data class NativePolygon(
   val level: OverlayLevel,
   @DoNotStrip
   @Keep
-  val tappable: Boolean
+  val tappable: Boolean,
+  @DoNotStrip
+  @Keep
+  val animationDuration: Double
 ) {
   /* primary constructor */
 
@@ -68,6 +71,7 @@ data class NativePolygon(
       && Objects.deepEquals(this.lineJoin, other.lineJoin)
       && Objects.deepEquals(this.level, other.level)
       && Objects.deepEquals(this.tappable, other.tappable)
+      && Objects.deepEquals(this.animationDuration, other.animationDuration)
   }
 
   override fun hashCode(): Int {
@@ -82,7 +86,8 @@ data class NativePolygon(
       zIndex,
       lineJoin,
       level,
-      tappable
+      tappable,
+      animationDuration
     ).contentDeepHashCode()
   }
 
@@ -94,8 +99,8 @@ data class NativePolygon(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(id: String, coordinates: Array<MapCoordinate>, holes: Array<Array<MapCoordinate>>, strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double, lineJoin: LineJoin, level: OverlayLevel, tappable: Boolean): NativePolygon {
-      return NativePolygon(id, coordinates, holes, strokeColor, fillColor, strokeWidth, dashPattern, zIndex, lineJoin, level, tappable)
+    private fun fromCpp(id: String, coordinates: Array<MapCoordinate>, holes: Array<Array<MapCoordinate>>, strokeColor: String, fillColor: String, strokeWidth: Double, dashPattern: String, zIndex: Double, lineJoin: LineJoin, level: OverlayLevel, tappable: Boolean, animationDuration: Double): NativePolygon {
+      return NativePolygon(id, coordinates, holes, strokeColor, fillColor, strokeWidth, dashPattern, zIndex, lineJoin, level, tappable, animationDuration)
     }
   }
 }

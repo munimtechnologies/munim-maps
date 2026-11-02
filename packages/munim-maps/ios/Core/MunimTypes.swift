@@ -568,6 +568,9 @@ public struct MunimPolygon: Sendable {
   public var lineJoin: MunimLineJoin = .round
   public var level: MunimOverlayLevel = .aboveLabels
   public var tappable = true
+  /// Milliseconds to glide to new coordinates (vertex counts must match);
+  /// 0 jumps.
+  public var animationDuration: Double = 0
 
   public init(id: String, coordinates: [CLLocationCoordinate2D], holes: [[CLLocationCoordinate2D]] = [],
               strokeColor: String = "#0A84FF", fillColor: String = "#0A84FF33", strokeWidth: Double = 2,
@@ -597,6 +600,8 @@ public struct MunimCircle: Sendable {
   public var zIndex: Double
   public var level: MunimOverlayLevel = .aboveLabels
   public var tappable = true
+  /// Milliseconds to glide to a new centre and radius; 0 jumps.
+  public var animationDuration: Double = 0
 
   public init(id: String, center: CLLocationCoordinate2D, radius: Double, strokeColor: String = "#0A84FF",
               fillColor: String = "#0A84FF33", strokeWidth: Double = 2, dashPattern: String = "",

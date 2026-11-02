@@ -34,6 +34,9 @@ final class MapboxContentState {
   /// Shape layers in drawing order: (shape id, kind, layer ids, source id).
   var shapes: [(id: String, kind: String, layers: [String], source: String)] = []
   var shapeSignature = ""
+  /// What each shape source and layer was last given (geometry, paint and
+  /// layout), so an update only touches what changed.
+  var shapeSent: [String: NSDictionary] = [:]
   var tileIds: [String] = []
   var trackingButton: UIButton?
   var interactions: [AnyCancelable] = []
@@ -508,19 +511,29 @@ extension MapboxMapEngine {
     let signature = specs.map { "\($0.kind):\($0.id):\($0.level.rawValue):\($0.lineMetrics):\($0.layers.map(\.0))" }
       .joined(separator: "|")
     if !force, signature == content.shapeSignature {
-      // Same shapes in the same order: update in place.
+      // Same shapes in the same order: update in place, only what changed
+      // (a gliding circle sends its geometry every frame).
       for spec in specs {
         let source = "munim-\(spec.kind)-\(spec.id)"
-        try? mapboxMap.setSourceProperty(for: source, property: "data", value: ["type": "Feature", "properties": [:], "geometry": spec.geometry])
+        let geometry = spec.geometry as NSDictionary
+        if content.shapeSent[source] != geometry {
+          try? mapboxMap.setSourceProperty(for: source, property: "data", value: ["type": "Feature", "properties": [:], "geometry": spec.geometry])
+          content.shapeSent[source] = geometry
+        }
         for (suffix, layer) in spec.layers {
           var update: [String: Any] = [:]
           update["paint"] = layer["paint"]
           update["layout"] = layer["layout"]
-          try? mapboxMap.setLayerProperties(for: "\(source)-\(suffix)", properties: update)
+          let id = "\(source)-\(suffix)"
+          let sent = update as NSDictionary
+          guard content.shapeSent[id] != sent else { continue }
+          try? mapboxMap.setLayerProperties(for: id, properties: update)
+          content.shapeSent[id] = sent
         }
       }
       return
     }
+    content.shapeSent = [:]
     for shape in content.shapes {
       for layer in shape.layers where mapboxMap.layerExists(withId: layer) { try? mapboxMap.removeLayer(withId: layer) }
       if mapboxMap.sourceExists(withId: shape.source) { try? mapboxMap.removeSource(withId: shape.source) }
@@ -536,8 +549,13 @@ extension MapboxMapEngine {
         ]
         if spec.lineMetrics { properties["lineMetrics"] = true }
         try mapboxMap.addSource(withId: source, properties: properties)
+        content.shapeSent[source] = spec.geometry as NSDictionary
         var ids: [String] = []
         for (suffix, layer) in spec.layers {
+          var sent: [String: Any] = [:]
+          sent["paint"] = layer["paint"]
+          sent["layout"] = layer["layout"]
+          content.shapeSent["\(source)-\(suffix)"] = sent as NSDictionary
           var full = layer
           full["id"] = "\(source)-\(suffix)"
           full["source"] = source
