@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-06
+
+### Fixed
+
+- iOS: `MarkerView` pictures (profile photos in avatar pins) no longer go blank. The children are drawn with `CALayer.render(in:)`, which draws each layer's `contents`, and UIKit does not reliably keep an image view's `image` in its layer's `contents` (it fills them for the screen, and a `MarkerView`'s children are laid out far off screen). An `Image` that had loaded (`onLoad` fired) could be drawn as an empty frame, so a pin showed the photo, then the circle around it with nothing inside, once any later drawing replaced the picture. Each image view's layer now holds its own `image` while the children are drawn, and gets back what it had right after, in the same transaction. Template (tinted), resizable, animated and rotated images are drawn as before.
+- iOS: a `MarkerView` whose own props change (`coordinate`, `title`, `subtitle`, `anchor`, `zIndex`…) keeps its picture instead of drawing its children again: those props are not in the picture. A map whose markers move or relabel every second no longer redraws every avatar on every update, and no longer gives such an update the chance to replace a good picture. Changes to the children, their size or a picture in them still redraw, as before.
+- iOS: when `tracksViewChanges` turns `false`, the children are drawn a few more times as they settle, as `react-native-maps` does, instead of keeping whichever frame the 15-per-second timer drew last.
+
 ## [0.8.0] - 2026-11-01
 
 Circles and polygons that glide (#2).

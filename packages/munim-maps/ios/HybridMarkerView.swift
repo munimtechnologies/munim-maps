@@ -41,19 +41,22 @@ enum MarkerViewDefaults {
 }
 
 /// Draws the children into the marker's picture when something changed:
-/// the marker's props, the children (JavaScript's `renderKey`), their size,
-/// or a picture in them (an image view's `image`, watched with KVO, so an
-/// image that loads seconds later still shows). Each change draws a few
-/// times over half a second, as Fabric mounts and lays the children out
-/// after the props arrive; the map only gets a new picture when it looks
-/// different. `tracksViewChanges` draws 15 times a second on top.
+/// the children (JavaScript's `renderKey`), their size, or a picture in them
+/// (an image view's `image`, watched with KVO, so an image that loads
+/// seconds later still shows). Each change draws a few times over half a
+/// second, as Fabric mounts and lays the children out after the props
+/// arrive; the map only gets a new picture when it looks different.
+/// `tracksViewChanges` draws 15 times a second on top. The marker's own
+/// props (position, title, anchor…) are not in the picture: a new value
+/// goes to the map with the picture it has.
 private final class MarkerViewHost: UIView {
   weak var owner: HybridMarkerView?
   private weak var map: (any MunimMapEngine)?
   private var registeredId = ""
   private var trackTimer: Timer?
   private var pendingRedraws: [DispatchWorkItem] = []
-  /// The pixels of the last picture handed to the map.
+  /// The last picture handed to the map, and its pixels.
+  private var lastImage: UIImage?
   private var lastPixels: Data?
   private var lastSize: CGSize = .zero
   private var imageObservations: [ObjectIdentifier: (view: Weak<UIImageView>, observation: NSKeyValueObservation)] = [:]
@@ -103,9 +106,16 @@ private final class MarkerViewHost: UIView {
   func propsChanged() {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
-      if let id = self.owner?.marker.id, id != self.registeredId { self.unregister() }
-      // The new marker (position, anchor, title…) goes to the map with the
-      // current picture (setViewMarker replaces the one with this id).
+      let id = self.owner?.marker.id ?? ""
+      if !self.registeredId.isEmpty, id == self.registeredId {
+        // Same marker, new position, title, anchor…: it goes to the map
+        // with the picture it has (setViewMarker replaces the one with this
+        // id). Nothing in the picture changed, so nothing is drawn: a map
+        // whose markers move every second does not redraw them all.
+        self.register()
+        return
+      }
+      self.unregister()
       self.register()
       self.scheduleRedraws()
     }
@@ -119,9 +129,12 @@ private final class MarkerViewHost: UIView {
         let timer = Timer(timeInterval: 1.0 / 15, repeats: true) { [weak self] _ in self?.redraw() }
         RunLoop.main.add(timer, forMode: .common)
         self.trackTimer = timer
-      } else if !tracking {
-        self.trackTimer?.invalidate()
+      } else if !tracking, let timer = self.trackTimer {
+        timer.invalidate()
         self.trackTimer = nil
+        // The last frames, as the children settle (react-native-maps also
+        // draws once more when tracking stops).
+        if self.window != nil { self.scheduleRedraws() }
       }
     }
   }
@@ -161,14 +174,19 @@ private final class MarkerViewHost: UIView {
     return nil
   }
 
+  /// Adds the marker to the map, or sends it again with new props. A new
+  /// marker is drawn first; one already on the map keeps its picture.
   private func register() {
     guard window != nil, let owner, !owner.marker.id.isEmpty else { return }
     guard let map = map ?? findMap() else { return }
     self.map = map
+    if registeredId != owner.marker.id || lastPixels == nil {
+      let image = snapshot()
+      lastImage = image
+      lastPixels = Self.pixels(image)
+    }
     registeredId = owner.marker.id
-    let image = snapshot()
-    lastPixels = Self.pixels(image)
-    map.setViewMarker(owner.marker.core, image: image)
+    map.setViewMarker(owner.marker.core, image: lastImage)
     observeImages()
   }
 
@@ -176,6 +194,7 @@ private final class MarkerViewHost: UIView {
     guard !registeredId.isEmpty else { return }
     map?.removeViewMarker(registeredId)
     registeredId = ""
+    lastImage = nil
     lastPixels = nil
   }
 
@@ -186,10 +205,71 @@ private final class MarkerViewHost: UIView {
     let format = UIGraphicsImageRendererFormat()
     format.scale = window?.screen.scale ?? UIScreen.main.scale
     format.opaque = false
+    let restore = Self.showImages(in: container)
+    defer { restore() }
     // The whole container, so the children's own transforms apply; this
     // view is empty and draws nothing.
     return UIGraphicsImageRenderer(bounds: container.bounds, format: format).image { context in
       container.layer.render(in: context.cgContext)
+    }
+  }
+
+  /// `render(in:)` draws each layer's `contents`, and an image view's
+  /// layer does not reliably hold its `image` there: UIKit fills it for
+  /// the screen, when it displays the view, and these children are laid out
+  /// far off screen. An image view whose picture loaded (its `image` is
+  /// set, `onLoad` fired) could draw as an empty frame: the marker showed
+  /// the photo, then a later picture of the same children (taken for any
+  /// change) showed the circle around it with nothing inside. So, for the
+  /// drawing, each image view's layer gets its own `image`; what was in it
+  /// goes back right after, in the same transaction, so the screen never
+  /// sees the change. Pictures this cannot put in a layer as they are
+  /// (template images drawn in a tint, resizable or animated images,
+  /// rotated ones) keep the layer's own contents.
+  private static func showImages(in root: UIView) -> () -> Void {
+    var saved: [(layer: CALayer, contents: Any?, scale: CGFloat, gravity: CALayerContentsGravity)] = []
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    var stack: [UIView] = [root]
+    while let view = stack.popLast() {
+      stack.append(contentsOf: view.subviews)
+      guard let imageView = view as? UIImageView, !imageView.isHidden,
+            let image = imageView.image, let cgImage = image.cgImage,
+            image.renderingMode != .alwaysTemplate, !image.isSymbolImage,
+            image.images == nil, image.imageOrientation == .up,
+            image.capInsets == .zero, image.resizingMode == .stretch,
+            let gravity = contentsGravity(imageView.contentMode)
+      else { continue }
+      let layer = imageView.layer
+      saved.append((layer, layer.contents, layer.contentsScale, layer.contentsGravity))
+      layer.contents = cgImage
+      layer.contentsScale = image.scale
+      layer.contentsGravity = gravity
+    }
+    CATransaction.commit()
+    return {
+      CATransaction.begin()
+      CATransaction.setDisableActions(true)
+      for entry in saved {
+        entry.layer.contents = entry.contents
+        entry.layer.contentsScale = entry.scale
+        entry.layer.contentsGravity = entry.gravity
+      }
+      CATransaction.commit()
+    }
+  }
+
+  /// How a layer places its contents for an image view's `contentMode`:
+  /// the modes React Native's `resizeMode` uses (`cover`, `contain`,
+  /// `stretch`, `center`). The edge modes are left alone (a layer's top and
+  /// bottom depend on whether its contents are flipped).
+  private static func contentsGravity(_ mode: UIView.ContentMode) -> CALayerContentsGravity? {
+    switch mode {
+    case .scaleToFill: return .resize
+    case .scaleAspectFit: return .resizeAspect
+    case .scaleAspectFill: return .resizeAspectFill
+    case .center: return .center
+    default: return nil
     }
   }
 
@@ -208,6 +288,7 @@ private final class MarkerViewHost: UIView {
     observeImages()
     let pixels = Self.pixels(image)
     if !force, let pixels, pixels == lastPixels { return }
+    lastImage = image
     lastPixels = pixels
     map?.setViewMarkerImage(image, id: registeredId)
   }
