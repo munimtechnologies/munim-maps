@@ -76,7 +76,10 @@ munimMapsProviders.maplibreWeb = munimMapsProvider("maplibreWeb", munimMapsProvi
 def munimMapsMapLibreBundled = (project.findProperty("munimMaps.maplibreBundled") ?: "false").toString().toBoolean()
 
 def munimMapsVersions = [
-  filament    : project.findProperty("munimMaps.filamentVersion") ?: "1.80.1",
+  // Filament 1.76+ is built with Kotlin 2.4 (kotlin-stdlib 2.4), which
+  // React Native 0.88's Kotlin 2.2 compiler cannot read: 1.75.1 until
+  // React Native moves to Kotlin 2.3+.
+  filament    : project.findProperty("munimMaps.filamentVersion") ?: "1.75.1",
   maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.7.1",
   googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.1.0",
   googleMapsUtils: project.findProperty("munimMaps.googleMapsUtilsVersion") ?: "4.5.2",

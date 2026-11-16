@@ -17,6 +17,7 @@ import UIKit
 /// otherwise the whole list goes to `draw` (and each gliding view marker to
 /// `drawViewMarker`). When the glides end, `draw` gets the props as given, so
 /// the engine ends on exactly what JavaScript sent.
+@_expose(!Cxx)
 public final class MunimMarkerTransitions {
   /// Every marker of the list as drawn now.
   public var draw: ([MunimMarker]) -> Void
