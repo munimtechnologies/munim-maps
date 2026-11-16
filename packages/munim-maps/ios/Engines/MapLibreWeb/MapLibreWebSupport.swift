@@ -26,9 +26,9 @@ final class MapLibreWebSchemeHandler: NSObject, WKURLSchemeHandler {
   static let base = "munim-maplibre://app/"
 
   /// MapLibre GL JS version the page is written for (and the bundled copy must be).
-  static let maplibreVersion = "5.24.0"
+  static let maplibreVersion = "5.24.1"
   /// three.js version the 3D layer is written for.
-  static let threeVersion = "0.186.1"
+  static let threeVersion = "0.187.0"
 
   /// The `munim-maplibre` folder in the pod's resource bundle.
   static let root: URL? = {

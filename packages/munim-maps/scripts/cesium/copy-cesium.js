@@ -30,7 +30,7 @@ const path = require('path')
  * load from jsDelivr (CesiumSupport.swift `cesiumVersion`,
  * CesiumMapEngine.kt `CESIUM_VERSION`). The app's `cesium` should match.
  */
-const CESIUM_VERSION = '1.146.0'
+const CESIUM_VERSION = '1.147.0'
 
 const PARTS = ['Cesium.js', 'Workers', 'ThirdParty', 'Assets', 'Widgets']
 const NOTICES = ['LICENSE.md', 'ThirdParty.json']

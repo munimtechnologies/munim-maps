@@ -35,8 +35,8 @@ const path = require('path')
  * The versions the page is written for and the engines load from jsDelivr
  * (MapLibreWebSupport.swift, MapLibreWebEngine.kt). The app's packages should match.
  */
-const MAPLIBRE_GL_VERSION = '5.24.0'
-const THREE_VERSION = '0.186.1'
+const MAPLIBRE_GL_VERSION = '5.24.1'
+const THREE_VERSION = '0.187.0'
 
 const MAPLIBRE_FILES = ['dist/maplibre-gl.js', 'dist/maplibre-gl.css', 'LICENSE.txt']
 const THREE_FILES = [

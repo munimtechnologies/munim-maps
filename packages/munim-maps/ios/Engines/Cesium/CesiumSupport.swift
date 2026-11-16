@@ -92,7 +92,7 @@ final class CesiumSchemeHandler: NSObject, WKURLSchemeHandler {
   // MARK: CesiumJS
 
   /// The CesiumJS version the page is written for (and the bundled copy is).
-  static let cesiumVersion = "1.146.0"
+  static let cesiumVersion = "1.147.0"
 
   /// Where CesiumJS comes from when it is not bundled: jsDelivr at the pinned
   /// version, or Info.plist `MunimMapsCesiumBaseURL` (a self-hosted

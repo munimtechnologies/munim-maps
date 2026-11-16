@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/ios-build.yml'
+      - 'Package.swift'
       - 'package*.json'
       - 'example/**'
       - 'packages/munim-maps/ios/**'
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/ios-build.yml'
+      - 'Package.swift'
       - 'package*.json'
       - 'example/**'
       - 'packages/munim-maps/ios/**'
@@ -54,10 +56,10 @@ jobs:
     env:
       MUNIM_MAPS_PROVIDERS: ${{ matrix.providers }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Generate iOS project
@@ -77,3 +79,13 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
         working-directory: example/ios
+
+  swift-package:
+    name: Build Swift package (MunimMaps, without React Native)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build for the iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild             -scheme MunimMaps-Package             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             build

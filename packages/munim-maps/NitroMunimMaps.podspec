@@ -192,13 +192,16 @@ Pod::Spec.new do |s|
     # Maps SDK for iOS 10 and Google Maps Utils 7 (clustering, heatmaps,
     # KML, GeoJSON).
     # GoogleMaps 9.4+ with Utils 6.1+ (react-native-maps' Google subspec pins
-    # 9.4.0 / 6.1.0); 10.x with Utils 7 otherwise.
+    # 9.4.0 / 6.1.0); 10.x with Utils 7 otherwise. 10.15 is the last
+    # GoogleMaps on CocoaPods: Google ships 11 (and Utils 7.1) only as Swift
+    # packages.
     ss.dependency "GoogleMaps", ">= 9.4"
     ss.dependency "Google-Maps-iOS-Utils", ">= 6.1"
   end
 
   s.subspec "Mapbox" do |ss|
     ss.source_files = "ios/Engines/Mapbox/**/*.swift"
+    # 11.32+ (11.34 on CocoaPods today); @rnmapbox/maps 10.3.18 pins ~> 11.33.0.
     ss.dependency "MapboxMaps", "~> 11.32"
   end
 
