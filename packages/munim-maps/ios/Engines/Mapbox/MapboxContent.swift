@@ -97,7 +97,7 @@ extension MapboxMapEngine {
     let visible = content.markers.filter(\.visible)
     var groups: [String: [MunimMarker]] = [:]
     for marker in visible {
-      groups["\(marker.clusteringId)|\(Self.allowsOverlap(marker))", default: []].append(marker)
+      groups["\(marker.clusteringId)|\(Self.allowsOverlap(marker))|\(marker.flat)", default: []].append(marker)
     }
     for (key, manager) in content.managers where groups[key] == nil {
       manager.annotations = []
@@ -138,6 +138,9 @@ extension MapboxMapEngine {
     manager.iconAllowOverlap = overlap
     manager.textAllowOverlap = overlap
     manager.iconIgnorePlacement = overlap
+    // Flat markers turn and tilt with the map; the others face the screen.
+    manager.iconRotationAlignment = sample.flat ? .map : .viewport
+    manager.iconPitchAlignment = sample.flat ? .map : .viewport
     manager.textOptional = true
     if hasSlots { manager.slot = "top" }
     return manager
@@ -214,6 +217,7 @@ extension MapboxMapEngine {
     a.iconAnchor = .topLeft
     a.iconOffset = [-marker.anchorX * Double(image.size.width), -marker.anchorY * Double(image.size.height)]
     a.symbolSortKey = marker.zIndex
+    a.iconRotate = marker.rotation.isFinite ? marker.rotation : 0
     a.iconOpacity = marker.opacity
     let showsTitle = (marker.style == .pin || marker.style == .marker) && !marker.title.isEmpty
       && marker.titleVisibility != .hidden

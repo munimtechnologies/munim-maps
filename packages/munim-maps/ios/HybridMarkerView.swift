@@ -37,7 +37,7 @@ enum MarkerViewDefaults {
     zIndex: 0, draggable: false, clusteringId: "", calloutEnabled: false, opacity: 1, visible: true,
     displayPriority: 1000, collisionMode: .rectangle, titleVisibility: .adaptive, subtitleVisibility: .adaptive,
     glyphSymbol: "", selectedGlyphSymbol: "", glyphColor: "", animatesWhenAdded: false,
-    leftCalloutAccessory: accessory, rightCalloutAccessory: accessory, calloutDetail: "")
+    leftCalloutAccessory: accessory, rightCalloutAccessory: accessory, calloutDetail: "", animationDuration: 0, rotation: 0, flat: false)
 }
 
 /// Draws the children into the marker's picture when something changed:
@@ -51,7 +51,9 @@ enum MarkerViewDefaults {
 /// goes to the map with the picture it has.
 private final class MarkerViewHost: UIView {
   weak var owner: HybridMarkerView?
-  private weak var map: (any MunimMapEngine)?
+  /// The map container: it glides the marker (`animationDuration`) and
+  /// hands it to whichever engine draws the map.
+  private weak var map: MunimMapContainerView?
   private var registeredId = ""
   private var trackTimer: Timer?
   private var pendingRedraws: [DispatchWorkItem] = []
@@ -159,14 +161,14 @@ private final class MarkerViewHost: UIView {
     }
   }
 
-  /// The engine of the `MunimMapView` this marker is a child of:
-  /// a sibling of one of this view's containers.
-  private func findMap() -> (any MunimMapEngine)? {
+  /// The `MunimMapView` this marker is a child of: a sibling of one of
+  /// this view's containers.
+  private func findMap() -> MunimMapContainerView? {
     var ancestor = superview
     var depth = 0
     while let current = ancestor, depth < 8 {
       for sibling in current.subviews {
-        if let container = sibling as? MunimMapContainerView { return container.engine }
+        if let container = sibling as? MunimMapContainerView { return container }
       }
       ancestor = current.superview
       depth += 1

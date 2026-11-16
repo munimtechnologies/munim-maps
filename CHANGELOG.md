@@ -4,6 +4,29 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- `animationDuration` on markers and `MarkerView`s: a marker glides to its new `coordinate` over that many milliseconds, drawn natively every frame, on every engine (MapKit, Google Maps, Mapbox, MapLibre, MapLibre GL JS and Cesium, iOS and Android), like react-native-maps' `animateMarkerToCoordinate`. A new coordinate mid-glide starts from where the marker is drawn; the same props again carry on; everything but the position changes at once. MapKit and Google Maps move the marker in place each frame (no new picture, clusters again when the glide ends); Mapbox and MapLibre Native get the markers once a frame; Cesium and MapLibre GL JS glide on their page. Swift: `MunimMapContainerView.setMarkers` / `setViewMarker` and the SwiftUI `MunimMap` glide too (`MunimMarkerTransitions`). The example's Glide screen (Engines › Glide) shows a gliding balloon, a gliding `MarkerView` and 1000 gliding dots.
+- `rotation` and `flat` on markers (and `MarkerView`), like react-native-maps: `rotation` turns a marker clockwise about its anchor, from the screen's up or, with `flat`, from north, lying on the map so it turns and tilts with it. Google Maps (`GMSMarker.rotation` / `isFlat`, clustered markers too), Mapbox (`icon-rotate`, a manager per alignment), MapLibre (`icon-rotate`, a layer per alignment), MapLibre GL JS (marker rotation and alignments), Cesium (billboard rotation, aligned to the axis when flat) and MapKit (the annotation view turned, with the map's heading when flat; MapKit cannot tilt it). `google.markers[id].rotation` / `.flat` still win on Google.
+
+### Changed
+
+- Dependencies: React Native 0.88.1, React 19.3.1, Nitro Modules / nitrogen 0.37.2, Expo SDK 58.0.25 in the example, ESLint 9 (flat config), Prettier 3.10. Engine SDKs: Mapbox Android 11.35.0, MapLibre Android 13.7.1, Google Maps for Android 20.1.0, Google Maps Android Utils 4.5.2, Maps 3D SDK for Android 16.0.1 (GA), Filament 1.80.1, CesiumJS 1.147.0, MapLibre GL JS 5.24.1, three.js 0.187.0. Android `compileSdk` 37 and lint/test `targetSdk` 37.
+- `MarkerView` on Android keeps its picture when only its props change (a new coordinate, title, anchor), as iOS does since 0.8.1: a marker that moves every second no longer draws its children four times per update.
+
+### Performance
+
+- List props (`markers`, `polylines`, `polygons`, `circles`, `tileOverlays`, `clusterStyles`, `models`, `zones`, `paths`) keep the previous native array while the items are equal, and equal items keep their previous objects. A re-render that rebuilds the same 5000 markers now sends nothing to the map (it sent all 5000 every time), for about 5 ms more JavaScript per render.
+- Inline `mapPadding`, `cameraBoundary` and `initialCamera` objects are no longer sent on every render; MapKit laid the map out and redrew the 3D layer, and Google re-applied its settings, for each one. MapKit, Google iOS and every Android engine also skip an unchanged padding natively.
+- MapLibre GL JS: screen-space clustering finds neighbours with a grid instead of comparing every pair (5000 markers: 3.9 ms instead of 72 ms per recluster in Node), with the same clusters.
+- Google Maps for Android no longer reclusters every clustering id on every marker update, only the ones whose markers changed, and moves a marker whose only change is its position without drawing its icon again. MapKit does the same for markers that only moved.
+- `MarkerView` on Cesium and MapLibre GL JS (iOS and Android) and on Google Maps and MapLibre for Android: the same picture sent again (new props only) is no longer encoded to PNG or given a new icon.
+
+### Fixed
+
+- `MarkerView`s stay on the map when the engine changes (a new `provider`, or MapLibre switching renderer); they used to vanish until their props changed.
+- Android, Google's 3D map: built against the Maps 3D SDK 16 API (`Map3DInitConfig`, the click listener's `Map3DClickEvent`).
+
 ## [0.8.1] - 2026-11-06
 
 ### Fixed

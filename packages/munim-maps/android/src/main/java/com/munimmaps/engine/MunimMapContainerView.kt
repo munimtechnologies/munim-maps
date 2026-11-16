@@ -1,9 +1,11 @@
 package com.munimmaps.engine
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.widget.FrameLayout
 import com.margelo.nitro.munimmaps.MapProvider
 import com.margelo.nitro.munimmaps.NativeCircle
+import com.margelo.nitro.munimmaps.NativeMarker
 import com.margelo.nitro.munimmaps.NativePolygon
 
 /**
@@ -22,6 +24,32 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
     drawCircles = { engine?.setCircles(it) },
     drawPolygons = { engine?.setPolygons(it) },
   )
+
+  private val markerTransitions = MunimMarkerTransitions(
+    draw = { engine?.setMarkers(it) },
+    drawViewMarker = { marker, image -> engine?.setViewMarker(marker, image) },
+    move = { engine?.moveMarkers(it) ?: true },
+  )
+
+  /** Sets the engine's markers, gliding the ones with an `animationDuration` to their new coordinate. */
+  fun setMarkers(markers: Array<NativeMarker>) {
+    markerTransitions.setMarkers(markers, passThrough = engine?.animatesMarkerTransitions ?: false)
+  }
+
+  /** A `MarkerView`'s marker and picture, gliding like [setMarkers]. */
+  fun setViewMarker(marker: NativeMarker, image: Bitmap?) {
+    markerTransitions.setViewMarker(marker, image, passThrough = engine?.animatesMarkerTransitions ?: false)
+  }
+
+  fun setViewMarkerImage(image: Bitmap?, id: String) {
+    markerTransitions.setViewMarkerImage(image, id)
+    engine?.setViewMarkerImage(image, id)
+  }
+
+  fun removeViewMarker(id: String) {
+    markerTransitions.removeViewMarker(id)
+    engine?.removeViewMarker(id)
+  }
 
   /** Sets the engine's circles, gliding the ones with an `animationDuration` from where they are drawn now. */
   fun setCircles(circles: Array<NativeCircle>) {
@@ -43,6 +71,8 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
     val current = engine
     if (current != null && current.provider == provider && current.variant == variant) return null
     shapeTransitions.finish()
+    markerTransitions.finish()
+    markerTransitions.reset()
     engine?.let {
       removeView(it.view)
       it.destroy()
@@ -51,11 +81,14 @@ class MunimMapContainerView(context: Context) : FrameLayout(context) {
     engine = next
     addView(next.view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     layoutChildren()
+    // `MarkerView`s stay on the map when the engine changes.
+    markerTransitions.resendViewMarkers()
     return next
   }
 
   fun destroy() {
     shapeTransitions.finish()
+    markerTransitions.clear()
     engine?.destroy()
     engine = null
     removeAllViews()

@@ -1,5 +1,5 @@
-// Glides circles and polygons to new geometry (`animationDuration`) on the
-// page, once an animation frame, so the app only sends the occasional
+// Glides markers, circles and polygons to new geometry (`animationDuration`)
+// on the page, once an animation frame, so the app only sends the occasional
 // update. The same file is in the Cesium and GL JS pages
 // (test/shape-tween.test.js keeps the two copies identical).
 //
@@ -25,6 +25,7 @@
   const lerpCoordinate = (a, b, t) => ({ latitude: lerp(a.latitude, b.latitude, t), longitude: lerpLongitude(a.longitude, b.longitude, t) })
 
   function geometry(kind, s) {
+    if (kind === 'marker') return { latitude: s.latitude, longitude: s.longitude }
     if (kind === 'circle') return { latitude: s.latitude, longitude: s.longitude, radius: s.radius }
     return { coordinates: s.coordinates || [], holes: s.holes || [] }
   }
@@ -36,6 +37,7 @@
   }
 
   function sameGeometry(kind, a, b) {
+    if (kind === 'marker') return a.latitude === b.latitude && a.longitude === b.longitude
     if (kind === 'circle') return a.latitude === b.latitude && a.longitude === b.longitude && a.radius === b.radius
     return sameRing(a.coordinates, b.coordinates) && a.holes.length === b.holes.length && a.holes.every((h, i) => sameRing(h, b.holes[i]))
   }
@@ -47,6 +49,7 @@
 
   function interpolate(kind, from, to, t) {
     if (t >= 1) return to
+    if (kind === 'marker') return lerpCoordinate(from, to, t)
     if (kind === 'circle') {
       return { latitude: lerp(from.latitude, to.latitude, t), longitude: lerpLongitude(from.longitude, to.longitude, t), radius: lerp(from.radius, to.radius, t) }
     }
@@ -64,7 +67,7 @@
   function create(onFrame, options) {
     const now = (options && options.now) || (() => performance.now())
     const schedule = (options && options.schedule) || ((fn) => requestAnimationFrame(fn))
-    const targets = { circle: [], polygon: [] }
+    const targets = { circle: [], polygon: [], marker: [] }
     let drawn = new Map() // `${kind}:${id}` -> geometry of the props
     let runs = new Map() // `${kind}:${id}` -> { kind, from, to, start, duration }
     let scheduled = false
@@ -139,6 +142,7 @@
         drawn = new Map()
         targets.circle = []
         targets.polygon = []
+        targets.marker = []
       },
     }
   }

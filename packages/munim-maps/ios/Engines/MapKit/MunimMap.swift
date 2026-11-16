@@ -86,9 +86,10 @@ public struct MunimMap: UIViewRepresentable {
     self.onMapCreated = onMapCreated
   }
 
-  /// Glides circles and polygons with an `animationDuration`.
+  /// Glides markers, circles and polygons with an `animationDuration`.
   public final class Coordinator {
     let shapeTransitions = MunimShapeTransitions { _, _ in }
+    let markerTransitions = MunimMarkerTransitions()
   }
 
   public func makeCoordinator() -> Coordinator { Coordinator() }
@@ -99,6 +100,8 @@ public struct MunimMap: UIViewRepresentable {
       if let circles { view?.circles = circles }
       if let polygons { view?.polygons = polygons }
     }
+    context.coordinator.markerTransitions.draw = { [weak view] markers in view?.markers = markers }
+    context.coordinator.markerTransitions.move = { [weak view] positions in view?.moveMarkers(positions) ?? true }
     view.initialCamera = initialCamera
     onMapCreated?(view)
     return view
@@ -108,7 +111,7 @@ public struct MunimMap: UIViewRepresentable {
     view.models = models
     view.zones = zones
     view.paths = paths
-    view.markers = markers
+    context.coordinator.markerTransitions.setMarkers(markers)
     view.polylines = polylines
     context.coordinator.shapeTransitions.setPolygons(polygons)
     context.coordinator.shapeTransitions.setCircles(circles)

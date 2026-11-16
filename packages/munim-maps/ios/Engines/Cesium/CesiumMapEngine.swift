@@ -300,20 +300,41 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
     return m
   }
 
+  /// The picture each view marker's PNG was made from: the same picture
+  /// again (new props only, or a glide frame) is not encoded again.
+  private var viewMarkerImages: [String: UIImage] = [:]
+
+  /// `image`, or nil when it is the picture the marker already has.
+  private func newPicture(_ image: UIImage?, id: String) -> UIImage? {
+    guard let image, !(viewMarkers[id] != nil && viewMarkerImages[id] === image) else { return nil }
+    viewMarkerImages[id] = image
+    return image
+  }
+
   func setViewMarker(_ marker: MunimMarker, image: UIImage?) {
     if viewMarkers[marker.id] == nil { viewMarkerOrder.append(marker.id) }
-    viewMarkers[marker.id] = viewMarker(marker, image: image)
+    let picture = newPicture(image, id: marker.id)
+    var m = viewMarker(marker, image: picture)
+    if picture == nil, let previous = viewMarkers[marker.id] {
+      // Keep the PNG already sent.
+      m.style = previous.style
+      m.imageUri = previous.imageUri
+      m.imageSize = previous.imageSize
+      m.borderWidth = previous.borderWidth
+    }
+    viewMarkers[marker.id] = m
     sendMarkers()
   }
 
   func setViewMarkerImage(_ image: UIImage?, id: String) {
-    guard let marker = viewMarkers[id] else { return }
-    viewMarkers[id] = viewMarker(marker, image: image)
+    guard let marker = viewMarkers[id], let picture = newPicture(image, id: id) else { return }
+    viewMarkers[id] = viewMarker(marker, image: picture)
     sendMarkers()
   }
 
   func removeViewMarker(_ id: String) {
     viewMarkers[id] = nil
+    viewMarkerImages[id] = nil
     viewMarkerOrder.removeAll { $0 == id }
     sendMarkers()
   }
@@ -322,6 +343,8 @@ final class CesiumMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaults,
   var circles: [MunimCircle] = [] { didSet { set("circles", circles) } }
   /// The page glides circles and polygons itself (`animationDuration`).
   var animatesShapeTransitions: Bool { true }
+  /// The page glides markers itself (`animationDuration`).
+  var animatesMarkerTransitions: Bool { true }
   var tileOverlays: [MunimTileOverlay] = [] { didSet { set("tileOverlays", tileOverlays) } }
   var clusterStyles: [MunimClusterStyle] = [] { didSet { set("clusterStyles", clusterStyles) } }
 

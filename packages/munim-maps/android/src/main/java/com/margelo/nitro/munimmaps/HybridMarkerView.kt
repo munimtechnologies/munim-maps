@@ -9,12 +9,11 @@ import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import com.facebook.react.uimanager.ThemedReactContext
 import com.munimmaps.engine.MunimMapContainerView
-import com.munimmaps.engine.MunimMapEngine
 
 /**
  * React Native `MarkerView` on Android: draws its React Native children into
  * a bitmap and hands it to the `MunimMapView` it sits in as a marker
- * ([MunimMapEngine.setViewMarker]), like iOS's `HybridMarkerView`.
+ * ([com.munimmaps.engine.MunimMapEngine.setViewMarker]), like iOS's `HybridMarkerView`.
  *
  * Android's Nitro views cannot hold React children, so the JavaScript side
  * lays the marker out differently: `MunimMapView` puts its children in an
@@ -33,7 +32,8 @@ import com.munimmaps.engine.MunimMapEngine
  */
 class HybridMarkerView(context: ThemedReactContext) : HybridMarkerViewSpec() {
   private val main = Handler(Looper.getMainLooper())
-  private var map: MunimMapEngine? = null
+  /** The map container: it glides the marker (`animationDuration`) and hands it to the engine. */
+  private var map: MunimMapContainerView? = null
   private var registeredId = ""
   private val pending = mutableListOf<Runnable>()
   private val density = context.resources.displayMetrics.densityDpi
@@ -108,12 +108,18 @@ class HybridMarkerView(context: ThemedReactContext) : HybridMarkerViewSpec() {
     contentChanged = false
     if (!newMarker && !newContent) return
     main.post {
+      var added = false
       if (newMarker) {
-        if (marker.id != registeredId) unregister()
+        if (marker.id != registeredId) {
+          unregister()
+          added = true
+        }
         // Replaces the marker with this id: position, anchor, title…
         register()
       }
-      scheduleRedraws()
+      // Only new children (or a new marker) need drawing again; new props
+      // alone keep the picture.
+      if (newContent || added) scheduleRedraws()
     }
   }
 
@@ -158,14 +164,14 @@ class HybridMarkerView(context: ThemedReactContext) : HybridMarkerViewSpec() {
     main.removeCallbacks(track)
   }
 
-  /** The engine of the `MunimMapView` this marker belongs to. */
-  private fun findMap(): MunimMapEngine? {
+  /** The `MunimMapView` this marker belongs to. */
+  private fun findMap(): MunimMapContainerView? {
     var ancestor = host.parent as? ViewGroup
     var depth = 0
     while (ancestor != null && depth < 10) {
       for (i in 0 until ancestor.childCount) {
         val child = ancestor.getChildAt(i)
-        if (child is MunimMapContainerView) return child.engine
+        if (child is MunimMapContainerView) return child
       }
       ancestor = ancestor.parent as? ViewGroup
       depth += 1
@@ -173,14 +179,24 @@ class HybridMarkerView(context: ThemedReactContext) : HybridMarkerViewSpec() {
     return null
   }
 
+  /**
+   * Adds the marker to the map, or sends it again with new props. A new
+   * marker is drawn first; one already on the map keeps its picture (its
+   * props, such as a new coordinate every second, are not in the picture),
+   * as on iOS.
+   */
   private fun register() {
     if (!host.isAttachedToWindow || marker.id.isEmpty()) return
-    val engine = map ?: findMap() ?: return
-    map = engine
+    val container = map ?: findMap() ?: return
+    map = container
+    val last = lastBitmap
+    val bitmap = if (registeredId == marker.id && last != null && !last.isRecycled) {
+      last
+    } else {
+      snapshot().also { remember(it) }
+    }
     registeredId = marker.id
-    val bitmap = snapshot()
-    remember(bitmap)
-    engine.setViewMarker(marker, bitmap)
+    container.setViewMarker(marker, bitmap)
   }
 
   private fun unregister() {
@@ -243,7 +259,8 @@ class HybridMarkerView(context: ThemedReactContext) : HybridMarkerViewSpec() {
       collisionMode = MarkerCollisionMode.RECTANGLE, titleVisibility = FeatureVisibility.ADAPTIVE,
       subtitleVisibility = FeatureVisibility.ADAPTIVE, glyphSymbol = "", selectedGlyphSymbol = "",
       glyphColor = "", animatesWhenAdded = false, leftCalloutAccessory = NO_ACCESSORY,
-      rightCalloutAccessory = NO_ACCESSORY, calloutDetail = "",
+      rightCalloutAccessory = NO_ACCESSORY, calloutDetail = "", animationDuration = 0.0,
+      rotation = 0.0, flat = false,
     )
   }
 }

@@ -484,6 +484,13 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
     showMarkers()
   }
 
+  override fun moveMarkers(positions: Map<String, MapCoordinate>): Boolean {
+    if (mode3d != null || !movePlainMarkers(positions)) return false
+    // View markers are sent again with the list; keep them where they are.
+    for ((id, c) in positions) viewMarkers[id]?.let { viewMarkers[id] = it.copy(latitude = c.latitude, longitude = c.longitude) }
+    return true
+  }
+
   // MarkerView: React Native views drawn into bitmaps, shown as image markers.
   private var appMarkers: Array<NativeMarker> = emptyArray()
   private val viewMarkers = LinkedHashMap<String, NativeMarker>()
@@ -506,7 +513,8 @@ class GoogleMapEngine(internal val context: Context) : MunimMapEngine, MapCamera
 
   private fun putViewMarker(marker: NativeMarker, image: Bitmap?) {
     var uri = viewMarkers[marker.id]?.imageUri ?: ""
-    if (image != null) {
+    // The same bitmap again (new props, same picture) keeps its icon.
+    if (image != null && viewBitmaps[uri] !== image) {
       viewBitmaps.remove(uri)
       uri = "munim-view:${marker.id}:${++viewGeneration}"
       viewBitmaps[uri] = image

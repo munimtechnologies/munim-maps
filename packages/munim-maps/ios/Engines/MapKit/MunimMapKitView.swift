@@ -85,6 +85,14 @@ public final class MunimMapKitView: UIView {
     syncMarkers()
   }
 
+  /// Moves markers in place while they glide (`animationDuration`).
+  public func moveMarkers(_ positions: [String: CLLocationCoordinate2D]) -> Bool {
+    // View markers are sent again with the list; keep them where they are.
+    for (id, coordinate) in positions where viewMarkers[id] != nil { viewMarkers[id]?.coordinate = coordinate }
+    features.moveMarkers(positions)
+    return true
+  }
+
   private func syncMarkers() {
     features.setMarkers(viewMarkers.isEmpty ? markers : markers + viewMarkers.values)
   }
@@ -254,6 +262,7 @@ public final class MunimMapKitView: UIView {
   /// Space covered by your own UI.
   public var mapPadding: UIEdgeInsets = .zero {
     didSet {
+      guard oldValue != mapPadding else { return }
       mapView.layoutMargins = mapPadding
       setNeedsLayout()
       modelLayer.setNeedsRender()
@@ -893,8 +902,14 @@ public final class MunimMapKitView: UIView {
     onMarkerDrag?(a.id, mapView.convert(point, toCoordinateFrom: mapView))
   }
 
-  fileprivate func regionDidChange() { onCameraChange?(camera) }
-  fileprivate func regionIsChanging() { onCameraMove?(camera) }
+  fileprivate func regionDidChange() {
+    features.heading = mapView.camera.heading
+    onCameraChange?(camera)
+  }
+  fileprivate func regionIsChanging() {
+    features.heading = mapView.camera.heading
+    onCameraMove?(camera)
+  }
 
   fileprivate func didFinishLoading() {
     guard !reportedReady else { return }

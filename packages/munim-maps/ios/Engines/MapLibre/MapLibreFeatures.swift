@@ -204,6 +204,8 @@ final class MapLibreFeatures {
       "sort": m.zIndex + m.displayPriority / 10_000,
       "opacity": m.opacity,
       "req": required,
+      "rotation": m.rotation,
+      "flat": m.flat,
     ]
     return feature
   }
@@ -243,16 +245,29 @@ final class MapLibreFeatures {
 
   private func addMarkerLayers(_ style: MLNStyle, source: MLNShapeSource, clusterId: String) {
     guard let slot = style.layer(withIdentifier: Self.slotMarkers) else { return }
+    // A layer per placement (required or not) and alignment: flat markers
+    // turn and tilt with the map (`icon-rotation-alignment` and
+    // `icon-pitch-alignment` cannot come from the data).
     for required in [false, true] {
-      let layer = MLNSymbolStyleLayer(identifier: "\(source.identifier)|\(required ? "req" : "opt")", source: source)
-      layer.iconImageName = NSExpression(forKeyPath: "icon")
-      layer.iconOffset = NSExpression(mglJSONObject: ["get", "offset"])
-      layer.iconAllowsOverlap = NSExpression(forConstantValue: required)
-      layer.iconIgnoresPlacement = NSExpression(forConstantValue: required)
-      layer.symbolSortKey = NSExpression(forKeyPath: "sort")
-      layer.iconOpacity = NSExpression(forKeyPath: "opacity")
-      layer.predicate = NSPredicate(mglJSONObject: ["all", ["!", ["has", "point_count"]], ["==", ["get", "req"], required]])
-      style.insertLayer(layer, below: slot)
+      for flat in [false, true] {
+        let id = "\(source.identifier)|\(required ? "req" : "opt")\(flat ? "-flat" : "")"
+        let layer = MLNSymbolStyleLayer(identifier: id, source: source)
+        layer.iconImageName = NSExpression(forKeyPath: "icon")
+        layer.iconOffset = NSExpression(mglJSONObject: ["get", "offset"])
+        layer.iconAllowsOverlap = NSExpression(forConstantValue: required)
+        layer.iconIgnoresPlacement = NSExpression(forConstantValue: required)
+        layer.symbolSortKey = NSExpression(forKeyPath: "sort")
+        layer.iconOpacity = NSExpression(forKeyPath: "opacity")
+        layer.iconRotation = NSExpression(mglJSONObject: ["coalesce", ["get", "rotation"], 0])
+        let alignment = flat ? "map" : "viewport"
+        layer.iconRotationAlignment = NSExpression(forConstantValue: alignment)
+        layer.iconPitchAlignment = NSExpression(forConstantValue: alignment)
+        layer.predicate = NSPredicate(mglJSONObject: [
+          "all", ["!", ["has", "point_count"]], ["==", ["get", "req"], required],
+          ["==", ["coalesce", ["get", "flat"], false], flat],
+        ])
+        style.insertLayer(layer, below: slot)
+      }
     }
     if !clusterId.isEmpty {
       let clusters = MLNSymbolStyleLayer(identifier: "\(source.identifier)|clusters", source: source)
@@ -281,7 +296,7 @@ final class MapLibreFeatures {
   }
 
   private var markerLayerIds: Set<String> {
-    Set(markerSources.flatMap { ["\($0)|req", "\($0)|opt"] })
+    Set(markerSources.flatMap { ["\($0)|req", "\($0)|opt", "\($0)|req-flat", "\($0)|opt-flat"] })
   }
 
   func marker(at point: CGPoint) -> MunimMarker? {

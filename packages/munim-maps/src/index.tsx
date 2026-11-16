@@ -66,6 +66,7 @@ import type {
   UserLocationEvent,
 } from './specs/MapFeatures.nitro'
 import { pointsOfInterestFilter } from './services'
+import { createNativeList, sameNative } from './nativeList'
 import { colorOr, normalizeColor } from './colors'
 import { resolveMapLibreRenderer } from './providers/maplibre'
 import {
@@ -401,7 +402,7 @@ export function toNativeZone(zone: MapZone): NativeMapZone {
 }
 
 function useNativeZones(zones: MapZone[] | undefined): NativeMapZone[] {
-  return useMemo(() => (zones ?? []).map(toNativeZone), [zones])
+  return useNativeList(zones, toNativeZone)
 }
 
 /**
@@ -466,17 +467,39 @@ export function groundElevation(
 }
 
 function useNativePaths(paths: MapPath[] | undefined): NativeMapPath[] {
-  return useMemo(() => (paths ?? []).map(toNativePath), [paths])
+  return useNativeList(paths, toNativePath)
 }
 
 function useNativeModels(
   models: MapModel[] | undefined,
   format: ModelFormat = Platform.OS === 'ios' ? 'usdz' : 'glb'
 ): NativeMapModel[] {
-  return useMemo(
-    () => (models ?? []).map((m) => toNativeModel(m, format)),
-    [models, format]
-  )
+  return useNativeList(models, (m) => toNativeModel(m, format), [format])
+}
+
+/**
+ * A list prop as native structs: the previous array (so Nitro sends
+ * nothing) while the converted items are equal, see `createNativeList`.
+ */
+function useNativeList<T, N>(
+  items: readonly T[] | undefined,
+  convert: (item: T) => N,
+  deps: readonly unknown[] = []
+): N[] {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const list = useMemo(() => createNativeList(convert), deps)
+  return list(items)
+}
+
+/**
+ * The previous value while the new one is equal, so an inline object prop
+ * (`mapPadding={{ bottom: 80 }}`, `initialCamera={{…}}`) is not sent to the
+ * map on every render.
+ */
+function useStable<T>(value: T): T {
+  const last = useRef(value)
+  if (!sameNative(last.current, value)) last.current = value
+  return last.current
 }
 
 function useCallbackProp<A extends unknown[]>(
@@ -875,8 +898,7 @@ const WORLD_CAMERA: MapCamera = {
 }
 
 function useMapped<T, N>(items: T[] | undefined, map: (item: T) => N): N[] {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => (items ?? []).map(map), [items])
+  return useNativeList(items, map)
 }
 
 /**
@@ -1048,6 +1070,14 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
       [onProviderEventProp]
     )
     const pointsOfInterest = pointsOfInterestFilter(props.pointsOfInterest)
+    // Inline objects (`mapPadding={{ bottom: 80 }}`) stay the same value
+    // while equal: each new one reached the map, and MapKit laid out and
+    // redrew the 3D layer for it, on every render.
+    const initialCamera = useStable(
+      props.initialCamera ?? regionCamera.current
+    )
+    const cameraBoundary = useStable(props.cameraBoundary ?? NO_REGION)
+    const mapPadding = useStable(insets(props.mapPadding))
     const hybridRef = useMemo(
       () =>
         callback((map: MunimMapViewRef) => {
@@ -1074,7 +1104,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         occlusion={props.occlusion ?? 'none'}
         buildingTilesUrl={props.buildingTilesUrl ?? ''}
         followTerrain={props.followTerrain ?? false}
-        initialCamera={props.initialCamera ?? regionCamera.current}
+        initialCamera={initialCamera}
         mapStyle={props.mapStyle ?? 'standard'}
         elevation={props.elevation ?? 'realistic'}
         globe={props.globe ?? false}
@@ -1114,8 +1144,8 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
         pitchEnabled={props.pitchEnabled ?? true}
         minCameraDistance={props.cameraDistanceRange?.min ?? 0}
         maxCameraDistanceLimit={props.cameraDistanceRange?.max ?? 0}
-        cameraBoundary={props.cameraBoundary ?? NO_REGION}
-        mapPadding={insets(props.mapPadding)}
+        cameraBoundary={cameraBoundary}
+        mapPadding={mapPadding}
         selectableMapFeatures={(props.selectableMapFeatures ?? []).join(',')}
         onModelPress={onModelPress}
         onCameraChange={onCameraChange}

@@ -144,6 +144,19 @@ interface MunimMapEngine {
    * frame of the transition.
    */
   val animatesShapeTransitions: Boolean get() = false
+  /**
+   * True when the engine glides markers to new coordinates itself
+   * (`animationDuration`); otherwise [MunimMapContainerView] moves them every
+   * frame of the glide.
+   */
+  val animatesMarkerTransitions: Boolean get() = false
+  /**
+   * Moves markers (of the list or `MarkerView`s) already on the map to these
+   * coordinates, by id, once a frame while they glide. Return false (the
+   * default) to be sent every marker instead ([setMarkers],
+   * [setViewMarker]); the container sends the list again when a glide ends.
+   */
+  fun moveMarkers(positions: Map<String, MapCoordinate>): Boolean = false
   fun setTileOverlays(overlays: Array<NativeTileOverlay>) { if (overlays.isNotEmpty()) reportUnsupported("tileOverlays") }
   fun setClusterStyles(styles: Array<NativeClusterStyle>) {}
   /**

@@ -463,7 +463,7 @@ public final class GoogleMapEngine: UIView, MunimMapEngine, MunimMapEngineDefaul
   public var isPitchEnabled = true { didSet { applySettings() } }
   public var cameraDistanceRange: ClosedRange<Double>? { didSet { applyZoomLimits() } }
   public var cameraBoundary: MKCoordinateRegion? { didSet { applySettings() } }
-  public var mapPadding: UIEdgeInsets = .zero { didSet { applySettings() } }
+  public var mapPadding: UIEdgeInsets = .zero { didSet { if oldValue != mapPadding { applySettings() } } }
 
   public var userTrackingMode: MKUserTrackingMode = .none {
     didSet {

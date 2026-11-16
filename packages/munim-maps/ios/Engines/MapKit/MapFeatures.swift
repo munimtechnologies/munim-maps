@@ -234,6 +234,9 @@ final class MapFeatureController {
         if old.latitude != marker.latitude || old.longitude != marker.longitude {
           existing.coordinate = CLLocationCoordinate2D(latitude: marker.latitude, longitude: marker.longitude)
         }
+        // Only moved (a marker following someone, a glide's last frame): the
+        // view keeps its picture and callout.
+        if marker.differsOnlyInPosition(from: old) { continue }
         if let view = mapView.view(for: existing) { configure(view, for: existing) }
       } else {
         let annotation = MunimAnnotation(marker: marker)
@@ -248,6 +251,45 @@ final class MapFeatureController {
       annotations[id] = nil
     }
     if !toAdd.isEmpty { mapView.addAnnotations(toAdd) }
+  }
+
+  // MARK: Rotation
+
+  /// The map's heading: flat markers turn with the map.
+  var heading: CLLocationDirection = 0 {
+    didSet {
+      guard heading != oldValue, let mapView, hasFlatMarkers else { return }
+      for annotation in annotations.values where annotation.marker.flat {
+        if let view = mapView.view(for: annotation) { applyRotation(view, annotation.marker) }
+      }
+    }
+  }
+
+  private var hasFlatMarkers: Bool { annotations.values.contains { $0.marker.flat } }
+
+  /// `rotation` (clockwise, from north when `flat`) as the view's transform.
+  /// MapKit annotation views face the screen, so a flat marker turns with
+  /// the map but does not tilt. Views never rotated keep MapKit's own
+  /// transform (the balloon's selection).
+  func applyRotation(_ view: MKAnnotationView, _ m: MunimMarker) {
+    let degrees = m.flat ? m.rotation - heading : m.rotation
+    let rotated = view.layer.value(forKey: Self.rotatedKey) as? Bool ?? false
+    guard degrees != 0 || rotated else { return }
+    view.layer.setValue(degrees != 0, forKey: Self.rotatedKey)
+    view.transform = degrees == 0 ? .identity : CGAffineTransform(rotationAngle: CGFloat(degrees * .pi / 180))
+  }
+
+  private static let rotatedKey = "munimRotated"
+
+  /// Moves markers already on the map (gliding markers, once a frame).
+  func moveMarkers(_ positions: [String: CLLocationCoordinate2D]) {
+    for (id, coordinate) in positions {
+      guard let annotation = annotations[id] else { continue }
+      let current = annotation.coordinate
+      if current.latitude != coordinate.latitude || current.longitude != coordinate.longitude {
+        annotation.coordinate = coordinate
+      }
+    }
   }
 
   private func loadPhoto(_ uri: String) {
@@ -361,6 +403,7 @@ final class MapFeatureController {
       view.detailCalloutAccessoryView = nil
     }
     view.isDraggable = m.draggable
+    applyRotation(view, m)
     view.alpha = CGFloat(min(1, max(0, m.opacity)))
     view.isHidden = !m.visible
     view.clusteringIdentifier = m.clusteringId.isEmpty ? nil : m.clusteringId

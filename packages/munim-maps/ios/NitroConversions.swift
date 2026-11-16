@@ -99,6 +99,9 @@ extension NativeMarker {
     marker.leftCalloutAccessory = leftCalloutAccessory.core
     marker.rightCalloutAccessory = rightCalloutAccessory.core
     marker.calloutDetail = calloutDetail
+    marker.animationDuration = animationDuration
+    marker.rotation = rotation
+    marker.flat = flat
     return marker
   }
 }

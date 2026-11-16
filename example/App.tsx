@@ -896,7 +896,7 @@ function Example() {
       ) : mode === 'cesium' ? (
         <CesiumScreen topInset={insets.top} autoChecks={cesiumChecks} onExit={() => setMode('providers')} />
       ) : mode === 'glide' ? (
-        <ShapeGlideScreen key={`${glideEngine ?? 'default'}-${glideJump}-${glideCheck}`} initial={glideEngine as MapProvider | 'maplibreweb' | undefined} jump={glideJump} check={glideCheck} topInset={insets.top} />
+        <ShapeGlideScreen key={`${glideEngine ?? 'default'}-${glideJump}-${glideCheck}`} initial={glideEngine as MapProvider | 'maplibreweb' | undefined} jump={glideJump} check={glideCheck} topInset={insets.top} onExit={() => setMode('providers')} />
       ) : mode === 'providers' ? (
         <ProvidersScreen
           initial={providerLink}
@@ -908,6 +908,11 @@ function Example() {
             if (screen === 'layer3d') {
               setProviderLink(engine)
               setLayer3dCheck(false)
+            }
+            if (screen === 'glide') {
+              setGlideEngine(engine)
+              setGlideJump(false)
+              setGlideCheck(false)
             }
             if (screen === 'layer-rnmapbox' || screen === 'layer-rnmaps-google') {
               setLayerOverCheck(false)
@@ -1110,6 +1115,7 @@ function Example() {
           <Toggle label="expo-maps" on={mode === 'expomaps'} onPress={() => setMode('expomaps')} />
           <Toggle label="MapKit" on={mode === 'parity'} onPress={() => setMode('parity')} />
           <Toggle label="Engines" on={false} onPress={() => setMode('providers')} />
+          <Toggle label="Glide" on={false} onPress={() => setMode('glide')} />
           {mode === 'parity' ? (
             <Toggle
               label={`Track: ${trackingMode}`}

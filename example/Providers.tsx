@@ -111,6 +111,7 @@ export type ExampleScreen =
   | 'elevation'
   | 'features'
   | 'space'
+  | 'glide'
 
 /** Each engine's own screen (every feature group and its checks). */
 const ENGINE_SCREENS: { screen: ExampleScreen; provider: MapProvider; label: string }[] = [
@@ -330,6 +331,11 @@ export function ProvidersScreen(props: {
             {isAvailable ? (
               <Pressable onPress={() => props.onOpen?.('layer3d', provider)} style={styles.chip}>
                 <Text style={styles.chipText}>3D layer on {NAMES[provider]} ›</Text>
+              </Pressable>
+            ) : null}
+            {isAvailable ? (
+              <Pressable onPress={() => props.onOpen?.('glide', provider)} style={styles.chip}>
+                <Text style={styles.chipText}>Glide on {NAMES[provider]} (markers, shapes) ›</Text>
               </Pressable>
             ) : null}
             {Platform.OS === 'ios'

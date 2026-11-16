@@ -459,6 +459,29 @@ public struct MunimMarker: Sendable, Equatable {
   public var rightCalloutAccessory = MunimCalloutAccessory(kind: .detail)
   /// Several lines of text in the callout, in place of the subtitle.
   public var calloutDetail = ""
+  /// Glide to a new coordinate over this many milliseconds (0 jumps), drawn
+  /// natively every frame (`MunimShapeTransitions`).
+  public var animationDuration: Double = 0
+  /// Degrees clockwise about the anchor: from the screen's up, or from
+  /// north when `flat`.
+  public var rotation: Double = 0
+  /// Lies on the map: turns (and tilts, where the engine can) with it.
+  public var flat = false
+
+  public var coordinate: CLLocationCoordinate2D {
+    get { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+    set { latitude = newValue.latitude; longitude = newValue.longitude }
+  }
+
+  /// The same marker apart from where it is (and how it gets there): only
+  /// its position needs updating.
+  public func differsOnlyInPosition(from other: MunimMarker) -> Bool {
+    var moved = other
+    moved.latitude = latitude
+    moved.longitude = longitude
+    moved.animationDuration = animationDuration
+    return moved == self
+  }
 
   public init(
     id: String,

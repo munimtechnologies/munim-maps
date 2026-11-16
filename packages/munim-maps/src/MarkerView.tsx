@@ -46,8 +46,8 @@ export interface MarkerViewProperties extends Omit<
    * only replaced when it looks different. Default `false`: the children
    * are drawn once, then again only when something changed: the children's
    * elements and props, their size, or a picture in them finishing loading.
-   * A re-render that changes nothing draws nothing, and on iOS a new
-   * position, title or anchor alone keeps the picture the marker has.
+   * A re-render that changes nothing draws nothing, and a new position,
+   * title or anchor alone keeps the picture the marker has.
    * State inside a child component that changes without the `MarkerView`'s
    * props changing needs `tracksViewChanges` or the ref's `redraw()`.
    */

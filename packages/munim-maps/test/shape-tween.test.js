@@ -147,3 +147,40 @@ test('circles and polygons glide independently', () => {
     ['circle']
   )
 })
+
+test('markers glide to a new coordinate and keep their other props at once', () => {
+  const h = harness()
+  const marker = (latitude, longitude, extra) =>
+    Object.assign({ id: 'bus', latitude, longitude, title: 'Bus', animationDuration: 1000 }, extra)
+  assert.deepEqual(h.t.set('marker', [marker(40, -86)])[0], marker(40, -86))
+  const first = h.t.set('marker', [marker(41, -85, { title: 'Bus 5' })])[0]
+  // Still where it was drawn, with the new title.
+  assert.equal(first.latitude, 40)
+  assert.equal(first.longitude, -86)
+  assert.equal(first.title, 'Bus 5')
+  assert.ok(h.t.running('marker', 'bus'))
+  h.advance(500)
+  const mid = h.frames.at(-1)
+  assert.equal(mid.kind, 'marker')
+  assert.ok(Math.abs(mid.shapes[0].latitude - 40.5) < 1e-9)
+  assert.ok(Math.abs(mid.shapes[0].longitude + 85.5) < 1e-9)
+  // The same props again carry on rather than restarting.
+  h.t.set('marker', [marker(41, -85, { title: 'Bus 5' })])
+  h.advance(500)
+  const end = h.frames.at(-1).shapes[0]
+  assert.equal(end.latitude, 41)
+  assert.equal(end.longitude, -85)
+  assert.equal(h.t.running('marker', 'bus'), false)
+  assert.equal(h.scheduled, false)
+})
+
+test('markers without animationDuration jump, and markers take the short way across the antimeridian', () => {
+  const h = harness()
+  h.t.set('marker', [{ id: 'a', latitude: 0, longitude: 179, animationDuration: 0 }])
+  const jumped = h.t.set('marker', [{ id: 'a', latitude: 0, longitude: -179, animationDuration: 0 }])[0]
+  assert.equal(jumped.longitude, -179)
+  h.t.set('marker', [{ id: 'b', latitude: 0, longitude: 179, animationDuration: 1000 }])
+  h.t.set('marker', [{ id: 'b', latitude: 0, longitude: -179, animationDuration: 1000 }])
+  h.advance(500)
+  assert.equal(Math.abs(h.frames.at(-1).shapes[0].longitude), 180)
+})

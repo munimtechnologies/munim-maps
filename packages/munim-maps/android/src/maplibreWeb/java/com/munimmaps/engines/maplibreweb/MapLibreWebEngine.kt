@@ -446,18 +446,29 @@ class MapLibreWebEngine(context: Context) : MunimMapEngine, MapCameraSource {
     )
   }
 
+  /** The bitmap each view marker's PNG was made from: the same bitmap again is not encoded again. */
+  private val viewMarkerBitmaps = HashMap<String, Bitmap>()
+
+  /** [image], or null when it is the picture the marker already has. */
+  private fun newPicture(id: String, image: Bitmap?): Bitmap? {
+    if (image == null || (viewMarkers.containsKey(id) && viewMarkerBitmaps[id] === image)) return null
+    viewMarkerBitmaps[id] = image
+    return image
+  }
+
   override fun setViewMarker(marker: NativeMarker, image: Bitmap?) {
-    viewMarkers[marker.id] = viewMarker(marker, image, viewMarkers[marker.id])
+    viewMarkers[marker.id] = viewMarker(marker, newPicture(marker.id, image), viewMarkers[marker.id])
     sendMarkers()
   }
 
   override fun setViewMarkerImage(image: Bitmap?, id: String) {
     val marker = viewMarkers[id] ?: return
-    viewMarkers[id] = viewMarker(marker, image, marker)
+    viewMarkers[id] = viewMarker(marker, newPicture(id, image), marker)
     sendMarkers()
   }
 
   override fun removeViewMarker(id: String) {
+    viewMarkerBitmaps.remove(id)
     if (viewMarkers.remove(id) != null) sendMarkers()
   }
 
@@ -466,6 +477,8 @@ class MapLibreWebEngine(context: Context) : MunimMapEngine, MapCameraSource {
   override fun setCircles(circles: Array<NativeCircle>) = set("circles", circles)
   /** The page glides circles and polygons itself (`animationDuration`). */
   override val animatesShapeTransitions get() = true
+  /** The page glides markers itself (`animationDuration`). */
+  override val animatesMarkerTransitions get() = true
   override fun setTileOverlays(overlays: Array<NativeTileOverlay>) = set("tileOverlays", overlays)
   override fun setClusterStyles(styles: Array<NativeClusterStyle>) = set("clusterStyles", styles)
 
@@ -769,9 +782,9 @@ class MapLibreWebEngine(context: Context) : MunimMapEngine, MapCameraSource {
     private const val ORIGIN = "https://$HOST"
 
     /** The MapLibre GL JS version the page is written for (and the bundled copy must be). */
-    const val MAPLIBRE_GL_VERSION = "5.24.0"
+    const val MAPLIBRE_GL_VERSION = "5.24.1"
     /** The three.js version the 3D layer is written for. */
-    const val THREE_VERSION = "0.186.1"
+    const val THREE_VERSION = "0.187.0"
 
     private val MAPLIBRE = Library("maplibre-gl", MAPLIBRE_GL_VERSION, "maplibre-gl",
       "https://cdn.jsdelivr.net/npm/maplibre-gl@$MAPLIBRE_GL_VERSION/dist/", "munimmaps.maplibre_gl_base_url")
