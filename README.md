@@ -222,6 +222,7 @@ layer.onModelPress = { id in print(id) }
 - 🪪 **Place cards**: tap a place on Apple's map and get Apple's own place card (`selectionAccessory`, iOS 18+)
 - 🧷 **React Native views as markers**: `<MarkerView>` turns any React Native view into a real MapKit marker that clusters, collides and selects
 - 🎯 **Moving and shrinking zones**: `animationDuration` on circles and polygons glides them between updates, natively every frame, so a zone updated once a second moves smoothly
+- 🚌 **Gliding markers**: `animationDuration` on markers and `MarkerView`s glides them to each new coordinate, natively every frame on every engine (react-native-maps' `animateMarkerToCoordinate`, without the `AnimatedRegion` plumbing), so a bus or a friend updated once a second moves continuously ([details](#gliding-markers))
 - 🌈 **Routes and overlays**: gradient polylines, `strokeStart` / `strokeEnd` to animate a route being drawn, line joins, overlays under or over labels, and `onOverlayPress` for taps on lines and shapes
 - 🔎 **MapKit services**: search and autocomplete, points of interest, directions and travel times, geocoding, places by id, Apple Maps hand-off and map images, without a map on screen ([details](#-mapkit-services))
 - 👀 **Look Around**: `<LookAroundView>` embeds Apple's street-level imagery, and `lookAroundSnapshot()` makes a picture of it
@@ -429,7 +430,7 @@ Every MapLibre option, command and event, with what is left out and why, is in t
 
 ### Cesium
 
-`provider="cesium"` draws a 3D globe with [CesiumJS](https://cesium.com/platform/cesiumjs/) 1.146 (Apache-2.0) in a WebView the engine owns (`WKWebView` / `android.webkit.WebView`; no `react-native-webview`). CesiumJS (13 MB) loads from jsDelivr at that pinned version the first time and is kept on the device, so neither munim-maps nor the app carries it. To put it in the app instead (offline from the first launch), add `cesium@1.146.0` to the app's dependencies and turn on `cesium: { bundled: true }` in the config plugin (`munimMaps.cesiumBundled=true`, `MUNIM_MAPS_CESIUM_BUNDLED=1` without Expo): the build copies the minified CesiumJS, with its licence and third-party notices, from the app's `cesium` package. Without a key it shows OpenStreetMap imagery on a smooth globe; a [Cesium ion](https://ion.cesium.com) token adds Cesium World Terrain, Bing imagery, Cesium OSM Buildings and every ion asset.
+`provider="cesium"` draws a 3D globe with [CesiumJS](https://cesium.com/platform/cesiumjs/) 1.147 (Apache-2.0) in a WebView the engine owns (`WKWebView` / `android.webkit.WebView`; no `react-native-webview`). CesiumJS (13 MB) loads from jsDelivr at that pinned version the first time and is kept on the device, so neither munim-maps nor the app carries it. To put it in the app instead (offline from the first launch), add `cesium@1.147.0` to the app's dependencies and turn on `cesium: { bundled: true }` in the config plugin (`munimMaps.cesiumBundled=true`, `MUNIM_MAPS_CESIUM_BUNDLED=1` without Expo): the build copies the minified CesiumJS, with its licence and third-party notices, from the app's `cesium` package. Without a key it shows OpenStreetMap imagery on a smooth globe; a [Cesium ion](https://ion.cesium.com) token adds Cesium World Terrain, Bing imagery, Cesium OSM Buildings and every ion asset.
 
 Setup: `"providers": ["cesium"]` in the config plugin (and `"cesiumIonToken": "…"` if you have one), or the `NitroMunimMaps/Cesium` subspec and `munimMaps.cesium=true` without Expo. The catalogue (`munim-maps-vehicles`) resolves to GLB on Cesium, so Cesium draws it; USDZ models still work, drawn by munim-maps' native 3D layer on Cesium's camera.
 
@@ -914,6 +915,9 @@ Camera moves from code (`setCamera`, `animateCamera`, `flyCamera`, `setRegion`, 
 | `glyphSymbol`, `selectedGlyphSymbol` | | `marker` style: an SF Symbol in the balloon, and while selected (`'cup.and.saucer.fill'`). |
 | `glyphColor` | white | `marker` style. |
 | `animatesWhenAdded` | `false` | `marker` style: MapKit's drop-in animation. |
+| `animationDuration` | `0` | Milliseconds to glide to a new `coordinate` instead of jumping, drawn natively every frame ([Gliding markers](#gliding-markers)). Also on `MarkerView`. |
+| `rotation` | `0` | Degrees clockwise about the anchor: from the screen's up, or from north with `flat` ([Rotated markers](#rotated-markers)). |
+| `flat` | `false` | Lie on the map: turn with it (and tilt, except on MapKit), so `rotation` is a compass heading. |
 | `calloutLeft`, `calloutRight` | none, `'detail'` | `'detail'`, `'info'`, `{ text }` or `{ symbol }` (a button), `{ image }` or `{ symbol, button: false }` (a picture); `null` for none. Taps fire `onCalloutAccessoryPress`. |
 | `calloutDetail` | | Several lines of text in the callout, in place of the subtitle. |
 
@@ -946,7 +950,7 @@ React Native views as a marker, like SwiftUI's `Annotation { … }`. Put it insi
 </MunimMapView>
 ```
 
-It takes the `MapMarker` fields that are not about the marker's look (`id`, `coordinate`, `anchor` (default the centre), `title`, `subtitle`, `callout…`, `zIndex`, `draggable`, `clusteringId`, `displayPriority`, `collisionMode`, `opacity`, `visible`), plus `tracksViewChanges`.
+It takes the `MapMarker` fields that are not about the marker's look (`id`, `coordinate`, `anchor` (default the centre), `title`, `subtitle`, `callout…`, `zIndex`, `draggable`, `clusteringId`, `displayPriority`, `collisionMode`, `opacity`, `visible`, `animationDuration`), plus `tracksViewChanges`. A new `coordinate`, title or anchor alone keeps the picture (iOS and Android): a marker that moves every second does not redraw its children.
 
 How it works, and the trade-off: Nitro views can hold React Native children, but MapKit positions markers itself, so the children are laid out off screen and drawn into the picture of a real `MKAnnotationView`. That marker moves with the map in the same frame, clusters, collides, selects, drags and shows callouts like any other, and its events are the map's marker events. But it is a picture, not live views: buttons inside it do not get taps (the whole marker does). The picture is drawn again only when something changed: the marker's props, the children's elements and props (a re-render that changes nothing draws nothing), their size, or a picture in them finishing loading, however late (iOS watches the image views, Android redraws when the children's view is invalidated). The map gets a new picture only when it looks different. With `tracksViewChanges` it is also drawn 15 times a second, for animations and anything else that changes on its own; turn it off once the content is stable, as with react-native-maps. State inside a child component that changes without the `MarkerView`'s props changing needs `tracksViewChanges`, or a ref: `ref.current?.redraw()` (`MarkerViewRef`).
 
@@ -1035,6 +1039,8 @@ Functions, no map needed. All return promises and reject on Android.
 | `mapType="mutedStandard"` / `"hybridFlyover"` | `mapStyle="muted"` / `mapStyle="hybrid" elevation="realistic"` |
 | `region` / `initialRegion` | same names: `region` is controlled (store the region from `onRegionChangeComplete` in the same state); the first `initialRegion` is applied once, even when it arrives after the map is ready |
 | `onRegionChangeStart` / `onRegionChangeComplete` | same names; `onRegionChange` is `onCameraMove` (a `MapCamera` every frame) |
+| `<Marker rotation flat>` | `rotation`, `flat` on the marker, on every engine |
+| `marker.animateMarkerToCoordinate(coord, ms)` / `AnimatedRegion` | a new `coordinate` with `animationDuration: ms` |
 | `<Marker draggable onDragStart onDrag onDragEnd>` | `draggable` + `onMarkerDragStart` / `onMarkerDrag` / `onMarkerDragEnd` on the map |
 | `animateToRegion(region, ms)` / `fitToCoordinates(coords, { edgePadding, animated })` | same names (`fitToCoordinates(coords, edgePadding, animated)`) |
 | `animateCamera({ pitch }, { duration })` | `animateCamera({ ...(await getCamera()), pitch }, ms, 'easeInOut')` (a whole camera, in metres) |
@@ -1186,6 +1192,48 @@ const zone = zoneShapeAt(Date.now())
 - Colours and widths change at once; only the geometry glides. Polygons move vertex by vertex, so they glide only when the polygon and each hole keep their vertex counts (a polygon with a different count jumps).
 - Shapes change in place on every engine (MapKit no longer replaces the overlay when a circle or polygon changes, which also stops style changes from flickering). Nothing runs between transitions: a display link (iOS), `Choreographer` (Android) or `requestAnimationFrame` (Cesium and MapLibre GL JS, which glide on their page) runs only while a shape is gliding.
 - `animationDuration` 0 (the default) draws each update as it comes, as before.
+
+### Gliding markers
+
+A marker that follows something live (a bus, a friend, a delivery) only needs a new `coordinate` now and then. Give it an `animationDuration` and the map glides it there, like react-native-maps' `animateMarkerToCoordinate`, without an `AnimatedRegion` or re-rendering every frame:
+
+```tsx
+// `bus` and `friend` come from the server once a second.
+<MunimMapView
+  markers={[{ id: 'bus', coordinate: bus.position, style: 'marker', glyph: '🚌', animationDuration: 1000 }]}
+>
+  <MarkerView id="friend" coordinate={friend.position} animationDuration={1000}>
+    <Avatar uri={friend.photo} />
+  </MarkerView>
+</MunimMapView>
+```
+
+- The same rules as [shapes](#moving-and-shrinking-zones): a new coordinate while a marker glides starts from where it is drawn; the same props again carry on; everything but the position (title, colour, picture) changes at once; 0 (the default) jumps.
+- Natively every frame, only while something glides: MapKit and Google Maps move the marker in place (no new picture, no re-clustering until the glide ends); Mapbox and MapLibre Native get the markers once a frame; Cesium and MapLibre GL JS glide on their page.
+- Glides take the short way across the antimeridian.
+
+| | MapKit | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | MapLibre GL JS | Cesium iOS | Cesium Android |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `markers` `animationDuration` | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `MarkerView` `animationDuration` | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+
+🔨 built, not yet checked on a device. Google's photorealistic 3D map (`google={{ mode: '3d' }}`) gets the markers once a frame. Try it in the example: Engines › Glide (`munimmapsexample://glide/<provider>`), with "1000 markers" for a thousand gliding dots.
+
+### Rotated markers
+
+`rotation` turns a marker about its anchor, clockwise; with `flat` it lies on the map, so the rotation is a compass heading and the marker turns (and tilts) with the map, like a car pointing along its road:
+
+```tsx
+markers={[{ id: 'car', coordinate, style: 'image', image: arrow, anchor: { x: 0.5, y: 0.5 }, rotation: car.heading, flat: true, animationDuration: 1000 }]}
+```
+
+| | MapKit | Google iOS | Google Android | Mapbox iOS | Mapbox Android | MapLibre iOS | MapLibre Android | MapLibre GL JS | Cesium iOS | Cesium Android |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `rotation` | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `flat` turns with the map | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+| `flat` tilts with the map | — | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 | 🔨 |
+
+🔨 built, not yet checked on a device. — MapKit's annotation views always face the screen, so a flat marker turns with the map's heading but does not tilt. Notes: Cesium turns a marker about its centre (other engines about its anchor); a `MarkerView` on Mapbox (a view annotation) and markers on Google's photorealistic 3D map are not rotated; `google.markers[id].rotation` / `.flat` still override the shared props on Google. Clustered markers keep their rotation when they come out of a cluster.
 
 ### Place cards
 

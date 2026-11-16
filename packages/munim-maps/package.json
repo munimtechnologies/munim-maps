@@ -48,7 +48,7 @@
     "build": "npm run typecheck && tsc",
     "prepack": "npm run build",
     "typescript": "tsc",
-    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js && node scripts/patch-nitro-viewprops.js && node scripts/patch-nitro-vector-args.js",
+    "codegen": "nitrogen --logLevel=\"debug\" && node scripts/patch-nitro-optionals.js && node scripts/patch-nitro-vector-args.js",
     "specs": "npm run codegen"
   },
   "keywords": [
@@ -102,56 +102,24 @@
     ]
   },
   "devDependencies": {
-    "@react-native/babel-preset": "0.88.0",
-    "@react-native/eslint-config": "0.88.0",
+    "@react-native/babel-preset": "0.88.1",
+    "@react-native/eslint-config": "0.88.1",
     "@types/react": "^19.3.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
-    "nitrogen": "0.37.1",
-    "prettier": "^3.8.3",
-    "react": "19.3.0",
-    "react-native": "0.88.0",
-    "react-native-nitro-modules": "0.37.1",
+    "eslint-plugin-prettier": "^5.5.7",
+    "nitrogen": "0.37.2",
+    "prettier": "^3.10.1",
+    "react": "19.3.1",
+    "react-native": "0.88.1",
+    "react-native-nitro-modules": "0.37.2",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": ">=0.78",
-    "react-native-nitro-modules": ">=0.37.1 <1"
+    "react-native-nitro-modules": ">=0.37.2 <1"
   },
-  "eslintConfig": {
-    "root": true,
-    "extends": [
-      "@react-native",
-      "prettier"
-    ],
-    "plugins": [
-      "prettier"
-    ],
-    "rules": {
-      "prettier/prettier": [
-        "warn",
-        {
-          "quoteProps": "consistent",
-          "singleQuote": true,
-          "tabWidth": 2,
-          "trailingComma": "es5",
-          "useTabs": false
-        }
-      ]
-    }
-  },
-  "eslintIgnore": [
-    "node_modules/",
-    "lib/",
-    "nitrogen/generated/",
-    "vehicles.js",
-    "vehicles-glb.js",
-    "cesium/",
-    "maplibre/",
-    "android/build/"
-  ],
   "prettier": {
     "quoteProps": "consistent",
     "singleQuote": true,

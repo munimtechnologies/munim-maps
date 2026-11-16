@@ -337,9 +337,25 @@
     }
   }
 
+  // Markers with an animationDuration glide to new coordinates, once an
+  // animation frame, on the page.
+  const markerTween = window.munimShapeTween.create((kind, list) => moveMarkers(list))
+
+  /** Moves the markers to where they are drawn this frame. */
+  function moveMarkers(list) {
+    for (const m of list) {
+      const entry = markers.get(m.id)
+      if (!entry || entry.dragging) continue
+      entry.entity.position = C.Cartesian3.fromDegrees(m.longitude, m.latitude)
+    }
+    M.requestRender()
+  }
+
   function setMarkers(list) {
     const viewer = M.viewer
     const next = new Map()
+    const drawn = new Map()
+    for (const m of markerTween.set('marker', list || [])) drawn.set(m.id, m)
     for (const m of list || []) next.set(m.id, m)
     for (const [id, entry] of markers) {
       const m = next.get(id)
@@ -351,7 +367,8 @@
     }
     for (const [id, m] of next) {
       let entry = markers.get(id)
-      const position = C.Cartesian3.fromDegrees(m.longitude, m.latitude)
+      const at = drawn.get(id) || m
+      const position = C.Cartesian3.fromDegrees(at.longitude, at.latitude)
       if (!entry) {
         const source = markerSource(m.clusteringId)
         const entity = source.entities.add({
@@ -370,6 +387,11 @@
       e.show = m.visible !== false
       e.billboard.color = new C.Color(1, 1, 1, M.num(m.opacity, 1))
       e.billboard.eyeOffset = new C.Cartesian3(0, 0, -M.num(m.zIndex, 0))
+      // `rotation` clockwise (Cesium turns counter-clockwise, in radians):
+      // from the screen's up, or from north when `flat` (aligned to the
+      // globe's axis, so it turns with the camera's heading).
+      e.billboard.rotation = -C.Math.toRadians(M.num(m.rotation, 0))
+      e.billboard.alignedAxis = m.flat ? C.Cartesian3.UNIT_Z : C.Cartesian3.ZERO
       e.label = titleLabel(m)
       e.name = m.title || id
       e.description = m.subtitle || ''
@@ -496,6 +518,7 @@
 
   M.viewerHooks.push((viewer) => viewer.scene.postRender.addEventListener(updateCallout))
   M.destroyHooks.push(() => {
+    markerTween.reset()
     markerSources.clear()
     markers = new Map()
     selectedId = ''

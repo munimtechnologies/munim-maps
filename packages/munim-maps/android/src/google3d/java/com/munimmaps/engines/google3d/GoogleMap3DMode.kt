@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import com.google.android.gms.maps3d.GoogleMap3D
+import com.google.android.gms.maps3d.Map3DInitConfig
 import com.google.android.gms.maps3d.Map3DView
 import com.google.android.gms.maps3d.OnMap3DViewReadyCallback
 import com.google.android.gms.maps3d.model.AltitudeMode
@@ -57,7 +58,10 @@ class GoogleMap3DMode(
   private val host: Google3DHost,
   initialCamera: MapCamera?,
 ) : Google3DMode {
-  private val mapView = Map3DView(context)
+  // Maps 3D SDK 0.2.2 dropped `Map3DView(context)` with `Map3DOptions`; the
+  // view starts from `Map3DInitConfig` (the camera and mode are set once the
+  // map is ready, as before).
+  private val mapView = Map3DView(context, Map3DInitConfig.create())
   override val view: View get() = mapView
   private val main = Handler(Looper.getMainLooper())
   private var map: GoogleMap3D? = null
@@ -135,6 +139,8 @@ class GoogleMap3DMode(
           knownCamera?.let { host.cameraChanged(munim(it), true) }
           host.emit("cameraAnimationEnd", GOut.obj())
         }
+        // SDK 16 passes a `Map3DClickEvent` (and returns whether the tap
+        // was handled) instead; adopt it with SDK 16, see build.gradle.
         googleMap3D.setMap3DClickListener { location, placeId ->
           host.press(location.latitude, location.longitude, placeId)
         }

@@ -440,18 +440,29 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     )
   }
 
+  /** The bitmap each view marker's PNG was made from: the same bitmap again is not encoded again. */
+  private val viewMarkerBitmaps = HashMap<String, android.graphics.Bitmap>()
+
+  /** [image], or null when it is the picture the marker already has. */
+  private fun newPicture(id: String, image: android.graphics.Bitmap?): android.graphics.Bitmap? {
+    if (image == null || (viewMarkers.containsKey(id) && viewMarkerBitmaps[id] === image)) return null
+    viewMarkerBitmaps[id] = image
+    return image
+  }
+
   override fun setViewMarker(marker: NativeMarker, image: android.graphics.Bitmap?) {
-    viewMarkers[marker.id] = viewMarker(marker, image, viewMarkers[marker.id])
+    viewMarkers[marker.id] = viewMarker(marker, newPicture(marker.id, image), viewMarkers[marker.id])
     sendMarkers()
   }
 
   override fun setViewMarkerImage(image: android.graphics.Bitmap?, id: String) {
     val marker = viewMarkers[id] ?: return
-    viewMarkers[id] = viewMarker(marker, image, marker)
+    viewMarkers[id] = viewMarker(marker, newPicture(id, image), marker)
     sendMarkers()
   }
 
   override fun removeViewMarker(id: String) {
+    viewMarkerBitmaps.remove(id)
     if (viewMarkers.remove(id) != null) sendMarkers()
   }
   override fun setPolylines(polylines: Array<NativePolyline>) = set("polylines", polylines)
@@ -459,6 +470,8 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
   override fun setCircles(circles: Array<NativeCircle>) = set("circles", circles)
   /** The page glides circles and polygons itself (`animationDuration`). */
   override val animatesShapeTransitions get() = true
+  /** The page glides markers itself (`animationDuration`). */
+  override val animatesMarkerTransitions get() = true
   override fun setTileOverlays(overlays: Array<NativeTileOverlay>) = set("tileOverlays", overlays)
   override fun setClusterStyles(styles: Array<NativeClusterStyle>) = set("clusterStyles", styles)
 
@@ -735,7 +748,7 @@ class CesiumMapEngine(context: Context) : MunimMapEngine, MapCameraSource {
     private const val ORIGIN = "https://$HOST"
 
     /** The CesiumJS version the page is written for (and the bundled copy is). */
-    const val CESIUM_VERSION = "1.146.0"
+    const val CESIUM_VERSION = "1.147.0"
 
     @Volatile private var bundled: Boolean? = null
     @Volatile private var baseUrl: String? = null

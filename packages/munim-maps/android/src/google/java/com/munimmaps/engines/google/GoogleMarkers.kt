@@ -153,14 +153,17 @@ internal fun GoogleMapEngine.applyMarkers() {
         next.tag = clusterId
         clusterItems[id] = next
         manager.addItem(next)
+        touched.add(clusterId)
       } else if (markerData[id] != m || markerExtras[id] != extrasKey) {
         item.latLng = LatLng(m.latitude, m.longitude)
         item.itemTitle = title
         item.itemSnippet = snippet
         item.z = m.zIndex.toFloat()
         manager.updateItem(item)
+        touched.add(clusterId)
       }
-      touched.add(clusterId)
+      // Unchanged items leave their clusters alone: reclustering every
+      // manager on every update was the cost of a large map.
     } else {
       val advanced = usesAdvancedMarkers && extras["advanced"].bool(true)
       val collision = if (advanced) collisionBehavior(m, extras) else -1
@@ -180,8 +183,18 @@ internal fun GoogleMapEngine.applyMarkers() {
         marker.tag = id
         gmsMarkers[id] = marker
         configureMarker(marker, m, extras)
-      } else if (markerData[id] != m || markerExtras[id] != extrasKey) {
+      } else if (markerExtras[id] != extrasKey) {
         configureMarker(marker, m, extras)
+      } else {
+        val previous = markerData[id]
+        if (previous != null && sameExceptPosition(previous, m)) {
+          // Only moved: keep the icon.
+          if (marker.position.latitude != m.latitude || marker.position.longitude != m.longitude) {
+            marker.position = LatLng(m.latitude, m.longitude)
+          }
+        } else if (previous != m) {
+          configureMarker(marker, m, extras)
+        }
       }
     }
     markerData[id] = m
@@ -199,6 +212,25 @@ internal fun GoogleMapEngine.applyMarkers() {
       it.cluster()
     }
   }
+}
+
+/** The same marker apart from where it is (and how it gets there). */
+internal fun sameExceptPosition(a: NativeMarker, b: NativeMarker): Boolean =
+  a.copy(latitude = b.latitude, longitude = b.longitude, animationDuration = b.animationDuration) == b
+
+/**
+ * Moves plain markers in place while they glide (`animationDuration`).
+ * Clustered markers and Google's 3D map take the whole list instead.
+ */
+internal fun GoogleMapEngine.movePlainMarkers(positions: Map<String, com.margelo.nitro.munimmaps.MapCoordinate>): Boolean {
+  if (positions.keys.any { it in clusterItems }) return false
+  for ((id, c) in positions) {
+    val marker = gmsMarkers[id] ?: continue
+    if (marker.position.latitude != c.latitude || marker.position.longitude != c.longitude) {
+      marker.position = LatLng(c.latitude, c.longitude)
+    }
+  }
+  return true
 }
 
 private fun GoogleMapEngine.removePlainMarker(id: String) {
@@ -226,8 +258,8 @@ private fun GoogleMapEngine.configureMarker(marker: Marker, m: NativeMarker, ext
   marker.isDraggable = m.draggable
   marker.alpha = (extras["opacity"].double ?: m.opacity).toFloat().coerceIn(0f, 1f)
   marker.isVisible = m.visible
-  marker.isFlat = extras["flat"].bool(false)
-  marker.rotation = extras["rotation"].double(0.0).toFloat()
+  marker.isFlat = extras["flat"].bool(m.flat)
+  marker.rotation = extras["rotation"].double(m.rotation).toFloat()
   marker.setInfoWindowAnchor(extras["infoWindowAnchor"]["x"].double(0.5).toFloat(), extras["infoWindowAnchor"]["y"].double(0.0).toFloat())
   val (icon, anchor) = markerIcon(m, extras, marker is com.google.android.gms.maps.model.AdvancedMarker)
   icon?.let { marker.setIcon(it) }
@@ -368,6 +400,7 @@ class GoogleClusterRenderer(
     icon?.let { markerOptions.icon(it) }
     markerOptions.anchor(anchor.first.toFloat(), anchor.second.toFloat())
     markerOptions.title(item.title).snippet(item.snippet).zIndex(item.z).alpha(m.opacity.toFloat())
+    markerOptions.rotation(m.rotation.toFloat()).flat(m.flat)
   }
 
   override fun onClusterItemRendered(item: GoogleClusterItem, marker: Marker) {
@@ -380,6 +413,8 @@ class GoogleClusterRenderer(
     icon?.let { marker.setIcon(it) }
     marker.setAnchor(anchor.first.toFloat(), anchor.second.toFloat())
     marker.position = item.position
+    marker.rotation = m.rotation.toFloat()
+    marker.isFlat = m.flat
     marker.title = item.title
     marker.snippet = item.snippet
     marker.tag = item.id

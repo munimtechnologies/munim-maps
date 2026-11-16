@@ -19,6 +19,8 @@ import com.mapbox.maps.ViewAnnotationAnchorConfig
 import com.mapbox.maps.ViewAnnotationOptions
 import com.mapbox.maps.extension.style.expressions.generated.Expression
 import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
+import com.mapbox.maps.extension.style.layers.properties.generated.IconPitchAlignment
+import com.mapbox.maps.extension.style.layers.properties.generated.IconRotationAlignment
 import com.mapbox.maps.plugin.annotation.AnnotationConfig
 import com.mapbox.maps.plugin.annotation.AnnotationSourceOptions
 import com.mapbox.maps.plugin.annotation.ClusterOptions
@@ -106,13 +108,14 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
 
   private fun managerKey(m: NativeMarker): String {
     val overlap = m.collisionMode == MarkerCollisionMode.NONE || m.displayPriority >= 1000
-    return "cluster:${m.clusteringId}|overlap:$overlap"
+    return "cluster:${m.clusteringId}|overlap:$overlap|flat:${m.flat}"
   }
 
   private fun manager(key: String): PointAnnotationManager {
     managers[key]?.let { return it }
     val clusteringId = key.substringBefore('|').removePrefix("cluster:")
-    val overlap = key.endsWith("overlap:true")
+    val overlap = key.contains("|overlap:true")
+    val flat = key.endsWith("|flat:true")
     val n = managerCount++
     val id = "munim-markers-$n"
     val sourceOptions = if (clusteringId.isNotEmpty()) {
@@ -136,6 +139,9 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
     val manager = engine.mapView.annotations.createPointAnnotationManager(AnnotationConfig(null, id, id, sourceOptions))
     manager.iconAllowOverlap = overlap
     manager.iconIgnorePlacement = overlap
+    // Flat markers turn and tilt with the map; the others face the screen.
+    manager.iconRotationAlignment = if (flat) IconRotationAlignment.MAP else IconRotationAlignment.VIEWPORT
+    manager.iconPitchAlignment = if (flat) IconPitchAlignment.MAP else IconPitchAlignment.VIEWPORT
     manager.addClickListener(OnPointAnnotationClickListener { annotation ->
       val markerId = markerIds[annotation.id] ?: return@OnPointAnnotationClickListener false
       markerTapped(markerId)
@@ -252,6 +258,7 @@ internal class MapboxAnnotations(private val engine: MapboxMapEngine) {
     }
     a.iconOpacity = if (image == null) 0.0 else marker.opacity.coerceIn(0.0, 1.0)
     a.symbolSortKey = marker.zIndex
+    a.iconRotate = if (marker.rotation.isFinite()) marker.rotation else 0.0
     a.isDraggable = marker.draggable
   }
 

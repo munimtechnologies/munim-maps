@@ -33,6 +33,20 @@ extension GoogleMapEngine {
     applyMarkers()
   }
 
+  /// Moves markers in place while they glide (`animationDuration`). Google's
+  /// 3D map takes the whole list instead. Clusters are worked out again
+  /// when the glide ends (the list is sent again then).
+  public func moveMarkers(_ positions: [String: CLLocationCoordinate2D]) -> Bool {
+    guard mode3d == nil else { return false }
+    for (id, coordinate) in positions {
+      if viewMarkers[id] != nil { viewMarkers[id]?.coordinate = coordinate }
+      guard let marker = gmsMarkers[id] else { continue }
+      let p = marker.position
+      if p.latitude != coordinate.latitude || p.longitude != coordinate.longitude { marker.position = coordinate }
+    }
+    return true
+  }
+
   // MARK: Applying
 
   func applyMarkers() {
@@ -58,7 +72,10 @@ extension GoogleMapEngine {
       }
       let isNew = marker == nil
       let gm = marker ?? (advanced ? GMSAdvancedMarker() : GMSMarker())
-      let moved = !isNew && (gm.position.latitude != m.latitude || gm.position.longitude != m.longitude)
+      // Moved since the last props, or since a glide moved it in place.
+      let previous = markerData[id]
+      let moved = !isNew && (gm.position.latitude != m.latitude || gm.position.longitude != m.longitude
+        || previous.map { $0.latitude != m.latitude || $0.longitude != m.longitude } ?? false)
       let extrasKey = extras.exists ? String(describing: extras.raw!) : ""
       if isNew || markerData[id] != m || moved || markerExtras[id] != extrasKey {
         configure(gm, m, extras: extras, isNew: isNew)
@@ -155,13 +172,13 @@ extension GoogleMapEngine {
         }
       }
     }
-    configureExtras(gm, extras)
+    configureExtras(gm, extras, m)
   }
 
   /// Options only Google markers have (`google.markers[id]`).
-  private func configureExtras(_ gm: GMSMarker, _ extras: GoogleJSON) {
-    gm.isFlat = extras["flat"].bool(false)
-    gm.rotation = extras["rotation"].double(0)
+  private func configureExtras(_ gm: GMSMarker, _ extras: GoogleJSON, _ m: MunimMarker) {
+    gm.isFlat = extras["flat"].bool(m.flat)
+    gm.rotation = extras["rotation"].double(m.rotation)
     let window = extras["infoWindowAnchor"]
     gm.infoWindowAnchor = CGPoint(x: window["x"].double(0.5), y: window["y"].double(0))
     if let opacity = extras["opacity"].double { gm.opacity = Float(opacity) }

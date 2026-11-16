@@ -338,17 +338,26 @@
     const ay = M.num(m.anchorY, -1) >= 0 ? m.anchorY : fallback[1]
     entry.anchor = [ax, ay]
     entry.marker.setOffset([-ax * entry.size.width, -ay * entry.size.height])
+    // Turn about the anchor, not the element's centre.
+    entry.el.style.transformOrigin = `${ax * entry.size.width}px ${ay * entry.size.height}px`
     entry.title.style.top = `${entry.size.height + (M.norm(m.style) === 'dot' ? 2 : 0)}px`
     entry.title.style.left = `${entry.size.width / 2}px`
     if (selectedId === m.id) updateCallout()
   }
 
-  function applySpec(entry, m) {
+  /** `at`: where the marker is drawn now (a gliding marker is between its old and new coordinate). */
+  function applySpec(entry, m, at) {
     const previous = entry.spec
     entry.spec = m
     const marker = entry.marker
-    if (!entry.dragging) marker.setLngLat(M.lngLat(m))
+    if (!entry.dragging) marker.setLngLat(M.lngLat(at || m))
     marker.setDraggable(!!m.draggable)
+    // `rotation` clockwise about the anchor: from the screen's up, or from
+    // north and lying on the map (turning and tilting with it) when `flat`.
+    const alignment = m.flat ? 'map' : 'viewport'
+    if (marker.getRotation() !== M.num(m.rotation, 0)) marker.setRotation(M.num(m.rotation, 0))
+    if (marker.getRotationAlignment() !== alignment) marker.setRotationAlignment(alignment)
+    if (marker.getPitchAlignment() !== alignment) marker.setPitchAlignment(alignment)
     entry.el.style.zIndex = String(Math.round(M.num(m.zIndex, 0)) + 10)
     entry.el.dataset.markerId = m.id
     // Hidden behind the globe or terrain.
@@ -372,9 +381,29 @@
     updateImage(entry).catch((e) => M.error(`marker ${m.id}`, e))
   }
 
+  // Markers with an animationDuration glide to new coordinates, once an
+  // animation frame, on the page.
+  const markerTween = window.munimShapeTween.create((kind, list) => moveMarkers(list))
+
+  /** Moves the markers to where they are drawn this frame. */
+  function moveMarkers(list) {
+    for (const m of list) {
+      const entry = markers.get(m.id)
+      if (!entry || entry.dragging) continue
+      const p = entry.marker.getLngLat()
+      if (p.lat !== m.latitude || p.lng !== m.longitude) entry.marker.setLngLat(M.lngLat(m))
+    }
+    if (callout) updateCallout()
+    // Clusters again once the markers settle (reclustering every frame would flicker).
+    clearTimeout(clusterTimer)
+    clusterTimer = setTimeout(updateClusters, 120)
+  }
+
   function setMarkers(list) {
     const map = M.map
     const next = new Map()
+    const drawn = new Map()
+    for (const m of markerTween.set('marker', list || [])) drawn.set(m.id, m)
     for (const m of list || []) next.set(m.id, m)
     for (const [id, entry] of markers) {
       if (!next.has(id)) {
@@ -393,7 +422,7 @@
         markers.set(id, entry)
         entry.marker.addTo(map)
       }
-      applySpec(entry, m)
+      applySpec(entry, m, drawn.get(id))
     }
     updateClusters()
   }
@@ -548,19 +577,12 @@
       groups.get(id).push(entry)
     }
     for (const [clusteringId, list] of groups) {
-      const points = list.map((e) => ({ e, p: map.project(e.marker.getLngLat()), used: false }))
-      for (const a of points) {
-        if (a.used) continue
-        const members = [a]
-        a.used = true
-        for (const b of points) {
-          if (b.used) continue
-          if (Math.hypot(a.p.x - b.p.x, a.p.y - b.p.y) < 44) {
-            b.used = true
-            members.push(b)
-          }
-        }
-        if (members.length < 2) continue
+      const points = list.map((e) => ({ e, p: map.project(e.marker.getLngLat()) }))
+      for (const indexes of window.munimScreenClusters.cluster(
+        points.map((pt) => pt.p),
+        44
+      )) {
+        const members = indexes.map((i) => points[i])
         let lat = 0
         let lng = 0
         for (const m of members) {
@@ -1053,6 +1075,7 @@
   })
 
   M.destroyHooks.push(() => {
+    markerTween.reset()
     for (const e of markers.values()) e.marker.remove()
     markers = new Map()
     selectedId = ''

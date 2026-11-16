@@ -50,6 +50,7 @@ import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.Layer
 import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.RasterLayer
 import org.maplibre.android.style.layers.SymbolLayer
@@ -188,7 +189,8 @@ internal class MapLibreFeatures(
 
   private fun putViewMarker(marker: NativeMarker, image: Bitmap?) {
     var uri = viewMarkers[marker.id]?.imageUri ?: ""
-    if (image != null) {
+    // The same bitmap again (new props, same picture) keeps its icon.
+    if (image != null && viewBitmaps[uri] !== image) {
       dropViewBitmap(uri)
       uri = "munim-view:${marker.id}:${++viewGeneration}"
       viewBitmaps[uri] = image
@@ -286,6 +288,8 @@ internal class MapLibreFeatures(
         .put("sort", m.zIndex + m.displayPriority / 10_000.0)
         .put("opacity", m.opacity)
         .put("req", required)
+        .put("rotation", if (m.rotation.isFinite()) m.rotation else 0.0)
+        .put("flat", m.flat)
         .put("titleOffset", h * (1 - ay)))
   }
 
@@ -324,17 +328,32 @@ internal class MapLibreFeatures(
 
   private fun addMarkerLayers(style: Style, sourceId: String, clusterId: String) {
     val notCluster = Expression.not(Expression.has("point_count"))
+    // A layer per placement (required or not) and alignment: flat markers
+    // turn and tilt with the map (`icon-rotation-alignment` and
+    // `icon-pitch-alignment` cannot come from the data).
     for (required in listOf(false, true)) {
-      val layer = SymbolLayer("$sourceId|${if (required) "req" else "opt"}", sourceId).withProperties(
-        PropertyFactory.iconImage(Expression.get("icon")),
-        PropertyFactory.iconOffset(Expression.get("offset")),
-        PropertyFactory.iconAllowOverlap(required),
-        PropertyFactory.iconIgnorePlacement(required),
-        PropertyFactory.symbolSortKey(Expression.get("sort")),
-        PropertyFactory.iconOpacity(Expression.get("opacity")),
-      )
-      layer.setFilter(Expression.all(notCluster, Expression.eq(Expression.get("req"), required)))
-      style.addLayerBelow(layer, SLOT_MARKERS)
+      for (flat in listOf(false, true)) {
+        val alignment = if (flat) Property.ICON_ROTATION_ALIGNMENT_MAP else Property.ICON_ROTATION_ALIGNMENT_VIEWPORT
+        val pitch = if (flat) Property.ICON_PITCH_ALIGNMENT_MAP else Property.ICON_PITCH_ALIGNMENT_VIEWPORT
+        val id = "$sourceId|${if (required) "req" else "opt"}${if (flat) "-flat" else ""}"
+        val layer = SymbolLayer(id, sourceId).withProperties(
+          PropertyFactory.iconImage(Expression.get("icon")),
+          PropertyFactory.iconOffset(Expression.get("offset")),
+          PropertyFactory.iconAllowOverlap(required),
+          PropertyFactory.iconIgnorePlacement(required),
+          PropertyFactory.symbolSortKey(Expression.get("sort")),
+          PropertyFactory.iconOpacity(Expression.get("opacity")),
+          PropertyFactory.iconRotate(Expression.coalesce(Expression.get("rotation"), Expression.literal(0))),
+          PropertyFactory.iconRotationAlignment(alignment),
+          PropertyFactory.iconPitchAlignment(pitch),
+        )
+        layer.setFilter(Expression.all(
+          notCluster,
+          Expression.eq(Expression.get("req"), required),
+          Expression.eq(Expression.coalesce(Expression.get("flat"), Expression.literal(false)), flat),
+        ))
+        style.addLayerBelow(layer, SLOT_MARKERS)
+      }
     }
     if (clusterId.isNotEmpty()) {
       val clusters = SymbolLayer("$sourceId|clusters", sourceId).withProperties(
@@ -360,7 +379,7 @@ internal class MapLibreFeatures(
   }
 
   private val markerLayerIds: Array<String>
-    get() = markerSources.flatMap { listOf("$it|req", "$it|opt") }.toTypedArray()
+    get() = markerSources.flatMap { listOf("$it|req", "$it|opt", "$it|req-flat", "$it|opt-flat") }.toTypedArray()
 
   private val clusterLayerIds: Array<String>
     get() = markerSources.filter { it != MARKERS }.map { "$it|clusters" }.toTypedArray()

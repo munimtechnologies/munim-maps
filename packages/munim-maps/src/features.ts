@@ -118,6 +118,29 @@ export interface MapMarker {
   glyphColor?: string
   /** `marker` style: MapKit's drop-in animation when added. Default false. */
   animatesWhenAdded?: boolean
+  /**
+   * Glide to a new `coordinate` over this many milliseconds instead of
+   * jumping, drawn natively every frame on every engine (like
+   * react-native-maps' `animateMarkerToCoordinate`). Set it to about the
+   * update interval and a marker updated once a second (a bus, a friend)
+   * moves continuously. A new coordinate while it glides starts from where
+   * it is drawn; the same props again carry on. Default 0: jump.
+   */
+  animationDuration?: number
+  /**
+   * Turns the marker this many degrees clockwise about its anchor: from the
+   * screen's up, or from north with `flat` (a car icon pointing along the
+   * road). Default 0. Like react-native-maps' `rotation`.
+   */
+  rotation?: number
+  /**
+   * The marker lies on the map: it turns with the map (`rotation` is then
+   * from north) and tilts with it where the engine can (Google Maps,
+   * Mapbox, MapLibre, Cesium; MapKit turns it but cannot tilt annotation
+   * views). Default false: it faces the screen. Like react-native-maps'
+   * `flat`.
+   */
+  flat?: boolean
 }
 
 /** Shared by polylines, polygons and circles. */
@@ -319,6 +342,9 @@ export function toNativeMarker(marker: MapMarker): NativeMarker {
       marker.calloutRight === undefined ? 'detail' : marker.calloutRight
     ),
     calloutDetail: marker.calloutDetail ?? '',
+    animationDuration: duration(marker.animationDuration),
+    rotation: finite(marker.rotation),
+    flat: marker.flat ?? false,
   }
 }
 
@@ -346,6 +372,11 @@ export function toNativePolyline(line: MapPolyline): NativePolyline {
 }
 
 /** A transition length in ms: finite and not negative, else 0. */
+/** Degrees, 0 when not a number. */
+function finite(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
 function duration(ms: number | undefined): number {
   return typeof ms === 'number' && Number.isFinite(ms) && ms > 0 ? ms : 0
 }

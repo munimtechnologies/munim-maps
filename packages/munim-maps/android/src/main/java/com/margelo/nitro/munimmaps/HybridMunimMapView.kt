@@ -44,7 +44,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
     e.setProviderOptions(options(providerOptions))
     if (initialCamera.distance > 0) e.setInitialCamera(initialCamera)
     applyModelLayer(e)
-    e.setMarkers(markers)
+    container.setMarkers(markers)
     e.setPolylines(polylines)
     container.setPolygons(polygons)
     container.setCircles(circles)
@@ -164,7 +164,7 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var showsUserHeading: Boolean = false
 
   override var markers: Array<NativeMarker> = emptyArray()
-    set(value) { field = value; engine?.setMarkers(value) }
+    set(value) { field = value; if (engine != null) container.setMarkers(value) }
   override var polylines: Array<NativePolyline> = emptyArray()
     set(value) { field = value; engine?.setPolylines(value) }
   override var polygons: Array<NativePolygon> = emptyArray()
@@ -206,9 +206,9 @@ class HybridMunimMapView(private val context: ThemedReactContext) : HybridMunimM
   override var maxCameraDistanceLimit: Double = 0.0
     set(value) { field = value; engine?.setCameraDistanceRange(minCameraDistance, value) }
   override var cameraBoundary: MapRegion = MapRegion(0.0, 0.0, 0.0, 0.0)
-    set(value) { field = value; engine?.setCameraBoundary(boundary()) }
+    set(value) { if (field == value) return; field = value; engine?.setCameraBoundary(boundary()) }
   override var mapPadding: EdgeInsets = EdgeInsets(0.0, 0.0, 0.0, 0.0)
-    set(value) { field = value; engine?.setMapPadding(value) }
+    set(value) { if (field == value) return; field = value; engine?.setMapPadding(value) }
   /** Tappable places on the base map (`onMapFeaturePress`; Cesium: 3D Tiles features). */
   override var selectableMapFeatures: String = ""
     set(value) { field = value; engine?.setSelectableMapFeatures(value) }

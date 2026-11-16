@@ -188,7 +188,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
     await attempt('mapReady', async () => [ready.current, ''])
     await attempt('version', async () => {
       const v = await c.version()
-      return [v.cesium === '1.146.0', v.cesium]
+      return [v.cesium === '1.147.0', v.cesium]
     })
     await attempt('setCamera/getCamera', async () => {
       map.setCamera(CAMERA, false)
@@ -314,7 +314,7 @@ export function CesiumScreen(props: { topInset: number; autoChecks?: boolean; on
     })
     await attempt('evaluate', async () => {
       const v = await c.evaluate({ script: 'return Cesium.VERSION' })
-      return [v === '1.146.0', String(v)]
+      return [v === '1.147.0', String(v)]
     })
     await attempt('modelInfo (animated Fox)', async () => {
       const info = await c.modelInfo({ id: 'fox' })

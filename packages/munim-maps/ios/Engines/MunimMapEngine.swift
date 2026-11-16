@@ -101,6 +101,15 @@ public protocol MunimMapEngine: AnyObject {
   /// itself (`animationDuration`); otherwise `MunimMapContainerView` sends
   /// it every frame of the transition.
   var animatesShapeTransitions: Bool { get }
+  /// True when the engine glides markers to new coordinates itself
+  /// (`animationDuration`); otherwise `MunimMapContainerView` moves them
+  /// every frame of the glide.
+  var animatesMarkerTransitions: Bool { get }
+  /// Moves markers (of the list or `MarkerView`s) already on the map to
+  /// these coordinates, by id, once a frame while they glide. Return `false`
+  /// (the default) to be sent every marker instead (`markers`,
+  /// `setViewMarker`); the container sends the list again when a glide ends.
+  func moveMarkers(_ positions: [String: CLLocationCoordinate2D]) -> Bool
   var tileOverlays: [MunimTileOverlay] { get set }
   var clusterStyles: [MunimClusterStyle] { get set }
   /// A marker drawn from a React Native view (`MarkerView`): `image` is the
@@ -307,6 +316,8 @@ public protocol MunimMapEngineDefaults {}
 
 public extension MunimMapEngine {
   var animatesShapeTransitions: Bool { false }
+  var animatesMarkerTransitions: Bool { false }
+  func moveMarkers(_ positions: [String: CLLocationCoordinate2D]) -> Bool { false }
 }
 
 public extension MunimMapEngine where Self: MunimMapEngineDefaults {

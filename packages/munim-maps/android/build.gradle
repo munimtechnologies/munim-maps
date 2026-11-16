@@ -76,13 +76,18 @@ munimMapsProviders.maplibreWeb = munimMapsProvider("maplibreWeb", munimMapsProvi
 def munimMapsMapLibreBundled = (project.findProperty("munimMaps.maplibreBundled") ?: "false").toString().toBoolean()
 
 def munimMapsVersions = [
+  // Filament 1.76+ is built with Kotlin 2.4 (kotlin-stdlib 2.4), which
+  // React Native 0.88's Kotlin 2.2 compiler cannot read: 1.75.1 until
+  // React Native moves to Kotlin 2.3+.
   filament    : project.findProperty("munimMaps.filamentVersion") ?: "1.75.1",
-  maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.6.1",
-  googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.0.0",
-  googleMapsUtils: project.findProperty("munimMaps.googleMapsUtilsVersion") ?: "3.20.1",
-  // 0.2.0 is the newest Maps 3D SDK built with Kotlin 2.2 (React Native compiles with 2.1).
-  googleMaps3d: project.findProperty("munimMaps.googleMaps3dVersion") ?: "0.2.0",
-  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.32.0",
+  maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.7.1",
+  googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.1.0",
+  googleMapsUtils: project.findProperty("munimMaps.googleMapsUtilsVersion") ?: "4.5.2",
+  // 0.2.2 is the newest Maps 3D SDK whose Kotlin metadata (2.3) React
+  // Native 0.88's Kotlin 2.2 compiler reads; 16.x (GA) carries 2.4 metadata.
+  // Likewise Utils 5+ (Kotlin 2.4, split into modules) stays out: Utils 4.x.
+  googleMaps3d: project.findProperty("munimMaps.googleMaps3dVersion") ?: "0.2.2",
+  mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.35.0",
 ]
 
 // Google's photorealistic 3D map (`google={{ mode: '3d' }}`) is a separate

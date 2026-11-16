@@ -134,6 +134,15 @@ export interface NativeMarker {
   rightCalloutAccessory: NativeCalloutAccessory
   /** Several lines of text in the callout, in place of the subtitle. */
   calloutDetail: string
+  /**
+   * Glide to a new coordinate over this many ms (0 = jump), drawn natively
+   * every frame.
+   */
+  animationDuration: number
+  /** Degrees clockwise: from the screen's up, or from north when `flat`. */
+  rotation: number
+  /** Lie on the map: turn (and tilt, where the engine can) with it. */
+  flat: boolean
 }
 
 export type LineCap = 'round' | 'butt' | 'square'

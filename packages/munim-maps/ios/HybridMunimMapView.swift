@@ -170,7 +170,7 @@ final class HybridMunimMapView: HybridMunimMapViewSpec {
     didSet { map.modelLayer.maxCameraDistance = maxCameraDistance; map.modelLayerDidChange() }
   }
 
-  var markers: [NativeMarker] = [] { didSet { map.markers = markers.map(\.core) } }
+  var markers: [NativeMarker] = [] { didSet { container.setMarkers(markers.map(\.core)) } }
   var polylines: [NativePolyline] = [] { didSet { map.polylines = polylines.map(\.core) } }
   var polygons: [NativePolygon] = [] { didSet { container.setPolygons(polygons.map(\.core)) } }
   var circles: [NativeCircle] = [] { didSet { container.setCircles(circles.map(\.core)) } }

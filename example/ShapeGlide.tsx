@@ -2,21 +2,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { File, Paths } from 'expo-file-system'
 import {
+  MarkerView,
   MunimMapView,
   installedProviders,
   type MapCircle,
   type MapCoordinate,
+  type MapMarker,
   type MapPolygon,
   type MapProvider,
   type MunimMapViewRef,
 } from 'munim-maps'
 
 /**
- * Circles and polygons that glide (`animationDuration`), the way Manhunt
- * moves and shrinks its game zones: the props change once a second and the
- * shapes move smoothly in between. The magenta circle jumps (no
- * animationDuration), for comparison. Every fourth second the zone only
- * changes colour, which restyles it in place.
+ * Circles, polygons and markers that glide (`animationDuration`), the way
+ * Manhunt moves and shrinks its game zones: the props change once a second
+ * and the shapes move smoothly in between. The magenta circle and the
+ * magenta dot jump (no animationDuration), for comparison. Every fourth
+ * second the zone only changes colour, which restyles it in place.
+ *
+ * Markers: the bus balloon (`markers`) and the avatar (`MarkerView`) glide
+ * east and back with the zone, level with the magenta dot that jumps; the
+ * bus's title counts the updates (a restyle mid-glide must not restart it).
+ * The two blue arrows show `rotation`: the left one is `flat` (turned
+ * from north, lying on the map: rotate or tilt the map and it turns and
+ * tilts with it), the right one is turned from the screen's up.
+ * "1000 markers" adds a grid of 1000 dots that all glide at once (marker
+ * rendering at scale; clustered with `clusteringId` on "cluster").
  *
  * munimmapsexample://glide/<provider or maplibreweb>[/jump] (/jump: start with animationDuration 0)
  * munimmapsexample://glide/<provider>/check: holds the shapes still, checks
@@ -30,13 +41,14 @@ import {
  */
 
 const CENTER = { latitude: 41.8827, longitude: -87.6233 }
+const ARROW = require('./assets/arrow.png')
 const STEP_MS = 1000
 
 type Engine = MapProvider | 'maplibreweb'
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-export function ShapeGlideScreen({ initial, jump, check, topInset }: { initial?: Engine; jump?: boolean; check?: boolean; topInset: number }) {
+export function ShapeGlideScreen({ initial, jump, check, topInset, onExit }: { initial?: Engine; jump?: boolean; check?: boolean; topInset: number; onExit?: () => void }) {
   const engines = useMemo<Engine[]>(() => {
     const list: Engine[] = installedProviders()
     return list.includes('maplibre') ? [...list, 'maplibreweb'] : list
@@ -46,6 +58,7 @@ export function ShapeGlideScreen({ initial, jump, check, topInset }: { initial?:
   const [animate, setAnimate] = useState(!jump)
   const [tick, setTick] = useState(0)
   const [checkStatus, setCheckStatus] = useState('')
+  const [crowd, setCrowd] = useState<'off' | 'plain' | 'cluster'>('off')
   const map = useRef<MunimMapViewRef>(null)
 
   useEffect(() => {
@@ -132,6 +145,74 @@ export function ShapeGlideScreen({ initial, jump, check, topInset }: { initial?:
     },
   ]
 
+  const east = CENTER.longitude - 0.02 + 0.04 * wave
+  const markers = useMemo<MapMarker[]>(() => {
+    const list: MapMarker[] = [
+      {
+        id: 'bus',
+        coordinate: { latitude: CENTER.latitude - 0.008, longitude: east },
+        style: 'marker',
+        glyph: '🚌',
+        color: '#0A84FF',
+        title: `Bus ${tick}`,
+        titleVisibility: 'visible',
+        animationDuration: duration,
+      },
+      // Rotation: both arrows point the way the bus goes (east, then west
+      // on the way back) and turn 30° more each update. The flat one is
+      // turned from north and lies on the map (rotate or tilt the map: it
+      // turns with it); the other is turned from the screen's up.
+      {
+        id: 'arrow-flat',
+        coordinate: { latitude: CENTER.latitude - 0.014, longitude: east - 0.004 },
+        style: 'image',
+        image: ARROW,
+        size: 32,
+        anchor: { x: 0.5, y: 0.5 },
+        rotation: (phase <= 1 ? 90 : 270) + ((tick * 30) % 360),
+        flat: true,
+        animationDuration: duration,
+      },
+      {
+        id: 'arrow-screen',
+        coordinate: { latitude: CENTER.latitude - 0.014, longitude: east + 0.004 },
+        style: 'image',
+        image: ARROW,
+        size: 32,
+        anchor: { x: 0.5, y: 0.5 },
+        rotation: (phase <= 1 ? 90 : 270) + ((tick * 30) % 360),
+        animationDuration: duration,
+      },
+      {
+        id: 'dot-jumps',
+        coordinate: { latitude: CENTER.latitude - 0.011, longitude: east },
+        style: 'dot',
+        color: '#FF00FF',
+        size: 14,
+      },
+    ]
+    if (crowd !== 'off') {
+      // 40 × 25 dots over the map, each stepping east and back.
+      for (let i = 0; i < 1000; i++) {
+        const row = Math.floor(i / 40)
+        const col = i % 40
+        list.push({
+          id: `crowd-${i}`,
+          coordinate: {
+            latitude: CENTER.latitude - 0.02 + row * 0.0016,
+            longitude: CENTER.longitude - 0.024 + col * 0.0012 + 0.001 * wave,
+          },
+          style: 'dot',
+          size: 8,
+          color: col % 2 ? '#30D158' : '#FF9F0A',
+          clusteringId: crowd === 'cluster' ? 'crowd' : undefined,
+          animationDuration: duration,
+        })
+      }
+    }
+    return list
+  }, [tick, duration, east, crowd, wave, phase])
+
   return (
     <View style={styles.fill}>
       <MunimMapView
@@ -143,9 +224,25 @@ export function ShapeGlideScreen({ initial, jump, check, topInset }: { initial?:
         initialRegion={{ latitude: CENTER.latitude, longitude: CENTER.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
         circles={circles}
         polygons={polygons}
-      />
+        markers={markers}
+      >
+        <MarkerView
+          id="friend"
+          coordinate={{ latitude: CENTER.latitude - 0.0045, longitude: east }}
+          animationDuration={duration}
+        >
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>🧑‍🚀</Text>
+          </View>
+        </MarkerView>
+      </MunimMapView>
       <View style={[styles.panel, { top: topInset + 8 }]}>
         <View style={styles.row}>
+          {onExit ? (
+            <Pressable onPress={onExit} style={styles.chip}>
+              <Text style={styles.label}>‹ Back</Text>
+            </Pressable>
+          ) : null}
           {engines.map((p) => (
             <Pressable key={p} onPress={() => setEngine(p)} style={[styles.chip, p === engine && styles.on]}>
               <Text style={[styles.label, p === engine && styles.onLabel]}>{p}</Text>
@@ -155,6 +252,14 @@ export function ShapeGlideScreen({ initial, jump, check, topInset }: { initial?:
         <View style={styles.row}>
           <Pressable onPress={() => setAnimate((a) => !a)} style={[styles.chip, animate && styles.on]}>
             <Text style={[styles.label, animate && styles.onLabel]}>{animate ? `animationDuration ${STEP_MS}` : 'animationDuration 0'}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setCrowd((c) => (c === 'off' ? 'plain' : c === 'plain' ? 'cluster' : 'off'))}
+            style={[styles.chip, crowd !== 'off' && styles.on]}
+          >
+            <Text style={[styles.label, crowd !== 'off' && styles.onLabel]}>
+              {crowd === 'off' ? '1000 markers' : crowd === 'plain' ? '1000 markers ✓' : '1000 markers, cluster'}
+            </Text>
           </Pressable>
           <Text style={styles.status}>update {tick}{checkStatus ? ` · ${checkStatus}` : ''}</Text>
         </View>
@@ -171,5 +276,7 @@ const styles = StyleSheet.create({
   on: { backgroundColor: '#0A84FF' },
   label: { fontSize: 13, fontWeight: '600', color: '#111' },
   onLabel: { color: '#fff' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', borderWidth: 3, borderColor: '#0A84FF', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 24 },
   status: { fontSize: 13, fontWeight: '600', color: '#111', backgroundColor: 'rgba(255,255,255,0.92)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
 })
