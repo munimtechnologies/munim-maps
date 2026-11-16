@@ -2,19 +2,21 @@ const assert = require('node:assert/strict')
 const path = require('node:path')
 const { test } = require('node:test')
 
-const { cluster } = require(path.join(__dirname, '../maplibre/page/munim-maplibre/js/screen-clusters.js'))
+const { cluster } = require(
+  path.join(__dirname, '../maplibre/page/munim-maplibre/js/screen-clusters.js')
+)
 
 /** The double loop the GL JS page used before: every pair compared. */
-function naive(points, radius) {
-  const used = new Array(points.length).fill(false)
+function naive(list, radius) {
+  const used = new Array(list.length).fill(false)
   const groups = []
-  for (let a = 0; a < points.length; a++) {
+  for (let a = 0; a < list.length; a++) {
     if (used[a]) continue
     used[a] = true
     const members = [a]
-    for (let b = 0; b < points.length; b++) {
+    for (let b = 0; b < list.length; b++) {
       if (used[b]) continue
-      if (Math.hypot(points[a].x - points[b].x, points[a].y - points[b].y) < radius) {
+      if (Math.hypot(list[a].x - list[b].x, list[a].y - list[b].y) < radius) {
         used[b] = true
         members.push(b)
       }
@@ -27,8 +29,11 @@ function naive(points, radius) {
 /** Deterministic pseudo-random points on a screen. */
 function points(count, width, height, seed) {
   let s = seed
-  const next = () => ((s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296)
-  return Array.from({ length: count }, () => ({ x: next() * width, y: next() * height }))
+  const next = () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296
+  return Array.from({ length: count }, () => ({
+    x: next() * width,
+    y: next() * height,
+  }))
 }
 
 test('the grid gives the same clusters as comparing every pair', () => {
@@ -66,6 +71,8 @@ test('clustering 5000 markers is fast (grid vs every pair)', () => {
   time(() => naive(p, 44))
   const grid = Math.min(...[0, 1, 2].map(() => time(() => cluster(p, 44))))
   const pairs = Math.min(...[0, 1, 2].map(() => time(() => naive(p, 44))))
-  console.log(`# 5000 markers: grid ${grid.toFixed(1)} ms, every pair ${pairs.toFixed(1)} ms`)
+  console.log(
+    `# 5000 markers: grid ${grid.toFixed(1)} ms, every pair ${pairs.toFixed(1)} ms`
+  )
   assert.ok(grid < pairs, `grid ${grid} ms should beat every pair ${pairs} ms`)
 })

@@ -49,9 +49,14 @@ export function createNativeList<T, N>(
  */
 export function sameNative(a: unknown, b: unknown): boolean {
   if (a === b) return true
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+  if (
+    typeof a !== 'object' ||
+    typeof b !== 'object' ||
+    a === null ||
+    b === null
+  ) {
     // NaN equals NaN here: the same value for the map.
-    return a !== a && b !== b
+    return Number.isNaN(a) && Number.isNaN(b)
   }
   if (Array.isArray(a)) {
     if (!Array.isArray(b) || a.length !== b.length) return false

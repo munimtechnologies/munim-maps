@@ -1073,9 +1073,7 @@ export const MunimMapView = forwardRef<MunimMapViewRef, MunimMapViewProperties>(
     // Inline objects (`mapPadding={{ bottom: 80 }}`) stay the same value
     // while equal: each new one reached the map, and MapKit laid out and
     // redrew the 3D layer for it, on every render.
-    const initialCamera = useStable(
-      props.initialCamera ?? regionCamera.current
-    )
+    const initialCamera = useStable(props.initialCamera ?? regionCamera.current)
     const cameraBoundary = useStable(props.cameraBoundary ?? NO_REGION)
     const mapPadding = useStable(insets(props.mapPadding))
     const hybridRef = useMemo(

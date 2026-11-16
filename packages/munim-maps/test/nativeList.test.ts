@@ -21,7 +21,10 @@ const { toNativeMarker } = await import('../src/features.ts')
 const markers = (count: number, moved = -1): MapMarker[] =>
   Array.from({ length: count }, (_, i) => ({
     id: `m${i}`,
-    coordinate: { latitude: 41 + i * 1e-4 + (i === moved ? 0.01 : 0), longitude: -87 },
+    coordinate: {
+      latitude: 41 + i * 1e-4 + (i === moved ? 0.01 : 0),
+      longitude: -87,
+    },
     title: `Marker ${i}`,
     color: 'tomato',
     badges: [{ text: String(i % 9) }],

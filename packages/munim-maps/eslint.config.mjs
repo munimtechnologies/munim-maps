@@ -17,6 +17,14 @@ export default [
     ],
   },
   ...reactNative,
+  {
+    // No Flow here, and eslint-plugin-ft-flow 2 (React Native's) still
+    // calls ESLint 8's context.getAllComments.
+    rules: {
+      'ft-flow/define-flow-type': 'off',
+      'ft-flow/use-flow-type': 'off',
+    },
+  },
   prettierRecommended,
   {
     rules: {

@@ -38,7 +38,11 @@ const path = require('path')
 const MAPLIBRE_GL_VERSION = '5.24.1'
 const THREE_VERSION = '0.187.0'
 
-const MAPLIBRE_FILES = ['dist/maplibre-gl.js', 'dist/maplibre-gl.css', 'LICENSE.txt']
+const MAPLIBRE_FILES = [
+  'dist/maplibre-gl.js',
+  'dist/maplibre-gl.css',
+  'LICENSE.txt',
+]
 const THREE_FILES = [
   'build/three.module.js',
   'build/three.core.js',
@@ -68,7 +72,9 @@ function args(argv) {
 function packageDir(name, explicit, root) {
   if (explicit) return path.resolve(explicit)
   try {
-    return path.dirname(require.resolve(`${name}/package.json`, { paths: [root] }))
+    return path.dirname(
+      require.resolve(`${name}/package.json`, { paths: [root] })
+    )
   } catch {
     return undefined
   }
@@ -76,7 +82,8 @@ function packageDir(name, explicit, root) {
 
 function version(dir) {
   try {
-    return JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).version
+    return JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
+      .version
   } catch {
     return undefined
   }
@@ -85,7 +92,11 @@ function version(dir) {
 /** The app's `maplibre-gl` (required) and `three` (optional) packages. */
 function resolvePackages(options) {
   const root = path.resolve(options.root || process.cwd())
-  const maplibreDir = packageDir('maplibre-gl', options.maplibreDir || process.env.MUNIM_MAPS_MAPLIBRE_GL_DIR, root)
+  const maplibreDir = packageDir(
+    'maplibre-gl',
+    options.maplibreDir || process.env.MUNIM_MAPS_MAPLIBRE_GL_DIR,
+    root
+  )
   if (!maplibreDir) {
     throw new Error(
       'bundling MapLibre GL JS (maplibre: { bundledWeb: true }, munimMaps.maplibreBundled, ' +
@@ -93,24 +104,42 @@ function resolvePackages(options) {
         `npm install maplibre-gl@${MAPLIBRE_GL_VERSION} (resolved from ${root})`
     )
   }
-  const maplibre = { dir: maplibreDir, version: version(maplibreDir), pinned: MAPLIBRE_GL_VERSION }
-  if (!fs.existsSync(path.join(maplibreDir, 'dist', 'maplibre-gl.js'))) {
-    throw new Error(`no dist/maplibre-gl.js in ${maplibreDir} (maplibre-gl@${maplibre.version}; GL JS 6 is ES modules only, use ${MAPLIBRE_GL_VERSION})`)
+  const maplibre = {
+    dir: maplibreDir,
+    version: version(maplibreDir),
+    pinned: MAPLIBRE_GL_VERSION,
   }
-  const threeDir = packageDir('three', options.threeDir || process.env.MUNIM_MAPS_THREE_DIR, root)
-  const three = threeDir ? { dir: threeDir, version: version(threeDir), pinned: THREE_VERSION } : undefined
+  if (!fs.existsSync(path.join(maplibreDir, 'dist', 'maplibre-gl.js'))) {
+    throw new Error(
+      `no dist/maplibre-gl.js in ${maplibreDir} (maplibre-gl@${maplibre.version}; GL JS 6 is ES modules only, use ${MAPLIBRE_GL_VERSION})`
+    )
+  }
+  const threeDir = packageDir(
+    'three',
+    options.threeDir || process.env.MUNIM_MAPS_THREE_DIR,
+    root
+  )
+  const three = threeDir
+    ? { dir: threeDir, version: version(threeDir), pinned: THREE_VERSION }
+    : undefined
   return { maplibre, three }
 }
 
 function warnings(found) {
   const out = []
   if (found.maplibre.version !== MAPLIBRE_GL_VERSION) {
-    out.push(`the app's maplibre-gl is ${found.maplibre.version}, but munim-maps' GL JS renderer is written for and tested with ${MAPLIBRE_GL_VERSION} (the version it loads from jsDelivr). Pin "maplibre-gl": "${MAPLIBRE_GL_VERSION}" in package.json.`)
+    out.push(
+      `the app's maplibre-gl is ${found.maplibre.version}, but munim-maps' GL JS renderer is written for and tested with ${MAPLIBRE_GL_VERSION} (the version it loads from jsDelivr). Pin "maplibre-gl": "${MAPLIBRE_GL_VERSION}" in package.json.`
+    )
   }
   if (!found.three) {
-    out.push(`no \`three\` package in the app: the 3D layer will load three.js ${THREE_VERSION} from jsDelivr (npm install three@${THREE_VERSION} to bundle it too).`)
+    out.push(
+      `no \`three\` package in the app: the 3D layer will load three.js ${THREE_VERSION} from jsDelivr (npm install three@${THREE_VERSION} to bundle it too).`
+    )
   } else if (found.three.version !== THREE_VERSION) {
-    out.push(`the app's three is ${found.three.version}, but munim-maps' 3D layer is written for and tested with ${THREE_VERSION}. Pin "three": "${THREE_VERSION}" in package.json.`)
+    out.push(
+      `the app's three is ${found.three.version}, but munim-maps' 3D layer is written for and tested with ${THREE_VERSION}. Pin "three": "${THREE_VERSION}" in package.json.`
+    )
   }
   return out
 }
@@ -138,8 +167,14 @@ function copy(found, dest) {
   fs.rmSync(dest, { recursive: true, force: true })
   fs.mkdirSync(dest, { recursive: true })
   // BSD-3-Clause and MIT: the licences travel with the code.
-  copyFiles(found.maplibre.dir, MAPLIBRE_FILES, path.join(dest, 'maplibre-gl'), true)
-  if (found.three) copyFiles(found.three.dir, THREE_FILES, path.join(dest, 'three'), false)
+  copyFiles(
+    found.maplibre.dir,
+    MAPLIBRE_FILES,
+    path.join(dest, 'maplibre-gl'),
+    true
+  )
+  if (found.three)
+    copyFiles(found.three.dir, THREE_FILES, path.join(dest, 'three'), false)
   fs.writeFileSync(path.join(dest, 'VERSION'), `${stamp}\n`)
   console.log(`munim-maps: copied ${stamp} into ${dest}`)
 }
@@ -150,10 +185,13 @@ if (require.main === module) {
     const found = resolvePackages(options)
     const warning = warnings(found)
     if (options.resolve) {
-      console.log(JSON.stringify({ ...found, warning: warning.join(' ') || undefined }))
+      console.log(
+        JSON.stringify({ ...found, warning: warning.join(' ') || undefined })
+      )
     } else {
       if (!options.dest) throw new Error('--dest <folder> is required')
-      if (options.warn) for (const w of warning) console.error(`warning: munim-maps: ${w}`)
+      if (options.warn)
+        for (const w of warning) console.error(`warning: munim-maps: ${w}`)
       copy(found, options.dest)
     }
   } catch (error) {
@@ -162,4 +200,10 @@ if (require.main === module) {
   }
 }
 
-module.exports = { MAPLIBRE_GL_VERSION, THREE_VERSION, resolvePackages, warnings, copy }
+module.exports = {
+  MAPLIBRE_GL_VERSION,
+  THREE_VERSION,
+  resolvePackages,
+  warnings,
+  copy,
+}
