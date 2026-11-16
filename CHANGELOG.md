@@ -11,7 +11,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
-- Dependencies: React Native 0.88.1, React 19.3.1, Nitro Modules / nitrogen 0.37.2, Expo SDK 58.0.25 in the example, ESLint 9 (flat config), Prettier 3.10. Engine SDKs: Mapbox Android 11.35.0, MapLibre Android 13.7.1, Google Maps for Android 20.1.0, Google Maps Android Utils 4.5.2, Maps 3D SDK for Android 16.0.1 (GA), CesiumJS 1.147.0, MapLibre GL JS 5.24.1, three.js 0.187.0. Android `compileSdk` 37 and lint/test `targetSdk` 37.
+- Dependencies: React Native 0.88.1, React 19.3.1, Nitro Modules / nitrogen 0.37.2, Expo SDK 58.0.25 in the example, ESLint 9 (flat config), Prettier 3.10. Engine SDKs: Mapbox Android 11.35.0, MapLibre Android 13.7.1, Google Maps for Android 20.1.0, Google Maps Android Utils 4.5.2, Maps 3D SDK for Android 0.2.2, CesiumJS 1.147.0, MapLibre GL JS 5.24.1, three.js 0.187.0. Android `compileSdk` 37 and lint/test `targetSdk` 37.
 - `MarkerView` on Android keeps its picture when only its props change (a new coordinate, title, anchor), as iOS does since 0.8.1: a marker that moves every second no longer draws its children four times per update.
 
 ### Performance
@@ -25,7 +25,7 @@ All notable changes to this project are documented in this file. The format is b
 ### Fixed
 
 - `MarkerView`s stay on the map when the engine changes (a new `provider`, or MapLibre switching renderer); they used to vanish until their props changed.
-- Android, Google's 3D map: built against the Maps 3D SDK 16 API (`Map3DInitConfig`, the click listener's `Map3DClickEvent`).
+- Android, Google's 3D map: built against the Maps 3D SDK 0.2.2 API (`Map3DInitConfig`; `Map3DOptions` is gone).
 
 ## [0.8.1] - 2026-11-06
 

@@ -58,7 +58,7 @@ class GoogleMap3DMode(
   private val host: Google3DHost,
   initialCamera: MapCamera?,
 ) : Google3DMode {
-  // Maps 3D SDK 16 dropped `Map3DView(context)` with `Map3DOptions`; the
+  // Maps 3D SDK 0.2.2 dropped `Map3DView(context)` with `Map3DOptions`; the
   // view starts from `Map3DInitConfig` (the camera and mode are set once the
   // map is ready, as before).
   private val mapView = Map3DView(context, Map3DInitConfig.create())
@@ -139,13 +139,10 @@ class GoogleMap3DMode(
           knownCamera?.let { host.cameraChanged(munim(it), true) }
           host.emit("cameraAnimationEnd", GOut.obj())
         }
-        // SDK 16: the listener gets a `Map3DClickEvent` and returns whether
-        // it handled the tap; `true` keeps Google's own place details card
-        // closed, as munim-maps reports the tap (`onPress`, `placeId`).
-        googleMap3D.setMap3DClickListener { event ->
-          @Suppress("USELESS_ELVIS") val location = event.location ?: return@setMap3DClickListener false
-          host.press(location.latitude, location.longitude, event.placeId)
-          true
+        // SDK 16 passes a `Map3DClickEvent` (and returns whether the tap
+        // was handled) instead; adopt it with SDK 16, see build.gradle.
+        googleMap3D.setMap3DClickListener { location, placeId ->
+          host.press(location.latitude, location.longitude, placeId)
         }
         applyOptions()
       }

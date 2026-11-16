@@ -83,10 +83,10 @@ def munimMapsVersions = [
   maplibre    : project.findProperty("munimMaps.maplibreVersion") ?: "13.7.1",
   googleMaps  : project.findProperty("munimMaps.googleMapsVersion") ?: "20.1.0",
   googleMapsUtils: project.findProperty("munimMaps.googleMapsUtilsVersion") ?: "4.5.2",
-  // Maps 3D SDK 16 (GA) is built with Kotlin 2.3, which React Native 0.88's
-  // Kotlin 2.2 reads. Utils 5+ (Kotlin 2.4 metadata, split into modules) needs
-  // a Kotlin 2.4 compiler, so the Utils stay on 4.x for now.
-  googleMaps3d: project.findProperty("munimMaps.googleMaps3dVersion") ?: "16.0.1",
+  // 0.2.2 is the newest Maps 3D SDK whose Kotlin metadata (2.3) React
+  // Native 0.88's Kotlin 2.2 compiler reads; 16.x (GA) carries 2.4 metadata.
+  // Likewise Utils 5+ (Kotlin 2.4, split into modules) stays out: Utils 4.x.
+  googleMaps3d: project.findProperty("munimMaps.googleMaps3dVersion") ?: "0.2.2",
   mapbox      : project.findProperty("munimMaps.mapboxVersion") ?: "11.35.0",
 ]
 
