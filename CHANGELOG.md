@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-16
+
 ### Added
 
 - `animationDuration` on markers and `MarkerView`s: a marker glides to its new `coordinate` over that many milliseconds, drawn natively every frame, on every engine (MapKit, Google Maps, Mapbox, MapLibre, MapLibre GL JS and Cesium, iOS and Android), like react-native-maps' `animateMarkerToCoordinate`. A new coordinate mid-glide starts from where the marker is drawn; the same props again carry on; everything but the position changes at once. MapKit and Google Maps move the marker in place each frame (no new picture, clusters again when the glide ends); Mapbox and MapLibre Native get the markers once a frame; Cesium and MapLibre GL JS glide on their page. Swift: `MunimMapContainerView.setMarkers` / `setViewMarker` and the SwiftUI `MunimMap` glide too (`MunimMarkerTransitions`). The example's Glide screen (Engines › Glide) shows a gliding balloon, a gliding `MarkerView` and 1000 gliding dots.
