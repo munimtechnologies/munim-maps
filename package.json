@@ -5,6 +5,10 @@
     "packages/*",
     "example"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/munimtechnologies/munim-maps.git"
+  },
   "scripts": {
     "build": "npm --workspace munim-maps run build",
     "codegen": "npm --workspace munim-maps run codegen",
@@ -20,6 +24,18 @@
     "check:vehicles": "npm --workspace munim-maps-vehicles run check",
     "check:cesium": "node scripts/cesium/check-version.mjs",
     "check:maplibre": "node scripts/maplibre/check-version.mjs",
-    "vehicles:catalogue": "node scripts/vehicles/write-catalogue.mjs"
+    "vehicles:catalogue": "node scripts/vehicles/write-catalogue.mjs",
+    "release": "semantic-release",
+    "release:local": "node scripts/release-local.mjs"
+  },
+  "devDependencies": {
+    "@semantic-release/git": "^11.0.1",
+    "conventional-changelog-conventionalcommits": "^10.4.1",
+    "semantic-release": "^26.0.1"
+  },
+  "overrides": {
+    "@semantic-release/npm": {
+      "npm": "npm:@semantic-release/error@4.0.0"
+    }
   }
 }
